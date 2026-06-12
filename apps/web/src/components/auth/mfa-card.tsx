@@ -9,7 +9,7 @@ import { AuthService } from "../../services/auth.service";
 
 export const MfaCard: React.FC = () => {
   const router = useRouter();
-  const { tempSession, setDeviceDetails } = useAuthStore();
+  const { tempSession, setDeviceDetails, setAuthSession } = useAuthStore();
   const [code, setCode] = React.useState<string[]>(Array(6).fill(""));
   const [singleCode, setSingleCode] = React.useState("");
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
@@ -83,11 +83,15 @@ export const MfaCard: React.FC = () => {
       const res = await AuthService.verifyMFA(mfaCode, tempSession.challengeId);
       
       if (res.unknownDevice && res.deviceDetails) {
-        // Log unrecognized device credentials and redirect to warning modal
         setDeviceDetails(res.deviceDetails);
         router.push("/new-device");
+      } else if (res.success && res.token) {
+        setAuthSession({
+          accessToken: res.token,
+          role: res.role ?? "EMPLOYEE",
+        });
+        router.push(res.redirectPath ?? "/employee");
       } else {
-        // Login completed successfully
         router.push("/employee");
       }
     } catch (err: any) {

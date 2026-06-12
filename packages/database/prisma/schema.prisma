@@ -1,9 +1,5 @@
-// Naprocs EMS — Prisma Schema Skeleton
-// All models defined upfront for all three phases.
-// Phase 1 migrations: 0001_p1_ prefix
-// Phase 2 migrations: 0020_p2_ prefix
-// Phase 3 migrations: 0040_p3_ prefix
-// DO NOT implement field types yet. Skeleton only.
+// Naprocs EMS — Prisma Schema
+// P1 migrations: 0001_p1_* | P2: 0020_p2_* | P3: 0040_p3_*
 
 generator client {
   provider = "prisma-client-js"
@@ -15,626 +11,350 @@ datasource db {
 }
 
 // ─────────────────────────────────────────
-// PHASE 1 MODELS
+// P1 AUTH & RBAC
 // ─────────────────────────────────────────
 
+enum UserRole {
+  SUPER_ADMIN
+  CEO
+  CTO
+  COO
+  CFO
+  CHRO
+  HR
+  FINANCE
+  MANAGER
+  TEAM_LEAD
+  EMPLOYEE
+  IT
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
 model Employee {
-  // id
-  // employeeId
-  // firstName
-  // middleName
-  // lastName
-  // preferredName
-  // officialEmail
-  // personalEmail
-  // phone (AES-256-GCM encrypted)
-  // aadhaar (AES-256-GCM encrypted)
-  // pan (AES-256-GCM encrypted)
-  // passport (AES-256-GCM encrypted)
-  // dateOfBirth
-  // gender
-  // bloodGroup
-  // nationality
-  // maritalStatus
-  // currentAddress
-  // permanentAddress
-  // emergencyContact
-  // departmentId -> Department
-  // designationId -> Designation
-  // reportingManagerId -> Employee (self-relation)
-  // skipLevelManagerId -> Employee (self-relation)
-  // workLocation
-  // employeeType
-  // grade
-  // band
-  // joiningDate
-  // status
-  // exitDate
-  // exitReason
-  // backgroundVerified
-  // digitalSignature
-  // photoUrl
-  // searchVector (pg_trgm tsvector)
-  // createdAt
-  // updatedAt
-}
+  id            String   @id @default(cuid())
+  employeeId    String   @unique
+  firstName     String
+  lastName      String
+  officialEmail String   @unique
+  departmentId  String?
+  designation   String?
+  status        String   @default("ACTIVE")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User?
 
-model Department {
-  // id
-  // name
-  // code
-  // headId -> Employee
-  // parentDepartmentId -> Department (self-relation)
-  // createdAt
-  // updatedAt
-}
-
-model Designation {
-  // id
-  // title
-  // departmentId -> Department
-  // grade
-  // band
-  // createdAt
+  @@map("employees")
 }
 
 model User {
-  // id
-  // employeeId -> Employee
-  // email
-  // passwordHash
-  // isActive
-  // lastLoginAt
-  // createdAt
-}
+  id           String     @id @default(cuid())
+  employeeId   String?    @unique
+  employee     Employee?  @relation(fields: [employeeId], references: [id])
+  email        String     @unique
+  passwordHash String
+  role         UserRole   @default(EMPLOYEE)
+  status       UserStatus @default(ACTIVE)
+  totpSecret   String?
+  lastLoginAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  devices      Device[]
 
-model Session {
-  // id
-  // userId -> User
-  // deviceId -> Device
-  // token (Redis key reference)
-  // ipAddress
-  // userAgent
-  // expiresAt
-  // createdAt
+  @@map("users")
 }
 
 model Device {
-  // id
-  // userId -> User
-  // fingerprint
-  // name
-  // isTrusted
-  // trustedAt
-  // lastSeenAt
-  // createdAt
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fingerprint String
+  name        String?
+  isTrusted   Boolean   @default(false)
+  trustedAt   DateTime?
+  lastSeenAt  DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, fingerprint])
+  @@map("devices")
+}
+
+// ─────────────────────────────────────────
+// P1 SKELETON MODELS (fields added per phase)
+// ─────────────────────────────────────────
+
+model Department {
+  id String @id @default(cuid())
+
+  @@map("departments")
+}
+
+model Designation {
+  id String @id @default(cuid())
+
+  @@map("designations")
+}
+
+model Session {
+  id String @id @default(cuid())
+
+  @@map("sessions")
 }
 
 model OTPVerification {
-  // id
-  // userId -> User
-  // code (hashed)
-  // type (EMAIL_OTP | TOTP)
-  // expiresAt
-  // usedAt
-  // createdAt
+  id String @id @default(cuid())
+
+  @@map("otp_verifications")
 }
 
 model AttendanceRecord {
-  // id
-  // employeeId -> Employee
-  // date
-  // checkInTime
-  // checkOutTime
-  // workHours
-  // overtime
-  // status
-  // checkInMethod
-  // ipAddress
-  // isRegularized
-  // regularizedBy -> Employee
-  // notes
-  // createdAt
+  id String @id @default(cuid())
+
+  @@map("attendance_records")
 }
 
 model LeaveType {
-  // id
-  // name
-  // code
-  // maxDays
-  // isCarryForwardAllowed
-  // maxCarryForwardDays
-  // isPaidLeave
-  // createdAt
+  id String @id @default(cuid())
+
+  @@map("leave_types")
 }
 
 model LeaveBalance {
-  // id
-  // employeeId -> Employee
-  // leaveTypeId -> LeaveType
-  // year
-  // allocated
-  // used
-  // pending
-  // remaining
-  // updatedAt
+  id String @id @default(cuid())
+
+  @@map("leave_balances")
 }
 
 model LeaveRequest {
-  // id
-  // employeeId -> Employee
-  // leaveTypeId -> LeaveType
-  // startDate
-  // endDate
-  // totalDays
-  // reason
-  // status
-  // appliedAt
-  // approverId -> Employee
-  // approvedAt
-  // rejectionReason
-  // workflowId -> Workflow
+  id String @id @default(cuid())
+
+  @@map("leave_requests")
 }
 
 model Asset {
-  // id
-  // assetTag
-  // name
-  // category (LAPTOP | DESKTOP | MOBILE | SIM | ACCESS_CARD | LICENSE | OTHER)
-  // brand
-  // model
-  // serialNumber
-  // purchaseDate
-  // purchaseCost
-  // status (AVAILABLE | ASSIGNED | LOST | DAMAGED | RETIRED)
-  // assignedTo -> Employee
-  // assignedAt
-  // returnedAt
-  // notes
-  // createdAt
-  // updatedAt
+  id String @id @default(cuid())
+
+  @@map("assets")
 }
 
 model AssetAssignment {
-  // id
-  // assetId -> Asset
-  // employeeId -> Employee
-  // assignedAt
-  // returnedAt
-  // returnedCondition
-  // assignedBy -> Employee
-  // notes
+  id String @id @default(cuid())
+
+  @@map("asset_assignments")
 }
 
 model Notification {
-  // id
-  // recipientId -> Employee
-  // type
-  // title
-  // body
-  // data (JSON)
-  // isRead
-  // readAt
-  // createdAt
+  id String @id @default(cuid())
+
+  @@map("notifications")
 }
 
 model Workflow {
-  // id
-  // name
-  // type (LEAVE | ASSET_REQUEST | RECRUITMENT | PROMOTION | OFFBOARDING)
-  // steps (JSON - array of step definitions)
-  // isActive
-  // createdAt
-  // updatedAt
+  id String @id @default(cuid())
+
+  @@map("workflows")
 }
 
 model WorkflowInstance {
-  // id
-  // workflowId -> Workflow
-  // resourceType
-  // resourceId
-  // currentStepIndex
-  // status (PENDING | IN_PROGRESS | APPROVED | REJECTED | CANCELLED)
-  // initiatedBy -> Employee
-  // createdAt
-  // updatedAt
+  id String @id @default(cuid())
+
+  @@map("workflow_instances")
 }
 
 model KnowledgeDoc {
-  // id
-  // title
-  // slug
-  // category (POLICY | SOP | ARCHITECTURE | HR_GUIDELINES | TRAINING)
-  // content
-  // authorId -> Employee
-  // isPublished
-  // publishedAt
-  // createdAt
-  // updatedAt
+  id String @id @default(cuid())
+
+  @@map("knowledge_docs")
 }
 
 model AuditLog {
-  // id (append-only — NEVER update or delete)
-  // actorId -> Employee
-  // action
-  // resource
-  // resourceId
-  // oldValue (JSON)
-  // newValue (JSON)
-  // ipAddress
-  // deviceId
-  // userAgent
-  // requestId
-  // performedAt
+  id String @id @default(cuid())
+
+  @@map("audit_logs")
 }
 
 model ConsentLog {
-  // id
-  // employeeId -> Employee
-  // purpose
-  // consentedAt
-  // revokedAt
-  // collectedBy -> Employee
-  // ipAddress
-  // notes
+  id String @id @default(cuid())
+
+  @@map("consent_logs")
 }
 
 model DataErasureRequest {
-  // id
-  // employeeId -> Employee
-  // requestedAt
-  // requestedBy -> Employee
-  // status (PENDING | APPROVED | PROCESSING | COMPLETED | REJECTED)
-  // approvedBy -> Employee
-  // approvedAt
-  // processedAt
-  // fieldsErased (JSON)
-  // notes
+  id String @id @default(cuid())
+
+  @@map("data_erasure_requests")
 }
 
 model GrievanceCase {
-  // id
-  // employeeId -> Employee
-  // description
-  // officerId -> Employee (grievance officer)
-  // status (OPEN | IN_PROGRESS | RESOLVED | CLOSED)
-  // resolution
-  // openedAt
-  // resolvedAt
+  id String @id @default(cuid())
+
+  @@map("grievance_cases")
 }
 
 model AppSetting {
-  // id
-  // key
-  // value
-  // category
-  // updatedBy -> Employee
-  // updatedAt
+  id String @id @default(cuid())
+
+  @@map("app_settings")
 }
 
 // ─────────────────────────────────────────
-// PHASE 2 MODELS
+// PHASE 2 SKELETON MODELS
 // ─────────────────────────────────────────
 
 model SalaryStructure {
-  // id
-  // employeeId -> Employee
-  // ctc
-  // basic
-  // hra
-  // specialAllowance
-  // pfEligible
-  // esiEligible
-  // effectiveFrom
-  // createdBy -> Employee
-  // createdAt
+  id String @id @default(cuid())
+
+  @@map("salary_structures")
 }
 
 model PayrollRun {
-  // id
-  // month
-  // year
-  // status (PENDING | PROCESSING | COMPLETED | FAILED)
-  // startedAt
-  // completedAt
-  // failedAt
-  // failureReason
-  // processedCount
-  // totalAmount
-  // bankFileName
-  // initiatedBy -> Employee
-  // @@unique([month, year]) — prevents double run
+  id String @id @default(cuid())
+
+  @@map("payroll_runs")
 }
 
 model PayrollLineItem {
-  // id
-  // payrollRunId -> PayrollRun
-  // employeeId -> Employee
-  // grossSalary
-  // basicSalary
-  // hra
-  // specialAllowance
-  // pfEmployee
-  // pfEmployer
-  // esi
-  // professionalTax
-  // tds
-  // totalDeductions
-  // netSalary
-  // bankAccount (AES encrypted)
-  // ifscCode
-  // status (PENDING | PROCESSED | FAILED)
-  // payslipUrl
+  id String @id @default(cuid())
+
+  @@map("payroll_line_items")
 }
 
 model Reimbursement {
-  // id
-  // employeeId -> Employee
-  // category
-  // amount
-  // description
-  // receiptUrl
-  // status (PENDING | APPROVED | REJECTED | PAID)
-  // approverId -> Employee
-  // payrollRunId -> PayrollRun
-  // createdAt
+  id String @id @default(cuid())
+
+  @@map("reimbursements")
 }
 
 model Job {
-  // id
-  // title
-  // departmentId -> Department
-  // hiringManagerId -> Employee
-  // jobDescription
-  // requiredSkills (JSON array)
-  // minExperience
-  // maxExperience
-  // ctcMin
-  // ctcMax
-  // openPositions
-  // filledPositions
-  // status (DRAFT | OPEN | CLOSED | ON_HOLD)
-  // targetDate
-  // createdAt
+  id String @id @default(cuid())
+
+  @@map("jobs")
 }
 
 model Candidate {
-  // id
-  // jobId -> Job
-  // name
-  // email
-  // phone
-  // resumeUrl
-  // currentStage (APPLIED | SCREENING | INTERVIEW | OFFER | JOINED | REJECTED)
-  // sourceChannel
-  // skills (JSON array)
-  // currentCTC
-  // expectedCTC
-  // noticePeriod
-  // appliedAt
-  // updatedAt
+  id String @id @default(cuid())
+
+  @@map("candidates")
 }
 
 model Interview {
-  // id
-  // candidateId -> Candidate
-  // jobId -> Job
-  // interviewerId -> Employee
-  // scheduledAt
-  // type (PHONE | VIDEO | IN_PERSON | TECHNICAL | HR)
-  // status (SCHEDULED | COMPLETED | CANCELLED | NO_SHOW)
-  // feedback
-  // rating
-  // recommendation (STRONG_YES | YES | NO | STRONG_NO)
-  // completedAt
+  id String @id @default(cuid())
+
+  @@map("interviews")
 }
 
 model Offer {
-  // id
-  // candidateId -> Candidate
-  // jobId -> Job
-  // offeredCTC
-  // joiningDate
-  // status (DRAFT | SENT | ACCEPTED | REJECTED | EXPIRED)
-  // offerLetterUrl
-  // sentAt
-  // respondedAt
-  // expiresAt
+  id String @id @default(cuid())
+
+  @@map("offers")
 }
 
 model Goal {
-  // id
-  // employeeId -> Employee
-  // title
-  // description
-  // type (OKR | KPI | PERSONAL)
-  // weight
-  // targetValue
-  // currentValue
-  // unit
-  // dueDate
-  // status (NOT_STARTED | IN_PROGRESS | COMPLETED | MISSED)
-  // reviewCycleId -> ReviewCycle
-  // createdAt
+  id String @id @default(cuid())
+
+  @@map("goals")
 }
 
 model ReviewCycle {
-  // id
-  // name
-  // type (QUARTERLY | HALF_YEARLY | ANNUAL)
-  // year
-  // quarter
-  // startDate
-  // endDate
-  // status (UPCOMING | ACTIVE | COMPLETED)
-  // createdAt
+  id String @id @default(cuid())
+
+  @@map("review_cycles")
 }
 
 model PerformanceReview {
-  // id
-  // employeeId -> Employee
-  // reviewCycleId -> ReviewCycle
-  // reviewerId -> Employee
-  // type (SELF | MANAGER | PEER | SKIP_LEVEL)
-  // status (PENDING | SUBMITTED | ACKNOWLEDGED)
-  // overallRating
-  // feedback
-  // submittedAt
-  // acknowledgedAt
+  id String @id @default(cuid())
+
+  @@map("performance_reviews")
 }
 
 model Skill {
-  // id
-  // name
-  // category (TECHNICAL | SOFT | LEADERSHIP | DOMAIN)
-  // subcategory
-  // createdAt
+  id String @id @default(cuid())
+
+  @@map("skills")
 }
 
 model EmployeeSkill {
-  // id
-  // employeeId -> Employee
-  // skillId -> Skill
-  // proficiencyLevel (BEGINNER | INTERMEDIATE | ADVANCED | EXPERT)
-  // yearsOfExperience
-  // isVerified
-  // verifiedBy -> Employee
-  // updatedAt
+  id String @id @default(cuid())
+
+  @@map("employee_skills")
 }
 
 model Course {
-  // id
-  // title
-  // description
-  // category
-  // provider
-  // durationHours
-  // courseUrl
-  // isInternal
-  // isActive
-  // createdAt
+  id String @id @default(cuid())
+
+  @@map("courses")
 }
 
 model Enrollment {
-  // id
-  // employeeId -> Employee
-  // courseId -> Course
-  // enrolledAt
-  // completedAt
-  // progressPercent
-  // status (ENROLLED | IN_PROGRESS | COMPLETED | DROPPED)
-  // certificateUrl
+  id String @id @default(cuid())
+
+  @@map("enrollments")
 }
 
 model Survey {
-  // id
-  // title
-  // type (PULSE | MOOD | EXIT | ONBOARDING | CUSTOM)
-  // questions (JSON array)
-  // targetAudience (ALL | DEPARTMENT | TEAM)
-  // isAnonymous
-  // createdBy -> Employee
-  // startDate
-  // endDate
-  // status (DRAFT | ACTIVE | CLOSED)
+  id String @id @default(cuid())
+
+  @@map("surveys")
 }
 
 model SurveyResponse {
-  // id
-  // surveyId -> Survey
-  // respondentId -> Employee (null if anonymous)
-  // answers (JSON)
-  // submittedAt
+  id String @id @default(cuid())
+
+  @@map("survey_responses")
 }
 
 model Recognition {
-  // id
-  // fromEmployeeId -> Employee
-  // toEmployeeId -> Employee
-  // type (KUDOS | AWARD | BADGE)
-  // title
-  // message
-  // isPublic
-  // createdAt
+  id String @id @default(cuid())
+
+  @@map("recognitions")
 }
 
 model SuccessionPlan {
-  // id
-  // roleId (critical position identifier)
-  // roleTitle
-  // incumbentId -> Employee
-  // successorId -> Employee
-  // readinessLevel (READY_NOW | READY_1_YEAR | READY_2_YEARS | DEVELOPING)
-  // gapAnalysis
-  // developmentPlan
-  // updatedAt
+  id String @id @default(cuid())
+
+  @@map("succession_plans")
 }
 
 model TalentApplication {
-  // id
-  // employeeId -> Employee
-  // jobId -> Job (internal job)
-  // appliedAt
-  // status (APPLIED | UNDER_REVIEW | APPROVED | REJECTED)
-  // notes
+  id String @id @default(cuid())
+
+  @@map("talent_applications")
 }
 
 model TransferRequest {
-  // id
-  // employeeId -> Employee
-  // fromDepartmentId -> Department
-  // toDepartmentId -> Department
-  // reason
-  // status (PENDING | APPROVED | REJECTED)
-  // requestedAt
-  // processedAt
-  // processedBy -> Employee
+  id String @id @default(cuid())
+
+  @@map("transfer_requests")
 }
 
 // ─────────────────────────────────────────
-// PHASE 3 MODELS
+// PHASE 3 SKELETON MODELS
 // ─────────────────────────────────────────
 
 model EmbeddingVector {
-  // id
-  // documentId
-  // documentType (KNOWLEDGE | POLICY | REVIEW | SOP)
-  // chunkIndex
-  // chunkText
-  // embedding (vector(1536) — pgvector — added in 0040_p3_ migration)
-  // model
-  // createdAt
+  id String @id @default(cuid())
+
+  @@map("embedding_vectors")
 }
 
 model AttritionRiskScore {
-  // id
-  // employeeId -> Employee
-  // riskScore (0.0 to 1.0)
-  // riskLevel (LOW | MEDIUM | HIGH | CRITICAL)
-  // factors (JSON — contributing risk factors with weights)
-  // recommendation
-  // modelVersion
-  // computedAt
-  // validUntil
+  id String @id @default(cuid())
+
+  @@map("attrition_risk_scores")
 }
 
 model AIInsight {
-  // id
-  // type (ATTRITION | SKILL_GAP | PROMOTION | FORECASTING | HIRING)
-  // targetId (employeeId or departmentId)
-  // targetType (EMPLOYEE | DEPARTMENT | ORGANIZATION)
-  // insight (JSON)
-  // confidence
-  // modelVersion
-  // generatedAt
-  // expiresAt
+  id String @id @default(cuid())
+
+  @@map("ai_insights")
 }
 
 model AIChat {
-  // id
-  // employeeId -> Employee
-  // sessionId
-  // messages (JSON array of {role, content, timestamp})
-  // createdAt
-  // updatedAt
+  id String @id @default(cuid())
+
+  @@map("ai_chats")
 }

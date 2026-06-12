@@ -9,6 +9,9 @@ export interface LoginResponse {
 export interface VerifyMFAResponse {
   success: boolean;
   token?: string;
+  refreshToken?: string;
+  role?: string;
+  redirectPath?: string;
   unknownDevice?: boolean;
   deviceDetails?: DeviceDetails;
 }
