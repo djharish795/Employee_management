@@ -29,6 +29,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export const LoginForm: React.FC = () => {
   const router = useRouter();
   const setTempSession = useAuthStore((state) => state.setTempSession);
+  const setAuthSession = useAuthStore((state) => state.setAuthSession);
   const [showPassword, setShowPassword] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -61,8 +62,14 @@ export const LoginForm: React.FC = () => {
           method: res.method,
         });
         router.push("/mfa");
-      } else {
+      } else if (res.token) {
         // Direct entry case (if MFA disabled in local testing)
+        setAuthSession({
+          accessToken: res.token,
+          role: res.role ?? "EMPLOYEE",
+        });
+        router.push(res.redirectPath ?? "/employee");
+      } else {
         router.push("/employee");
       }
     } catch (err: any) {

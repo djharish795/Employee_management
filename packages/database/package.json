@@ -10,7 +10,7 @@
     "migrate:dev": "dotenv -e ../../apps/api/.env -e ../../apps/api/.env.local -- prisma migrate dev",
     "migrate:deploy": "dotenv -e ../../apps/api/.env -e ../../apps/api/.env.local -- prisma migrate deploy",
     "seed": "dotenv -e ../../apps/api/.env -e ../../apps/api/.env.local -- tsx prisma/seeds/seed.ts",
-    "studio": "prisma studio"
+    "studio": "dotenv -e ../../apps/api/.env -e ../../apps/api/.env.local -- prisma studio"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0"

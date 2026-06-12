@@ -2,7 +2,9 @@ import { Metadata } from "next";
 import { Lock, Wifi, ShieldCheck, Laptop } from "lucide-react";
 import { Button } from "../../components/ui/button";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = { 
+
+  
   title: "Access Restricted | Naprocs EMS",
   description: "Naprocs EMS is only accessible from within the corporate VPC network or VPN.",
 };

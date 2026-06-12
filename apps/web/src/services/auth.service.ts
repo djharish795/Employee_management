@@ -4,6 +4,10 @@ export interface LoginResponse {
   mfaRequired: boolean;
   challengeId?: string;
   method?: "EMAIL_OTP" | "TOTP";
+  token?: string;
+  refreshToken?: string;
+  role?: string;
+  redirectPath?: string;
 }
 
 export interface VerifyMFAResponse {

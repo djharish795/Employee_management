@@ -44,13 +44,30 @@ export class AuthService {
       throw new UnauthorizedException("Invalid email or password.");
     }
 
-    const challenge = await this.mfa.createEmailOtpChallenge(user.id, user.email);
+    // --- MFA TEMPORARILY BYPASSED FOR TESTING ---
+    // const challenge = await this.mfa.createEmailOtpChallenge(user.id, user.email);
+    //
+    // return {
+    //   mfaRequired: true,
+    //   challengeId: challenge.challengeId,
+    //   method: challenge.method,
+    // };
+
+    const issued = await this.tokens.issueTokens({
+      userId: user.id,
+      email: user.email,
+      role: user.role as UserRole,
+      employeeId: user.employeeId ?? undefined,
+    });
 
     return {
-      mfaRequired: true,
-      challengeId: challenge.challengeId,
-      method: challenge.method,
+      mfaRequired: false,
+      token: issued.accessToken,
+      refreshToken: issued.refreshToken,
+      role: issued.role,
+      redirectPath: issued.redirectPath,
     };
+    // ---------------------------------------------
   }
 
   async verifyMfa(dto: MfaVerifyDto) {
