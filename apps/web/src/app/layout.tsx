@@ -1,4 +1,5 @@
 import "./globals.css";
+import { Providers } from "@/components/providers";
 
 export default function RootLayout({
   children,
@@ -7,7 +8,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="antialiased min-h-screen bg-slate-50">{children}</body>
+      <body className="antialiased min-h-screen bg-slate-50">
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }
+
