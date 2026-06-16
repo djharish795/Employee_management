@@ -9,35 +9,67 @@ import {
   UserMinus, BookOpen, GitBranch, UserSearch, 
   Banknote, TrendingUp, Network, Settings, LogOut, Plus
 } from 'lucide-react';
+import { useAuthStore } from '@/store/auth';
 
-const navItems = [
-  { title: 'Dashboard', icon: LayoutDashboard, href: '/executive' },
-  { title: 'Employees', icon: Users, href: '/employees' },
-  { title: 'Attendance', icon: CalendarCheck, href: '/attendance' },
-  { title: 'Leaves', icon: Calendar, href: '/leaves' },
-  { title: 'Assets', icon: MonitorSmartphone, href: '/assets' },
-  { title: 'Compliance', icon: ShieldCheck, href: '/compliance' },
-  { title: 'Audit Log', icon: History, href: '/audit' },
-  { title: 'Onboarding', icon: UserPlus, href: '/onboarding' },
-  { title: 'Offboarding', icon: UserMinus, href: '/offboarding' },
-  { title: 'Knowledge Base', icon: BookOpen, href: '/knowledge' },
-  { title: 'Workflows', icon: GitBranch, href: '/workflows' },
-  { title: 'Recruitment', icon: UserSearch, href: '/recruitment' },
-  { title: 'Payroll', icon: Banknote, href: '/payroll' },
-  { title: 'Performance', icon: TrendingUp, href: '/performance' },
-  { title: 'Org Chart', icon: Network, href: '/org-chart' },
-  { title: 'Settings', icon: Settings, href: '/settings' },
-];
+const getDashboardPath = (role: string | null) => {
+  if (!role) return '/employee';
+  const r = role.toUpperCase();
+  if (['SUPER_ADMIN', 'IT'].includes(r)) return '/admin';
+  if (['CEO', 'COO'].includes(r)) return '/executive';
+  if (['CTO'].includes(r)) return '/cto';
+  if (['CFO', 'FINANCE'].includes(r)) return '/finance';
+  if (['CHRO', 'HR'].includes(r)) return '/hr';
+  return '/employee';
+};
+
+const getRoleTitle = (role: string | null) => {
+  if (!role) return 'Employee';
+  const r = role.toUpperCase();
+  if (r === 'SUPER_ADMIN') return 'Super Admin';
+  if (r === 'CEO') return 'CEO';
+  if (r === 'CTO') return 'CTO';
+  if (r === 'COO') return 'COO';
+  if (r === 'CFO') return 'CFO';
+  if (r === 'CHRO') return 'CHRO';
+  if (r === 'HR') return 'HR Admin';
+  if (r === 'IT') return 'IT Admin';
+  if (r === 'FINANCE') return 'Finance';
+  if (r === 'MANAGER') return 'Manager';
+  if (r === 'TEAM_LEAD') return 'Team Lead';
+  return 'Employee';
+};
 
 export function Sidebar() {
   const pathname = usePathname();
+  const role = useAuthStore((state) => state.role);
+  const dashboardPath = getDashboardPath(role);
+  const roleTitle = getRoleTitle(role);
+
+  const navItems = [
+    { title: 'Dashboard', icon: LayoutDashboard, href: dashboardPath },
+    { title: 'Employees', icon: Users, href: '/employees' },
+    { title: 'Attendance', icon: CalendarCheck, href: '/attendance' },
+    { title: 'Leaves', icon: Calendar, href: '/leaves' },
+    { title: 'Assets', icon: MonitorSmartphone, href: '/assets' },
+    { title: 'Compliance', icon: ShieldCheck, href: '/compliance' },
+    { title: 'Audit Log', icon: History, href: '/audit' },
+    { title: 'Onboarding', icon: UserPlus, href: '/onboarding' },
+    { title: 'Offboarding', icon: UserMinus, href: '/offboarding' },
+    { title: 'Knowledge Base', icon: BookOpen, href: '/knowledge' },
+    { title: 'Workflows', icon: GitBranch, href: '/workflows' },
+    { title: 'Recruitment', icon: UserSearch, href: '/recruitment' },
+    { title: 'Payroll', icon: Banknote, href: '/payroll' },
+    { title: 'Performance', icon: TrendingUp, href: '/performance' },
+    { title: 'Org Chart', icon: Network, href: '/org-chart' },
+    { title: 'Settings', icon: Settings, href: '/settings' },
+  ];
 
   return (
     <aside className="w-[260px] flex-shrink-0 bg-white flex flex-col h-screen text-slate-600 overflow-y-auto overflow-x-hidden border-r border-slate-200 scrollbar-hide">
       {/* Brand Header */}
       <div className="p-6 pb-4">
-        <h2 className="text-xl font-bold text-slate-900 tracking-tight">Naprocs CEO</h2>
-        <p className="text-xs text-slate-500 font-medium tracking-wide mt-0.5">Executive Dashboard</p>
+        <h2 className="text-xl font-bold text-slate-900 tracking-tight">Naprocs {roleTitle}</h2>
+        <p className="text-xs text-slate-500 font-medium tracking-wide mt-0.5">{roleTitle} Dashboard</p>
       </div>
 
       {/* Action Button */}

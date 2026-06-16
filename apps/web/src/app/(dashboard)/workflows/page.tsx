@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { ChevronRight, Settings2, Play, AlertCircle, Clock, Save, MoreHorizontal } from 'lucide-react';
+import { ChevronRight, Settings2, Play, AlertCircle, Clock, Save, MoreHorizontal, History } from 'lucide-react';
 
 export default function WorkflowsPage() {
   return (

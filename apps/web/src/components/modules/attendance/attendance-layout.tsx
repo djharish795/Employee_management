@@ -4,7 +4,6 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, History, CheckSquare, BarChart3, ChevronDown, Check } from "lucide-react";
-import DashboardLayout from "@/components/shared/layout";
 import { useAuthStore } from "@/store/auth";
 
 // Define DirectoryRole inline matching user definitions

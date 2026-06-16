@@ -69,6 +69,30 @@ const ROLE_CONFIGS: Record<DirectoryRole, DirectoryRoleConfig> = {
     dataScope: "TEAM",
     showSummaryWidgets: true,
   },
+  EMPLOYEE: {
+    canAddEmployee: false,
+    canBulkDeactivate: false,
+    canBulkAssignManager: false,
+    canExport: false,
+    dataScope: "ALL", // Just visibility restriction will be handled via UI
+    showSummaryWidgets: false,
+  },
+  FINANCE: {
+    canAddEmployee: false,
+    canBulkDeactivate: false,
+    canBulkAssignManager: false,
+    canExport: true,
+    dataScope: "ALL",
+    showSummaryWidgets: true,
+  },
+  CTO: {
+    canAddEmployee: false,
+    canBulkDeactivate: false,
+    canBulkAssignManager: false,
+    canExport: true,
+    dataScope: "ALL",
+    showSummaryWidgets: true,
+  },
 };
 
 // Seed Mock Data matching Figma screenshot elements
