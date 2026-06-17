@@ -35,18 +35,128 @@ enum UserStatus {
   INACTIVE
 }
 
+enum EmployeeStatus {
+  PROBATION
+  ACTIVE
+  NOTICE_PERIOD
+  EXITED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+}
+
+enum EmployeeType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERN
+}
+
 model Employee {
-  id            String   @id @default(cuid())
-  employeeId    String   @unique
-  firstName     String
-  lastName      String
-  officialEmail String   @unique
-  departmentId  String?
-  designation   String?
-  status        String   @default("ACTIVE")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  user          User?
+  id                  String         @id @default(cuid())
+  employeeId          String         @unique
+  firstName           String
+  lastName            String
+  middleName          String?
+  preferredName       String?
+  officialEmail       String         @unique
+  personalEmail       String?
+  phone               String?
+  alternatePhone      String?
+  photoUrl            String?
+  dateOfBirth         DateTime?
+  gender              Gender?
+  bloodGroup          String?
+  nationality         String?        @default("Indian")
+  maritalStatus       MaritalStatus?
+  currentAddress      Json?
+  permanentAddress    Json?
+  emergencyContact    Json?
+  aadhaar             String?
+  pan                 String?
+  passport            String?
+  drivingLicence      String?
+  voterId             String?
+  departmentId        String?
+  department          Department?    @relation("EmployeeDepartment", fields: [departmentId], references: [id])
+  designationId       String?
+  designation         Designation?   @relation(fields: [designationId], references: [id])
+  status              EmployeeStatus @default(PROBATION)
+  joiningDate         DateTime?
+  employeeType        EmployeeType?  @default(FULL_TIME)
+  grade               String?
+  band                String?
+  workLocation        String?
+  reportingManagerId  String?
+  reportingManager    Employee?      @relation("ReportingManager", fields: [reportingManagerId], references: [id])
+  subordinates        Employee[]     @relation("ReportingManager")
+  skipLevelManagerId  String?
+  skipLevelManager    Employee?      @relation("SkipLevelManager", fields: [skipLevelManagerId], references: [id])
+  skipLevelOf         Employee[]     @relation("SkipLevelManager")
+  exitDate            DateTime?
+  exitReason          String?
+  backgroundVerified  Boolean        @default(false)
+  digitalSignatureUrl String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  user                User?
+  headOf              Department[]   @relation("DepartmentHead")
+  attendanceRecords        AttendanceRecord[] @relation
+  regularizedAttendances   AttendanceRecord[] @relation("AttendanceRegularizer")
+  leaveBalances       LeaveBalance[]
+  leaveRequestsMade   LeaveRequest[]   @relation("LeaveRequester")
+  leaveRequestsToApprove LeaveRequest[] @relation("LeaveApprover")
+  assetsHeld          Asset[]           @relation("CurrentAssetHolder")
+  assetAssignments    AssetAssignment[] @relation("AssetAssignmentEmployee")
+  assetsAssignedByMe  AssetAssignment[] @relation("AssetAssigner")
+  notifications       Notification[]
+  workflowsInitiated WorkflowInstance[]
+  knowledgeDocsAuthored KnowledgeDoc[]
+  auditLogEntries     AuditLog[]
+  consentLogsAsSubject     ConsentLog[]           @relation("ConsentSubject")
+  consentLogsCollected     ConsentLog[]           @relation("ConsentCollector")
+  erasureRequestsAsSubject DataErasureRequest[]   @relation("ErasureSubject")
+  erasureRequestsMade      DataErasureRequest[]   @relation("ErasureRequester")
+  erasureRequestsApproved  DataErasureRequest[]   @relation("ErasureApprover")
+  grievanceCasesAsSubject  GrievanceCase[]        @relation("GrievanceSubject")
+  grievanceCasesAsOfficer  GrievanceCase[]        @relation("GrievanceOfficer")
+  appSettingsUpdated AppSetting[]
+  salaryStructures        SalaryStructure[]
+  salaryStructuresCreated SalaryStructure[] @relation("SalaryStructureCreator")
+  payrollRunsInitiated    PayrollRun[]
+  payrollLineItems        PayrollLineItem[]
+  reimbursementsClaimed  Reimbursement[]
+  reimbursementsApproved Reimbursement[] @relation("ReimbursementApprover")
+  jobsAsHiringManager  Job[]
+  interviewsConducted  Interview[]
+  goals                   Goal[]
+  reviewsAsSubject        PerformanceReview[] @relation("ReviewSubject")
+  reviewsAuthored         PerformanceReview[] @relation("ReviewAuthor")
+  employeeSkills       EmployeeSkill[] @relation
+  skillsVerified       EmployeeSkill[] @relation("SkillVerifier")
+  enrollments Enrollment[]
+  surveysCreated         Survey[]
+  surveyResponses        SurveyResponse[]
+  recognitionsGiven      Recognition[]    @relation("RecognitionGiver")
+  recognitionsReceived   Recognition[]    @relation("RecognitionReceiver")
+  successionPlansAsIncumbent  SuccessionPlan[]      @relation("SuccessionIncumbent")
+  successionPlansAsSuccessor  SuccessionPlan[]      @relation("SuccessionSuccessor")
+  talentApplications          TalentApplication[]
+  transferRequestsMade        TransferRequest[]     @relation("TransferEmployee")
+  transferRequestsProcessed   TransferRequest[]     @relation("TransferProcessor")
+  attritionRiskScores AttritionRiskScore[]
+  aiChats AIChat[]
 
   @@map("employees")
 }
@@ -64,6 +174,8 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   devices      Device[]
+  sessions     Session[]
+  otps         OTPVerification[]
 
   @@map("users")
 }
@@ -78,6 +190,7 @@ model Device {
   trustedAt   DateTime?
   lastSeenAt  DateTime  @default(now())
   createdAt   DateTime  @default(now())
+  sessions    Session[]
 
   @@unique([userId, fingerprint])
   @@map("devices")
@@ -88,115 +201,436 @@ model Device {
 // ─────────────────────────────────────────
 
 model Department {
-  id String @id @default(cuid())
+  id                  String       @id @default(cuid())
+  name                String       @unique
+  code                String       @unique
+  headId              String?
+  head                Employee?    @relation("DepartmentHead", fields: [headId], references: [id])
+  parentDepartmentId  String?
+  parentDepartment    Department?  @relation("DepartmentHierarchy", fields: [parentDepartmentId], references: [id])
+  childDepartments    Department[] @relation("DepartmentHierarchy")
+  employees           Employee[]   @relation("EmployeeDepartment")
+  designations        Designation[]
+  jobs Job[]
+  transfersFrom TransferRequest[] @relation("TransferFrom")
+  transfersTo   TransferRequest[] @relation("TransferTo")
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
 
   @@map("departments")
 }
 
 model Designation {
-  id String @id @default(cuid())
+  id            String       @id @default(cuid())
+  title         String
+  departmentId  String
+  department    Department   @relation(fields: [departmentId], references: [id])
+  grade         String?
+  band          String?
+  employees     Employee[]
+  createdAt     DateTime     @default(now())
 
+  @@unique([title, departmentId])
   @@map("designations")
 }
 
-model Session {
-  id String @id @default(cuid())
+enum OtpType {
+  EMAIL_OTP
+  TOTP
+}
 
+model Session {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId     String?
+  device       Device?   @relation(fields: [deviceId], references: [id])
+  refreshToken String    @unique
+  ipAddress    String
+  userAgent    String
+  isActive     Boolean   @default(true)
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+  revokedAt    DateTime?
+
+  @@index([userId])
   @@map("sessions")
 }
 
 model OTPVerification {
-  id String @id @default(cuid())
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String
+  type      OtpType
+  expiresAt DateTime
+  usedAt    DateTime?
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
 
+  @@index([userId, type])
   @@map("otp_verifications")
 }
 
-model AttendanceRecord {
-  id String @id @default(cuid())
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  HALF_DAY
+  HOLIDAY
+  WFH
+  ON_LEAVE
+}
 
+enum CheckInMethod {
+  WEB
+  MOBILE
+  MANUAL
+}
+
+model AttendanceRecord {
+  id                String           @id @default(cuid())
+  employeeId        String
+  employee          Employee         @relation(fields: [employeeId], references: [id])
+  date              DateTime         @db.Date
+  checkInTime       DateTime?
+  checkOutTime      DateTime?
+  workHours         Decimal?         @db.Decimal(5, 2)
+  overtime          Decimal?         @db.Decimal(5, 2)
+  status            AttendanceStatus @default(PRESENT)
+  checkInMethod     CheckInMethod?
+  checkInIp         String?
+  isRegularized     Boolean          @default(false)
+  regularizedById   String?
+  regularizedBy     Employee?        @relation("AttendanceRegularizer", fields: [regularizedById], references: [id])
+  notes             String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@unique([employeeId, date])
+  @@index([employeeId, date])
   @@map("attendance_records")
 }
 
+enum LeaveRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
 model LeaveType {
-  id String @id @default(cuid())
+  id                      String          @id @default(cuid())
+  name                    String          @unique
+  code                    String          @unique
+  maxDaysPerYear          Decimal         @db.Decimal(4, 1)
+  isCarryForwardAllowed   Boolean         @default(false)
+  maxCarryForwardDays     Decimal?        @db.Decimal(4, 1)
+  isPaidLeave             Boolean         @default(true)
+  requiresDocumentAbove   Decimal?        @db.Decimal(4, 1)   // e.g. sick leave > 2 days needs doc
+  isActive                Boolean         @default(true)
+  balances                LeaveBalance[]
+  requests                LeaveRequest[]
+  createdAt               DateTime        @default(now())
 
   @@map("leave_types")
 }
 
 model LeaveBalance {
-  id String @id @default(cuid())
+  id           String    @id @default(cuid())
+  employeeId   String
+  employee     Employee  @relation(fields: [employeeId], references: [id])
+  leaveTypeId  String
+  leaveType    LeaveType @relation(fields: [leaveTypeId], references: [id])
+  year         Int
+  allocated    Decimal   @db.Decimal(4, 1)
+  used         Decimal   @default(0) @db.Decimal(4, 1)
+  pending      Decimal   @default(0) @db.Decimal(4, 1)
+  carriedOver  Decimal   @default(0) @db.Decimal(4, 1)
+  updatedAt    DateTime  @updatedAt
 
+  @@unique([employeeId, leaveTypeId, year])
   @@map("leave_balances")
 }
 
 model LeaveRequest {
-  id String @id @default(cuid())
+  id                String              @id @default(cuid())
+  employeeId        String
+  employee          Employee            @relation("LeaveRequester", fields: [employeeId], references: [id])
+  leaveTypeId       String
+  leaveType         LeaveType           @relation(fields: [leaveTypeId], references: [id])
+  startDate         DateTime            @db.Date
+  endDate           DateTime            @db.Date
+  isHalfDay         Boolean             @default(false)
+  halfDaySession    String?             // FIRST_HALF | SECOND_HALF
+  totalDays         Decimal             @db.Decimal(4, 1)
+  reason            String
+  attachmentUrl      String?
+  status            LeaveRequestStatus  @default(PENDING)
+  appliedAt         DateTime            @default(now())
+  approverId        String?
+  approver          Employee?           @relation("LeaveApprover", fields: [approverId], references: [id])
+  approvedAt        DateTime?
+  rejectionReason   String?
+  workflowInstanceId String?
 
+  @@index([employeeId, status])
   @@map("leave_requests")
 }
 
+enum AssetCategory {
+  LAPTOP
+  DESKTOP
+  MONITOR
+  MOBILE_DEVICE
+  SIM
+  ACCESS_CARD
+  SOFTWARE_LICENCE
+  CLOUD_ACCOUNT
+  OTHER
+}
+
+enum AssetStatus {
+  AVAILABLE
+  ASSIGNED
+  LOST
+  DAMAGED
+  REPLACED
+  RETIRED
+}
+
 model Asset {
-  id String @id @default(cuid())
+  id              String          @id @default(cuid())
+  assetTag        String          @unique
+  name            String
+  category        AssetCategory
+  brand           String?
+  model           String?
+  serialNumber    String?         @unique
+  purchaseDate    DateTime?       @db.Date
+  purchaseCost    Decimal?        @db.Decimal(10, 2)
+  status          AssetStatus     @default(AVAILABLE)
+  currentHolderId String?
+  currentHolder   Employee?       @relation("CurrentAssetHolder", fields: [currentHolderId], references: [id])
+  notes           String?
+  assignments     AssetAssignment[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   @@map("assets")
 }
 
 model AssetAssignment {
-  id String @id @default(cuid())
+  id                String    @id @default(cuid())
+  assetId           String
+  asset             Asset     @relation(fields: [assetId], references: [id])
+  employeeId        String
+  employee          Employee  @relation("AssetAssignmentEmployee", fields: [employeeId], references: [id])
+  assignedById      String
+  assignedBy        Employee  @relation("AssetAssigner", fields: [assignedById], references: [id])
+  assignedAt        DateTime  @default(now())
+  returnedAt        DateTime?
+  returnedCondition String?
+  notes             String?
 
   @@map("asset_assignments")
 }
 
-model Notification {
-  id String @id @default(cuid())
+enum NotificationType {
+  APPROVAL_ALERT
+  POLICY_UPDATE
+  BIRTHDAY
+  ANNIVERSARY
+  SYSTEM_ALERT
+  SECURITY_ALERT
+  LEAVE_STATUS
+  ASSET_STATUS
+  GENERAL
+}
 
+model Notification {
+  id           String            @id @default(cuid())
+  recipientId  String
+  recipient    Employee          @relation(fields: [recipientId], references: [id])
+  type         NotificationType
+  title        String
+  body         String
+  data         Json?
+  isRead       Boolean           @default(false)
+  readAt       DateTime?
+  createdAt    DateTime          @default(now())
+
+  @@index([recipientId, isRead])
   @@map("notifications")
 }
 
+enum WorkflowType {
+  LEAVE
+  ASSET_REQUEST
+  RECRUITMENT
+  PROMOTION
+  OFFBOARDING
+}
+
+enum WorkflowInstanceStatus {
+  PENDING
+  IN_PROGRESS
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
 model Workflow {
-  id String @id @default(cuid())
+  id         String                @id @default(cuid())
+  name       String
+  type       WorkflowType          @unique
+  steps      Json                  // array of {stepIndex, approverRole, isOptional}
+  isActive   Boolean               @default(true)
+  instances  WorkflowInstance[]
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
 
   @@map("workflows")
 }
 
 model WorkflowInstance {
-  id String @id @default(cuid())
+  id                String                  @id @default(cuid())
+  workflowId        String
+  workflow          Workflow                @relation(fields: [workflowId], references: [id])
+  resourceType      String                  // e.g. "LeaveRequest", "AssetAssignment"
+  resourceId        String
+  currentStepIndex  Int                     @default(0)
+  status            WorkflowInstanceStatus  @default(PENDING)
+  initiatedById     String
+  initiatedBy       Employee                @relation(fields: [initiatedById], references: [id])
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
 
+  @@index([resourceType, resourceId])
   @@map("workflow_instances")
 }
 
+enum KnowledgeCategory {
+  POLICY
+  SOP
+  ARCHITECTURE
+  TECHNICAL_DOC
+  HR_GUIDELINES
+  TRAINING_MATERIAL
+  COMPLIANCE
+}
+
 model KnowledgeDoc {
-  id String @id @default(cuid())
+  id            String             @id @default(cuid())
+  title         String
+  slug          String             @unique
+  category      KnowledgeCategory
+  content       String             // Markdown or rich text body
+  authorId      String
+  author        Employee           @relation(fields: [authorId], references: [id])
+  version       String             @default("1.0")
+  isPublished   Boolean            @default(false)
+  publishedAt   DateTime?
+  searchVector  Unsupported("tsvector")?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
 
   @@map("knowledge_docs")
 }
 
+// APPEND-ONLY TABLE. Never UPDATE or DELETE rows in this table from
+// application code. Only audit.service.ts may INSERT into this table.
 model AuditLog {
-  id String @id @default(cuid())
+  id            String    @id @default(cuid())
+  actorId       String?
+  actor         Employee? @relation(fields: [actorId], references: [id])
+  action        String    // e.g. "LEAVE_APPROVED", "EMPLOYEE_UPDATED"
+  resource      String    // e.g. "LeaveRequest", "Employee"
+  resourceId    String
+  oldValue      Json?
+  newValue      Json?
+  ipAddress     String?
+  deviceId      String?
+  userAgent     String?
+  requestId     String
+  performedAt   DateTime  @default(now())
 
+  @@index([resource, resourceId])
+  @@index([actorId])
+  @@index([performedAt])
   @@map("audit_logs")
 }
 
+enum ErasureRequestStatus {
+  PENDING
+  APPROVED
+  PROCESSING
+  COMPLETED
+  REJECTED
+}
+
+enum GrievanceStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
 model ConsentLog {
-  id String @id @default(cuid())
+  id            String    @id @default(cuid())
+  employeeId    String
+  employee      Employee  @relation("ConsentSubject", fields: [employeeId], references: [id])
+  purpose       String    // e.g. "payroll_processing", "attendance_tracking"
+  consentedAt   DateTime  @default(now())
+  revokedAt     DateTime?
+  collectedById String
+  collectedBy   Employee  @relation("ConsentCollector", fields: [collectedById], references: [id])
+  ipAddress     String
+  notes         String?
 
   @@map("consent_logs")
 }
 
 model DataErasureRequest {
-  id String @id @default(cuid())
+  id             String                @id @default(cuid())
+  employeeId     String
+  employee       Employee              @relation("ErasureSubject", fields: [employeeId], references: [id])
+  requestedAt    DateTime              @default(now())
+  requestedById  String
+  requestedBy    Employee              @relation("ErasureRequester", fields: [requestedById], references: [id])
+  status         ErasureRequestStatus  @default(PENDING)
+  approvedById   String?
+  approvedBy     Employee?             @relation("ErasureApprover", fields: [approvedById], references: [id])
+  approvedAt     DateTime?
+  processedAt    DateTime?
+  fieldsErased   Json?
+  notes          String?
 
   @@map("data_erasure_requests")
 }
 
 model GrievanceCase {
-  id String @id @default(cuid())
+  id          String           @id @default(cuid())
+  employeeId  String
+  employee    Employee         @relation("GrievanceSubject", fields: [employeeId], references: [id])
+  description String
+  officerId   String?
+  officer     Employee?        @relation("GrievanceOfficer", fields: [officerId], references: [id])
+  status      GrievanceStatus  @default(OPEN)
+  resolution  String?
+  openedAt    DateTime         @default(now())
+  resolvedAt  DateTime?
 
   @@map("grievance_cases")
 }
 
 model AppSetting {
-  id String @id @default(cuid())
+  id           String    @id @default(cuid())
+  key          String    @unique
+  value        Json
+  category     String    // e.g. "compliance", "notifications", "company"
+  updatedById  String?
+  updatedBy    Employee? @relation(fields: [updatedById], references: [id])
+  updatedAt    DateTime  @updatedAt
 
   @@map("app_settings")
 }
@@ -205,128 +639,559 @@ model AppSetting {
 // PHASE 2 SKELETON MODELS
 // ─────────────────────────────────────────
 
+enum PayrollRunStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum PayrollLineItemStatus {
+  PENDING
+  PROCESSED
+  FAILED
+}
+
+// @phase P2 — schema defined now, no application code until Phase 2 is enabled
 model SalaryStructure {
-  id String @id @default(cuid())
+  id                String    @id @default(cuid())
+  employeeId        String
+  employee          Employee  @relation(fields: [employeeId], references: [id])
+  ctc               Decimal   @db.Decimal(12, 2)
+  basicSalary       Decimal   @db.Decimal(12, 2)
+  hra               Decimal   @db.Decimal(12, 2)
+  specialAllowance  Decimal   @db.Decimal(12, 2)
+  pfEligible        Boolean   @default(true)
+  esiEligible       Boolean   @default(false)
+  effectiveFrom     DateTime  @db.Date
+  createdById       String
+  createdBy         Employee  @relation("SalaryStructureCreator", fields: [createdById], references: [id])
+  createdAt         DateTime  @default(now())
 
   @@map("salary_structures")
 }
 
+// @phase P2 — schema defined now, no application code until Phase 2 is enabled
 model PayrollRun {
-  id String @id @default(cuid())
+  id              String            @id @default(cuid())
+  month           Int
+  year            Int
+  status          PayrollRunStatus  @default(PENDING)
+  startedAt       DateTime?
+  completedAt     DateTime?
+  failedAt        DateTime?
+  failureReason   String?
+  processedCount  Int               @default(0)
+  totalAmount     Decimal?          @db.Decimal(14, 2)
+  bankFileName    String?
+  initiatedById   String
+  initiatedBy     Employee          @relation(fields: [initiatedById], references: [id])
+  lineItems       PayrollLineItem[]
+  reimbursements Reimbursement[]
 
+  @@unique([month, year])
   @@map("payroll_runs")
 }
 
+// @phase P2 — schema defined now, no application code until Phase 2 is enabled
 model PayrollLineItem {
-  id String @id @default(cuid())
+  id                 String                  @id @default(cuid())
+  payrollRunId       String
+  payrollRun         PayrollRun              @relation(fields: [payrollRunId], references: [id])
+  employeeId         String
+  employee           Employee                @relation(fields: [employeeId], references: [id])
+  grossSalary        Decimal                 @db.Decimal(12, 2)
+  basicSalary        Decimal                 @db.Decimal(12, 2)
+  hra                Decimal                 @db.Decimal(12, 2)
+  specialAllowance   Decimal                 @db.Decimal(12, 2)
+  pfEmployee         Decimal                 @db.Decimal(10, 2)
+  pfEmployer         Decimal                 @db.Decimal(10, 2)
+  esi                Decimal                 @db.Decimal(10, 2)
+  professionalTax    Decimal                 @db.Decimal(10, 2)
+  tds                Decimal                 @db.Decimal(10, 2)
+  totalDeductions    Decimal                 @db.Decimal(10, 2)
+  netSalary          Decimal                 @db.Decimal(12, 2)
+  bankAccountEnc     String                  // AES-256-GCM encrypted
+  ifscCode           String
+  status             PayrollLineItemStatus   @default(PENDING)
+  payslipUrl         String?
 
+  @@unique([payrollRunId, employeeId])
   @@map("payroll_line_items")
 }
 
+enum ReimbursementStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+}
+
+// @phase P2 — schema defined now, no application code until Phase 2 is enabled
 model Reimbursement {
-  id String @id @default(cuid())
+  id             String                @id @default(cuid())
+  employeeId     String
+  employee       Employee              @relation(fields: [employeeId], references: [id])
+  category       String
+  amount         Decimal               @db.Decimal(10, 2)
+  description    String
+  receiptUrl     String?
+  status         ReimbursementStatus   @default(PENDING)
+  approverId     String?
+  approver       Employee?             @relation("ReimbursementApprover", fields: [approverId], references: [id])
+  payrollRunId   String?
+  payrollRun     PayrollRun?           @relation(fields: [payrollRunId], references: [id])
+  createdAt      DateTime              @default(now())
 
   @@map("reimbursements")
 }
 
+enum JobStatus {
+  DRAFT
+  OPEN
+  CLOSED
+  ON_HOLD
+}
+
+enum CandidateStage {
+  APPLIED
+  SCREENING
+  INTERVIEW
+  OFFER
+  JOINED
+  REJECTED
+}
+
+enum InterviewType {
+  PHONE
+  VIDEO
+  IN_PERSON
+  TECHNICAL
+  HR
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum InterviewRecommendation {
+  STRONG_YES
+  YES
+  NO
+  STRONG_NO
+}
+
+enum OfferStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+// @phase P2 — schema defined now, no application code until Phase 2 is enabled
 model Job {
-  id String @id @default(cuid())
+  id                String       @id @default(cuid())
+  title             String
+  departmentId      String
+  department        Department   @relation(fields: [departmentId], references: [id])
+  hiringManagerId   String
+  hiringManager     Employee     @relation(fields: [hiringManagerId], references: [id])
+  jobDescription    String
+  requiredSkills    String[]
+  minExperience     Int
+  maxExperience     Int
+  ctcMin            Decimal?     @db.Decimal(12, 2)
+  ctcMax            Decimal?     @db.Decimal(12, 2)
+  openPositions     Int          @default(1)
+  filledPositions   Int          @default(0)
+  status            JobStatus    @default(DRAFT)
+  targetDate        DateTime?    @db.Date
+  candidates        Candidate[]
+  talentApplications TalentApplication[]
+  createdAt         DateTime     @default(now())
 
   @@map("jobs")
 }
 
+// @phase P2 — schema defined now, no application code until Phase 2 is enabled
 model Candidate {
-  id String @id @default(cuid())
+  id              String          @id @default(cuid())
+  jobId           String
+  job             Job             @relation(fields: [jobId], references: [id])
+  name            String
+  email           String
+  phone           String
+  resumeUrl       String?
+  currentStage    CandidateStage  @default(APPLIED)
+  sourceChannel   String?
+  skills          String[]
+  currentCTC      Decimal?        @db.Decimal(12, 2)
+  expectedCTC     Decimal?        @db.Decimal(12, 2)
+  noticePeriod    Int?
+  interviews      Interview[]
+  offer           Offer?
+  appliedAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   @@map("candidates")
 }
 
+// @phase P2 — schema defined now, no application code until Phase 2 is enabled
 model Interview {
-  id String @id @default(cuid())
+  id               String                    @id @default(cuid())
+  candidateId      String
+  candidate        Candidate                 @relation(fields: [candidateId], references: [id])
+  interviewerId    String
+  interviewer      Employee                  @relation(fields: [interviewerId], references: [id])
+  scheduledAt      DateTime
+  type             InterviewType
+  status           InterviewStatus           @default(SCHEDULED)
+  feedback         String?
+  rating           Int?
+  recommendation   InterviewRecommendation?
+  completedAt      DateTime?
 
   @@map("interviews")
 }
 
+// @phase P2 — schema defined now, no application code until Phase 2 is enabled
 model Offer {
-  id String @id @default(cuid())
+  id               String       @id @default(cuid())
+  candidateId      String       @unique
+  candidate        Candidate    @relation(fields: [candidateId], references: [id])
+  offeredCTC       Decimal      @db.Decimal(12, 2)
+  joiningDate      DateTime?    @db.Date
+  status           OfferStatus  @default(DRAFT)
+  offerLetterUrl   String?
+  sentAt           DateTime?
+  respondedAt      DateTime?
+  expiresAt        DateTime?
 
   @@map("offers")
 }
 
+enum GoalType {
+  OKR
+  KPI
+  PERSONAL
+}
+
+enum GoalStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  MISSED
+}
+
+enum ReviewCycleType {
+  QUARTERLY
+  HALF_YEARLY
+  ANNUAL
+}
+
+enum ReviewCycleStatus {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+}
+
+enum ReviewType {
+  SELF
+  MANAGER
+  PEER
+  SKIP_LEVEL
+}
+
+enum ReviewStatus {
+  PENDING
+  SUBMITTED
+  ACKNOWLEDGED
+}
+
+// @phase P2 — schema defined now, no application code until Phase 2 is enabled
 model Goal {
-  id String @id @default(cuid())
+  id              String        @id @default(cuid())
+  employeeId      String
+  employee        Employee      @relation(fields: [employeeId], references: [id])
+  title           String
+  description     String?
+  type            GoalType
+  weight          Decimal?      @db.Decimal(5, 2)
+  targetValue     Decimal?      @db.Decimal(10, 2)
+  currentValue    Decimal?      @db.Decimal(10, 2)
+  unit            String?
+  dueDate         DateTime?     @db.Date
+  status          GoalStatus    @default(NOT_STARTED)
+  reviewCycleId   String?
+  reviewCycle     ReviewCycle?  @relation(fields: [reviewCycleId], references: [id])
+  createdAt       DateTime      @default(now())
 
   @@map("goals")
 }
 
+// @phase P2 — schema defined now, no application code until Phase 2 is enabled
 model ReviewCycle {
-  id String @id @default(cuid())
+  id          String              @id @default(cuid())
+  name        String
+  type        ReviewCycleType
+  year         Int
+  quarter      Int?
+  startDate    DateTime           @db.Date
+  endDate      DateTime           @db.Date
+  status       ReviewCycleStatus  @default(UPCOMING)
+  goals        Goal[]
+  reviews      PerformanceReview[]
+  createdAt    DateTime           @default(now())
 
   @@map("review_cycles")
 }
 
+// @phase P2 — schema defined now, no application code until Phase 2 is enabled
 model PerformanceReview {
-  id String @id @default(cuid())
+  id              String        @id @default(cuid())
+  employeeId      String
+  employee        Employee      @relation("ReviewSubject", fields: [employeeId], references: [id])
+  reviewCycleId   String
+  reviewCycle     ReviewCycle   @relation(fields: [reviewCycleId], references: [id])
+  reviewerId      String
+  reviewer        Employee      @relation("ReviewAuthor", fields: [reviewerId], references: [id])
+  type            ReviewType
+  status          ReviewStatus  @default(PENDING)
+  overallRating   Decimal?      @db.Decimal(3, 1)
+  feedback        String?
+  submittedAt     DateTime?
+  acknowledgedAt  DateTime?
 
   @@map("performance_reviews")
 }
 
+enum SkillCategory {
+  TECHNICAL
+  SOFT
+  LEADERSHIP
+  DOMAIN
+}
+
+enum ProficiencyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+// @phase P2 — schema defined now, no application code until Phase 2 is enabled
 model Skill {
-  id String @id @default(cuid())
+  id              String          @id @default(cuid())
+  name            String          @unique
+  category        SkillCategory
+  subcategory     String?
+  employeeSkills  EmployeeSkill[]
+  createdAt       DateTime        @default(now())
 
   @@map("skills")
 }
 
+// @phase P2 — schema defined now, no application code until Phase 2 is enabled
 model EmployeeSkill {
-  id String @id @default(cuid())
+  id                  String            @id @default(cuid())
+  employeeId          String
+  employee            Employee          @relation(fields: [employeeId], references: [id])
+  skillId             String
+  skill               Skill             @relation(fields: [skillId], references: [id])
+  proficiencyLevel    ProficiencyLevel
+  yearsOfExperience   Decimal?          @db.Decimal(4, 1)
+  isVerified          Boolean           @default(false)
+  verifiedById        String?
+  verifiedBy          Employee?         @relation("SkillVerifier", fields: [verifiedById], references: [id])
+  updatedAt           DateTime          @updatedAt
 
+  @@unique([employeeId, skillId])
   @@map("employee_skills")
 }
 
+enum EnrollmentStatus {
+  ENROLLED
+  IN_PROGRESS
+  COMPLETED
+  DROPPED
+}
+
+// @phase P2 — schema defined now, no application code until Phase 2 is enabled
 model Course {
-  id String @id @default(cuid())
+  id            String        @id @default(cuid())
+  title         String
+  description   String?
+  category      String
+  provider      String
+  durationHours Decimal       @db.Decimal(5, 1)
+  courseUrl     String?
+  isInternal    Boolean       @default(false)
+  isActive      Boolean       @default(true)
+  enrollments   Enrollment[]
+  createdAt     DateTime      @default(now())
 
   @@map("courses")
 }
 
+// @phase P2 — schema defined now, no application code until Phase 2 is enabled
 model Enrollment {
-  id String @id @default(cuid())
+  id                String            @id @default(cuid())
+  employeeId        String
+  employee          Employee          @relation(fields: [employeeId], references: [id])
+  courseId          String
+  course            Course            @relation(fields: [courseId], references: [id])
+  enrolledAt        DateTime          @default(now())
+  completedAt       DateTime?
+  progressPercent   Decimal           @default(0) @db.Decimal(5, 2)
+  status            EnrollmentStatus  @default(ENROLLED)
+  certificateUrl    String?
 
+  @@unique([employeeId, courseId])
   @@map("enrollments")
 }
 
+enum SurveyType {
+  PULSE
+  MOOD
+  EXIT
+  ONBOARDING
+  CUSTOM
+}
+
+enum SurveyAudience {
+  ALL
+  DEPARTMENT
+  TEAM
+}
+
+enum SurveyStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+}
+
+enum RecognitionType {
+  KUDOS
+  AWARD
+  BADGE
+}
+
+// @phase P2 — schema defined now, no application code until Phase 2 is enabled
 model Survey {
-  id String @id @default(cuid())
+  id              String           @id @default(cuid())
+  title           String
+  type            SurveyType
+  questions       Json             // array of question objects
+  targetAudience  SurveyAudience   @default(ALL)
+  isAnonymous     Boolean          @default(true)
+  createdById     String
+  createdBy       Employee         @relation(fields: [createdById], references: [id])
+  startDate       DateTime         @db.Date
+  endDate         DateTime         @db.Date
+  status          SurveyStatus     @default(DRAFT)
+  responses       SurveyResponse[]
 
   @@map("surveys")
 }
 
+// @phase P2 — schema defined now, no application code until Phase 2 is enabled
 model SurveyResponse {
-  id String @id @default(cuid())
+  id            String     @id @default(cuid())
+  surveyId      String
+  survey        Survey     @relation(fields: [surveyId], references: [id])
+  respondentId  String?    // null if anonymous
+  respondent    Employee?  @relation(fields: [respondentId], references: [id])
+  answers       Json
+  submittedAt   DateTime   @default(now())
 
   @@map("survey_responses")
 }
 
+// @phase P2 — schema defined now, no application code until Phase 2 is enabled
 model Recognition {
-  id String @id @default(cuid())
+  id              String            @id @default(cuid())
+  fromEmployeeId  String
+  fromEmployee    Employee          @relation("RecognitionGiver", fields: [fromEmployeeId], references: [id])
+  toEmployeeId    String
+  toEmployee      Employee          @relation("RecognitionReceiver", fields: [toEmployeeId], references: [id])
+  type            RecognitionType
+  title           String
+  message         String?
+  isPublic        Boolean           @default(true)
+  createdAt       DateTime          @default(now())
 
   @@map("recognitions")
 }
 
+enum ReadinessLevel {
+  READY_NOW
+  READY_1_YEAR
+  READY_2_YEARS
+  DEVELOPING
+}
+
+enum TalentApplicationStatus {
+  APPLIED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum TransferRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// @phase P2 — schema defined now, no application code until Phase 2 is enabled
 model SuccessionPlan {
-  id String @id @default(cuid())
+  id                String          @id @default(cuid())
+  roleTitle         String
+  incumbentId       String?
+  incumbent         Employee?       @relation("SuccessionIncumbent", fields: [incumbentId], references: [id])
+  successorId       String?
+  successor         Employee?       @relation("SuccessionSuccessor", fields: [successorId], references: [id])
+  readinessLevel    ReadinessLevel  @default(DEVELOPING)
+  gapAnalysis       String?
+  developmentPlan   String?
+  updatedAt         DateTime        @updatedAt
 
   @@map("succession_plans")
 }
 
+// @phase P2 — schema defined now, no application code until Phase 2 is enabled
 model TalentApplication {
-  id String @id @default(cuid())
+  id           String                    @id @default(cuid())
+  employeeId   String
+  employee     Employee                  @relation(fields: [employeeId], references: [id])
+  jobId        String
+  job          Job                       @relation(fields: [jobId], references: [id])
+  appliedAt    DateTime                  @default(now())
+  status       TalentApplicationStatus   @default(APPLIED)
+  notes        String?
 
   @@map("talent_applications")
 }
 
+// @phase P2 — schema defined now, no application code until Phase 2 is enabled
 model TransferRequest {
-  id String @id @default(cuid())
+  id                  String                  @id @default(cuid())
+  employeeId          String
+  employee            Employee                @relation("TransferEmployee", fields: [employeeId], references: [id])
+  fromDepartmentId    String
+  fromDepartment      Department              @relation("TransferFrom", fields: [fromDepartmentId], references: [id])
+  toDepartmentId      String
+  toDepartment        Department              @relation("TransferTo", fields: [toDepartmentId], references: [id])
+  reason              String
+  status              TransferRequestStatus   @default(PENDING)
+  requestedAt         DateTime                @default(now())
+  processedAt         DateTime?
+  processedById       String?
+  processedBy         Employee?               @relation("TransferProcessor", fields: [processedById], references: [id])
 
   @@map("transfer_requests")
 }
@@ -335,26 +1200,82 @@ model TransferRequest {
 // PHASE 3 SKELETON MODELS
 // ─────────────────────────────────────────
 
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// @phase P3 — schema defined now, requires pgvector extension via enable-phase3.sh
+// DO NOT migrate until Phase 3 is unlocked.
 model EmbeddingVector {
-  id String @id @default(cuid())
+  id            String                    @id @default(cuid())
+  documentId    String
+  documentType  String                    // "KNOWLEDGE" | "POLICY" | "REVIEW" | "SOP"
+  chunkIndex    Int
+  chunkText     String
+  embedding     Unsupported("vector(1536)")?
+  model         String
+  createdAt     DateTime                  @default(now())
 
   @@map("embedding_vectors")
 }
 
+// @phase P3 — schema defined now, no application code until Phase 3 is enabled
 model AttritionRiskScore {
-  id String @id @default(cuid())
+  id               String     @id @default(cuid())
+  employeeId       String
+  employee         Employee   @relation(fields: [employeeId], references: [id])
+  riskScore        Decimal    @db.Decimal(4, 3)   // 0.000 to 1.000
+  riskLevel        RiskLevel
+  factors          Json
+  recommendation   String?
+  modelVersion     String
+  computedAt       DateTime   @default(now())
+  validUntil       DateTime
 
   @@map("attrition_risk_scores")
 }
 
+enum AIInsightType {
+  ATTRITION
+  SKILL_GAP
+  PROMOTION
+  FORECASTING
+  HIRING
+}
+
+enum AITargetType {
+  EMPLOYEE
+  DEPARTMENT
+  ORGANIZATION
+}
+
+// @phase P3 — schema defined now, no application code until Phase 3 is enabled
 model AIInsight {
-  id String @id @default(cuid())
+  id            String         @id @default(cuid())
+  type          AIInsightType
+  targetId      String
+  targetType    AITargetType
+  insight       Json
+  confidence    Decimal?       @db.Decimal(4, 3)
+  modelVersion  String
+  generatedAt   DateTime       @default(now())
+  expiresAt     DateTime?
 
   @@map("ai_insights")
 }
 
+// @phase P3 — schema defined now, no application code until Phase 3 is enabled
 model AIChat {
-  id String @id @default(cuid())
+  id          String    @id @default(cuid())
+  employeeId  String
+  employee    Employee  @relation(fields: [employeeId], references: [id])
+  sessionId   String
+  messages    Json      // array of {role, content, timestamp}
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@map("ai_chats")
 }

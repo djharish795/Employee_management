@@ -1,100 +1,125 @@
-import { PrismaClient, UserRole } from "@prisma/client";
-import * as bcrypt from "bcrypt";
+import { PrismaClient, WorkflowType } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const DEFAULT_PASSWORD = "Naprocs@2026!";
-
-async function seedUser(params: {
-  employeeId: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: UserRole;
-}) {
-  const passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, 12);
-
-  const employee = await prisma.employee.upsert({
-    where: { officialEmail: params.email },
-    update: {
-      firstName: params.firstName,
-      lastName: params.lastName,
-      designation: params.role,
-    },
-    create: {
-      employeeId: params.employeeId,
-      firstName: params.firstName,
-      lastName: params.lastName,
-      officialEmail: params.email,
-      designation: params.role,
-    },
-  });
-
-  await prisma.user.upsert({
-    where: { email: params.email },
-    update: {
-      passwordHash,
-      role: params.role,
-      status: "ACTIVE",
-      employeeId: employee.id,
-    },
-    create: {
-      email: params.email,
-      passwordHash,
-      role: params.role,
-      status: "ACTIVE",
-      employeeId: employee.id,
-    },
-  });
-}
-
 async function main() {
-  await seedUser({
-    employeeId: "EMP-SA-001",
-    firstName: "Super",
-    lastName: "Admin",
-    email: "superadmin@naprocs.in",
-    role: UserRole.SUPER_ADMIN,
-  });
+  console.log('Starting seed...');
 
-  await seedUser({
-    employeeId: "EMP-CEO-001",
-    firstName: "Pradeep",
-    lastName: "Chandra",
-    email: "ceo@naprocs.in",
-    role: UserRole.CEO,
-  });
+  // 1. Departments
+  const departmentsData = [
+    { name: 'Engineering', code: 'ENG' },
+    { name: 'Human Resources', code: 'HR' },
+    { name: 'Sales', code: 'SALES' },
+    { name: 'Finance', code: 'FIN' },
+    { name: 'Operations', code: 'OPS' },
+    { name: 'Executive', code: 'EXEC' },
+  ];
 
-  await seedUser({
-    employeeId: "EMP-CTO-001",
-    firstName: "Lokesh",
-    lastName: "CTO",
-    email: "cto@naprocs.in",
-    role: UserRole.CTO,
-  });
+  const departments: Record<string, string> = {};
+  for (const dept of departmentsData) {
+    const created = await prisma.department.upsert({
+      where: { code: dept.code },
+      update: {},
+      create: dept,
+    });
+    departments[dept.code] = created.id;
+  }
+  console.log('Departments seeded.');
 
-  await seedUser({
-    employeeId: "EMP-HR-001",
-    firstName: "Tejesh",
-    lastName: "Kumar",
-    email: "hr@naprocs.in",
-    role: UserRole.HR,
-  });
+  // 2. Designations
+  const designationsData = [
+    { title: 'Chief Executive Officer', departmentCode: 'EXEC' },
+    { title: 'Chief Technology Officer', departmentCode: 'EXEC' },
+    { title: 'HR Management Director', departmentCode: 'HR' },
+    { title: 'Lead Architect', departmentCode: 'ENG' },
+    { title: 'Senior Backend Developer', departmentCode: 'ENG' },
+    { title: 'Backend Developer', departmentCode: 'ENG' },
+    { title: 'Senior Frontend Developer', departmentCode: 'ENG' },
+    { title: 'Frontend Developer', departmentCode: 'ENG' },
+    { title: 'QA Engineer', departmentCode: 'ENG' },
+    { title: 'DevOps Engineer', departmentCode: 'ENG' },
+    { title: 'HR Executive', departmentCode: 'HR' },
+    { title: 'Finance Executive', departmentCode: 'FIN' },
+  ];
 
-  await seedUser({
-    employeeId: "EMP-001",
-    firstName: "Demo",
-    lastName: "Employee",
-    email: "employee@naprocs.in",
-    role: UserRole.EMPLOYEE,
-  });
+  for (const desig of designationsData) {
+    const departmentId = departments[desig.departmentCode];
+    await prisma.designation.upsert({
+      where: {
+        title_departmentId: {
+          title: desig.title,
+          departmentId: departmentId,
+        },
+      },
+      update: {},
+      create: {
+        title: desig.title,
+        departmentId: departmentId,
+      },
+    });
+  }
+  console.log('Designations seeded.');
 
-  console.log("Seed complete. Default password:", DEFAULT_PASSWORD);
+  // 3. Leave types
+  const leaveTypesData = [
+    { code: 'CL', name: 'Casual Leave', maxDaysPerYear: 8, isCarryForwardAllowed: false, isPaidLeave: true },
+    { code: 'SL', name: 'Sick Leave', maxDaysPerYear: 6, isCarryForwardAllowed: false, isPaidLeave: true, requiresDocumentAbove: 2 },
+    { code: 'EL', name: 'Earned Leave', maxDaysPerYear: 12, isCarryForwardAllowed: true, maxCarryForwardDays: 6, isPaidLeave: true },
+    { code: 'ML', name: 'Maternity Leave', maxDaysPerYear: 182, isCarryForwardAllowed: false, isPaidLeave: true },
+    { code: 'PL', name: 'Paternity Leave', maxDaysPerYear: 15, isCarryForwardAllowed: false, isPaidLeave: true },
+    { code: 'BL', name: 'Bereavement Leave', maxDaysPerYear: 5, isCarryForwardAllowed: false, isPaidLeave: true },
+    { code: 'COMP', name: 'Compensatory Leave', maxDaysPerYear: 12, isCarryForwardAllowed: false, isPaidLeave: true },
+  ];
+
+  for (const lt of leaveTypesData) {
+    await prisma.leaveType.upsert({
+      where: { code: lt.code },
+      update: {},
+      create: lt,
+    });
+  }
+  console.log('Leave Types seeded.');
+
+  // 4. Workflows
+  const workflowsData = [
+    { type: WorkflowType.LEAVE, name: 'Leave Approval Workflow', steps: [{step: 1, approverRole: 'MANAGER'}, {step: 2, approverRole: 'HR'}] },
+    { type: WorkflowType.ASSET_REQUEST, name: 'Asset Request Workflow', steps: [{step: 1, approverRole: 'MANAGER'}, {step: 2, approverRole: 'IT'}] },
+    { type: WorkflowType.RECRUITMENT, name: 'Recruitment Workflow', steps: [{step: 1, approverRole: 'MANAGER'}, {step: 2, approverRole: 'HR'}] },
+    { type: WorkflowType.PROMOTION, name: 'Promotion Workflow', steps: [{step: 1, approverRole: 'MANAGER'}, {step: 2, approverRole: 'DEPARTMENT_HEAD'}, {step: 3, approverRole: 'HR'}, {step: 4, approverRole: 'CEO'}] },
+    { type: WorkflowType.OFFBOARDING, name: 'Offboarding Workflow', steps: [{step: 1, approverRole: 'MANAGER'}, {step: 2, approverRole: 'IT'}, {step: 3, approverRole: 'HR'}] },
+  ];
+
+  for (const wf of workflowsData) {
+    await prisma.workflow.upsert({
+      where: { type: wf.type },
+      update: { steps: wf.steps },
+      create: wf,
+    });
+  }
+  console.log('Workflows seeded.');
+
+  // 5. App settings
+  const settingsData = [
+    { key: 'grievance_officer_contact', category: 'compliance', value: { name: 'TBD', email: 'grievance@naprocs.in', phone: 'TBD' } },
+    { key: 'session_max_concurrent', category: 'security', value: 3 },
+    { key: 'office_wifi_cidr', category: 'network', value: ['10.0.0.0/24'] },
+  ];
+
+  for (const setting of settingsData) {
+    await prisma.appSetting.upsert({
+      where: { key: setting.key },
+      update: {},
+      create: setting,
+    });
+  }
+  console.log('App Settings seeded.');
+
+  console.log('Seed completed successfully.');
 }
 
 main()
-  .catch((error) => {
-    console.error(error);
+  .catch((e) => {
+    console.error(e);
     process.exit(1);
   })
   .finally(async () => {
