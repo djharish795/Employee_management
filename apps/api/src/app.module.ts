@@ -17,4 +17,4 @@ import { RedisModule } from "./redis/redis.module";
     AuthModule,
   ],
 })
-export class AppModule {}
+export class AppModule { }
