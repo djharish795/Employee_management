@@ -86,13 +86,16 @@ export const MfaCard: React.FC = () => {
         setDeviceDetails(res.deviceDetails);
         router.push("/new-device");
       } else if (res.success && res.token) {
+        const role = res.role ?? "EMPLOYEE";
         setAuthSession({
           accessToken: res.token,
-          role: res.role ?? "EMPLOYEE",
+          role: role,
         });
-        router.push(res.redirectPath ?? "/employee");
+        document.cookie = `token=${res.token}; path=/; max-age=86400; SameSite=Strict`;
+        document.cookie = `role=${role}; path=/; max-age=86400; SameSite=Strict`;
+        router.push(res.redirectPath ?? "/employee/dashboard");
       } else {
-        router.push("/employee");
+        router.push("/employee/dashboard");
       }
     } catch (err: any) {
       setErrorMsg(err.message || "Invalid or expired verification code.");

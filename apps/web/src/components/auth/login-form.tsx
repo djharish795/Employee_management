@@ -64,13 +64,16 @@ export const LoginForm: React.FC = () => {
         router.push("/mfa");
       } else if (res.token) {
         // Direct entry case (if MFA disabled in local testing)
+        const role = res.role ?? "EMPLOYEE";
         setAuthSession({
           accessToken: res.token,
-          role: res.role ?? "EMPLOYEE",
+          role: role,
         });
-        router.push(res.redirectPath ?? "/employee");
+        document.cookie = `token=${res.token}; path=/; max-age=86400; SameSite=Strict`;
+        document.cookie = `role=${role}; path=/; max-age=86400; SameSite=Strict`;
+        router.push(res.redirectPath ?? "/employee/dashboard");
       } else {
-        router.push("/employee");
+        router.push("/employee/dashboard");
       }
     } catch (err: any) {
       setErrorMsg(err.message || "An unexpected error occurred. Please try again.");

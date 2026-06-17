@@ -12,14 +12,14 @@ import {
 import { useAuthStore } from '@/store/auth';
 
 const getDashboardPath = (role: string | null) => {
-  if (!role) return '/employee';
+  if (!role) return '/employee/dashboard';
   const r = role.toUpperCase();
-  if (['SUPER_ADMIN', 'IT'].includes(r)) return '/admin';
-  if (['CEO', 'COO'].includes(r)) return '/executive';
-  if (['CTO'].includes(r)) return '/cto';
-  if (['CFO', 'FINANCE'].includes(r)) return '/finance';
-  if (['CHRO', 'HR'].includes(r)) return '/hr';
-  return '/employee';
+  if (['SUPER_ADMIN', 'IT'].includes(r)) return '/admin/dashboard';
+  if (['CEO', 'COO'].includes(r)) return '/executive/dashboard';
+  if (['CTO'].includes(r)) return '/cto/dashboard';
+  if (['CFO', 'FINANCE'].includes(r)) return '/finance/dashboard';
+  if (['CHRO', 'HR'].includes(r)) return '/hr/dashboard';
+  return '/employee/dashboard';
 };
 
 const getRoleTitle = (role: string | null) => {

@@ -1,5 +1,9 @@
+"use client";
+
 import React from 'react';
-import { Metadata } from 'next';
+import { useQuery } from '@tanstack/react-query';
+import { useAuthStore } from '@/store/auth';
+import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 
@@ -10,35 +14,7 @@ import { HighlightsPanel } from '@/components/executive-dashboard/HighlightsPane
 import { QuickLinks } from '@/components/executive-dashboard/QuickLinks';
 
 // Types
-import { KpiMetric, DepartmentHeadcount, Highlight, QuickLinkType } from '@/types/executive-dashboard';
-
-export const metadata: Metadata = {
-  title: 'Executive Dashboard | Naprocs EMS',
-  description: 'CEO and Executive Dashboard for Enterprise Management System',
-};
-
-// Mock Data for Phase 1
-const kpiData: KpiMetric[] = [
-  { id: '1', title: 'Total Employees', value: '87', subtext: '+4% from last month', iconType: 'users' },
-  { id: '2', title: 'Present Today', value: '74', subtext: '85% total attendance', iconType: 'calendar' },
-  { id: '3', title: 'On Leave', value: '8', subtext: '3 Pending approvals', iconType: 'umbrella' },
-  { id: '4', title: 'New This Month', value: '3', subtext: 'Next onboarding: Mon 23rd', iconType: 'userPlus' },
-];
-
-const headcountData: DepartmentHeadcount[] = [
-  { department: 'Engineering', count: 34, color: 'bg-blue-600' },
-  { department: 'Sales', count: 18, color: 'bg-indigo-600' },
-  { department: 'Operations', count: 15, color: 'bg-sky-500' },
-  { department: 'HR', count: 12, color: 'bg-slate-400' },
-  { department: 'Finance', count: 8, color: 'bg-slate-300' },
-];
-
-const highlightsData: Highlight[] = [
-  { id: '1', title: '3 new employees joined', description: 'Successfully completed week 1', type: 'success' },
-  { id: '2', title: 'Annual compliance review', description: 'Due by December 31st', type: 'warning' },
-  { id: '3', title: 'Asset audit completed', description: '100% of laptops accounted for', type: 'success' },
-  { id: '4', title: 'Workflows updated', description: 'Leave request policy updated', type: 'info' },
-];
+import { QuickLinkType } from '@/types/executive-dashboard';
 
 const quickLinksData: QuickLinkType[] = [
   { id: '1', title: 'Add employee', href: '/employees/new', iconType: 'userPlus' },
@@ -47,7 +23,45 @@ const quickLinksData: QuickLinkType[] = [
   { id: '4', title: 'Export report', href: '#', iconType: 'export' },
 ];
 
-export default function ExecutiveDashboardPage() {
+export function DashboardClient() {
+  const accessToken = useAuthStore((state) => state.accessToken);
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['dashboard-metrics'],
+    queryFn: async () => {
+      const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const res = await fetch(`${url}/dashboard/metrics`, {
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      });
+      if (!res.ok) throw new Error('Failed to fetch metrics');
+      return res.json();
+    },
+    retry: false
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 w-full flex items-center justify-center p-6 md:p-8 bg-slate-50 min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="flex-1 w-full p-6 md:p-8 bg-slate-50 min-h-screen font-sans">
+        <div className="text-red-500 bg-red-50 p-4 rounded-md">Error loading dashboard metrics.</div>
+      </div>
+    );
+  }
+
+  const { kpiData, headcountData, highlightsData } = data;
+  
+  // Try to find the total headcount from KPI data or sum up the headcount chart
+  const totalEmployeesItem = kpiData?.find((k: any) => k.title === 'Total Employees');
+  const totalEmployees = totalEmployeesItem ? parseInt(totalEmployeesItem.value, 10) : 
+    (headcountData?.reduce((acc: number, curr: any) => acc + curr.count, 0) || 0);
+
   return (
     <div className="flex-1 w-full p-6 md:p-8 bg-slate-50 min-h-screen font-sans">
       
@@ -73,7 +87,7 @@ export default function ExecutiveDashboardPage() {
         
         {/* Left Column (Headcount chart spans 1 column but might be wider on tablet) */}
         <div className="lg:col-span-1">
-          <HeadcountChart data={headcountData} total={87} />
+          <HeadcountChart data={headcountData} total={totalEmployees} />
         </div>
 
         {/* Middle Column (Highlights) */}
