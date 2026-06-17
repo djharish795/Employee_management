@@ -26,6 +26,18 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+const roleDashboardMap: Record<string, string> = {
+  SUPER_ADMIN: '/admin/dashboard',
+  IT: '/admin/dashboard',
+  CEO: '/executive/dashboard',
+  COO: '/executive/dashboard',
+  CTO: '/cto/dashboard',
+  CFO: '/finance/dashboard',
+  FINANCE: '/finance/dashboard',
+  CHRO: '/hr/dashboard',
+  HR: '/hr/dashboard',
+};
+
 export const LoginForm: React.FC = () => {
   const router = useRouter();
   const setTempSession = useAuthStore((state) => state.setTempSession);
@@ -33,6 +45,21 @@ export const LoginForm: React.FC = () => {
   const [showPassword, setShowPassword] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
+
+  // Client-side auth guard: if the user already has a valid token cookie,
+  // redirect them away from the login page IMMEDIATELY (handles browser back-button cache bypass)
+  React.useEffect(() => {
+    const getCookie = (name: string) => {
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      return match ? decodeURIComponent(match[2]) : null;
+    };
+    const token = getCookie('token');
+    const role = getCookie('role')?.toUpperCase() ?? '';
+    if (token) {
+      const target = roleDashboardMap[role] ?? '/employee/dashboard';
+      router.replace(target);
+    }
+  }, [router]);
 
   const {
     register,

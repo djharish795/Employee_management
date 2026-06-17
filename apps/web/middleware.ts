@@ -56,9 +56,7 @@ export function middleware(request: NextRequest) {
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
-    pathname.includes('.') ||
-    pathname === '/login' ||
-    pathname === '/mfa'
+    pathname.includes('.')
   ) {
     return NextResponse.next();
   }
@@ -66,6 +64,11 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
   const role = request.cookies.get('role')?.value?.toUpperCase();
 
+  // If an authenticated user tries to visit any login-related route, redirect them to their dashboard
+  if (token && pathname.startsWith('/login')) {
+    const targetDashboard = roleDashboardMap[role] || '/employee/dashboard';
+    return NextResponse.redirect(new URL(targetDashboard, request.url));
+  }
   // Check if it's a protected route
   const isProtectedRoute = protectedRoutes.some(route => 
     pathname === route || pathname.startsWith(`${route}/`)

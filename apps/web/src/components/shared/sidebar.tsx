@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, Users, CalendarCheck, Calendar, 
   MonitorSmartphone, ShieldCheck, History, UserPlus, 
@@ -41,7 +41,14 @@ const getRoleTitle = (role: string | null) => {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const role = useAuthStore((state) => state.role);
+  const clearSession = useAuthStore((state) => state.clearSession);
+
+  const handleLogout = () => {
+    clearSession();
+    router.push('/login');
+  };
   const dashboardPath = getDashboardPath(role);
   const roleTitle = getRoleTitle(role);
 
@@ -103,7 +110,10 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className="p-4 mt-auto">
-        <button className="flex items-center gap-3 px-3 py-2.5 w-full text-left rounded-lg text-sm font-medium text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors">
+        <button 
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-3 py-2.5 w-full text-left rounded-lg text-sm font-medium text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors"
+        >
           <LogOut className="w-4 h-4 text-slate-400 group-hover:text-red-500" />
           Logout
         </button>
