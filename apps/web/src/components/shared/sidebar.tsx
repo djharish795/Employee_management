@@ -45,7 +45,7 @@ export function Sidebar() {
   const dashboardPath = getDashboardPath(role);
   const roleTitle = getRoleTitle(role);
 
-  const navItems = [
+  const allNavItems = [
     { title: 'Dashboard', icon: LayoutDashboard, href: dashboardPath },
     { title: 'Employees', icon: Users, href: '/employees' },
     { title: 'Attendance', icon: CalendarCheck, href: '/attendance' },
@@ -63,6 +63,16 @@ export function Sidebar() {
     { title: 'Org Chart', icon: Network, href: '/org-chart' },
     { title: 'Settings', icon: Settings, href: '/settings' },
   ];
+
+  const employeeAllowedModules = [
+    'Dashboard', 'Attendance', 'Leaves', 'Assets', 'Knowledge Base', 'Org Chart', 'Settings'
+  ];
+
+  const isEmployee = !role || role.toUpperCase() === 'EMPLOYEE';
+  const navItems = isEmployee 
+    ? allNavItems.filter(item => employeeAllowedModules.includes(item.title))
+    : allNavItems;
+
 
   return (
     <aside className="w-[260px] flex-shrink-0 bg-white flex flex-col h-screen text-slate-600 overflow-y-auto overflow-x-hidden border-r border-slate-200 scrollbar-hide">

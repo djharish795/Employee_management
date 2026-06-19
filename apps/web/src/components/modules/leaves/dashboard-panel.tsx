@@ -41,14 +41,19 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
     return INITIAL_REQUESTS;
   };
 
-  const { data: requests = [] } = useQuery<LeaveRequest[]>({
+  const { data: allRequests = [] } = useQuery<LeaveRequest[]>({
     queryKey: ["leaveRequests"],
     queryFn: fetchLeaveRequests,
   });
 
+  const isEmployee = activeRole === "EMPLOYEE";
+  // Filter for employee view: normally we'd filter by userId, here we mock it by picking a specific name or just returning fewer items to simulate "My Requests"
+  const requests = isEmployee 
+    ? allRequests.filter(r => r.employeeName === "Arjun Mehta") 
+    : allRequests;
+
   // Calculate dynamic KPIs based on role
   const kpis = useMemo(() => {
-    const isEmployee = activeRole === "EMPLOYEE";
     const available = INITIAL_BALANCES.reduce((acc, curr) => acc + curr.available, 0);
     const used = INITIAL_BALANCES.reduce((acc, curr) => acc + curr.used, 0);
     const pending = requests.filter((r) => r.status === "PENDING").length;
@@ -60,7 +65,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
       conflicts: isEmployee ? "0 Conflicts" : "2 Team Conflicts",
       holidays: "3 Holidays MTD",
     };
-  }, [requests, activeRole]);
+  }, [requests, isEmployee]);
 
   return (
     <div className="space-y-6">
@@ -102,7 +107,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
           {/* History / Recent List */}
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
             <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/20">
-              <h3 className="text-sm font-bold text-slate-900">Recent Leave Applications</h3>
+              <h3 className="text-sm font-bold text-slate-900">{isEmployee ? "My Recent Leave Applications" : "Recent Leave Applications"}</h3>
               <Link href="/leaves/apply" className="flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition-colors cursor-pointer">
                 <UserPlus className="w-3.5 h-3.5" /> Apply for Leave
               </Link>
