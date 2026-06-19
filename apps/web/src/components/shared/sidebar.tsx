@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, Users, CalendarCheck, Calendar, 
   MonitorSmartphone, ShieldCheck, History, UserPlus, 
@@ -12,14 +12,14 @@ import {
 import { useAuthStore } from '@/store/auth';
 
 const getDashboardPath = (role: string | null) => {
-  if (!role) return '/employee';
+  if (!role) return '/employee/dashboard';
   const r = role.toUpperCase();
-  if (['SUPER_ADMIN', 'IT'].includes(r)) return '/admin';
-  if (['CEO', 'COO'].includes(r)) return '/executive';
-  if (['CTO'].includes(r)) return '/cto';
-  if (['CFO', 'FINANCE'].includes(r)) return '/finance';
-  if (['CHRO', 'HR'].includes(r)) return '/hr';
-  return '/employee';
+  if (['SUPER_ADMIN', 'IT'].includes(r)) return '/admin/dashboard';
+  if (['CEO', 'COO'].includes(r)) return '/executive/dashboard';
+  if (['CTO'].includes(r)) return '/cto/dashboard';
+  if (['CFO', 'FINANCE'].includes(r)) return '/finance/dashboard';
+  if (['CHRO', 'HR'].includes(r)) return '/hr/dashboard';
+  return '/employee/dashboard';
 };
 
 const getRoleTitle = (role: string | null) => {
@@ -41,7 +41,14 @@ const getRoleTitle = (role: string | null) => {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const role = useAuthStore((state) => state.role);
+  const clearSession = useAuthStore((state) => state.clearSession);
+
+  const handleLogout = () => {
+    clearSession();
+    router.push('/login');
+  };
   const dashboardPath = getDashboardPath(role);
   const roleTitle = getRoleTitle(role);
 
@@ -113,7 +120,10 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className="p-4 mt-auto">
-        <button className="flex items-center gap-3 px-3 py-2.5 w-full text-left rounded-lg text-sm font-medium text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors">
+        <button 
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-3 py-2.5 w-full text-left rounded-lg text-sm font-medium text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors"
+        >
           <LogOut className="w-4 h-4 text-slate-400 group-hover:text-red-500" />
           Logout
         </button>

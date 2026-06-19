@@ -1,21 +1,22 @@
 import React from 'react';
 import { Card, CardContent } from '../ui/card';
-import { Users, Calendar, Umbrella, UserPlus, UserMinus } from 'lucide-react';
+import { Users, Calendar, Umbrella, UserPlus, UserMinus, UserCheck, Activity } from 'lucide-react';
 import { KpiMetric } from '../../types/executive-dashboard';
 
-const icons = {
+const icons: Record<string, any> = {
   users: Users,
   calendar: Calendar,
   umbrella: Umbrella,
   userPlus: UserPlus,
   userMinus: UserMinus,
+  userCheck: UserCheck,
 };
 
 export function KpiGrid({ metrics }: { metrics: KpiMetric[] }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {metrics.map((metric) => {
-        const Icon = icons[metric.iconType];
+        const Icon = icons[metric.iconType] || Activity;
         return (
           <Card key={metric.id} className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-6">

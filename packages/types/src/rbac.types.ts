@@ -14,20 +14,20 @@ export enum UserRole {
 }
 
 export const ROLE_DASHBOARD_PATH: Record<UserRole, string> = {
-  [UserRole.SUPER_ADMIN]: "/admin",
-  [UserRole.CEO]: "/executive",
-  [UserRole.CTO]: "/cto",
-  [UserRole.COO]: "/executive",
-  [UserRole.CFO]: "/finance",
-  [UserRole.CHRO]: "/hr",
-  [UserRole.HR]: "/hr",
-  [UserRole.FINANCE]: "/finance",
-  [UserRole.MANAGER]: "/employee",
-  [UserRole.TEAM_LEAD]: "/employee",
-  [UserRole.EMPLOYEE]: "/employee",
-  [UserRole.IT]: "/admin",
+  [UserRole.SUPER_ADMIN]: "/admin/dashboard",
+  [UserRole.CEO]: "/executive/dashboard",
+  [UserRole.CTO]: "/cto/dashboard",
+  [UserRole.COO]: "/executive/dashboard",
+  [UserRole.CFO]: "/finance/dashboard",
+  [UserRole.CHRO]: "/hr/dashboard",
+  [UserRole.HR]: "/hr/dashboard",
+  [UserRole.FINANCE]: "/finance/dashboard",
+  [UserRole.MANAGER]: "/employee/dashboard",
+  [UserRole.TEAM_LEAD]: "/employee/dashboard",
+  [UserRole.EMPLOYEE]: "/employee/dashboard",
+  [UserRole.IT]: "/admin/dashboard",
 };
 
 export function getDashboardPathForRole(role: string): string {
-  return ROLE_DASHBOARD_PATH[role as UserRole] ?? "/employee";
+  return ROLE_DASHBOARD_PATH[role as UserRole] ?? "/employee/dashboard";
 }

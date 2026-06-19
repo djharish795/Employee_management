@@ -26,6 +26,18 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+const roleDashboardMap: Record<string, string> = {
+  SUPER_ADMIN: '/admin/dashboard',
+  IT: '/admin/dashboard',
+  CEO: '/executive/dashboard',
+  COO: '/executive/dashboard',
+  CTO: '/cto/dashboard',
+  CFO: '/finance/dashboard',
+  FINANCE: '/finance/dashboard',
+  CHRO: '/hr/dashboard',
+  HR: '/hr/dashboard',
+};
+
 export const LoginForm: React.FC = () => {
   const router = useRouter();
   const setTempSession = useAuthStore((state) => state.setTempSession);
@@ -33,6 +45,21 @@ export const LoginForm: React.FC = () => {
   const [showPassword, setShowPassword] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
+
+  // Client-side auth guard: if the user already has a valid token cookie,
+  // redirect them away from the login page IMMEDIATELY (handles browser back-button cache bypass)
+  React.useEffect(() => {
+    const getCookie = (name: string) => {
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      return match ? decodeURIComponent(match[2]) : null;
+    };
+    const token = getCookie('token');
+    const role = getCookie('role')?.toUpperCase() ?? '';
+    if (token) {
+      const target = roleDashboardMap[role] ?? '/employee/dashboard';
+      router.replace(target);
+    }
+  }, [router]);
 
   const {
     register,
@@ -64,13 +91,16 @@ export const LoginForm: React.FC = () => {
         router.push("/mfa");
       } else if (res.token) {
         // Direct entry case (if MFA disabled in local testing)
+        const role = res.role ?? "EMPLOYEE";
         setAuthSession({
           accessToken: res.token,
-          role: res.role ?? "EMPLOYEE",
+          role: role,
         });
-        router.push(res.redirectPath ?? "/employee");
+        document.cookie = `token=${res.token}; path=/; max-age=86400; SameSite=Strict`;
+        document.cookie = `role=${role}; path=/; max-age=86400; SameSite=Strict`;
+        router.push(res.redirectPath ?? "/employee/dashboard");
       } else {
-        router.push("/employee");
+        router.push("/employee/dashboard");
       }
     } catch (err: any) {
       setErrorMsg(err.message || "An unexpected error occurred. Please try again.");

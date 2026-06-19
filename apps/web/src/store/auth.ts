@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 export interface TempSession {
   email: string;
@@ -23,20 +24,39 @@ interface AuthState {
   clearSession: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  tempSession: null,
-  deviceDetails: null,
-  accessToken: null,
-  role: null,
-  setTempSession: (session) => set({ tempSession: session }),
-  setDeviceDetails: (details) => set({ deviceDetails: details }),
-  setAuthSession: ({ accessToken, role }) =>
-    set({ accessToken, role, tempSession: null }),
-  clearSession: () =>
-    set({
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
       tempSession: null,
       deviceDetails: null,
       accessToken: null,
       role: null,
+      setTempSession: (session) => set({ tempSession: session }),
+      setDeviceDetails: (details) => set({ deviceDetails: details }),
+      setAuthSession: ({ accessToken, role }) =>
+        set({ accessToken, role, tempSession: null }),
+      clearSession: () => {
+        // Also clear cookies on logout
+        if (typeof document !== "undefined") {
+          document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+          document.cookie = "role=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        }
+        set({
+          tempSession: null,
+          deviceDetails: null,
+          accessToken: null,
+          role: null,
+        });
+      },
     }),
-}));
+    {
+      name: "auth-storage",
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({ 
+        accessToken: state.accessToken, 
+        role: state.role,
+        deviceDetails: state.deviceDetails
+      }),
+    }
+  )
+);
