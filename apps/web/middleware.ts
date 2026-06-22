@@ -66,7 +66,7 @@ export function middleware(request: NextRequest) {
 
   // If an authenticated user tries to visit any login-related route, redirect them to their dashboard
   if (token && pathname.startsWith('/login')) {
-    const targetDashboard = (role && roleDashboardMap[role]) || '/employee/dashboard';
+    const targetDashboard = (role ? roleDashboardMap[role] : null) || '/employee/dashboard';
     return NextResponse.redirect(new URL(targetDashboard, request.url));
   }
   // Check if it's a protected route
