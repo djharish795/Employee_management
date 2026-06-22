@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   useReactTable,
@@ -834,13 +835,13 @@ export default function EmployeeDirectory() {
 
           {/* Add Employee CTA */}
           {roleConfig.canAddEmployee && (
-            <button 
-              onClick={() => alert("Add Employee workflow is currently under construction. Please check back later!")}
+            <Link 
+              href="/employees/new"
               className="flex items-center justify-center gap-2 h-10 px-5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm shadow-sm transition-colors w-full md:w-auto"
             >
               <UserPlus className="w-4 h-4" />
               Add Employee
-            </button>
+            </Link>
           )}
         </div>
 
