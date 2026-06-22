@@ -247,9 +247,9 @@ export default function KnowledgeBasePage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border border-slate-300">
-                          <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Alex&backgroundColor=f1f5f9" className="w-full h-full object-cover" />
+                          <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Pradeep&backgroundColor=f1f5f9" className="w-full h-full object-cover" />
                         </div>
-                        <span className="text-sm font-medium text-slate-700">Alex Thompson</span>
+                        <span className="text-sm font-medium text-slate-700">Pradeep Chandra</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">

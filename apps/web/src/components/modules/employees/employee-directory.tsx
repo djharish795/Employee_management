@@ -978,18 +978,28 @@ export default function EmployeeDirectory() {
             {!isLoading && filteredEmployees.length > 0 && (
               <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
                 <div className="text-sm font-medium text-slate-500">
-                  Showing <span className="font-bold text-slate-900">1–{filteredEmployees.length}</span> of{" "}
+                  Showing <span className="font-bold text-slate-900">
+                    {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}
+                    –
+                    {Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, filteredEmployees.length)}
+                  </span> of{" "}
                   <span className="font-bold text-slate-900">{filteredEmployees.length}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-slate-400 border border-slate-200 rounded-lg cursor-not-allowed bg-white shadow-sm">
+                  <button 
+                    onClick={() => table.previousPage()}
+                    disabled={!table.getCanPreviousPage()}
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold border border-slate-200 rounded-lg bg-white shadow-sm transition-all text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
                     <ChevronLeft className="w-3.5 h-3.5" />
                     Prev
                   </button>
                   <button className="flex items-center justify-center w-8 h-8 text-xs font-bold bg-slate-900 text-white rounded-lg shadow-sm">
-                    1
+                    {table.getState().pagination.pageIndex + 1}
                   </button>
-                  <button className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 bg-white shadow-sm transition-all">
+                  <button 
+                    onClick={() => table.nextPage()}
+                    disabled={!table.getCanNextPage()}
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 bg-white shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                     Next
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>

@@ -62,13 +62,13 @@ export function Topbar() {
             className="flex items-center gap-3 cursor-pointer group"
           >
             <div className="text-right flex flex-col">
-              <span className="text-sm font-bold text-slate-900 leading-tight group-hover:text-slate-900 transition-colors">Alex Thompson</span>
+              <span className="text-sm font-bold text-slate-900 leading-tight group-hover:text-slate-900 transition-colors">Pradeep Chandra</span>
               <span className="text-[11px] font-semibold tracking-wide text-slate-500">CEO & Founder</span>
             </div>
             <div className="w-9 h-9 rounded-full bg-slate-200 overflow-hidden flex-shrink-0 border border-slate-200 shadow-sm">
               <img 
-                src="https://api.dicebear.com/7.x/notionists/svg?seed=Alex&backgroundColor=f1f5f9" 
-                alt="Alex Thompson" 
+                src="https://api.dicebear.com/7.x/notionists/svg?seed=Pradeep&backgroundColor=f1f5f9" 
+                alt="Pradeep Chandra" 
                 className="w-full h-full object-cover"
               />
             </div>

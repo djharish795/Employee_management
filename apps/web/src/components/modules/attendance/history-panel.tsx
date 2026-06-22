@@ -90,6 +90,17 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
     return Array.from(new Set(months.filter(Boolean)));
   }, [logs]);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Reset to page 1 when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [filterStatus, filterMonth, filterSearch]);
+
+  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
+  const paginatedLogs = filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   return (
     <div className="space-y-6">
       {/* Filtering Bar */}
@@ -147,7 +158,7 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
       </div>
 
       {/* History Data Table */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
         {isLoading ? (
           <div className="py-20 flex justify-center items-center">
             <RefreshCcw className="w-6 h-6 animate-spin text-slate-900" />
@@ -172,7 +183,7 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
                 </tr>
               </thead>
               <tbody className="text-xs font-semibold text-slate-700 divide-y divide-slate-100">
-                {filteredLogs.map((log, index) => {
+                {paginatedLogs.map((log, index) => {
                   let badge = "text-slate-600 bg-slate-100";
                   if (log.status === "PRESENT") badge = "text-emerald-700 bg-emerald-50 border border-emerald-200/50";
                   else if (log.status === "LATE") badge = "text-amber-700 bg-amber-50 border border-amber-200/50";
@@ -198,6 +209,34 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+        
+        {/* Pagination Controls */}
+        {!isLoading && filteredLogs.length > 0 && (
+          <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
+            <div className="text-sm font-medium text-slate-500">
+              Showing <span className="font-bold text-slate-900">
+                {(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredLogs.length)}
+              </span> of <span className="font-bold text-slate-900">{filteredLogs.length}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold border border-slate-200 rounded-lg bg-white shadow-sm transition-all text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                Prev
+              </button>
+              <button className="flex items-center justify-center w-8 h-8 text-xs font-bold bg-slate-900 text-white rounded-lg shadow-sm">
+                {currentPage}
+              </button>
+              <button 
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 bg-white shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                Next
+              </button>
+            </div>
           </div>
         )}
       </div>

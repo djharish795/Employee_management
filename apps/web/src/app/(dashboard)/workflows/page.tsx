@@ -173,7 +173,7 @@ export default function WorkflowsPage() {
                   <div className="w-1.5 h-1.5 rounded-full bg-slate-700 mt-1.5"></div>
                   <div>
                     <div className="text-[11px] font-bold text-slate-900">Modified Timeout Window</div>
-                    <div className="text-[10px] font-medium text-slate-500 mt-0.5">Alex Thompson • 2h ago</div>
+                    <div className="text-[10px] font-medium text-slate-500 mt-0.5">Pradeep Chandra • 2h ago</div>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">

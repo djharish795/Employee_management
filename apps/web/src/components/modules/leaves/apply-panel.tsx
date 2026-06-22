@@ -116,7 +116,7 @@ export default function ApplyPanel({ activeRole }: ApplyPanelProps) {
       emergencyContact: emergencyPhone,
       delegateName: delegateName || undefined,
       submittedDate: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
-      employeeName: "Alex Thompson", // Mock user name
+      employeeName: "Pradeep Chandra", // Mock user name
       department: "Engineering",
     };
 
@@ -131,7 +131,7 @@ export default function ApplyPanel({ activeRole }: ApplyPanelProps) {
         </div>
         <h3 className="text-base font-bold text-slate-900 font-sans">Application Submitted</h3>
         <p className="text-xs text-slate-500 font-semibold leading-normal">
-          Your leave request for {leaveDays} days has been successfully submitted and forwarded to your reporting manager (Alex Thompson) for review.
+          Your leave request for {leaveDays} days has been successfully submitted and forwarded to your reporting manager (Pradeep Chandra) for review.
         </p>
         <button
           onClick={() => {
@@ -317,7 +317,7 @@ export default function ApplyPanel({ activeRole }: ApplyPanelProps) {
             <div className="p-4 bg-slate-100/50 border border-slate-300 rounded-xl">
               <h5 className="text-[10px] font-bold text-slate-950 uppercase tracking-wide">Reviewing Authority</h5>
               <p className="text-slate-500 font-semibold text-[11px] mt-1">
-                This request will be forwarded to your manager <span className="text-slate-900 font-bold">Alex Thompson (CEO)</span> for sign-off.
+                This request will be forwarded to your manager <span className="text-slate-900 font-bold">Pradeep Chandra (CEO)</span> for sign-off.
               </p>
             </div>
 

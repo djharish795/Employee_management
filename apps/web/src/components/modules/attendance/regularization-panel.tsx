@@ -29,7 +29,7 @@ const INITIAL_REQUESTS: RegularizationRequest[] = [
     managerStatus: "APPROVED",
     hrStatus: "APPROVED",
     submittedDate: "10 Jun 2026",
-    comments: "Approved by Alex Thompson (CEO)",
+    comments: "Approved by Pradeep Chandra (CEO)",
   },
 ];
 
@@ -44,6 +44,9 @@ export default function RegularizationPanel({ activeRole }: RegularizationPanelP
   const [reqReason, setReqReason] = useState("");
   const [reqType, setReqType] = useState<"MISSING_PUNCH" | "INCORRECT_TIME" | "WFH_MARKING">("MISSING_PUNCH");
   const [fileName, setFileName] = useState("");
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const fetchRequests = async (): Promise<RegularizationRequest[]> => {
     if (typeof window !== "undefined") {
@@ -149,127 +152,153 @@ export default function RegularizationPanel({ activeRole }: RegularizationPanelP
               <p className="text-xs mt-1">Submit corrections using the form.</p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-100">
-              {filteredRequests.map((req) => {
-                const showReviewActions =
-                  (activeRole === "MANAGER" && req.managerStatus === "PENDING") ||
-                  ((activeRole === "HR" || activeRole === "ADMIN") && req.hrStatus === "PENDING");
+            <>
+              <div className="divide-y divide-slate-100">
+                {filteredRequests.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((req) => {
+                  const showReviewActions =
+                    (activeRole === "MANAGER" && req.managerStatus === "PENDING") ||
+                    ((activeRole === "HR" || activeRole === "ADMIN") && req.hrStatus === "PENDING");
 
-                return (
-                  <div key={req.id} className="p-5 flex flex-col sm:flex-row justify-between items-start gap-4 hover:bg-slate-50/20 transition-colors">
-                    <div className="space-y-1.5 flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[10px] font-mono font-bold text-slate-400">{req.id}</span>
-                        <span className="text-[10px] font-bold text-slate-900 uppercase bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                          {req.correctionType.replace("_", " ")}
-                        </span>
-                        <span className="text-xs font-bold text-slate-900">For Date: {req.attendanceDate}</span>
+                  return (
+                    <div key={req.id} className="p-5 flex flex-col sm:flex-row justify-between items-start gap-4 hover:bg-slate-50/20 transition-colors">
+                      <div className="space-y-1.5 flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] font-mono font-bold text-slate-400">{req.id}</span>
+                          <span className="text-[10px] font-bold text-slate-900 uppercase bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                            {req.correctionType.replace("_", " ")}
+                          </span>
+                          <span className="text-xs font-bold text-slate-900">For Date: {req.attendanceDate}</span>
+                        </div>
+                        <p className="text-xs text-slate-600 leading-normal font-semibold max-w-xl pr-4">
+                          {req.reason}
+                        </p>
+                        {req.attachmentName && (
+                          <div className="flex items-center gap-1.5 text-[10px] text-slate-400 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md w-fit font-bold">
+                            <FileText className="w-3 h-3 text-slate-400" />
+                            {req.attachmentName}
+                          </div>
+                        )}
+                        {req.comments && (
+                          <div className="text-[10px] font-bold text-slate-400 italic">
+                            Remark: {req.comments}
+                          </div>
+                        )}
+
+                        {/* Request Horizontal Timeline */}
+                        <div className="flex items-center gap-3 pt-2 text-[10px] font-semibold text-slate-500">
+                          <div className="flex items-center gap-1 text-emerald-600 font-bold">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Submitted
+                          </div>
+                          <ArrowRight className="w-3 h-3 text-slate-300" />
+                          <div
+                            className={`flex items-center gap-1 font-bold ${
+                              req.managerStatus === "APPROVED"
+                                ? "text-emerald-600"
+                                : req.managerStatus === "REJECTED"
+                                ? "text-rose-600"
+                                : "text-amber-500"
+                            }`}
+                          >
+                            {req.managerStatus === "APPROVED" ? (
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                            ) : req.managerStatus === "REJECTED" ? (
+                              <XCircle className="w-3.5 h-3.5" />
+                            ) : (
+                              <Clock className="w-3.5 h-3.5" />
+                            )}{" "}
+                            Manager
+                          </div>
+                          <ArrowRight className="w-3 h-3 text-slate-300" />
+                          <div
+                            className={`flex items-center gap-1 font-bold ${
+                              req.hrStatus === "APPROVED"
+                                ? "text-emerald-600"
+                                : req.hrStatus === "REJECTED"
+                                ? "text-rose-600"
+                                : "text-amber-500"
+                            }`}
+                          >
+                            {req.hrStatus === "APPROVED" ? (
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                            ) : req.hrStatus === "REJECTED" ? (
+                              <XCircle className="w-3.5 h-3.5" />
+                            ) : (
+                              <Clock className="w-3.5 h-3.5" />
+                            )}{" "}
+                            HR Manager
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-xs text-slate-600 leading-normal font-semibold max-w-xl pr-4">
-                        {req.reason}
-                      </p>
-                      {req.attachmentName && (
-                        <div className="flex items-center gap-1.5 text-[10px] text-slate-400 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md w-fit font-bold">
-                          <FileText className="w-3 h-3 text-slate-400" />
-                          {req.attachmentName}
-                        </div>
-                      )}
-                      {req.comments && (
-                        <div className="text-[10px] font-bold text-slate-400 italic">
-                          Remark: {req.comments}
-                        </div>
-                      )}
 
-                      {/* Request Horizontal Timeline */}
-                      <div className="flex items-center gap-3 pt-2 text-[10px] font-semibold text-slate-500">
-                        <div className="flex items-center gap-1 text-emerald-600 font-bold">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Submitted
-                        </div>
-                        <ArrowRight className="w-3 h-3 text-slate-300" />
-                        <div
-                          className={`flex items-center gap-1 font-bold ${
-                            req.managerStatus === "APPROVED"
-                              ? "text-emerald-600"
-                              : req.managerStatus === "REJECTED"
-                              ? "text-rose-600"
-                              : "text-amber-500"
-                          }`}
-                        >
-                          {req.managerStatus === "APPROVED" ? (
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                          ) : req.managerStatus === "REJECTED" ? (
-                            <XCircle className="w-3.5 h-3.5" />
-                          ) : (
-                            <Clock className="w-3.5 h-3.5" />
-                          )}{" "}
-                          Manager
-                        </div>
-                        <ArrowRight className="w-3 h-3 text-slate-300" />
-                        <div
-                          className={`flex items-center gap-1 font-bold ${
-                            req.hrStatus === "APPROVED"
-                              ? "text-emerald-600"
-                              : req.hrStatus === "REJECTED"
-                              ? "text-rose-600"
-                              : "text-amber-500"
-                          }`}
-                        >
-                          {req.hrStatus === "APPROVED" ? (
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                          ) : req.hrStatus === "REJECTED" ? (
-                            <XCircle className="w-3.5 h-3.5" />
-                          ) : (
-                            <Clock className="w-3.5 h-3.5" />
-                          )}{" "}
-                          HR Manager
-                        </div>
+                      {/* Pending review approvals for privileged roles */}
+                      <div className="flex items-center gap-2 self-end sm:self-center">
+                        {showReviewActions ? (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() =>
+                                handleActionRequest(
+                                  req.id,
+                                  "REJECT",
+                                  activeRole === "MANAGER" ? "MANAGER" : "HR"
+                                )
+                              }
+                              className="h-8 px-3 rounded-lg border border-rose-200 bg-white hover:bg-rose-50 text-rose-600 text-xs font-bold shadow-sm transition-all"
+                            >
+                              Reject
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleActionRequest(
+                                  req.id,
+                                  "APPROVE",
+                                  activeRole === "MANAGER" ? "MANAGER" : "HR"
+                                )
+                              }
+                              className="h-8 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all"
+                            >
+                              Approve
+                            </button>
+                          </div>
+                        ) : (
+                          activeRole === "EMPLOYEE" && req.managerStatus === "PENDING" && (
+                            <button
+                              onClick={() => handleDeleteRequest(req.id)}
+                              className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )
+                        )}
                       </div>
                     </div>
-
-                    {/* Pending review approvals for privileged roles */}
-                    <div className="flex items-center gap-2 self-end sm:self-center">
-                      {showReviewActions ? (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() =>
-                              handleActionRequest(
-                                req.id,
-                                "REJECT",
-                                activeRole === "MANAGER" ? "MANAGER" : "HR"
-                              )
-                            }
-                            className="h-8 px-3 rounded-lg border border-rose-200 bg-white hover:bg-rose-50 text-rose-600 text-xs font-bold shadow-sm transition-all"
-                          >
-                            Reject
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleActionRequest(
-                                req.id,
-                                "APPROVE",
-                                activeRole === "MANAGER" ? "MANAGER" : "HR"
-                              )
-                            }
-                            className="h-8 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all"
-                          >
-                            Approve
-                          </button>
-                        </div>
-                      ) : (
-                        activeRole === "EMPLOYEE" && req.managerStatus === "PENDING" && (
-                          <button
-                            onClick={() => handleDeleteRequest(req.id)}
-                            className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+              <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
+                <div className="text-sm font-medium text-slate-500">
+                  Showing <span className="font-bold text-slate-900">
+                    {(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredRequests.length)}
+                  </span> of <span className="font-bold text-slate-900">{filteredRequests.length}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold border border-slate-200 rounded-lg bg-white shadow-sm transition-all text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Prev
+                  </button>
+                  <button className="flex items-center justify-center w-8 h-8 text-xs font-bold bg-slate-900 text-white rounded-lg shadow-sm">
+                    {currentPage}
+                  </button>
+                  <button 
+                    onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredRequests.length / itemsPerPage), p + 1))}
+                    disabled={currentPage === Math.ceil(filteredRequests.length / itemsPerPage)}
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 bg-white shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                    Next
+                  </button>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </div>

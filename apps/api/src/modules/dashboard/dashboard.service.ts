@@ -30,10 +30,15 @@ export class DashboardService {
       _count: { id: true },
     });
 
+    const departments = await this.prisma.department.findMany({
+      select: { id: true, name: true },
+    });
+    const deptMap = new Map(departments.map(d => [d.id, d.name]));
+
     const headcountData = departmentsGroup.map((d, index) => {
       const colors = ["bg-blue-600", "bg-indigo-600", "bg-sky-500", "bg-slate-400", "bg-slate-300"];
       return {
-        department: d.departmentId || "Unassigned",
+        department: d.departmentId ? (deptMap.get(d.departmentId) || d.departmentId) : "Unassigned",
         count: d._count.id,
         color: colors[index % colors.length],
       };
