@@ -10,6 +10,12 @@ export class DashboardService {
     const activeEmployees = await this.prisma.employee.count({
       where: { status: "ACTIVE" },
     });
+    const probationEmployees = await this.prisma.employee.count({
+      where: { status: "PROBATION" },
+    });
+    const exitedEmployees = await this.prisma.employee.count({
+      where: { status: "EXITED" },
+    });
 
     const newThisMonth = await this.prisma.employee.count({
       where: {
@@ -33,15 +39,12 @@ export class DashboardService {
       };
     });
 
-    const onLeave = await this.prisma.leaveRequest.count().catch(() => 0);
-    const presentToday = await this.prisma.attendanceRecord.count().catch(() => 0);
-
     return {
       kpiData: [
         { id: "1", title: "Total Employees", value: totalEmployees.toString(), subtext: "Based on DB records", iconType: "users" },
         { id: "2", title: "Active Employees", value: activeEmployees.toString(), subtext: "Currently active", iconType: "userCheck" },
-        { id: "3", title: "On Leave", value: onLeave.toString(), subtext: "Pending approvals: 0", iconType: "umbrella" },
-        { id: "4", title: "New This Month", value: newThisMonth.toString(), subtext: "Joined recently", iconType: "userPlus" },
+        { id: "3", title: "Employees on Probation", value: probationEmployees.toString(), subtext: "Under review", iconType: "user" },
+        { id: "4", title: "Exited Employees", value: exitedEmployees.toString(), subtext: "Former employees", iconType: "userMinus" },
       ],
       headcountData,
       highlightsData: [
