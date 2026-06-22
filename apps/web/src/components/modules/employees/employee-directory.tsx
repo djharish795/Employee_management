@@ -449,16 +449,8 @@ export default function EmployeeDirectory() {
           const emp = row.original;
           return (
             <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 relative border border-slate-100 shadow-sm overflow-hidden ${emp.avatarBg}`}>
-                <img
-                  src={emp.photoUrl}
-                  alt={emp.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLElement).style.display = "none";
-                  }}
-                />
-                <span className="absolute">{emp.initials}</span>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 relative border border-slate-200 shadow-sm overflow-hidden ${emp.avatarBg}`}>
+                <span>{emp.initials}</span>
               </div>
               <div>
                 <div className="text-sm font-bold text-slate-900 leading-snug">{emp.name}</div>
@@ -495,8 +487,8 @@ export default function EmployeeDirectory() {
           if (!mgr) return <span className="text-xs text-slate-400 font-medium">—</span>;
           return (
             <div className="flex items-center gap-2 group/mgr" title={mgr.name}>
-              <div className="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 overflow-hidden shadow-sm">
-                <img src={mgr.photoUrl} alt={mgr.name} className="w-full h-full object-cover" />
+              <div className="w-6 h-6 rounded-full bg-slate-200 border border-slate-300 shadow-sm flex items-center justify-center text-[10px] font-bold text-slate-700">
+                {mgr.name.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase()}
               </div>
               <span className="text-xs font-semibold text-slate-600 hidden group-hover/mgr:inline-block md:inline-block truncate max-w-[80px]">
                 {mgr.name}
@@ -842,7 +834,10 @@ export default function EmployeeDirectory() {
 
           {/* Add Employee CTA */}
           {roleConfig.canAddEmployee && (
-            <button className="flex items-center justify-center gap-2 h-10 px-5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm shadow-sm transition-colors w-full md:w-auto">
+            <button 
+              onClick={() => alert("Add Employee workflow is currently under construction. Please check back later!")}
+              className="flex items-center justify-center gap-2 h-10 px-5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm shadow-sm transition-colors w-full md:w-auto"
+            >
               <UserPlus className="w-4 h-4" />
               Add Employee
             </button>
@@ -935,9 +930,8 @@ export default function EmployeeDirectory() {
 
                       {/* Info body */}
                       <div className="flex items-center gap-3">
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-base font-bold flex-shrink-0 relative border border-slate-100 shadow-sm overflow-hidden ${emp.avatarBg}`}>
-                          <img src={emp.photoUrl} alt={emp.name} className="w-full h-full object-cover" />
-                          <span className="absolute">{emp.initials}</span>
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-base font-bold flex-shrink-0 relative border border-slate-200 shadow-sm overflow-hidden ${emp.avatarBg}`}>
+                          <span>{emp.initials}</span>
                         </div>
                         <div className="truncate">
                           <h4 className="text-sm font-bold text-slate-900 truncate">{emp.name}</h4>

@@ -27,6 +27,36 @@ export function Topbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      // Route matching logic
+      if (q.includes('employee')) router.push('/employees');
+      else if (q.includes('attend')) router.push('/attendance');
+      else if (q.includes('leave')) router.push('/leaves');
+      else if (q.includes('asset')) router.push('/assets');
+      else if (q.includes('complian')) router.push('/compliance');
+      else if (q.includes('audit') || q.includes('log')) router.push('/audit');
+      else if (q.includes('onboard')) router.push('/onboarding');
+      else if (q.includes('offboard')) router.push('/offboarding');
+      else if (q.includes('knowledge')) router.push('/knowledge');
+      else if (q.includes('workflow')) router.push('/workflows');
+      else if (q.includes('recruit')) router.push('/recruitment');
+      else if (q.includes('payroll')) router.push('/payroll');
+      else if (q.includes('perform')) router.push('/performance');
+      else if (q.includes('org') || q.includes('chart')) router.push('/org-chart');
+      else if (q.includes('setting')) router.push('/settings');
+      else {
+        // Fallback for general searches like names, route to employee directory with query
+        // This relies on the employee directory handling the query or just navigating there.
+        router.push('/employees');
+      }
+      setSearchQuery(""); // Clear after search
+    }
+  };
+
   return (
     <header className="h-[72px] px-8 flex items-center justify-between border-b border-slate-200 bg-white sticky top-0 z-10">
       {/* Search Bar */}
@@ -35,6 +65,9 @@ export function Topbar() {
           <Search className="w-4 h-4 mr-2.5 flex-shrink-0" />
           <input
             type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleSearch}
             placeholder="Search employees, reports, or modules..."
             className="w-full h-full bg-transparent border-none text-sm font-medium placeholder:text-slate-400 focus:outline-none"
           />
@@ -65,12 +98,8 @@ export function Topbar() {
               <span className="text-sm font-bold text-slate-900 leading-tight group-hover:text-slate-900 transition-colors">Pradeep Chandra</span>
               <span className="text-[11px] font-semibold tracking-wide text-slate-500">CEO & Founder</span>
             </div>
-            <div className="w-9 h-9 rounded-full bg-slate-200 overflow-hidden flex-shrink-0 border border-slate-200 shadow-sm">
-              <img 
-                src="https://api.dicebear.com/7.x/notionists/svg?seed=Pradeep&backgroundColor=f1f5f9" 
-                alt="Pradeep Chandra" 
-                className="w-full h-full object-cover"
-              />
+            <div className="w-9 h-9 rounded-full bg-slate-200 overflow-hidden flex-shrink-0 border border-slate-200 shadow-sm flex items-center justify-center text-slate-700 font-bold text-sm">
+              PC
             </div>
           </div>
 
