@@ -5,6 +5,7 @@ import { HealthModule } from "./modules/health/health.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { RedisModule } from "./redis/redis.module";
 import { DashboardModule } from "./modules/dashboard/dashboard.module";
+import { EmployeesModule } from "./modules/employees/employees.module";
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { DashboardModule } from "./modules/dashboard/dashboard.module";
     HealthModule,
     AuthModule,
     DashboardModule,
+    EmployeesModule,
   ],
 })
 export class AppModule { }

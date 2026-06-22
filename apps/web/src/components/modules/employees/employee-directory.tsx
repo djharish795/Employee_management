@@ -284,15 +284,37 @@ export default function EmployeeDirectory() {
 
   const roleConfig = useMemo(() => ROLE_CONFIGS[activeRole], [activeRole]);
 
-  // Read or seed initial employee list
+  const accessToken = useAuthStore((state) => state.accessToken);
+
+  // Fetch from API instead of localStorage
   const fetchEmployees = async (): Promise<Employee[]> => {
-    // Check if we already have it in localStorage to persist bulk mutations
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(CACHE_KEY);
-      if (saved) return JSON.parse(saved);
-      localStorage.setItem(CACHE_KEY, JSON.stringify(MOCK_EMPLOYEES));
-    }
-    return MOCK_EMPLOYEES;
+    const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+    const res = await fetch(`${url}/employees?page=1&limit=100`, {
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+    });
+    
+    if (!res.ok) throw new Error("Failed to fetch employees");
+    const responseData = await res.json();
+    
+    // Map backend data to frontend Employee interface
+    return responseData.data.map((emp: any) => ({
+      id: emp.employeeId || emp.id,
+      name: `${emp.firstName || ""} ${emp.lastName || ""}`.trim(),
+      email: emp.officialEmail,
+      photoUrl: emp.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${emp.firstName}`,
+      initials: `${emp.firstName?.[0] || ""}${emp.lastName?.[0] || ""}`.toUpperCase(),
+      avatarBg: "bg-blue-100 text-blue-600",
+      department: emp.departmentId || "Unassigned", 
+      designation: emp.designationId || "Unassigned",
+      status: emp.status || "ACTIVE",
+      joinedDate: new Date(emp.createdAt).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }),
+      location: emp.workLocation || "India",
+      manager: emp.reportingManagerId ? {
+        id: emp.reportingManagerId,
+        name: "Assigned Manager", 
+        photoUrl: `https://api.dicebear.com/7.x/initials/svg?seed=Manager`,
+      } : undefined
+    }));
   };
 
   // React Query query to fetch data
