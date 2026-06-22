@@ -97,7 +97,7 @@ const STATUS_COLORS: Record<string, string> = {
   PENDING: "text-amber-700 bg-amber-50 border border-amber-100",
   APPROVED: "text-emerald-700 bg-emerald-50 border border-emerald-100",
   REJECTED: "text-rose-700 bg-rose-50 border border-rose-100",
-  FULFILLED: "text-blue-700 bg-blue-50 border border-blue-100",
+  FULFILLED: "text-slate-900 bg-slate-100 border border-slate-200",
 };
 
 const STATUS_ICONS: Record<string, React.ElementType> = {

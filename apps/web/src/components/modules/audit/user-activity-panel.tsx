@@ -58,7 +58,7 @@ function getIconForAction(action: string) {
   switch (action) {
     case "PERMISSION_GRANTED": return <ShieldCheck className="w-4 h-4 text-emerald-600" />;
     case "LEAVE_APPROVED": return <Briefcase className="w-4 h-4 text-indigo-600" />;
-    case "PROFILE_UPDATED": return <UserCog className="w-4 h-4 text-blue-600" />;
+    case "PROFILE_UPDATED": return <UserCog className="w-4 h-4 text-slate-900" />;
     case "DATA_EXPORTED": return <FileText className="w-4 h-4 text-amber-600" />;
     case "LOGIN_SUCCESS": return <MousePointerClick className="w-4 h-4 text-teal-600" />;
     default: return <History className="w-4 h-4 text-slate-600" />;
@@ -83,7 +83,7 @@ export default function UserActivityPanel({ activeRole }: UserActivityPanelProps
           </div>
 
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm border border-slate-200 overflow-hidden">
+            <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-900 flex items-center justify-center font-bold text-sm border border-slate-200 overflow-hidden">
               <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Lokesh" alt="Lokesh" />
             </div>
             <div>

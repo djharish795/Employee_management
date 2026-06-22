@@ -49,7 +49,7 @@ export default function PoliciesPanel() {
     <div className="space-y-6">
       <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm space-y-2">
         <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-          <BookOpen className="w-5 h-5 text-blue-500" />
+          <BookOpen className="w-5 h-5 text-slate-700" />
           Enterprise Time-Off Rules
         </h3>
         <p className="text-xs text-slate-500 font-semibold leading-relaxed">
@@ -67,18 +67,18 @@ export default function PoliciesPanel() {
               key={idx}
               onClick={() => setExpandedIndex(isExpanded ? null : idx)}
               className={`bg-white border p-5 rounded-xl shadow-sm hover:shadow transition-all cursor-pointer flex flex-col gap-3 relative overflow-hidden ${
-                isExpanded ? "border-blue-500 ring-1 ring-blue-500/10" : "border-slate-200"
+                isExpanded ? "border-slate-700 ring-1 ring-slate-900/10" : "border-slate-200"
               }`}
             >
               {/* Top Banner decoration for highlight */}
-              {isExpanded && <div className="absolute top-0 left-0 right-0 h-1 bg-blue-600" />}
+              {isExpanded && <div className="absolute top-0 left-0 right-0 h-1 bg-slate-900" />}
 
               <div className="flex justify-between items-start">
                 <div>
                   <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wide">{policy.type}</h4>
                   <p className="text-[10px] font-semibold text-slate-400 mt-0.5">Allocated: {policy.allocations} Days / Year</p>
                 </div>
-                <BookOpen className={`w-4 h-4 transition-transform ${isExpanded ? "text-blue-500 scale-110" : "text-slate-300"}`} />
+                <BookOpen className={`w-4 h-4 transition-transform ${isExpanded ? "text-slate-700 scale-110" : "text-slate-300"}`} />
               </div>
 
               <p className="text-xs text-slate-600 font-semibold leading-relaxed">
@@ -88,7 +88,7 @@ export default function PoliciesPanel() {
               {isExpanded && (
                 <div className="border-t border-slate-100 pt-3 space-y-2 text-[11px] font-semibold text-slate-600 animate-in fade-in duration-200">
                   <div className="flex items-start gap-2">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 mt-0.5 flex-shrink-0" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-slate-700 mt-0.5 flex-shrink-0" />
                     <div>
                       <span className="text-[10px] font-bold text-slate-400 block uppercase">Eligibility</span>
                       {policy.eligibility}

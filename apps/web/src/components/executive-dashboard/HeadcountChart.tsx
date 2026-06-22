@@ -17,7 +17,7 @@ export function HeadcountChart({ data, total }: { data: DepartmentHeadcount[], t
               <span className="text-sm text-slate-500 font-medium">Total</span>
             </div>
             {/* Visual colored borders for departments */}
-            <div className="absolute inset-0 rounded-full border-t-8 border-r-8 border-blue-600 rotate-45" style={{clipPath: 'polygon(50% 50%, 100% 0, 100% 100%, 0 100%, 0 0)'}}></div>
+            <div className="absolute inset-0 rounded-full border-t-8 border-r-8 border-slate-900 rotate-45" style={{clipPath: 'polygon(50% 50%, 100% 0, 100% 100%, 0 100%, 0 0)'}}></div>
           </div>
           
           <div className="flex-1 w-full space-y-4">

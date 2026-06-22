@@ -25,7 +25,7 @@ export default function NotificationsPanel({ activeRole }: NotificationsPanelPro
         {/* Email Templates */}
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
-            <Mail className="w-4 h-4 text-blue-500" />
+            <Mail className="w-4 h-4 text-slate-700" />
             <h3 className="text-sm font-bold text-slate-900">Email Templates</h3>
           </div>
           <div className="p-0 divide-y divide-slate-100">
@@ -36,7 +36,7 @@ export default function NotificationsPanel({ activeRole }: NotificationsPanelPro
                   <div className="text-[10px] text-slate-500 mt-0.5">Last updated: 1 month ago</div>
                 </div>
                 {canManage && (
-                  <button className="text-[10px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 border border-blue-200 px-2 py-1 rounded bg-blue-50">
+                  <button className="text-[10px] font-bold text-slate-900 hover:text-slate-950 flex items-center gap-1 border border-slate-300 px-2 py-1 rounded bg-slate-100">
                     <Edit3 className="w-3 h-3" /> Edit
                   </button>
                 )}

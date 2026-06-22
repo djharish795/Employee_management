@@ -42,7 +42,7 @@ export default function SettingsDashboardPanel({ activeRole }: DashboardPanelPro
         
         <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <div className="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+            <div className="w-9 h-9 bg-slate-100 text-slate-900 rounded-xl flex items-center justify-center">
               <Users className="w-4.5 h-4.5" />
             </div>
             <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
@@ -108,7 +108,7 @@ export default function SettingsDashboardPanel({ activeRole }: DashboardPanelPro
                 <div key={activity.id} className="flex items-start gap-4 p-4 hover:bg-slate-50 border-b border-slate-50 last:border-0 transition-colors">
                   <div className="mt-0.5">
                     {activity.type === "security" && <Shield className="w-5 h-5 text-indigo-500" />}
-                    {activity.type === "org" && <Users className="w-5 h-5 text-blue-500" />}
+                    {activity.type === "org" && <Users className="w-5 h-5 text-slate-700" />}
                     {activity.type === "permissions" && <ScrollText className="w-5 h-5 text-teal-500" />}
                     {activity.type === "integration" && <Plug className="w-5 h-5 text-purple-500" />}
                   </div>

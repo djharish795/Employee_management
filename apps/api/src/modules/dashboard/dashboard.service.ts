@@ -42,6 +42,8 @@ export class DashboardService {
         { id: "2", title: "Active Employees", value: activeEmployees.toString(), subtext: "Currently active", iconType: "userCheck" },
         { id: "3", title: "On Leave", value: onLeave.toString(), subtext: "Pending approvals: 0", iconType: "umbrella" },
         { id: "4", title: "New This Month", value: newThisMonth.toString(), subtext: "Joined recently", iconType: "userPlus" },
+        { id: "5", title: "Resigned This Month", value: "1", subtext: "Turnover rate: 1.1%", iconType: "logOut" },
+        { id: "6", title: "Open Roles", value: "5", subtext: "12 Active interviews", iconType: "briefcase" },
       ],
       headcountData,
       highlightsData: [

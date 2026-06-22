@@ -103,7 +103,7 @@ const MOCK_EMPLOYEES: Employee[] = [
     email: "arjun.m@naprocs.com",
     photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Arjun&backgroundColor=dbeafe",
     initials: "AM",
-    avatarBg: "bg-blue-100 text-blue-600",
+    avatarBg: "bg-slate-200 text-slate-900",
     department: "Engineering",
     designation: "Staff Software Engineer",
     status: "ACTIVE",
@@ -406,7 +406,7 @@ export default function EmployeeDirectory() {
         header: ({ table }) => (
           <input
             type="checkbox"
-            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
+            className="rounded border-slate-300 text-slate-900 focus:ring-slate-900 w-4 h-4 cursor-pointer"
             checked={table.getIsAllPageRowsSelected()}
             onChange={table.getToggleAllPageRowsSelectedHandler()}
           />
@@ -414,7 +414,7 @@ export default function EmployeeDirectory() {
         cell: ({ row }) => (
           <input
             type="checkbox"
-            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
+            className="rounded border-slate-300 text-slate-900 focus:ring-slate-900 w-4 h-4 cursor-pointer"
             checked={row.getIsSelected()}
             onChange={row.getToggleSelectedHandler()}
           />
@@ -492,7 +492,7 @@ export default function EmployeeDirectory() {
           if (status === "ACTIVE") badgeStyles = "text-emerald-700 bg-emerald-50 border border-emerald-200/50";
           else if (status === "PROBATION") badgeStyles = "text-amber-700 bg-amber-50 border border-amber-200/50";
           else if (status === "NOTICE PERIOD") badgeStyles = "text-rose-700 bg-rose-50 border border-rose-200/50";
-          else if (status === "ONBOARDING") badgeStyles = "text-blue-700 bg-blue-50 border border-blue-200/50";
+          else if (status === "ONBOARDING") badgeStyles = "text-slate-900 bg-slate-100 border border-slate-300/50";
           else if (status === "DEACTIVATED") badgeStyles = "text-slate-500 bg-slate-100 border border-slate-200/50";
 
           return (
@@ -581,8 +581,8 @@ export default function EmployeeDirectory() {
               {/* Premium Interactive Role Config Switcher */}
               <div className="relative inline-block text-left group">
                 <button className="flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-full transition-all shadow-sm">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                  View Config: <span className="text-blue-600 font-bold">{activeRole}</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-700 animate-pulse" />
+                  View Config: <span className="text-slate-900 font-bold">{activeRole}</span>
                   <ChevronDown className="w-3 h-3 text-slate-400" />
                 </button>
                 <div className="absolute left-0 mt-1.5 w-40 bg-white border border-slate-200 rounded-lg shadow-lg py-1 hidden group-hover:block z-50">
@@ -594,11 +594,11 @@ export default function EmployeeDirectory() {
                         setRowSelection({});
                       }}
                       className={`w-full text-left px-3.5 py-2 text-xs font-medium hover:bg-slate-50 flex items-center justify-between ${
-                        activeRole === role ? "text-blue-600 bg-blue-50/50 font-bold" : "text-slate-600"
+                        activeRole === role ? "text-slate-900 bg-slate-100/50 font-bold" : "text-slate-600"
                       }`}
                     >
                       {role}
-                      {activeRole === role && <Check className="w-3.5 h-3.5 text-blue-600" />}
+                      {activeRole === role && <Check className="w-3.5 h-3.5 text-slate-900" />}
                     </button>
                   ))}
                 </div>
@@ -620,7 +620,7 @@ export default function EmployeeDirectory() {
             <div className="flex-1 md:flex-initial bg-white border border-slate-200/80 px-4 py-2.5 rounded-xl shadow-sm min-w-[100px]">
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Growth</div>
               <div className="text-base font-bold text-slate-900 mt-0.5">
-                {summaryMetrics.newHires} <span className="text-blue-600 text-xs font-semibold">New hires</span>
+                {summaryMetrics.newHires} <span className="text-slate-900 text-xs font-semibold">New hires</span>
               </div>
             </div>
             <div className="flex-1 md:flex-initial bg-white border border-slate-200/80 px-4 py-2.5 rounded-xl shadow-sm min-w-[100px]">
@@ -644,7 +644,7 @@ export default function EmployeeDirectory() {
                   placeholder="Search by name, ID, email..."
                   value={filters.search}
                   onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
-                  className="w-full h-10 pl-9 pr-3.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                  className="w-full h-10 pl-9 pr-3.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 transition-all font-medium"
                 />
               </div>
 
@@ -653,7 +653,7 @@ export default function EmployeeDirectory() {
                 <select
                   value={filters.department}
                   onChange={(e) => setFilters((prev) => ({ ...prev, department: e.target.value }))}
-                  className="h-10 pl-3.5 pr-8 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer min-w-[130px]"
+                  className="h-10 pl-3.5 pr-8 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 transition-all appearance-none cursor-pointer min-w-[130px]"
                 >
                   <option value="">Department</option>
                   {departments.map((dept) => (
@@ -670,7 +670,7 @@ export default function EmployeeDirectory() {
                 <select
                   value={filters.designation}
                   onChange={(e) => setFilters((prev) => ({ ...prev, designation: e.target.value }))}
-                  className="h-10 pl-3.5 pr-8 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer min-w-[130px]"
+                  className="h-10 pl-3.5 pr-8 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 transition-all appearance-none cursor-pointer min-w-[130px]"
                 >
                   <option value="">Designation</option>
                   {designations.map((desg) => (
@@ -687,7 +687,7 @@ export default function EmployeeDirectory() {
                 <select
                   value={filters.location}
                   onChange={(e) => setFilters((prev) => ({ ...prev, location: e.target.value }))}
-                  className="h-10 pl-3.5 pr-8 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer min-w-[120px]"
+                  className="h-10 pl-3.5 pr-8 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 transition-all appearance-none cursor-pointer min-w-[120px]"
                 >
                   <option value="">Location</option>
                   {locations.map((loc) => (
@@ -704,7 +704,7 @@ export default function EmployeeDirectory() {
                 <select
                   value={filters.status}
                   onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))}
-                  className="h-10 pl-3.5 pr-8 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer min-w-[110px]"
+                  className="h-10 pl-3.5 pr-8 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 transition-all appearance-none cursor-pointer min-w-[110px]"
                 >
                   <option value="">Status</option>
                   {statuses.map((stat) => (
@@ -757,12 +757,12 @@ export default function EmployeeDirectory() {
                 return (
                   <span
                     key={key}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-100 text-blue-700 text-xs font-semibold rounded-md uppercase tracking-wider"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 border border-slate-200 text-slate-900 text-xs font-semibold rounded-md uppercase tracking-wider"
                   >
                     {key}: {val}
                     <button
                       onClick={() => setFilters((prev) => ({ ...prev, [key]: "" }))}
-                      className="hover:text-blue-900 transition-colors"
+                      className="hover:text-slate-950 transition-colors"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -792,8 +792,8 @@ export default function EmployeeDirectory() {
 
             {/* Contextual Bulk Options - Hides if non-privileged */}
             {selectedCount > 0 && (
-              <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 px-3 py-1 rounded-lg">
-                <span className="text-xs font-bold text-blue-700 mr-2">{selectedCount} Selected</span>
+              <div className="flex items-center gap-2 bg-slate-100 border border-slate-300 px-3 py-1 rounded-lg">
+                <span className="text-xs font-bold text-slate-900 mr-2">{selectedCount} Selected</span>
 
                 {roleConfig.canBulkDeactivate && (
                   <button
@@ -820,7 +820,7 @@ export default function EmployeeDirectory() {
 
           {/* Add Employee CTA */}
           {roleConfig.canAddEmployee && (
-            <button className="flex items-center justify-center gap-2 h-10 px-5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-sm transition-colors w-full md:w-auto">
+            <button className="flex items-center justify-center gap-2 h-10 px-5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm shadow-sm transition-colors w-full md:w-auto">
               <UserPlus className="w-4 h-4" />
               Add Employee
             </button>
@@ -833,7 +833,7 @@ export default function EmployeeDirectory() {
           <div className="xl:col-span-3 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
             {isLoading ? (
               <div className="py-20 flex flex-col items-center justify-center gap-3">
-                <div className="w-8 h-8 border-4 border-blue-600/35 border-t-blue-600 rounded-full animate-spin" />
+                <div className="w-8 h-8 border-4 border-slate-900/35 border-t-blue-600 rounded-full animate-spin" />
                 <span className="text-sm font-semibold text-slate-500">Loading directory...</span>
               </div>
             ) : filteredEmployees.length === 0 ? (
@@ -870,7 +870,7 @@ export default function EmployeeDirectory() {
                         ))}
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors">
+                            <button className="text-xs font-bold text-slate-900 hover:text-slate-900 transition-colors">
                               View
                             </button>
                             <span className="text-slate-300 select-none">•</span>
@@ -893,7 +893,7 @@ export default function EmployeeDirectory() {
                     <div
                       key={emp.id}
                       className={`border p-4 rounded-xl shadow-sm transition-all hover:shadow-md relative flex flex-col justify-between h-48 group ${
-                        isSelected ? "border-blue-500 bg-blue-50/10" : "border-slate-200 bg-white"
+                        isSelected ? "border-slate-700 bg-slate-100/10" : "border-slate-200 bg-white"
                       }`}
                     >
                       {/* Grid Checkbox & Actions */}
@@ -904,7 +904,7 @@ export default function EmployeeDirectory() {
                           onChange={(e) => {
                             setRowSelection((prev) => ({ ...prev, [emp.id]: e.target.checked }));
                           }}
-                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
+                          className="rounded border-slate-300 text-slate-900 focus:ring-slate-900 w-4 h-4 cursor-pointer"
                         />
                         <button className="text-slate-400 hover:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">
                           <MoreHorizontal className="w-4 h-4" />
@@ -964,7 +964,7 @@ export default function EmployeeDirectory() {
                     <ChevronLeft className="w-3.5 h-3.5" />
                     Prev
                   </button>
-                  <button className="flex items-center justify-center w-8 h-8 text-xs font-bold bg-blue-600 text-white rounded-lg shadow-sm">
+                  <button className="flex items-center justify-center w-8 h-8 text-xs font-bold bg-slate-900 text-white rounded-lg shadow-sm">
                     1
                   </button>
                   <button className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 bg-white shadow-sm transition-all">
@@ -989,7 +989,7 @@ export default function EmployeeDirectory() {
                   <div className="space-y-4">
                     {summaryMetrics.depts.map((d, index) => {
                       // Harmonious color styling
-                      let color = "bg-blue-600";
+                      let color = "bg-slate-900";
                       if (index === 1) color = "bg-emerald-500";
                       else if (index === 2) color = "bg-amber-500";
                       else if (index === 3) color = "bg-purple-500";
@@ -1018,7 +1018,7 @@ export default function EmployeeDirectory() {
               {/* Top Locations Widget */}
               <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
                 <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-blue-500" />
+                  <MapPin className="w-4 h-4 text-slate-700" />
                   Top Locations
                 </h3>
                 <div className="space-y-3">
@@ -1030,11 +1030,11 @@ export default function EmployeeDirectory() {
                         className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100 hover:border-slate-200 transition-all cursor-pointer group"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold flex items-center justify-center uppercase border border-blue-100/50">
+                          <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-900 text-xs font-bold flex items-center justify-center uppercase border border-slate-200/50">
                             {initials}
                           </div>
                           <div>
-                            <div className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                            <div className="text-xs font-bold text-slate-900 group-hover:text-slate-900 transition-colors">
                               {l.name}
                             </div>
                             <div className="text-[10px] font-semibold text-slate-400 mt-0.5">

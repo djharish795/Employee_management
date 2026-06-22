@@ -39,7 +39,7 @@ const maxCount = Math.max(...MONTHLY_ADDITIONS.map((m) => m.count));
 
 const CATEGORY_BREAKDOWN = [
   { category: "Laptops", total: 154, assigned: 130, available: 18, maintenance: 6, color: "bg-violet-600" },
-  { category: "Monitors", total: 98, assigned: 82, available: 12, maintenance: 4, color: "bg-blue-500" },
+  { category: "Monitors", total: 98, assigned: 82, available: 12, maintenance: 4, color: "bg-slate-700" },
   { category: "Phones", total: 76, assigned: 72, available: 3, maintenance: 1, color: "bg-emerald-500" },
   { category: "Tablets", total: 24, assigned: 18, available: 5, maintenance: 1, color: "bg-amber-500" },
   { category: "Headsets", total: 44, assigned: 38, available: 5, maintenance: 1, color: "bg-pink-500" },
@@ -112,7 +112,7 @@ export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
         </div>
         <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <div className="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+            <div className="w-9 h-9 bg-slate-100 text-slate-900 rounded-xl flex items-center justify-center">
               <BarChart3 className="w-4.5 h-4.5" />
             </div>
           </div>
@@ -164,7 +164,7 @@ export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
                     </td>
                     <td className="px-5 py-3 text-center font-bold text-slate-900">{row.total}</td>
                     <td className="px-5 py-3 text-center text-emerald-700 font-bold">{row.assigned}</td>
-                    <td className="px-5 py-3 text-center text-blue-700 font-bold">{row.available}</td>
+                    <td className="px-5 py-3 text-center text-slate-900 font-bold">{row.available}</td>
                     <td className="px-5 py-3 text-center text-amber-700 font-bold">{row.maintenance}</td>
                   </tr>
                 ))}

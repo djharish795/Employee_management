@@ -11,7 +11,7 @@ export default function OffboardingPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-2">
           <div>
-            <div className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-1 flex items-center gap-2">
+            <div className="text-[10px] font-bold text-slate-900 uppercase tracking-widest mb-1 flex items-center gap-2">
               <span className="text-slate-500">EMS</span> / <span className="text-slate-500">OFFBOARDING</span> / OVERVIEW
             </div>
             <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Employee Offboarding</h1>
@@ -20,7 +20,7 @@ export default function OffboardingPage() {
             <button className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
               Export Report
             </button>
-            <button className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+            <button className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors shadow-sm">
               <Plus className="w-4 h-4" /> Initiate Offboarding
             </button>
           </div>
@@ -31,7 +31,7 @@ export default function OffboardingPage() {
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-center">
             <div className="flex items-center justify-between mb-2">
               <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Pending Exits</div>
-              <div className="p-1.5 bg-blue-50 text-blue-600 rounded-md"><LogOut className="w-4 h-4" /></div>
+              <div className="p-1.5 bg-slate-100 text-slate-900 rounded-md"><LogOut className="w-4 h-4" /></div>
             </div>
             <div className="text-3xl font-bold text-slate-900 mb-1">14</div>
             <div className="text-[11px] font-semibold text-slate-500"><span className="text-rose-600">+2</span> from last week</div>
@@ -50,7 +50,7 @@ export default function OffboardingPage() {
               <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-md"><MonitorSmartphone className="w-4 h-4" /></div>
             </div>
             <div className="text-3xl font-bold text-slate-900 mb-1">28</div>
-            <div className="text-[11px] font-semibold text-slate-500"><span className="text-blue-600 font-bold">85%</span> recovery rate</div>
+            <div className="text-[11px] font-semibold text-slate-500"><span className="text-slate-900 font-bold">85%</span> recovery rate</div>
           </div>
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-center">
             <div className="flex items-center justify-between mb-2">
@@ -69,12 +69,12 @@ export default function OffboardingPage() {
             
             {/* Connecting Line */}
             <div className="absolute top-6 left-16 right-16 h-1 bg-slate-200 rounded-full z-0">
-              <div className="w-[45%] h-full bg-blue-600 rounded-full"></div>
+              <div className="w-[45%] h-full bg-slate-900 rounded-full"></div>
             </div>
 
             {/* Steps */}
             <div className="flex flex-col items-center gap-2 relative z-10 w-24">
-              <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center border-4 border-white shadow-sm">
+              <div className="w-12 h-12 rounded-full bg-slate-900 text-white flex items-center justify-center border-4 border-white shadow-sm">
                 <Check className="w-5 h-5" />
               </div>
               <div className="text-xs font-bold text-slate-900 text-center leading-tight">Resignation</div>
@@ -82,7 +82,7 @@ export default function OffboardingPage() {
             </div>
 
             <div className="flex flex-col items-center gap-2 relative z-10 w-24">
-              <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center border-4 border-white shadow-sm">
+              <div className="w-12 h-12 rounded-full bg-slate-900 text-white flex items-center justify-center border-4 border-white shadow-sm">
                 <Check className="w-5 h-5" />
               </div>
               <div className="text-xs font-bold text-slate-900 text-center leading-tight">Approval</div>
@@ -90,11 +90,11 @@ export default function OffboardingPage() {
             </div>
 
             <div className="flex flex-col items-center gap-2 relative z-10 w-24">
-              <div className="w-12 h-12 rounded-full bg-white text-blue-600 flex items-center justify-center border-4 border-white shadow-[0_0_0_2px_#2563EB] relative">
+              <div className="w-12 h-12 rounded-full bg-white text-slate-900 flex items-center justify-center border-4 border-white shadow-[0_0_0_2px_#2563EB] relative">
                 <RefreshCw className="w-5 h-5" />
               </div>
-              <div className="text-xs font-bold text-blue-600 text-center leading-tight mt-1">KT Session</div>
-              <div className="text-[10px] font-medium text-blue-600">06 In Progress</div>
+              <div className="text-xs font-bold text-slate-900 text-center leading-tight mt-1">KT Session</div>
+              <div className="text-[10px] font-medium text-slate-900">06 In Progress</div>
             </div>
 
             <div className="flex flex-col items-center gap-2 relative z-10 w-24">
@@ -130,7 +130,7 @@ export default function OffboardingPage() {
           <div className="space-y-6">
             
             {/* Risk Alerts */}
-            <div className="bg-white border border-blue-100 rounded-xl shadow-[0_4px_20px_-10px_rgba(37,99,235,0.1)] p-5 flex flex-col">
+            <div className="bg-white border border-slate-200 rounded-xl shadow-[0_4px_20px_-10px_rgba(37,99,235,0.1)] p-5 flex flex-col">
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2 text-rose-600">
                   <AlertTriangle className="w-5 h-5" />
@@ -163,7 +163,7 @@ export default function OffboardingPage() {
                 </div>
               </div>
 
-              <button className="w-full text-center text-xs font-bold text-blue-600 hover:text-blue-700 uppercase tracking-widest mt-auto">
+              <button className="w-full text-center text-xs font-bold text-slate-900 hover:text-slate-900 uppercase tracking-widest mt-auto">
                 View All Alerts
               </button>
             </div>
@@ -175,18 +175,18 @@ export default function OffboardingPage() {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2 text-[11px] font-bold text-slate-700">
-                      <Monitor className="w-4 h-4 text-blue-500" /> IT Asset Recovery
+                      <Monitor className="w-4 h-4 text-slate-700" /> IT Asset Recovery
                     </div>
-                    <span className="text-xs font-bold text-blue-600">78%</span>
+                    <span className="text-xs font-bold text-slate-900">78%</span>
                   </div>
                   <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-500 w-[78%] rounded-full"></div>
+                    <div className="h-full bg-slate-700 w-[78%] rounded-full"></div>
                   </div>
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2 text-[11px] font-bold text-slate-700">
-                      <FileText className="w-4 h-4 text-blue-500" /> Document Sign-off
+                      <FileText className="w-4 h-4 text-slate-700" /> Document Sign-off
                     </div>
                     <span className="text-xs font-bold text-orange-500">45%</span>
                   </div>
@@ -197,7 +197,7 @@ export default function OffboardingPage() {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2 text-[11px] font-bold text-slate-700">
-                      <Lock className="w-4 h-4 text-blue-500" /> Access Revocation
+                      <Lock className="w-4 h-4 text-slate-700" /> Access Revocation
                     </div>
                     <span className="text-xs font-bold text-rose-500">12%</span>
                   </div>
@@ -260,7 +260,7 @@ export default function OffboardingPage() {
                         </div>
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <button className="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition-colors">
+                        <button className="text-slate-900 hover:bg-slate-100 p-1.5 rounded transition-colors">
                           <ChevronRight className="w-4 h-4" />
                         </button>
                       </td>
@@ -282,12 +282,12 @@ export default function OffboardingPage() {
                         <span className="px-2 py-1 bg-slate-100 text-slate-600 text-[9px] font-bold uppercase tracking-wider rounded">Voluntary</span>
                       </td>
                       <td className="px-5 py-4">
-                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-blue-600 uppercase tracking-wider">
-                          <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div> IN PROGRESS
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-900 uppercase tracking-wider">
+                          <div className="w-1.5 h-1.5 rounded-full bg-slate-700"></div> IN PROGRESS
                         </div>
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <button className="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition-colors">
+                        <button className="text-slate-900 hover:bg-slate-100 p-1.5 rounded transition-colors">
                           <ChevronRight className="w-4 h-4" />
                         </button>
                       </td>
@@ -309,12 +309,12 @@ export default function OffboardingPage() {
                         <span className="px-2 py-1 bg-orange-50 text-orange-700 text-[9px] font-bold uppercase tracking-wider rounded border border-orange-100">Involuntary</span>
                       </td>
                       <td className="px-5 py-4">
-                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-blue-600 uppercase tracking-wider">
-                          <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div> IN PROGRESS
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-900 uppercase tracking-wider">
+                          <div className="w-1.5 h-1.5 rounded-full bg-slate-700"></div> IN PROGRESS
                         </div>
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <button className="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition-colors">
+                        <button className="text-slate-900 hover:bg-slate-100 p-1.5 rounded transition-colors">
                           <ChevronRight className="w-4 h-4" />
                         </button>
                       </td>
@@ -341,7 +341,7 @@ export default function OffboardingPage() {
                         </div>
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <button className="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition-colors">
+                        <button className="text-slate-900 hover:bg-slate-100 p-1.5 rounded transition-colors">
                           <ChevronRight className="w-4 h-4" />
                         </button>
                       </td>

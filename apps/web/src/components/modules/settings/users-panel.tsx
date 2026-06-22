@@ -130,7 +130,7 @@ export default function UsersPanel({ activeRole }: UsersPanelProps) {
           <button className="text-slate-400 hover:text-rose-600 transition-colors" title="Lock Account">
             {row.original.status === "LOCKED" ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
           </button>
-          <button className="text-slate-400 hover:text-blue-600 transition-colors" title="Send Reset Email">
+          <button className="text-slate-400 hover:text-slate-900 transition-colors" title="Send Reset Email">
             <Mail className="w-4 h-4" />
           </button>
         </div>

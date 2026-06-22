@@ -112,7 +112,7 @@ export default function AuditDashboardPanel({ activeRole }: DashboardPanelProps)
 
         <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <div className="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+            <div className="w-9 h-9 bg-slate-100 text-slate-900 rounded-xl flex items-center justify-center">
               <Download className="w-4.5 h-4.5" />
             </div>
           </div>

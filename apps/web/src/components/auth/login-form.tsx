@@ -190,7 +190,7 @@ export const LoginForm: React.FC = () => {
           <div className="flex justify-end">
             <button
               type="button"
-              className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+              className="text-xs font-semibold text-slate-900 hover:text-slate-900 transition-colors"
             >
               Forgot?
             </button>

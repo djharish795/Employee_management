@@ -103,7 +103,7 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
               placeholder="Search history remarks..."
               value={filterSearch}
               onChange={(e) => setFilterSearch(e.target.value)}
-              className="w-full h-10 pl-9 pr-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold text-slate-700"
+              className="w-full h-10 pl-9 pr-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 transition-all font-semibold text-slate-700"
             />
           </div>
 
@@ -111,7 +111,7 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
           <select
             value={filterMonth}
             onChange={(e) => setFilterMonth(e.target.value)}
-            className="h-10 px-3.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer min-w-[120px]"
+            className="h-10 px-3.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/20 cursor-pointer min-w-[120px]"
           >
             <option value="">All Months</option>
             {uniqueMonths.map((m) => (
@@ -125,7 +125,7 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="h-10 px-3.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer min-w-[110px]"
+            className="h-10 px-3.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/20 cursor-pointer min-w-[110px]"
           >
             <option value="">All Statuses</option>
             <option value="PRESENT">PRESENT</option>
@@ -139,7 +139,7 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
         <button
           onClick={handleExportCSV}
           disabled={filteredLogs.length === 0}
-          className="flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-slate-100 disabled:text-slate-400 text-white font-bold text-xs shadow-sm transition-colors cursor-pointer"
+          className="flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-slate-900 hover:bg-slate-800 disabled:bg-slate-100 disabled:text-slate-400 text-white font-bold text-xs shadow-sm transition-colors cursor-pointer"
         >
           <Download className="w-3.5 h-3.5" />
           Export CSV
@@ -150,7 +150,7 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         {isLoading ? (
           <div className="py-20 flex justify-center items-center">
-            <RefreshCcw className="w-6 h-6 animate-spin text-blue-600" />
+            <RefreshCcw className="w-6 h-6 animate-spin text-slate-900" />
           </div>
         ) : filteredLogs.length === 0 ? (
           <div className="py-20 text-center text-slate-400">
@@ -176,7 +176,7 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
                   let badge = "text-slate-600 bg-slate-100";
                   if (log.status === "PRESENT") badge = "text-emerald-700 bg-emerald-50 border border-emerald-200/50";
                   else if (log.status === "LATE") badge = "text-amber-700 bg-amber-50 border border-amber-200/50";
-                  else if (log.status === "WFH") badge = "text-blue-700 bg-blue-50 border border-blue-200/50";
+                  else if (log.status === "WFH") badge = "text-slate-900 bg-slate-100 border border-slate-300/50";
                   else if (log.status === "ABSENT") badge = "text-rose-700 bg-rose-50 border border-rose-200/50";
 
                   return (

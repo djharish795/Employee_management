@@ -31,7 +31,7 @@ export function Topbar() {
     <header className="h-[72px] px-8 flex items-center justify-between border-b border-slate-200 bg-white sticky top-0 z-10">
       {/* Search Bar */}
       <div className="flex-1 max-w-2xl">
-        <div className="relative flex items-center w-full h-10 rounded-lg bg-slate-100/80 px-3 text-slate-500 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:bg-white transition-all">
+        <div className="relative flex items-center w-full h-10 rounded-lg bg-slate-100/80 px-3 text-slate-500 focus-within:ring-2 focus-within:ring-slate-900/20 focus-within:bg-white transition-all">
           <Search className="w-4 h-4 mr-2.5 flex-shrink-0" />
           <input
             type="text"
@@ -62,7 +62,7 @@ export function Topbar() {
             className="flex items-center gap-3 cursor-pointer group"
           >
             <div className="text-right flex flex-col">
-              <span className="text-sm font-bold text-slate-900 leading-tight group-hover:text-blue-600 transition-colors">Alex Thompson</span>
+              <span className="text-sm font-bold text-slate-900 leading-tight group-hover:text-slate-900 transition-colors">Alex Thompson</span>
               <span className="text-[11px] font-semibold tracking-wide text-slate-500">CEO & Founder</span>
             </div>
             <div className="w-9 h-9 rounded-full bg-slate-200 overflow-hidden flex-shrink-0 border border-slate-200 shadow-sm">

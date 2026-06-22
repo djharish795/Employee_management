@@ -29,7 +29,7 @@ export default function EmployeeDashboardPanel() {
         
         {/* Hours Worked */}
         <div className="bg-white border border-slate-200 p-6 rounded-xl shadow-sm flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-900 flex items-center justify-center flex-shrink-0">
             <Clock className="w-6 h-6" />
           </div>
           <div>

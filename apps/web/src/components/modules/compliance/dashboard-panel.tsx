@@ -54,7 +54,7 @@ export default function ComplianceDashboardPanel({ activeRole }: DashboardPanelP
 
         <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <div className="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+            <div className="w-9 h-9 bg-slate-100 text-slate-900 rounded-xl flex items-center justify-center">
               <FileCheck className="w-4.5 h-4.5" />
             </div>
           </div>
@@ -147,7 +147,7 @@ export default function ComplianceDashboardPanel({ activeRole }: DashboardPanelP
                 <div key={activity.id} className="flex items-start gap-3 p-3 hover:bg-slate-50 rounded-lg transition-colors">
                   <div className="mt-0.5">
                     {activity.status === "success" && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
-                    {activity.status === "info" && <ScrollText className="w-4 h-4 text-blue-500" />}
+                    {activity.status === "info" && <ScrollText className="w-4 h-4 text-slate-700" />}
                     {activity.status === "warning" && <AlertTriangle className="w-4 h-4 text-amber-500" />}
                     {activity.status === "pending" && <Inbox className="w-4 h-4 text-slate-400" />}
                   </div>

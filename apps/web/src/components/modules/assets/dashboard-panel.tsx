@@ -191,7 +191,7 @@ const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
 
 const CONDITION_COLORS: Record<string, string> = {
   EXCELLENT: "text-emerald-700 bg-emerald-50 border border-emerald-100",
-  GOOD: "text-blue-700 bg-blue-50 border border-blue-100",
+  GOOD: "text-slate-900 bg-slate-100 border border-slate-200",
   FAIR: "text-amber-700 bg-amber-50 border border-amber-100",
   POOR: "text-rose-700 bg-rose-50 border border-rose-100",
 };
@@ -201,7 +201,7 @@ const ACTION_COLORS: Record<string, string> = {
   RETURNED: "text-amber-700 bg-amber-50",
   MAINTENANCE: "text-violet-700 bg-violet-50",
   RETIRED: "text-slate-600 bg-slate-100",
-  REQUESTED: "text-blue-700 bg-blue-50",
+  REQUESTED: "text-slate-900 bg-slate-100",
   APPROVED: "text-teal-700 bg-teal-50",
 };
 
@@ -248,7 +248,7 @@ function getKPIs(role: AssetRole): AssetKPIs {
 
 const CATEGORY_DISTRIBUTION = [
   { label: "Laptops", count: 154, percent: 82, color: "bg-violet-600" },
-  { label: "Monitors", count: 98, percent: 65, color: "bg-blue-500" },
+  { label: "Monitors", count: 98, percent: 65, color: "bg-slate-700" },
   { label: "Phones", count: 76, percent: 53, color: "bg-emerald-500" },
   { label: "Headsets", count: 44, percent: 38, color: "bg-amber-500" },
   { label: "Other", count: 40, percent: 30, color: "bg-slate-400" },
@@ -374,7 +374,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                 My Requests
               </div>
               <div className="text-xl font-bold text-slate-900 mt-1">0</div>
-              <div className="text-[10px] font-semibold text-blue-600 mt-1">
+              <div className="text-[10px] font-semibold text-slate-900 mt-1">
                 No pending requests
               </div>
             </div>

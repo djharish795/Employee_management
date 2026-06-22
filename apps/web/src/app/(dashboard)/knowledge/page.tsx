@@ -21,14 +21,14 @@ export default function KnowledgeBasePage() {
               <input 
                 type="text" 
                 placeholder="Search corporate policies, SOPs, or compliance standards..." 
-                className="w-full h-12 pl-11 pr-4 rounded-xl border border-slate-200 text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
+                className="w-full h-12 pl-11 pr-4 rounded-xl border border-slate-200 text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 transition-all shadow-sm"
               />
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mr-1">Quick Access:</span>
-              <button onClick={() => {}} className="px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 text-xs font-bold hover:bg-blue-100 transition-colors">Employee Handbook</button>
-              <button onClick={() => {}} className="px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 text-xs font-bold hover:bg-blue-100 transition-colors">Remote Work SOP</button>
-              <button onClick={() => {}} className="px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 text-xs font-bold hover:bg-blue-100 transition-colors">Privacy Policy</button>
+              <button onClick={() => {}} className="px-3 py-1.5 rounded-full bg-slate-100 text-slate-900 text-xs font-bold hover:bg-slate-200 transition-colors">Employee Handbook</button>
+              <button onClick={() => {}} className="px-3 py-1.5 rounded-full bg-slate-100 text-slate-900 text-xs font-bold hover:bg-slate-200 transition-colors">Remote Work SOP</button>
+              <button onClick={() => {}} className="px-3 py-1.5 rounded-full bg-slate-100 text-slate-900 text-xs font-bold hover:bg-slate-200 transition-colors">Privacy Policy</button>
             </div>
           </div>
         </div>
@@ -46,7 +46,7 @@ export default function KnowledgeBasePage() {
               {/* Category 1 */}
               <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex flex-col h-[260px]">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-lg bg-slate-100 text-slate-900 flex items-center justify-center">
                     <Folder className="w-5 h-5 fill-current" />
                   </div>
                   <div>
@@ -68,7 +68,7 @@ export default function KnowledgeBasePage() {
                     <ChevronRight className="w-4 h-4 text-slate-400" />
                   </button>
                 </div>
-                <button onClick={() => {}} className="w-full mt-2 py-2 border-t border-slate-100 text-xs font-bold text-blue-600 hover:text-blue-700 tracking-wider uppercase">View All Docs</button>
+                <button onClick={() => {}} className="w-full mt-2 py-2 border-t border-slate-100 text-xs font-bold text-slate-900 hover:text-slate-900 tracking-wider uppercase">View All Docs</button>
               </div>
 
               {/* Category 2 */}
@@ -154,11 +154,11 @@ export default function KnowledgeBasePage() {
             </div>
 
             {/* Featured Banner (Right Col) */}
-            <div className="bg-blue-600 rounded-xl shadow-lg p-6 text-white flex flex-col justify-between h-[544px] relative overflow-hidden">
+            <div className="bg-slate-900 rounded-xl shadow-lg p-6 text-white flex flex-col justify-between h-[544px] relative overflow-hidden">
               <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl"></div>
               
               <div className="relative z-10">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-500 text-white rounded-md text-[10px] font-bold tracking-wider uppercase mb-6 shadow-sm border border-blue-400/50">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-700 text-white rounded-md text-[10px] font-bold tracking-wider uppercase mb-6 shadow-sm border border-blue-400/50">
                   <FileCheck className="w-3.5 h-3.5" /> Featured Documentation
                 </div>
                 <h2 className="text-3xl font-extrabold leading-tight mb-4">New 2024 Security Protocols for Remote Work</h2>
@@ -168,10 +168,10 @@ export default function KnowledgeBasePage() {
               </div>
 
               <div className="relative z-10 flex flex-col gap-3 mt-8">
-                <button onClick={() => {}} className="w-full bg-white text-blue-700 py-3 rounded-lg text-sm font-bold shadow-sm hover:bg-slate-50 transition-colors">
+                <button onClick={() => {}} className="w-full bg-white text-slate-900 py-3 rounded-lg text-sm font-bold shadow-sm hover:bg-slate-50 transition-colors">
                   Read Document
                 </button>
-                <button onClick={() => {}} className="w-full bg-blue-700 text-white py-3 rounded-lg text-sm font-bold border border-blue-500 hover:bg-blue-800 transition-colors flex items-center justify-center gap-2">
+                <button onClick={() => {}} className="w-full bg-slate-800 text-white py-3 rounded-lg text-sm font-bold border border-slate-700 hover:bg-slate-950 transition-colors flex items-center justify-center gap-2">
                   <Download className="w-4 h-4" /> Download PDF
                 </button>
               </div>
@@ -183,7 +183,7 @@ export default function KnowledgeBasePage() {
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
             <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
               <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Recently Updated Articles</h2>
-              <button onClick={() => {}} className="text-xs font-bold text-blue-600 hover:text-blue-700 uppercase tracking-wider">View All Updates</button>
+              <button onClick={() => {}} className="text-xs font-bold text-slate-900 hover:text-slate-900 uppercase tracking-wider">View All Updates</button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
@@ -200,7 +200,7 @@ export default function KnowledgeBasePage() {
                   <tr className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <FileText className="w-5 h-5 text-blue-500" />
+                        <FileText className="w-5 h-5 text-slate-700" />
                         <span className="text-sm font-bold text-slate-900">Anti-Corruption Framework</span>
                       </div>
                     </td>
@@ -213,13 +213,13 @@ export default function KnowledgeBasePage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button onClick={() => {}} className="text-slate-400 hover:text-blue-600 transition-colors"><Download className="w-5 h-5" /></button>
+                      <button onClick={() => {}} className="text-slate-400 hover:text-slate-900 transition-colors"><Download className="w-5 h-5" /></button>
                     </td>
                   </tr>
                   <tr className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <FileText className="w-5 h-5 text-blue-500" />
+                        <FileText className="w-5 h-5 text-slate-700" />
                         <span className="text-sm font-bold text-slate-900">Hiring Protocols 2.1</span>
                       </div>
                     </td>
@@ -227,18 +227,18 @@ export default function KnowledgeBasePage() {
                     <td className="px-6 py-4 text-sm font-medium text-slate-600">Dec 10, 2024</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[10px] font-bold">ER</div>
+                        <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-900 flex items-center justify-center text-[10px] font-bold">ER</div>
                         <span className="text-sm font-medium text-slate-700">Elena Rodriguez</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button onClick={() => {}} className="text-slate-400 hover:text-blue-600 transition-colors"><Download className="w-5 h-5" /></button>
+                      <button onClick={() => {}} className="text-slate-400 hover:text-slate-900 transition-colors"><Download className="w-5 h-5" /></button>
                     </td>
                   </tr>
                   <tr className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <FileText className="w-5 h-5 text-blue-500" />
+                        <FileText className="w-5 h-5 text-slate-700" />
                         <span className="text-sm font-bold text-slate-900">Cloud Storage Guidelines</span>
                       </div>
                     </td>
@@ -253,7 +253,7 @@ export default function KnowledgeBasePage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button onClick={() => {}} className="text-slate-400 hover:text-blue-600 transition-colors"><Download className="w-5 h-5" /></button>
+                      <button onClick={() => {}} className="text-slate-400 hover:text-slate-900 transition-colors"><Download className="w-5 h-5" /></button>
                     </td>
                   </tr>
                 </tbody>

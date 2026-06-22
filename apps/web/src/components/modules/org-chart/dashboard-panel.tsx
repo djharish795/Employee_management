@@ -13,7 +13,7 @@ interface OrgDashboardPanelProps {
 }
 
 const ORG_DISTRIBUTION = [
-  { dept: "Engineering", percent: 45, color: "bg-blue-600", count: 185 },
+  { dept: "Engineering", percent: 45, color: "bg-slate-900", count: 185 },
   { dept: "Sales", percent: 25, color: "bg-emerald-500", count: 103 },
   { dept: "Design", percent: 12, color: "bg-violet-500", count: 49 },
   { dept: "HR & Ops", percent: 10, color: "bg-amber-500", count: 41 },
@@ -83,7 +83,7 @@ export default function OrgDashboardPanel({ activeRole }: OrgDashboardPanelProps
 
         <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <div className="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+            <div className="w-9 h-9 bg-slate-100 text-slate-900 rounded-xl flex items-center justify-center">
               <Building2 className="w-4.5 h-4.5" />
             </div>
           </div>

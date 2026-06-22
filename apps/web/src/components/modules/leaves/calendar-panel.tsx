@@ -42,7 +42,7 @@ export default function CalendarPanel({ activeRole }: CalendarPanelProps) {
       {/* Filtering Bar */}
       <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col sm:flex-row justify-between items-center gap-3">
         <div className="flex items-center gap-2">
-          <CalendarIcon className="w-5 h-5 text-blue-500" />
+          <CalendarIcon className="w-5 h-5 text-slate-700" />
           <h3 className="text-sm font-bold text-slate-900">June 2026</h3>
         </div>
 
@@ -106,7 +106,7 @@ export default function CalendarPanel({ activeRole }: CalendarPanelProps) {
                         key={leave.id}
                         className={`text-[9px] font-bold px-1.5 py-0.5 rounded truncate border shadow-sm ${
                           isApproved
-                            ? "bg-blue-50 text-blue-700 border-blue-200/50"
+                            ? "bg-slate-100 text-slate-900 border-slate-300/50"
                             : "bg-amber-50 text-amber-700 border-amber-200/50"
                         }`}
                         title={`${leave.employeeName}: ${leave.reason}`}
@@ -135,7 +135,7 @@ export default function CalendarPanel({ activeRole }: CalendarPanelProps) {
         {/* Legends */}
         <div className="flex flex-wrap items-center gap-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider pt-3">
           <div className="flex items-center gap-1.5">
-            <div className="w-3.5 h-3.5 bg-blue-50 border border-blue-200 rounded" />
+            <div className="w-3.5 h-3.5 bg-slate-100 border border-slate-300 rounded" />
             Approved Leave
           </div>
           <div className="flex items-center gap-1.5">

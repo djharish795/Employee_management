@@ -109,7 +109,7 @@ export const MfaCard: React.FC = () => {
   return (
     <div className="w-full max-w-[440px] p-8 bg-white border border-slate-100 rounded-2xl shadow-sm text-center">
       {/* Icon Area */}
-      <div className="flex items-center justify-center mx-auto mb-6 w-12 h-12 bg-blue-50 text-blue-600 rounded-full">
+      <div className="flex items-center justify-center mx-auto mb-6 w-12 h-12 bg-slate-100 text-slate-900 rounded-full">
         {tempSession.method === "EMAIL_OTP" ? (
           <Shield className="w-6 h-6" />
         ) : (
@@ -154,7 +154,7 @@ export const MfaCard: React.FC = () => {
                   ref={(el) => {
                     if (el) inputRefs.current[idx] = el;
                   }}
-                  className="w-12 h-14 text-center text-xl font-bold border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus-visible:outline-none transition-all duration-150"
+                  className="w-12 h-14 text-center text-xl font-bold border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-slate-700 focus:ring-4 focus:ring-slate-900/10 focus-visible:outline-none transition-all duration-150"
                   disabled={isLoading}
                 />
               ))}
@@ -168,7 +168,7 @@ export const MfaCard: React.FC = () => {
               </div>
               <button
                 type="button"
-                className="text-blue-600 hover:text-blue-700 transition-colors disabled:opacity-50"
+                className="text-slate-900 hover:text-slate-900 transition-colors disabled:opacity-50"
                 disabled={secondsRemaining > 0 || isLoading}
                 onClick={() => setSecondsRemaining(120)}
               >
@@ -192,7 +192,7 @@ export const MfaCard: React.FC = () => {
                   }
                   setSingleCode(val);
                 }}
-                className="w-full h-12 text-center text-2xl font-bold tracking-[0.2em] border border-slate-200 rounded-xl placeholder:text-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus-visible:outline-none transition-all duration-150"
+                className="w-full h-12 text-center text-2xl font-bold tracking-[0.2em] border border-slate-200 rounded-xl placeholder:text-slate-200 focus:border-slate-700 focus:ring-4 focus:ring-slate-900/10 focus-visible:outline-none transition-all duration-150"
                 disabled={isLoading}
               />
             </div>
@@ -206,7 +206,7 @@ export const MfaCard: React.FC = () => {
                 <ArrowLeft className="w-4 h-4" />
                 <span>Back to login</span>
               </button>
-              <a href="#" className="text-blue-600 hover:text-blue-700 mt-2 block transition-colors">
+              <a href="#" className="text-slate-900 hover:text-slate-900 mt-2 block transition-colors">
                 Lost access to your app?
               </a>
             </div>

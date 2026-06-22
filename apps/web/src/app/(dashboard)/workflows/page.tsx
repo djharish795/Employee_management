@@ -21,7 +21,7 @@ export default function WorkflowsPage() {
           <button onClick={() => {}} className="px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
             Discard
           </button>
-          <button onClick={() => {}} className="px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+          <button onClick={() => {}} className="px-4 py-2 text-sm font-bold text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors shadow-sm">
             Deploy Workflow
           </button>
         </div>
@@ -43,8 +43,8 @@ export default function WorkflowsPage() {
           </div>
 
           {/* Node 1: Employee Submission */}
-          <div className="w-[320px] bg-white border border-blue-200 shadow-sm rounded-xl p-5 flex items-start gap-4">
-            <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0 border border-blue-100">
+          <div className="w-[320px] bg-white border border-slate-300 shadow-sm rounded-xl p-5 flex items-start gap-4">
+            <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-900 flex items-center justify-center flex-shrink-0 border border-slate-200">
               <Play className="w-4 h-4" />
             </div>
             <div>
@@ -112,7 +112,7 @@ export default function WorkflowsPage() {
         <div className="w-[380px] bg-white border-l border-slate-200 flex flex-col flex-shrink-0 shadow-[-4px_0_24px_-16px_rgba(0,0,0,0.1)] z-10">
           <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
             <div className="flex items-center gap-2 font-bold text-slate-900 text-sm">
-              <Settings2 className="w-4 h-4 text-blue-600" />
+              <Settings2 className="w-4 h-4 text-slate-900" />
               Node Inspector
             </div>
             <span className="text-[10px] font-bold text-slate-400 font-mono tracking-wider bg-slate-100 px-2 py-1 rounded">ID: ND-2024-884A</span>
@@ -121,17 +121,17 @@ export default function WorkflowsPage() {
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Step Title</label>
-              <input type="text" defaultValue="Manager Sign-off" className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" />
+              <input type="text" defaultValue="Manager Sign-off" className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 transition-all" />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Role Assignment</label>
-              <select className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white appearance-none">
+              <select className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 transition-all bg-white appearance-none">
                 <option>Reporting Manager</option>
                 <option>Department Head</option>
                 <option>HR Partner</option>
               </select>
-              <p className="text-[11px] text-blue-600 font-medium flex items-center gap-1 mt-1">
+              <p className="text-[11px] text-slate-900 font-medium flex items-center gap-1 mt-1">
                 <AlertCircle className="w-3 h-3" /> Dynamically assigns line manager for selected employee.
               </p>
             </div>
@@ -139,14 +139,14 @@ export default function WorkflowsPage() {
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Timeout Window</label>
               <div className="flex items-center gap-3">
-                <input type="number" defaultValue={48} className="w-24 h-10 px-3 border border-slate-200 rounded-lg text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" />
+                <input type="number" defaultValue={48} className="w-24 h-10 px-3 border border-slate-200 rounded-lg text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 transition-all" />
                 <span className="text-sm font-semibold text-slate-600">Hours</span>
               </div>
             </div>
 
             <div className="space-y-1.5 pt-2">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">On Expiry</label>
-              <select className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white appearance-none">
+              <select className="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 transition-all bg-white appearance-none">
                 <option>Escalate to HR</option>
                 <option>Auto-approve</option>
                 <option>Reject</option>
@@ -156,7 +156,7 @@ export default function WorkflowsPage() {
             <div className="pt-6 border-t border-slate-100">
               <div className="flex items-center justify-between mb-3">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Conditional Overrides</label>
-                <button onClick={() => {}} className="text-xs font-bold text-blue-600 hover:text-blue-700">+ Add Rule</button>
+                <button onClick={() => {}} className="text-xs font-bold text-slate-900 hover:text-slate-900">+ Add Rule</button>
               </div>
               <div className="bg-amber-50 border border-amber-100 rounded-lg p-3">
                 <div className="text-sm font-bold text-amber-900 mb-1">Priority Escalation</div>
@@ -170,7 +170,7 @@ export default function WorkflowsPage() {
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 block">Node History</label>
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5"></div>
+                  <div className="w-1.5 h-1.5 rounded-full bg-slate-700 mt-1.5"></div>
                   <div>
                     <div className="text-[11px] font-bold text-slate-900">Modified Timeout Window</div>
                     <div className="text-[10px] font-medium text-slate-500 mt-0.5">Alex Thompson • 2h ago</div>
@@ -199,7 +199,7 @@ export default function WorkflowsPage() {
       <div className="h-12 border-t border-slate-200 bg-white flex items-center justify-between px-8 flex-shrink-0 text-xs font-bold text-slate-500 uppercase tracking-wider">
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-2">
-            <Settings2 className="w-4 h-4 text-blue-500" />
+            <Settings2 className="w-4 h-4 text-slate-700" />
             <span>Active Nodes: <span className="text-slate-900 ml-1">05</span></span>
           </div>
           <div className="flex items-center gap-2">

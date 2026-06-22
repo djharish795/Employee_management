@@ -81,11 +81,11 @@ export default function ProfileTabs({ profile, activeRole }: ProfileTabsProps) {
               onClick={() => setActiveTab(tab.name)}
               className={`flex items-center gap-3 px-4 py-3 text-xs font-bold rounded-xl whitespace-nowrap transition-all w-full ${
                 isActive
-                  ? "bg-blue-50 text-blue-700 font-extrabold shadow-sm"
+                  ? "bg-slate-100 text-slate-900 font-extrabold shadow-sm"
                   : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
               }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? "text-blue-600" : "text-slate-400"}`} />
+              <Icon className={`w-4 h-4 ${isActive ? "text-slate-900" : "text-slate-400"}`} />
               {tab.name}
             </button>
           );
@@ -137,7 +137,7 @@ function OverviewTab({ profile }: { profile: FullEmployeeProfile }) {
           <div className="text-xl font-bold text-slate-800 mt-1">
             {profile.assignedAssets.filter((a) => a.status === "ACTIVE").length} Items
           </div>
-          <div className="text-[10px] font-semibold text-blue-600 mt-1">IT-managed devices</div>
+          <div className="text-[10px] font-semibold text-slate-900 mt-1">IT-managed devices</div>
         </div>
       </div>
 
@@ -283,11 +283,11 @@ function EmploymentTab({ profile }: { profile: FullEmployeeProfile }) {
               <div className="w-0.5 h-6 bg-slate-200 ml-6" />
             </>
           )}
-          <div className="flex items-center gap-3 bg-blue-50/50 border border-blue-200/60 p-2.5 rounded-lg w-full max-w-sm shadow-sm ring-1 ring-blue-500/10">
+          <div className="flex items-center gap-3 bg-slate-100/50 border border-slate-300/60 p-2.5 rounded-lg w-full max-w-sm shadow-sm ring-1 ring-slate-900/10">
             <img src={profile.photoUrl} alt={profile.name} className="w-8 h-8 rounded-full border border-blue-300" />
             <div>
-              <div className="text-xs font-bold text-blue-900">{profile.name}</div>
-              <div className="text-[9px] font-bold text-blue-500 uppercase tracking-wide mt-0.5">
+              <div className="text-xs font-bold text-slate-950">{profile.name}</div>
+              <div className="text-[9px] font-bold text-slate-700 uppercase tracking-wide mt-0.5">
                 {profile.designation} (You)
               </div>
             </div>
@@ -302,9 +302,9 @@ function EmploymentTab({ profile }: { profile: FullEmployeeProfile }) {
           {profile.careerMilestones.map((milestone, idx) => (
             <div key={idx} className="relative">
               {/* Bullet */}
-              <div className="absolute -left-[31px] top-1.5 w-2.5 h-2.5 bg-blue-600 rounded-full border-[3px] border-white ring-4 ring-blue-50 shadow-sm" />
+              <div className="absolute -left-[31px] top-1.5 w-2.5 h-2.5 bg-slate-900 rounded-full border-[3px] border-white ring-4 ring-blue-50 shadow-sm" />
               <div>
-                <span className="text-[10px] font-bold text-blue-600 uppercase bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md">
+                <span className="text-[10px] font-bold text-slate-900 uppercase bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
                   {milestone.date}
                 </span>
                 <h5 className="text-sm font-bold text-slate-900 mt-2">{milestone.event}</h5>
@@ -377,7 +377,7 @@ function AttendanceTab({ profile }: { profile: FullEmployeeProfile }) {
                 let badge = "text-slate-600 bg-slate-100";
                 if (rec.status === "PRESENT") badge = "text-emerald-700 bg-emerald-50 border border-emerald-200/50";
                 else if (rec.status === "LATE") badge = "text-amber-700 bg-amber-50 border border-amber-200/50";
-                else if (rec.status === "WFH") badge = "text-blue-700 bg-blue-50 border border-blue-200/50";
+                else if (rec.status === "WFH") badge = "text-slate-900 bg-slate-100 border border-slate-300/50";
                 else if (rec.status === "ABSENT") badge = "text-rose-700 bg-rose-50 border border-rose-200/50";
 
                 return (
@@ -482,7 +482,7 @@ function AssetsTab({ profile }: { profile: FullEmployeeProfile }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {profile.assignedAssets.map((asset) => (
             <div key={asset.id} className="bg-slate-50/50 p-4 border border-slate-200 rounded-xl flex items-start gap-4">
-              <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100/50 flex-shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-slate-100 text-slate-900 flex items-center justify-center border border-slate-200/50 flex-shrink-0">
                 <Monitor className="w-5 h-5" />
               </div>
               <div className="flex-1 min-w-0">
@@ -658,7 +658,7 @@ function TimelineTab({ profile }: { profile: FullEmployeeProfile }) {
       <div className="relative border-l-2 border-slate-100 ml-4 pl-6 space-y-6">
         {profile.timelineEvents.map((ev) => {
           let categoryColor = "bg-slate-100 text-slate-600";
-          if (ev.category === "PROFILE") categoryColor = "bg-blue-50 text-blue-600 border border-blue-100";
+          if (ev.category === "PROFILE") categoryColor = "bg-slate-100 text-slate-900 border border-slate-200";
           else if (ev.category === "ATTENDANCE") categoryColor = "bg-emerald-50 text-emerald-600 border border-emerald-100";
           else if (ev.category === "LEAVE") categoryColor = "bg-amber-50 text-amber-600 border border-amber-100";
           else if (ev.category === "ASSET") categoryColor = "bg-purple-50 text-purple-600 border border-purple-100";
@@ -667,7 +667,7 @@ function TimelineTab({ profile }: { profile: FullEmployeeProfile }) {
           return (
             <div key={ev.id} className="relative">
               {/* Bullet */}
-              <div className="absolute -left-[31px] top-1.5 w-2.5 h-2.5 bg-blue-500 rounded-full border-[3px] border-white ring-4 ring-blue-50 shadow-sm" />
+              <div className="absolute -left-[31px] top-1.5 w-2.5 h-2.5 bg-slate-700 rounded-full border-[3px] border-white ring-4 ring-blue-50 shadow-sm" />
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-[10px] font-mono font-bold text-slate-400">{ev.timestamp}</span>

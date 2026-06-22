@@ -101,7 +101,7 @@ export default function ApprovalsPanel({ activeRole }: ApprovalsPanelProps) {
                   placeholder="Search employee..."
                   value={filterSearch}
                   onChange={(e) => setFilterSearch(e.target.value)}
-                  className="w-full h-9 pl-9 pr-3 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full h-9 pl-9 pr-3 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900/20"
                 />
               </div>
 
@@ -140,7 +140,7 @@ export default function ApprovalsPanel({ activeRole }: ApprovalsPanelProps) {
                     key={req.id}
                     onClick={() => setSelectedRequest(req)}
                     className={`hover:bg-slate-50 transition-colors cursor-pointer ${
-                      selectedRequest?.id === req.id ? "bg-blue-50/30" : ""
+                      selectedRequest?.id === req.id ? "bg-slate-100/30" : ""
                     }`}
                   >
                     <td className="px-5 py-3.5">
@@ -192,7 +192,7 @@ export default function ApprovalsPanel({ activeRole }: ApprovalsPanelProps) {
 
               <div className="space-y-4 text-xs font-semibold text-slate-700">
                 <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
-                  <div className="w-9 h-9 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-xs border border-blue-100/50">
+                  <div className="w-9 h-9 rounded-full bg-slate-100 text-slate-900 flex items-center justify-center font-bold text-xs border border-slate-200/50">
                     {selectedRequest.employeeName.split(" ").map((n) => n[0]).join("")}
                   </div>
                   <div>

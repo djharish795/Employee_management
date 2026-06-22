@@ -27,7 +27,7 @@ export function QuickLinks({ links }: { links: QuickLinkType[] }) {
                 className="flex flex-col items-center justify-center p-4 border border-slate-100 rounded-xl hover:bg-slate-50 hover:border-slate-200 transition-colors group cursor-pointer"
               >
                 <div className="p-3 bg-white rounded-lg shadow-sm border border-slate-100 mb-3 group-hover:shadow-md transition-shadow">
-                  <Icon className="w-5 h-5 text-blue-600" />
+                  <Icon className="w-5 h-5 text-slate-900" />
                 </div>
                 <span className="text-sm font-semibold text-slate-700 text-center">{link.title}</span>
               </a>

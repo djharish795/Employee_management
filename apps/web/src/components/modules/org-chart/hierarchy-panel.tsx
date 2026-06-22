@@ -35,7 +35,7 @@ const MOCK_FLAT_EMPLOYEES: OrgEmployee[] = [
     email: "lokesh@naprocs.com",
     photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Lokesh",
     initials: "LK",
-    avatarBg: "bg-blue-100 text-blue-600",
+    avatarBg: "bg-slate-200 text-slate-900",
     managerId: "EMP-100",
   },
   {
@@ -83,7 +83,7 @@ const MOCK_FLAT_EMPLOYEES: OrgEmployee[] = [
     email: "arjun.m@naprocs.com",
     photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Arjun",
     initials: "AM",
-    avatarBg: "bg-blue-100 text-blue-600",
+    avatarBg: "bg-slate-200 text-slate-900",
     managerId: "EMP-103",
   },
   {

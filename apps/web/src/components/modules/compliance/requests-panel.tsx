@@ -147,7 +147,7 @@ export default function RequestsPanel({ activeRole }: RequestsPanelProps) {
                     <td className="p-4 align-top">
                       <div className="flex items-center gap-1.5">
                         {req.type === "DATA_DELETION" ? <Trash2 className="w-3.5 h-3.5 text-rose-500" /> : 
-                         req.type === "DATA_CORRECTION" ? <Edit3 className="w-3.5 h-3.5 text-blue-500" /> : 
+                         req.type === "DATA_CORRECTION" ? <Edit3 className="w-3.5 h-3.5 text-slate-700" /> : 
                          <Search className="w-3.5 h-3.5 text-teal-500" />}
                         <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">{req.type.replace("_", " ")}</span>
                       </div>

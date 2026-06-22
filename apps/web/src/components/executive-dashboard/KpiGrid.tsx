@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent } from '../ui/card';
-import { Users, Calendar, Umbrella, UserPlus, UserMinus, UserCheck, Activity } from 'lucide-react';
+import { Users, Calendar, Umbrella, UserPlus, UserMinus, UserCheck, Activity, LogOut, Briefcase } from 'lucide-react';
 import { KpiMetric } from '../../types/executive-dashboard';
 
 const icons: Record<string, any> = {
@@ -10,6 +10,8 @@ const icons: Record<string, any> = {
   userPlus: UserPlus,
   userMinus: UserMinus,
   userCheck: UserCheck,
+  logOut: LogOut,
+  briefcase: Briefcase,
 };
 
 export function KpiGrid({ metrics }: { metrics: KpiMetric[] }) {

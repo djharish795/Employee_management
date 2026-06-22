@@ -134,7 +134,7 @@ export default function RegularizationPanel({ activeRole }: RegularizationPanelP
             {!showForm && (
               <button
                 onClick={() => setShowForm(true)}
-                className="flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-colors cursor-pointer"
               >
                 <PlusCircle className="w-3.5 h-3.5" />
                 New Request
@@ -160,7 +160,7 @@ export default function RegularizationPanel({ activeRole }: RegularizationPanelP
                     <div className="space-y-1.5 flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-[10px] font-mono font-bold text-slate-400">{req.id}</span>
-                        <span className="text-[10px] font-bold text-blue-600 uppercase bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                        <span className="text-[10px] font-bold text-slate-900 uppercase bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
                           {req.correctionType.replace("_", " ")}
                         </span>
                         <span className="text-xs font-bold text-slate-900">For Date: {req.attendanceDate}</span>
@@ -293,7 +293,7 @@ export default function RegularizationPanel({ activeRole }: RegularizationPanelP
                   required
                   value={reqDate}
                   onChange={(e) => setReqDate(e.target.value)}
-                  className="w-full h-10 px-3.5 border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full h-10 px-3.5 border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-slate-900/20"
                 />
               </div>
 
@@ -302,7 +302,7 @@ export default function RegularizationPanel({ activeRole }: RegularizationPanelP
                 <select
                   value={reqType}
                   onChange={(e) => setReqType(e.target.value as any)}
-                  className="w-full h-10 px-3.5 border border-slate-200 rounded-lg bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full h-10 px-3.5 border border-slate-200 rounded-lg bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-slate-900/20"
                 >
                   <option value="MISSING_PUNCH">Missing Punch</option>
                   <option value="INCORRECT_TIME">Incorrect Time Logged</option>
@@ -318,7 +318,7 @@ export default function RegularizationPanel({ activeRole }: RegularizationPanelP
                   placeholder="Explain why the regularization is required..."
                   value={reqReason}
                   onChange={(e) => setReqReason(e.target.value)}
-                  className="w-full p-3.5 border border-slate-200 rounded-lg text-xs leading-normal font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none"
+                  className="w-full p-3.5 border border-slate-200 rounded-lg text-xs leading-normal font-semibold focus:outline-none focus:ring-2 focus:ring-slate-900/20 resize-none"
                 />
               </div>
 
@@ -329,13 +329,13 @@ export default function RegularizationPanel({ activeRole }: RegularizationPanelP
                   placeholder="e.g. log_snapshot.jpg"
                   value={fileName}
                   onChange={(e) => setFileName(e.target.value)}
-                  className="w-full h-10 px-3.5 border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full h-10 px-3.5 border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-slate-900/20"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-sm transition-colors cursor-pointer"
+                className="w-full h-10 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg shadow-sm transition-colors cursor-pointer"
               >
                 Submit Request
               </button>

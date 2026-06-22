@@ -24,7 +24,7 @@ const StatCard: React.FC<StatItemProps> = ({
               ? "bg-emerald-500/10 text-emerald-400"
               : badgeVariant === "warning"
                 ? "bg-amber-500/10 text-amber-400"
-                : "bg-blue-500/10 text-blue-400"
+                : "bg-slate-700/10 text-blue-400"
           }`}
         >
           {badgeVariant === "success" && "● "}
@@ -40,7 +40,7 @@ export const BrandingPanel: React.FC = () => {
     <div className="relative flex-col justify-between hidden h-full p-10 text-white lg:flex lg:w-[48%] bg-gradient-to-br from-[#0c152c] to-[#050a16] border-r border-slate-800/60 overflow-y-auto">
       {/* Top logo & version */}
       <div className="flex items-center space-x-3 select-none">
-        <div className="flex items-center justify-center w-10 h-10 bg-blue-600 rounded-lg shadow-lg shadow-blue-500/30">
+        <div className="flex items-center justify-center w-10 h-10 bg-slate-900 rounded-lg shadow-lg shadow-blue-500/30">
           <svg
             className="w-6 h-6 text-white"
             fill="none"
@@ -69,7 +69,7 @@ export const BrandingPanel: React.FC = () => {
       <div className="my-auto max-w-[480px]">
         <h1 className="text-4xl lg:text-5xl font-extrabold leading-[1.1] tracking-tight">
           Your people. <br />
-          <span className="text-blue-500">Your enterprise.</span> <br />
+          <span className="text-slate-700">Your enterprise.</span> <br />
           One platform.
         </h1>
         <p className="mt-6 text-base text-slate-400 font-normal leading-relaxed">
@@ -109,19 +109,19 @@ export const BrandingPanel: React.FC = () => {
       {/* Footer tags */}
       <div className="flex items-center space-x-6 text-xs text-slate-500 font-semibold tracking-widest uppercase select-none">
         <div className="flex items-center space-x-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-700" />
           <span>Attendance</span>
         </div>
         <div className="flex items-center space-x-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-700" />
           <span>Approvals</span>
         </div>
         <div className="flex items-center space-x-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-700" />
           <span>Analytics</span>
         </div>
         <div className="flex items-center space-x-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-700" />
           <span>Compliance</span>
         </div>
       </div>

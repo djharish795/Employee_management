@@ -75,7 +75,7 @@ export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
         <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Punches MTD</div>
           <div className="text-xl font-bold text-slate-900 mt-1">{metrics.activeFTE} FTE</div>
-          <div className="text-[10px] font-semibold text-blue-600 mt-1">Across 5 departments</div>
+          <div className="text-[10px] font-semibold text-slate-900 mt-1">Across 5 departments</div>
         </div>
       </div>
 
@@ -85,7 +85,7 @@ export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
         <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm space-y-4">
           <div className="flex justify-between items-center border-b border-slate-100 pb-2">
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-blue-500" />
+              <BarChart3 className="w-4 h-4 text-slate-700" />
               Department Attendance Rates
             </h3>
             <span className="text-[10px] font-bold text-slate-400">Current MTD</span>
@@ -93,7 +93,7 @@ export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
 
           <div className="space-y-4">
             {[
-              { name: "Engineering", percent: 98.1, count: 42, color: "bg-blue-600" },
+              { name: "Engineering", percent: 98.1, count: 42, color: "bg-slate-900" },
               { name: "Product & Design", percent: 97.2, count: 8, color: "bg-purple-500" },
               { name: "Others", percent: 96.0, count: 5, color: "bg-slate-400" },
               { name: "Operations", percent: 95.0, count: 12, color: "bg-amber-500" },

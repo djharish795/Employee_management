@@ -42,7 +42,7 @@ export default function ApplyLeavePage() {
           <p className="text-slate-500 mb-8">
             Your {leaveType.replace("_", " ").toLowerCase()} request from {startDate} to {endDate} has been successfully sent to your manager for approval.
           </p>
-          <Link href="/leaves" className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors">
+          <Link href="/leaves" className="inline-flex items-center justify-center px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg transition-colors">
             Return to Leaves Dashboard
           </Link>
         </div>
@@ -67,12 +67,12 @@ export default function ApplyLeavePage() {
               {[1, 2, 3].map((i) => (
                 <React.Fragment key={i}>
                   <div className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold ${
-                    step >= i ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-500"
+                    step >= i ? "bg-slate-900 text-white" : "bg-slate-200 text-slate-500"
                   }`}>
                     {i}
                   </div>
                   {i < 3 && (
-                    <div className={`h-1 w-12 rounded-full ${step > i ? "bg-blue-600" : "bg-slate-200"}`} />
+                    <div className={`h-1 w-12 rounded-full ${step > i ? "bg-slate-900" : "bg-slate-200"}`} />
                   )}
                 </React.Fragment>
               ))}
@@ -99,7 +99,7 @@ export default function ApplyLeavePage() {
                       key={type.id} 
                       className={`relative flex flex-col p-5 border-2 rounded-xl cursor-pointer transition-all ${
                         leaveType === type.id 
-                          ? "border-blue-600 bg-blue-50/30" 
+                          ? "border-slate-900 bg-slate-100/30" 
                           : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
                       }`}
                     >
@@ -113,7 +113,7 @@ export default function ApplyLeavePage() {
                       />
                       <div className="flex justify-between items-start mb-2">
                         <span className="font-bold text-slate-900">{type.title}</span>
-                        {leaveType === type.id && <CheckCircle2 className="w-5 h-5 text-blue-600" />}
+                        {leaveType === type.id && <CheckCircle2 className="w-5 h-5 text-slate-900" />}
                       </div>
                       <span className="text-xs text-slate-500 mb-4">{type.desc}</span>
                       <span className="mt-auto text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 w-fit px-2 py-0.5 rounded">
@@ -138,7 +138,7 @@ export default function ApplyLeavePage() {
                         type="date" 
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                        className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent" 
                       />
                     </div>
                   </div>
@@ -150,7 +150,7 @@ export default function ApplyLeavePage() {
                         type="date" 
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                        className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent" 
                       />
                     </div>
                   </div>
@@ -162,7 +162,7 @@ export default function ApplyLeavePage() {
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                     rows={4} 
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
                     placeholder="Please provide a brief reason for your manager to review..."
                   />
                 </div>
@@ -228,7 +228,7 @@ export default function ApplyLeavePage() {
               <button 
                 onClick={handleNext} 
                 disabled={step === 1 && !leaveType || step === 2 && (!startDate || !endDate)}
-                className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600 text-white text-sm font-bold rounded-lg transition-colors shadow-sm"
+                className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 disabled:hover:bg-slate-900 text-white text-sm font-bold rounded-lg transition-colors shadow-sm"
               >
                 Continue <ChevronRight className="w-4 h-4" />
               </button>

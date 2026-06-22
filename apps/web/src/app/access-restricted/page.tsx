@@ -47,19 +47,19 @@ export default function AccessRestrictedPage() {
             </h3>
             <ul className="space-y-3.5">
               <li className="flex items-center space-x-3 text-slate-600">
-                <Wifi className="w-4.5 h-4.5 text-blue-500 shrink-0" />
+                <Wifi className="w-4.5 h-4.5 text-slate-700 shrink-0" />
                 <span className="text-sm font-medium">
                   Connect to Naprocs office network
                 </span>
               </li>
               <li className="flex items-center space-x-3 text-slate-600">
-                <ShieldCheck className="w-4.5 h-4.5 text-blue-500 shrink-0" />
+                <ShieldCheck className="w-4.5 h-4.5 text-slate-700 shrink-0" />
                 <span className="text-sm font-medium">
                   Connect to company VPN
                 </span>
               </li>
               <li className="flex items-center space-x-3 text-slate-600">
-                <Laptop className="w-4.5 h-4.5 text-blue-500 shrink-0" />
+                <Laptop className="w-4.5 h-4.5 text-slate-700 shrink-0" />
                 <span className="text-sm font-medium">Use a registered device</span>
               </li>
             </ul>
@@ -72,7 +72,7 @@ export default function AccessRestrictedPage() {
             </Button>
             <button
               type="button"
-              className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors py-1 block"
+              className="text-xs font-semibold text-slate-900 hover:text-slate-900 transition-colors py-1 block"
             >
               Contact IT support
             </button>

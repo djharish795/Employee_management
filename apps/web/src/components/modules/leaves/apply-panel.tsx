@@ -159,11 +159,11 @@ export default function ApplyPanel({ activeRole }: ApplyPanelProps) {
         
         {/* Step Indicators */}
         <div className="flex items-center gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-3">
-          <span className={step === 1 ? "text-blue-600 font-extrabold" : "text-emerald-600"}>1. Details</span>
+          <span className={step === 1 ? "text-slate-900 font-extrabold" : "text-emerald-600"}>1. Details</span>
           <ChevronRight className="w-3.5 h-3.5" />
-          <span className={step === 2 ? "text-blue-600 font-extrabold" : step > 2 ? "text-emerald-600" : ""}>2. Continuity</span>
+          <span className={step === 2 ? "text-slate-900 font-extrabold" : step > 2 ? "text-emerald-600" : ""}>2. Continuity</span>
           <ChevronRight className="w-3.5 h-3.5" />
-          <span className={step === 3 ? "text-blue-600 font-extrabold" : ""}>3. Review</span>
+          <span className={step === 3 ? "text-slate-900 font-extrabold" : ""}>3. Review</span>
         </div>
 
         {/* STEP 1: Details */}
@@ -174,7 +174,7 @@ export default function ApplyPanel({ activeRole }: ApplyPanelProps) {
               <select
                 value={leaveType}
                 onChange={(e) => setLeaveType(e.target.value as any)}
-                className="w-full h-10 px-3.5 border border-slate-200 rounded-lg bg-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className="w-full h-10 px-3.5 border border-slate-200 rounded-lg bg-white text-xs focus:outline-none focus:ring-2 focus:ring-slate-900/20"
               >
                 <option value="CASUAL_LEAVE">Casual Leave</option>
                 <option value="SICK_LEAVE">Sick Leave</option>
@@ -189,7 +189,7 @@ export default function ApplyPanel({ activeRole }: ApplyPanelProps) {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full h-10 px-3.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full h-10 px-3.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-slate-900/20"
                 />
               </div>
               <div className="space-y-1.5">
@@ -198,7 +198,7 @@ export default function ApplyPanel({ activeRole }: ApplyPanelProps) {
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full h-10 px-3.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full h-10 px-3.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-slate-900/20"
                 />
               </div>
             </div>
@@ -218,7 +218,7 @@ export default function ApplyPanel({ activeRole }: ApplyPanelProps) {
                 placeholder="Details of your leave request..."
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                className="w-full p-3.5 border border-slate-200 rounded-lg text-xs leading-normal focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none"
+                className="w-full p-3.5 border border-slate-200 rounded-lg text-xs leading-normal focus:outline-none focus:ring-2 focus:ring-slate-900/20 resize-none"
               />
             </div>
 
@@ -229,13 +229,13 @@ export default function ApplyPanel({ activeRole }: ApplyPanelProps) {
                 placeholder="e.g. medical_certificate.pdf"
                 value={fileName}
                 onChange={(e) => setFileName(e.target.value)}
-                className="w-full h-10 px-3.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className="w-full h-10 px-3.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-slate-900/20"
               />
             </div>
 
             <button
               onClick={handleNextStep}
-              className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+              className="w-full h-10 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5"
             >
               Continue
               <ChevronRight className="w-4 h-4" />
@@ -254,7 +254,7 @@ export default function ApplyPanel({ activeRole }: ApplyPanelProps) {
                 placeholder="e.g. +91 98765 43210"
                 value={emergencyPhone}
                 onChange={(e) => setEmergencyPhone(e.target.value)}
-                className="w-full h-10 px-3.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className="w-full h-10 px-3.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-slate-900/20"
               />
             </div>
 
@@ -265,7 +265,7 @@ export default function ApplyPanel({ activeRole }: ApplyPanelProps) {
                 placeholder="e.g. Arjun Mehta"
                 value={delegateName}
                 onChange={(e) => setDelegateName(e.target.value)}
-                className="w-full h-10 px-3.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className="w-full h-10 px-3.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-slate-900/20"
               />
             </div>
 
@@ -278,7 +278,7 @@ export default function ApplyPanel({ activeRole }: ApplyPanelProps) {
               </button>
               <button
                 onClick={handleNextStep}
-                className="flex-1 h-10 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                className="flex-1 h-10 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5"
               >
                 Review Application <ChevronRight className="w-4 h-4" />
               </button>
@@ -314,10 +314,10 @@ export default function ApplyPanel({ activeRole }: ApplyPanelProps) {
             </div>
 
             {/* Reporting Manager Warning Check */}
-            <div className="p-4 bg-blue-50/50 border border-blue-200 rounded-xl">
-              <h5 className="text-[10px] font-bold text-blue-800 uppercase tracking-wide">Reviewing Authority</h5>
+            <div className="p-4 bg-slate-100/50 border border-slate-300 rounded-xl">
+              <h5 className="text-[10px] font-bold text-slate-950 uppercase tracking-wide">Reviewing Authority</h5>
               <p className="text-slate-500 font-semibold text-[11px] mt-1">
-                This request will be forwarded to your manager <span className="text-blue-700 font-bold">Alex Thompson (CEO)</span> for sign-off.
+                This request will be forwarded to your manager <span className="text-slate-900 font-bold">Alex Thompson (CEO)</span> for sign-off.
               </p>
             </div>
 
@@ -352,7 +352,7 @@ export default function ApplyPanel({ activeRole }: ApplyPanelProps) {
                 <div
                   key={index}
                   className={`p-3 rounded-lg border transition-all ${
-                    isActiveType ? "border-blue-500 bg-blue-50/10" : "border-slate-100 bg-slate-50/20"
+                    isActiveType ? "border-slate-700 bg-slate-100/10" : "border-slate-100 bg-slate-50/20"
                   }`}
                 >
                   <div className="flex justify-between items-center text-xs font-semibold text-slate-700">
@@ -361,7 +361,7 @@ export default function ApplyPanel({ activeRole }: ApplyPanelProps) {
                   </div>
                   <div className="w-full h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
                     <div
-                      className={`h-full rounded-full ${isActiveType ? "bg-blue-600" : "bg-slate-400"}`}
+                      className={`h-full rounded-full ${isActiveType ? "bg-slate-900" : "bg-slate-400"}`}
                       style={{ width: `${(bal.available / bal.allocated) * 100}%` }}
                     />
                   </div>

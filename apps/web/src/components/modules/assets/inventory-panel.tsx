@@ -206,7 +206,7 @@ const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
 
 const STATUS_COLORS: Record<AssetStatus, string> = {
   ASSIGNED: "text-emerald-700 bg-emerald-50 border border-emerald-100",
-  AVAILABLE: "text-blue-700 bg-blue-50 border border-blue-100",
+  AVAILABLE: "text-slate-900 bg-slate-100 border border-slate-200",
   MAINTENANCE: "text-amber-700 bg-amber-50 border border-amber-100",
   RETIRED: "text-slate-600 bg-slate-100",
   LOST: "text-rose-700 bg-rose-50 border border-rose-100",
@@ -214,7 +214,7 @@ const STATUS_COLORS: Record<AssetStatus, string> = {
 
 const CONDITION_COLORS: Record<string, string> = {
   EXCELLENT: "text-emerald-700",
-  GOOD: "text-blue-700",
+  GOOD: "text-slate-900",
   FAIR: "text-amber-700",
   POOR: "text-rose-700",
 };
@@ -440,7 +440,7 @@ export default function InventoryPanel({ activeRole }: InventoryPanelProps) {
                           <button className="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-md transition-colors" title="View">
                             <Eye className="w-3.5 h-3.5" />
                           </button>
-                          <button className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" title="Edit">
+                          <button className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors" title="Edit">
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
                           <button className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors" title="Maintenance">

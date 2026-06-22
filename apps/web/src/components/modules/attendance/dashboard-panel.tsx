@@ -151,7 +151,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Attendance Rate</div>
           <div className="text-xl font-bold text-slate-900 mt-1">{kpis.attendanceRate}%</div>
           <div className="w-full h-1 bg-slate-100 rounded-full mt-2 overflow-hidden">
-            <div className="h-full bg-blue-600 rounded-full" style={{ width: `${kpis.attendanceRate}%` }} />
+            <div className="h-full bg-slate-900 rounded-full" style={{ width: `${kpis.attendanceRate}%` }} />
           </div>
         </div>
         <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
@@ -172,7 +172,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
         <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">WFH Sessions</div>
           <div className="text-xl font-bold text-slate-900 mt-1">{kpis.wfhDays} Days</div>
-          <div className="text-[10px] font-semibold text-blue-600 mt-1">Remote connection logs</div>
+          <div className="text-[10px] font-semibold text-slate-900 mt-1">Remote connection logs</div>
         </div>
       </div>
 
@@ -197,7 +197,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
               {/* Tracker lines */}
               <div className="absolute top-1/2 left-0 right-0 h-1 bg-slate-100 rounded-full -translate-y-1/2" />
               <div
-                className="absolute top-1/2 left-0 h-1 bg-blue-600 rounded-full -translate-y-1/2 transition-all duration-500"
+                className="absolute top-1/2 left-0 h-1 bg-slate-900 rounded-full -translate-y-1/2 transition-all duration-500"
                 style={{
                   width: punchState === "OUT" ? "0%" : punchState === "BREAK" ? "50%" : "100%",
                 }}
@@ -205,7 +205,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
 
               <div className="relative flex justify-between">
                 <div className="flex flex-col items-center">
-                  <div className={`w-4 h-4 rounded-full border-[3px] border-white shadow-sm z-10 transition-all ${punchState !== "OUT" ? "bg-blue-600 ring-4 ring-blue-50" : "bg-slate-200"}`} />
+                  <div className={`w-4 h-4 rounded-full border-[3px] border-white shadow-sm z-10 transition-all ${punchState !== "OUT" ? "bg-slate-900 ring-4 ring-blue-50" : "bg-slate-200"}`} />
                   <span className="text-[11px] font-bold text-slate-900 mt-2">08:52 AM</span>
                   <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Check-In</span>
                 </div>
@@ -246,7 +246,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                 {punchState === "OUT" ? (
                   <button
                     onClick={() => punchMutation.mutate("IN")}
-                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
                   >
                     <Play className="w-3.5 h-3.5" /> Check In
                   </button>
@@ -297,7 +297,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                   <div className="w-full bg-slate-100 rounded-t-lg h-28 flex items-end">
                     <div
                       className={`w-full rounded-t-lg transition-all duration-500 ${
-                        item.hours >= 9.0 ? "bg-blue-600" : item.hours > 0 ? "bg-amber-400" : "bg-transparent"
+                        item.hours >= 9.0 ? "bg-slate-900" : item.hours > 0 ? "bg-amber-400" : "bg-transparent"
                       }`}
                       style={{ height: `${item.percent}%` }}
                     />
@@ -312,7 +312,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
             <div className="p-4 border-b border-slate-200 flex justify-between items-center">
               <h3 className="text-sm font-bold text-slate-900">Recent Attendance Logs</h3>
-              <Link href="/attendance/history" className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
+              <Link href="/attendance/history" className="text-xs font-bold text-slate-900 hover:underline flex items-center gap-1">
                 View Full Logs <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
@@ -331,7 +331,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                   let badge = "text-slate-600 bg-slate-100";
                   if (log.status === "PRESENT") badge = "text-emerald-700 bg-emerald-50 border border-emerald-100";
                   else if (log.status === "LATE") badge = "text-amber-700 bg-amber-50 border border-amber-100";
-                  else if (log.status === "WFH") badge = "text-blue-700 bg-blue-50 border border-blue-100";
+                  else if (log.status === "WFH") badge = "text-slate-900 bg-slate-100 border border-slate-200";
 
                   return (
                     <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
@@ -360,7 +360,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
             <div className="flex flex-col gap-2.5">
               <Link
                 href="/attendance/regularization"
-                className="flex items-center justify-center gap-2 py-2.5 bg-blue-50 hover:bg-blue-100 border border-blue-100 text-blue-700 text-xs font-bold rounded-lg transition-colors shadow-sm"
+                className="flex items-center justify-center gap-2 py-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-900 text-xs font-bold rounded-lg transition-colors shadow-sm"
               >
                 Request Regularization
               </Link>
@@ -392,14 +392,14 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                 let dot = null;
                 if (day === 15) dot = <div className="w-1 h-1 bg-emerald-500 rounded-full mx-auto mt-0.5" />;
                 else if (day === 14) dot = <div className="w-1 h-1 bg-amber-500 rounded-full mx-auto mt-0.5" />;
-                else if (day === 13) dot = <div className="w-1 h-1 bg-blue-500 rounded-full mx-auto mt-0.5" />;
+                else if (day === 13) dot = <div className="w-1 h-1 bg-slate-700 rounded-full mx-auto mt-0.5" />;
                 else if (day < 13) dot = <div className="w-1 h-1 bg-emerald-500 rounded-full mx-auto mt-0.5" />;
 
                 return (
                   <div
                     key={day}
                     className={`p-1.5 rounded relative hover:bg-slate-50 cursor-pointer ${
-                      day === 15 ? "bg-blue-600 text-white hover:bg-blue-600" : ""
+                      day === 15 ? "bg-slate-900 text-white hover:bg-slate-900" : ""
                     }`}
                   >
                     {day}
@@ -421,7 +421,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-sm">
               <div className="flex justify-between items-center mb-3">
                 <h3 className="text-sm font-bold text-slate-900">Team Approvals</h3>
-                <span className="px-2 py-0.5 bg-blue-600 text-white text-[9px] font-bold rounded">2 Pending</span>
+                <span className="px-2 py-0.5 bg-slate-900 text-white text-[9px] font-bold rounded">2 Pending</span>
               </div>
               <p className="text-xs font-semibold text-slate-400 mb-4">Awaiting manager authorizations</p>
 
@@ -440,7 +440,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                     <button className="flex-1 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-600 text-[10px] font-bold rounded-md transition-colors">
                       Reject
                     </button>
-                    <button className="flex-1 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold rounded-md transition-colors">
+                    <button className="flex-1 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-bold rounded-md transition-colors">
                       Approve
                     </button>
                   </div>

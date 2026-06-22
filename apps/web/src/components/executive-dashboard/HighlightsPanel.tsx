@@ -11,7 +11,7 @@ const icons = {
 
 const colors = {
   success: 'text-green-600',
-  info: 'text-blue-600',
+  info: 'text-slate-900',
   warning: 'text-amber-600',
 };
 

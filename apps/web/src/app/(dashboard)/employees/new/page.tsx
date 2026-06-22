@@ -54,27 +54,27 @@ export default function AddEmployeePage() {
             <div className="space-y-6">
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">First name*</label>
-                <input type="text" placeholder="e.g. John" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                <input type="text" placeholder="e.g. John" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Middle name</label>
-                <input type="text" placeholder="e.g. Quincy" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                <input type="text" placeholder="e.g. Quincy" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Last name*</label>
-                <input type="text" placeholder="e.g. Doe" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                <input type="text" placeholder="e.g. Doe" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Preferred name</label>
-                <input type="text" placeholder="e.g. Johnny" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                <input type="text" placeholder="e.g. Johnny" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Date of birth*</label>
-                <input type="date" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm text-slate-500 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                <input type="date" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm text-slate-500 focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Gender*</label>
-                <select className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                <select className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all">
                   <option value="">Select gender</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
@@ -83,7 +83,7 @@ export default function AddEmployeePage() {
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Blood group</label>
-                <select className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                <select className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all">
                   <option value="">Select blood group</option>
                   <option value="A+">A+</option>
                   <option value="O+">O+</option>
@@ -91,11 +91,11 @@ export default function AddEmployeePage() {
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Nationality</label>
-                <input type="text" placeholder="e.g. American" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                <input type="text" placeholder="e.g. American" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Marital status</label>
-                <select className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                <select className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all">
                   <option value="">Select status</option>
                   <option value="Single">Single</option>
                   <option value="Married">Married</option>
@@ -122,50 +122,50 @@ export default function AddEmployeePage() {
             <div className="space-y-6">
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Official email*</label>
-                <input type="email" placeholder="john.doe@naprocs.com" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                <input type="email" placeholder="john.doe@naprocs.com" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Personal email</label>
-                <input type="email" placeholder="john.doe@gmail.com" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                <input type="email" placeholder="john.doe@gmail.com" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Phone*</label>
-                <input type="tel" placeholder="+1 (555) 000-0000" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                <input type="tel" placeholder="+1 (555) 000-0000" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Alternate phone</label>
-                <input type="tel" placeholder="+1 (555) 000-0000" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                <input type="tel" placeholder="+1 (555) 000-0000" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all" />
               </div>
               
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Current address</label>
-                <textarea placeholder="Enter current residence address" className="w-full h-[90px] p-3.5 rounded-lg border border-slate-200 text-sm resize-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                <textarea placeholder="Enter current residence address" className="w-full h-[90px] p-3.5 rounded-lg border border-slate-200 text-sm resize-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all" />
               </div>
               
               <div className="space-y-1.5 relative">
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-sm font-semibold text-slate-700">Permanent address</label>
                   <label className="flex items-center gap-2 cursor-pointer group">
-                    <input type="checkbox" className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                    <input type="checkbox" className="w-3.5 h-3.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900" />
                     <span className="text-xs font-semibold text-slate-500 group-hover:text-slate-700 transition-colors">Same as current address</span>
                   </label>
                 </div>
-                <textarea placeholder="Enter permanent address" className="w-full h-[90px] p-3.5 rounded-lg border border-slate-200 text-sm resize-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                <textarea placeholder="Enter permanent address" className="w-full h-[90px] p-3.5 rounded-lg border border-slate-200 text-sm resize-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all" />
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Emergency contact name*</label>
-                <input type="text" placeholder="Full name" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                <input type="text" placeholder="Full name" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all" />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-slate-700">Emergency contact phone*</label>
-                  <input type="tel" placeholder="+1 (555) 000-0000" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                  <input type="tel" placeholder="+1 (555) 000-0000" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-slate-700">Relationship*</label>
-                  <input type="text" placeholder="e.g. Spouse, Parent" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                  <input type="text" placeholder="e.g. Spouse, Parent" className="w-full h-11 px-3.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all" />
                 </div>
               </div>
             </div>

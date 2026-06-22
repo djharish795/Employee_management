@@ -69,8 +69,8 @@ export default function ProfileHeader({ profile, activeRole, onRoleChange }: Pro
           <div className="relative inline-block text-left group">
             <button className="flex items-center justify-between gap-1.5 px-3 py-2 bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-lg transition-all shadow-sm w-full">
               <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                Active View: <span className="text-blue-600 font-bold">{activeRole}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-700 animate-pulse" />
+                Active View: <span className="text-slate-900 font-bold">{activeRole}</span>
               </span>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-1" />
             </button>
@@ -81,11 +81,11 @@ export default function ProfileHeader({ profile, activeRole, onRoleChange }: Pro
                   key={role}
                   onClick={() => onRoleChange(role)}
                   className={`w-full text-left px-3.5 py-2 text-xs font-medium hover:bg-slate-50 flex items-center justify-between ${
-                    activeRole === role ? "text-blue-600 bg-blue-50/50 font-bold" : "text-slate-600"
+                    activeRole === role ? "text-slate-900 bg-slate-100/50 font-bold" : "text-slate-600"
                   }`}
                 >
                   {role}
-                  {activeRole === role && <Check className="w-3.5 h-3.5 text-blue-600" />}
+                  {activeRole === role && <Check className="w-3.5 h-3.5 text-slate-900" />}
                 </button>
               ))}
             </div>
@@ -116,7 +116,7 @@ export default function ProfileHeader({ profile, activeRole, onRoleChange }: Pro
 
             {/* Edit Employee - Restricted */}
             {canEdit && (
-              <button className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition-colors">
+              <button className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-colors">
                 <Edit3 className="w-3.5 h-3.5" />
                 Edit Profile
               </button>

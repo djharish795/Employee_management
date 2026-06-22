@@ -89,7 +89,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
         <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Upcoming Holidays</div>
           <div className="text-xl font-bold text-slate-900 mt-1">{kpis.holidays}</div>
-          <div className="text-[10px] font-semibold text-blue-600 mt-1">Company-wide calendar</div>
+          <div className="text-[10px] font-semibold text-slate-900 mt-1">Company-wide calendar</div>
         </div>
         <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Team Leave Conflicts</div>
@@ -108,7 +108,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
             <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/20">
               <h3 className="text-sm font-bold text-slate-900">{isEmployee ? "My Recent Leave Applications" : "Recent Leave Applications"}</h3>
-              <Link href="/leaves/apply" className="flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition-colors cursor-pointer">
+              <Link href="/leaves/apply" className="flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-colors cursor-pointer">
                 <UserPlus className="w-3.5 h-3.5" /> Apply for Leave
               </Link>
             </div>
@@ -149,7 +149,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
           {/* Leave Trends Chart */}
           <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm space-y-4">
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <FileText className="w-4 h-4 text-blue-500" />
+              <FileText className="w-4 h-4 text-slate-700" />
               Monthly Time-Off Trends
             </h3>
             
@@ -185,7 +185,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
             <h3 className="text-sm font-bold text-slate-900">Time-Off Operations</h3>
             <div className="flex flex-col gap-2.5">
-              <Link href="/leaves/apply" className="flex items-center justify-center gap-2 py-2.5 bg-blue-50 hover:bg-blue-100 border border-blue-100 text-blue-700 text-xs font-bold rounded-lg transition-all shadow-sm">
+              <Link href="/leaves/apply" className="flex items-center justify-center gap-2 py-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-900 text-xs font-bold rounded-lg transition-all shadow-sm">
                 Apply for Leave
               </Link>
               <Link href="/leaves/policies" className="flex items-center justify-center gap-2 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-all shadow-sm">

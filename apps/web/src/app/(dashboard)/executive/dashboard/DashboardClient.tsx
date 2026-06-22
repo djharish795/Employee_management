@@ -42,7 +42,7 @@ export function DashboardClient() {
   if (isLoading) {
     return (
       <div className="flex-1 w-full flex items-center justify-center p-6 md:p-8 bg-slate-50 min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-slate-900" />
       </div>
     );
   }
