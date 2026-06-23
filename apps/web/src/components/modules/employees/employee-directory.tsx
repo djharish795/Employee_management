@@ -836,7 +836,7 @@ export default function EmployeeDirectory() {
           {/* Add Employee CTA */}
           {roleConfig.canAddEmployee && (
             <Link 
-              href="/employees/new"
+              href="/employees/add"
               className="flex items-center justify-center gap-2 h-10 px-5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm shadow-sm transition-colors w-full md:w-auto"
             >
               <UserPlus className="w-4 h-4" />

@@ -17,7 +17,7 @@ import { QuickLinks } from '@/components/executive-dashboard/QuickLinks';
 import { QuickLinkType } from '@/types/executive-dashboard';
 
 const quickLinksData: QuickLinkType[] = [
-  { id: '1', title: 'Add employee', href: '/employees/new', iconType: 'userPlus' },
+  { id: '1', title: 'Add employee', href: '/employees/add', iconType: 'userPlus' },
   { id: '2', title: 'View org chart', href: '/org-chart', iconType: 'orgChart' },
   { id: '3', title: 'Audit logs', href: '/audit', iconType: 'audit' },
   { id: '4', title: 'Export report', href: '#', iconType: 'export' },
