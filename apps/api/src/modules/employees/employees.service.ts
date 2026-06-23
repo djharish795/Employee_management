@@ -20,6 +20,18 @@ export class EmployeesService {
         throw new ConflictException("An employee with this official email already exists.");
       }
 
+      if (dto.designationId) {
+        const designation = await tx.designation.findUnique({
+          where: { id: dto.designationId }
+        });
+        if (!designation) {
+          throw new NotFoundException(`Designation with ID ${dto.designationId} not found.`);
+        }
+        if (designation.departmentId !== dto.departmentId) {
+          throw new ConflictException("The selected designation does not belong to the selected department.");
+        }
+      }
+
       // 2. Generate employeeId (EMP-0001 format)
       // TODO: Concurrency Limitation - If two requests execute this transaction at the exact
       // same time, they may both read the same lastEmployee ID. The first to commit will
@@ -83,7 +95,25 @@ export class EmployeesService {
 
   async updateEmployee(id: string, dto: UpdateEmployeeDto): Promise<Employee> {
     // Verify the employee exists
-    await this.getEmployeeById(id);
+    const employee = await this.getEmployeeById(id);
+
+    // If updating designation or department, ensure they match
+    if (dto.designationId !== undefined || dto.departmentId !== undefined) {
+      const targetDesignationId = dto.designationId !== undefined ? dto.designationId : employee.designationId;
+      const targetDepartmentId = dto.departmentId !== undefined ? dto.departmentId : employee.departmentId;
+
+      if (targetDesignationId) {
+        const designation = await this.prisma.designation.findUnique({
+          where: { id: targetDesignationId }
+        });
+        if (!designation) {
+          throw new NotFoundException(`Designation with ID ${targetDesignationId} not found.`);
+        }
+        if (designation.departmentId !== targetDepartmentId) {
+          throw new ConflictException("The selected designation does not belong to the selected department.");
+        }
+      }
+    }
 
     // If updating official email, check uniqueness
     if (dto.officialEmail) {
