@@ -65,26 +65,17 @@ export default function EditEmployeePage() {
   const handleStepSave = async (stepData: any) => {
     setIsSubmitting(true);
     try {
-      // Simulate API call to update employee
+      // Simulate API call to update employee section
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      if (activeStep < STEPS.length) {
-        setActiveStep(prev => prev + 1);
-      } else {
-        alert('Employee Updated Successfully!');
-        router.push(`/employees/${id}`);
-      }
+      alert('Changes saved successfully!');
+      // We don't advance the step automatically in edit mode. 
+      // They can navigate away or click another tab.
     } catch (error) {
       console.error(error);
       alert("Validation failed or server error.");
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handlePrev = () => {
-    if (activeStep > 1) {
-      setActiveStep(prev => prev - 1);
     }
   };
 
@@ -112,7 +103,7 @@ export default function EditEmployeePage() {
   };
 
   const currentStepTitle = STEPS[activeStep - 1]?.title;
-  const currentStepDesc = "Update the information below and save changes.";
+  const currentStepDesc = "Update the information below and click Save Changes.";
 
   return (
     <div className="min-h-full bg-slate-50 flex flex-col font-sans relative">
@@ -131,14 +122,14 @@ export default function EditEmployeePage() {
         </div>
       </div>
 
-      {/* Top Stepper */}
-      <Stepper steps={STEPS} activeStep={activeStep} />
+      {/* Top Stepper (Clickable in Edit Mode) */}
+      <Stepper steps={STEPS} activeStep={activeStep} onStepClick={(step) => setActiveStep(step)} />
 
       {/* Main Content Area */}
       <div className="flex-1 p-4 sm:p-8 pb-32 overflow-y-auto">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-2">
-            Step {activeStep} of {STEPS.length}: {currentStepTitle}
+            {currentStepTitle}
           </h2>
           <p className="text-sm font-semibold text-slate-500 mb-8">
             {currentStepDesc}
@@ -158,12 +149,10 @@ export default function EditEmployeePage() {
         
         <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
           <button 
-            onClick={handlePrev}
-            disabled={activeStep === 1 || isLoading}
-            className="flex items-center gap-2 h-10 px-4 bg-transparent hover:bg-slate-50 text-blue-600 rounded-lg text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => router.push(`/employees/${id}`)}
+            className="flex items-center gap-2 h-10 px-4 bg-transparent hover:bg-slate-50 text-slate-600 rounded-lg text-sm font-bold transition-all"
           >
-            <ArrowLeft className="w-4 h-4" />
-            Previous
+            Cancel
           </button>
           
           <button 
@@ -172,13 +161,9 @@ export default function EditEmployeePage() {
             disabled={isSubmitting || isLoading}
             className="flex items-center gap-2 h-10 px-6 bg-[#0052CC] hover:bg-[#0047B3] text-white rounded-md text-sm font-bold shadow-sm transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? 'Saving...' : activeStep === STEPS.length ? (
+            {isSubmitting ? 'Saving...' : (
               <>
-                Finish Editing <CheckCircle className="w-4 h-4 ml-1" />
-              </>
-            ) : (
-              <>
-                Save & Continue <Save className="w-4 h-4 ml-1" />
+                Save Changes <Save className="w-4 h-4 ml-1" />
               </>
             )}
           </button>

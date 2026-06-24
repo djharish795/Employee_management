@@ -31,7 +31,7 @@ export default function ApplyLeavePage() {
     }, 1500);
   };
 
-  const PageContent = () => {
+  const renderPageContent = () => {
     if (isSuccess) {
       return (
         <div className="bg-white border border-slate-200 p-10 rounded-xl shadow-sm text-center max-w-lg mx-auto mt-10">
@@ -250,7 +250,7 @@ export default function ApplyLeavePage() {
 
   return (
     <LeavesLayout activeRole={activeRole} onRoleChange={setActiveRole}>
-      <PageContent />
+      {renderPageContent()}
     </LeavesLayout>
   );
 }
