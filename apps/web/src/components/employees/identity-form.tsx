@@ -3,9 +3,16 @@ import { FileBadge, Landmark, Globe, UploadCloud, CheckCircle2, FileText, Image 
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 
-export function IdentityForm() {
+export function IdentityForm({ onSave }: { onSave: (data: any) => void }) {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const data = Object.fromEntries(formData.entries());
+    onSave(data);
+  };
+
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <form id="onboarding-form" onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-3 gap-6">
       <div className="xl:col-span-2 space-y-6">
         
         {/* Government IDs */}
@@ -18,23 +25,23 @@ export function IdentityForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5 mb-8">
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Aadhaar Number*</label>
-                <Input type="text" placeholder="1234 5678 9012" required pattern="^\d{4}\s?\d{4}\s?\d{4}$" title="Enter a valid 12-digit Aadhaar number" maxLength={14} />
+                <Input name="aadhaar" type="text" placeholder="1234 5678 9012" required pattern="^\d{4}\s?\d{4}\s?\d{4}$" title="Enter a valid 12-digit Aadhaar number" maxLength={14} />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">PAN Number*</label>
-                <Input type="text" placeholder="ABCDE1234F" required pattern="^[A-Z]{5}[0-9]{4}[A-Z]{1}$" title="Enter a valid PAN number (e.g., ABCDE1234F)" maxLength={10} className="uppercase" />
+                <Input name="pan" type="text" placeholder="ABCDE1234F" required pattern="^[A-Z]{5}[0-9]{4}[A-Z]{1}$" title="Enter a valid PAN number (e.g., ABCDE1234F)" maxLength={10} className="uppercase" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Passport Number</label>
-                <Input type="text" placeholder="A1234567" pattern="^[A-Z][0-9]{7}$" title="Enter a valid Indian Passport number" maxLength={8} className="uppercase" />
+                <Input name="passport" type="text" placeholder="A1234567" pattern="^[A-Z][0-9]{7}$" title="Enter a valid Indian Passport number" maxLength={8} className="uppercase" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Driving License</label>
-                <Input type="text" placeholder="KA-01-2023-1234567" pattern="^[A-Z]{2}[-\s]?[0-9]{2}[-\s]?[0-9]{4}[-\s]?[0-9]{7}$" title="Enter a valid Driving License (e.g. KA-01-2023-1234567)" maxLength={20} className="uppercase" />
+                <Input name="drivingLicense" type="text" placeholder="KA-01-2023-1234567" pattern="^[A-Z]{2}[-\s]?[0-9]{2}[-\s]?[0-9]{4}[-\s]?[0-9]{7}$" title="Enter a valid Driving License (e.g. KA-01-2023-1234567)" maxLength={20} className="uppercase" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Voter ID (Optional)</label>
-                <Input type="text" placeholder="EPIC Number" pattern="^[A-Z]{3}[0-9]{7}$" title="Enter a valid 10-character Voter ID" maxLength={10} className="uppercase" />
+                <Input name="voterId" type="text" placeholder="EPIC Number" pattern="^[A-Z]{3}[0-9]{7}$" title="Enter a valid 10-character Voter ID" maxLength={10} className="uppercase" />
               </div>
             </div>
 
@@ -141,6 +148,6 @@ export function IdentityForm() {
         </Card>
 
       </div>
-    </div>
+    </form>
   );
 }

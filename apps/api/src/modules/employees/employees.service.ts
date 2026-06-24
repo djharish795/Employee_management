@@ -3,11 +3,27 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { CreateEmployeeDto } from "./dto/create-employee.dto";
 import { UpdateEmployeeDto } from "./dto/update-employee.dto";
 import { getPaginationOptions, createPaginatedResponse, PaginationParams, PaginatedResult } from "../../common/utils/pagination.util";
-import { Employee } from "@naprocs/database";
+import { Employee, UserRole } from "@naprocs/database";
+import * as bcrypt from "bcrypt";
+import { encryptData } from "../../common/utils/encrypt.util";
+import { RedisService } from "../../redis/redis.service";
+import { v4 as uuidv4 } from "uuid";
+import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { createS3Client } from "../../common/utils/s3.util";
 
 @Injectable()
 export class EmployeesService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly s3: S3Client;
+  private readonly bucketName: string;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService
+  ) {
+    this.s3 = createS3Client();
+    this.bucketName = (process.env.AWS_S3_BUCKET || "naprocs-ems-documents").trim();
+  }
 
   async createEmployee(dto: CreateEmployeeDto): Promise<Employee> {
     return this.prisma.$transaction(async (tx) => {
@@ -32,38 +48,143 @@ export class EmployeesService {
         }
       }
 
-      // 2. Generate employeeId (EMP-0001 format)
-      // TODO: Concurrency Limitation - If two requests execute this transaction at the exact
-      // same time, they may both read the same lastEmployee ID. The first to commit will
-      // succeed, while the second will fail with a Prisma Unique Constraint Violation (P2002) 
-      // on the employeeId field. We will revisit this and implement a safer pattern 
-      // (like a retry loop or Redis increment) after MVP frontend integration.
+      // Extract non-employee fields including resourceType
+      const { password, role, bankAccount, resourceType, ...rawEmployeeData } = dto;
+
+      // 2. Generate employeeId (NPR/<RESOURCE_TYPE>/<SEQUENCE> format)
+      const resType = resourceType || "TR"; // Default to TR if not provided
+      const idPrefix = `NPR/${resType}/`;
+
       const lastEmployee = await tx.employee.findFirst({
+        where: { employeeId: { startsWith: idPrefix } },
         orderBy: { createdAt: "desc" },
         select: { employeeId: true },
       });
 
       let nextIdNumber = 1;
-      if (lastEmployee && lastEmployee.employeeId.startsWith("EMP-")) {
-        const lastIdNumStr = lastEmployee.employeeId.replace("EMP-", "");
+      if (lastEmployee && lastEmployee.employeeId.startsWith(idPrefix)) {
+        const lastIdNumStr = lastEmployee.employeeId.replace(idPrefix, "");
         const lastIdNum = parseInt(lastIdNumStr, 10);
         if (!isNaN(lastIdNum)) {
           nextIdNumber = lastIdNum + 1;
         }
       }
 
-      const employeeId = `EMP-${nextIdNumber.toString().padStart(4, "0")}`;
+      // Sequence starts from 001
+      const employeeId = `${idPrefix}${nextIdNumber.toString().padStart(3, "0")}`;
+
+      // Clean up empty strings, format dates, and uppercase enums
+      const employeeData: any = {};
+      for (const [key, value] of Object.entries(rawEmployeeData)) {
+        if (value === "" || value === null || value === undefined) {
+          continue; // Skip empty fields so Prisma uses defaults or null
+        }
+        
+        // Format dates
+        if ((key === "dateOfBirth" || key === "joiningDate") && typeof value === "string") {
+          employeeData[key] = new Date(value).toISOString();
+        } 
+        // Uppercase enums
+        else if (key === "gender" || key === "maritalStatus" || key === "employeeType" || key === "status") {
+          employeeData[key] = typeof value === "string" ? value.toUpperCase() : value;
+        }
+        else {
+          employeeData[key] = value;
+        }
+      }
+
+      // Remove fields not in Prisma schema that might have leaked from frontend drafts
+      const allowedPrismaFields = [
+        "firstName", "lastName", "middleName", "preferredName", "officialEmail", "personalEmail",
+        "phone", "alternatePhone", "photoUrl", "dateOfBirth", "gender", "bloodGroup", "nationality",
+        "maritalStatus", "currentAddress", "permanentAddress", "emergencyContact", "aadhaar", "pan",
+        "passport", "drivingLicence", "voterId", "bankName", "bankBranch", "bankIfsc", "paymentMode",
+        "paymentFrequency", "accountType", "documents", "departmentId", "designationId", "status",
+        "joiningDate", "employeeType", "grade", "band", "workLocation", "reportingManagerId"
+      ];
+      
+      const cleanData: any = {};
+      for (const key of allowedPrismaFields) {
+        if (employeeData[key] !== undefined) {
+          cleanData[key] = employeeData[key];
+        }
+      }
 
       // 3. Create the employee record
       const employee = await tx.employee.create({
         data: {
           employeeId,
-          ...dto,
+          ...cleanData,
+          bankAccountEnc: bankAccount ? encryptData(bankAccount) : undefined,
         },
       });
 
+      // 4. Create User record if password is provided
+      if (password) {
+        const passwordHash = await bcrypt.hash(password, 10);
+        await tx.user.create({
+          data: {
+            email: employeeData.officialEmail,
+            passwordHash,
+            role: (role as UserRole) || UserRole.EMPLOYEE,
+            employeeId: employee.id,
+          }
+        });
+      }
+
+      if (employee.photoUrl && !employee.photoUrl.startsWith("http")) {
+        try {
+          const command = new GetObjectCommand({
+            Bucket: this.bucketName,
+            Key: employee.photoUrl,
+          });
+          employee.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
+        } catch (error) {
+          console.error(`Failed to sign URL for employee ${employee.id}:`, error);
+        }
+      }
+
       return employee;
     });
+  }
+
+  async saveOnboardingStep(draftId: string, stepNumber: string, payload: any): Promise<{ draftId: string }> {
+    const id = draftId || uuidv4();
+    const redisKey = `employee_draft:${id}`;
+    
+    // Fetch existing draft
+    const existingDraft = await this.redis.getJson<any>(redisKey) || {};
+    
+    // Merge new step data
+    const updatedDraft = {
+      ...existingDraft,
+      ...payload,
+    };
+    
+    // Save back to Redis with 24 hours expiry
+    await this.redis.setJson(redisKey, updatedDraft, 60 * 60 * 24);
+    
+    return { draftId: id };
+  }
+
+  async completeOnboarding(draftId: string): Promise<Employee> {
+    if (!draftId) throw new ConflictException("draftId is required");
+    
+    const redisKey = `employee_draft:${draftId}`;
+    const draftData = await this.redis.getJson<any>(redisKey);
+    
+    if (!draftData) {
+      throw new NotFoundException("Draft not found or expired");
+    }
+    
+    // Transform draftData into CreateEmployeeDto if necessary, 
+    // but we can pass it directly to createEmployee since it handles the DTO structure.
+    const employee = await this.createEmployee(draftData as CreateEmployeeDto);
+    
+    // Delete the draft after successful creation
+    await this.redis.del(redisKey);
+    
+    return employee;
   }
 
   async getEmployees(params: PaginationParams): Promise<PaginatedResult<Employee>> {
@@ -74,9 +195,32 @@ export class EmployeesService {
         skip,
         take,
         orderBy: { createdAt: "desc" },
+        include: {
+          department: {
+            select: { id: true, name: true, code: true }
+          },
+          designation: {
+            select: { id: true, title: true }
+          }
+        }
       }),
       this.prisma.employee.count(),
     ]);
+
+    // Enhance employees with signed photo URLs
+    for (const emp of data) {
+      if (emp.photoUrl && !emp.photoUrl.startsWith("http")) {
+        try {
+          const command = new GetObjectCommand({
+            Bucket: this.bucketName,
+            Key: emp.photoUrl,
+          });
+          emp.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
+        } catch (error) {
+          console.error(`Failed to sign URL for employee ${emp.id}:`, error);
+        }
+      }
+    }
 
     return createPaginatedResponse(data, total, page, limit);
   }
@@ -84,10 +228,67 @@ export class EmployeesService {
   async getEmployeeById(id: string): Promise<Employee> {
     const employee = await this.prisma.employee.findUnique({
       where: { id },
+      include: {
+        department: {
+          select: { id: true, name: true, code: true }
+        },
+        designation: {
+          select: { id: true, title: true }
+        },
+        subordinates: {
+          select: { id: true, employeeId: true, firstName: true, lastName: true, photoUrl: true, designation: { select: { title: true } } }
+        },
+        attendanceRecords: {
+          orderBy: { date: 'desc' },
+          take: 10
+        },
+        leaveBalances: {
+          include: { leaveType: true }
+        },
+        leaveRequestsMade: {
+          orderBy: { appliedAt: 'desc' },
+          take: 5,
+          include: { leaveType: true }
+        },
+        assetsHeld: true,
+        consentLogsAsSubject: {
+          orderBy: { consentedAt: 'desc' },
+          take: 5
+        }
+      }
     });
 
     if (!employee) {
       throw new NotFoundException(`Employee with ID ${id} not found.`);
+    }
+
+    if (employee.photoUrl && !employee.photoUrl.startsWith("http")) {
+      try {
+        const command = new GetObjectCommand({
+          Bucket: this.bucketName,
+          Key: employee.photoUrl,
+        });
+        employee.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
+      } catch (error) {
+        console.error(`Failed to sign URL for employee ${employee.id}:`, error);
+      }
+    }
+
+    const empWithRels = employee as any;
+    if (empWithRels.subordinates && empWithRels.subordinates.length > 0) {
+      for (const sub of empWithRels.subordinates) {
+        if (sub.photoUrl && !sub.photoUrl.startsWith("http")) {
+          try {
+            const subCommand = new GetObjectCommand({
+              Bucket: this.bucketName,
+              Key: sub.photoUrl,
+            });
+            sub.photoUrl = await getSignedUrl(this.s3, subCommand, { expiresIn: 900 });
+          } catch (e) {
+            console.error(`Failed to sign URL for sub ${sub.id}:`, e);
+          }
+        }
+      }
     }
 
     return employee;
@@ -126,10 +327,29 @@ export class EmployeesService {
       }
     }
 
+    // Handle banking data encryption
+    const { password, role, bankAccount, ...employeeData } = dto;
+    const updateData: any = { ...employeeData };
+    if (bankAccount !== undefined) {
+      updateData.bankAccountEnc = bankAccount ? encryptData(bankAccount) : null;
+    }
+
     const updatedEmployee = await this.prisma.employee.update({
       where: { id },
-      data: dto,
+      data: updateData,
     });
+
+    if (updatedEmployee.photoUrl && !updatedEmployee.photoUrl.startsWith("http")) {
+      try {
+        const command = new GetObjectCommand({
+          Bucket: this.bucketName,
+          Key: updatedEmployee.photoUrl,
+        });
+        updatedEmployee.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
+      } catch (error) {
+        console.error(`Failed to sign URL for employee ${updatedEmployee.id}:`, error);
+      }
+    }
 
     return updatedEmployee;
   }

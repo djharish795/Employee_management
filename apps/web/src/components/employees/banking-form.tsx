@@ -3,9 +3,16 @@ import { Wallet, Info, Building } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 
-export function BankingForm() {
+export function BankingForm({ onSave }: { onSave: (data: any) => void }) {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const data = Object.fromEntries(formData.entries());
+    onSave(data);
+  };
+
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <form id="onboarding-form" onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-3 gap-6">
       <div className="xl:col-span-2 space-y-6">
         
         {/* Banking Information */}
@@ -22,22 +29,22 @@ export function BankingForm() {
               <div className="flex items-center gap-4">
                 <label className="text-sm font-semibold text-slate-700 w-1/3">Account Holder Name</label>
                 <div className="w-2/3">
-                  <Input type="text" placeholder="Legal name as per bank record" />
+                  <Input name="accountHolderName" type="text" placeholder="Legal name as per bank record" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-slate-700">Bank Name</label>
-                  <Input type="text" placeholder="e.g. JPMorgan Chase" />
+                  <Input name="bankName" type="text" placeholder="e.g. JPMorgan Chase" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-slate-700">Branch Name</label>
-                  <Input type="text" placeholder="City or Branch Code" />
+                  <Input name="branchName" type="text" placeholder="City or Branch Code" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-slate-700">Account Number</label>
-                  <Input type="password" placeholder="••••••••••••" />
+                  <Input name="bankAccount" type="password" placeholder="••••••••••••" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-slate-700">Confirm Account Number</label>
@@ -45,11 +52,11 @@ export function BankingForm() {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-slate-700">IFSC Code</label>
-                  <Input type="text" placeholder="11-digit alphanumeric" />
+                  <Input name="bankIfsc" type="text" placeholder="11-digit alphanumeric" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-slate-700">SWIFT / BIC Code</label>
-                  <Input type="text" placeholder="8 or 11 characters" />
+                  <Input name="swiftCode" type="text" placeholder="8 or 11 characters" />
                 </div>
               </div>
 
@@ -160,6 +167,6 @@ export function BankingForm() {
         </Card>
 
       </div>
-    </div>
+    </form>
   );
 }

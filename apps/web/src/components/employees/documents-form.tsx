@@ -10,11 +10,18 @@ const CATEGORIES = [
   { id: 'financial', label: 'Financial', icon: <FileText className="w-4 h-4" /> },
 ];
 
-export function DocumentsForm() {
+export function DocumentsForm({ onSave }: { onSave: (data: any) => void }) {
   const [activeTab, setActiveTab] = useState('personal');
 
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const data = Object.fromEntries(formData.entries());
+    onSave(data);
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <form id="onboarding-form" onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-6">
       
       {/* Left Sidebar - Categories */}
       <div className="md:col-span-1 space-y-6">
@@ -87,6 +94,6 @@ export function DocumentsForm() {
         </div>
 
       </div>
-    </div>
+    </form>
   );
 }

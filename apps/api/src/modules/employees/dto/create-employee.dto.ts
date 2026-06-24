@@ -92,4 +92,65 @@ export class CreateEmployeeDto {
   @IsString()
   @IsOptional()
   reportingManagerId?: string;
+
+  // Added for Banking
+  @IsString()
+  @IsOptional()
+  bankName?: string;
+
+  @IsString()
+  @IsOptional()
+  bankBranch?: string;
+
+  @IsString()
+  @IsOptional()
+  bankAccount?: string; // Plain text received from frontend, encrypted before save
+
+  @IsString()
+  @IsOptional()
+  bankIfsc?: string;
+
+  @IsString()
+  @IsOptional()
+  paymentMode?: string;
+
+  @IsString()
+  @IsOptional()
+  paymentFrequency?: string;
+
+  @IsString()
+  @IsOptional()
+  accountType?: string;
+
+  // Added for Documents
+  @IsOptional()
+  documents?: any; // Re-evaluate specific type later (e.g., Record<string, string>)
+
+  // Added for Access Control
+  @IsString()
+  @IsOptional()
+  password?: string;
+
+  @IsString()
+  @IsOptional()
+  role?: string;
+
+  // Added for Personal Info mappings
+  @IsString()
+  @IsOptional()
+  photoUrl?: string;
+
+  @IsOptional()
+  currentAddress?: any;
+
+  @IsOptional()
+  permanentAddress?: any;
+
+  @IsOptional()
+  emergencyContact?: any;
+
+  // Added for custom Employee ID generation
+  @IsString()
+  @IsOptional()
+  resourceType?: string;
 }

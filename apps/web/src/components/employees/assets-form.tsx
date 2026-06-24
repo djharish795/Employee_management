@@ -13,9 +13,16 @@ const ASSET_TYPES = [
   { id: 'access', name: 'Access Card', icon: <Key className="w-5 h-5 text-slate-700" /> },
 ];
 
-export function AssetsForm() {
+export function AssetsForm({ onSave }: { onSave: (data: any) => void }) {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const data = Object.fromEntries(formData.entries());
+    onSave(data);
+  };
+
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <form id="onboarding-form" onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-3 gap-6">
       
       {/* Left side: Assets Selection */}
       <div className="xl:col-span-2 space-y-6">
@@ -174,6 +181,6 @@ export function AssetsForm() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </form>
   );
 }

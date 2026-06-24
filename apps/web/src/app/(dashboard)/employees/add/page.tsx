@@ -12,6 +12,7 @@ import { EmergencyForm } from '@/components/employees/emergency-form';
 import { AssetsForm } from '@/components/employees/assets-form';
 import { AccessControlForm } from '@/components/employees/access-control-form';
 import { WizardStep } from '@/types/employee';
+import { useAuthStore } from '@/store/auth';
 
 const STEPS: WizardStep[] = [
   { num: 1, title: 'Personal Info', active: false, completed: false },
@@ -26,13 +27,70 @@ const STEPS: WizardStep[] = [
 
 export default function AddEmployeePage() {
   const [activeStep, setActiveStep] = useState(1);
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const accessToken = useAuthStore((state) => state.accessToken);
 
-  const handleNext = () => {
-    if (activeStep < STEPS.length) {
-      setActiveStep(prev => prev + 1);
-    } else {
-      // Final submission logic
+  const handleStepSave = async (stepData: any) => {
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        draftId: draftId || "",
+        stepNumber: activeStep.toString(),
+        payload: stepData
+      };
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const res = await fetch(`${apiUrl}/employees/onboarding/draft/step`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to save draft step");
+      }
+
+      const data = await res.json();
+      if (data.draftId && !draftId) {
+        setDraftId(data.draftId);
+      }
+
+      if (activeStep < STEPS.length) {
+        setActiveStep(prev => prev + 1);
+      } else {
+        await completeOnboarding(data.draftId || draftId);
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Validation failed or server error.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const completeOnboarding = async (id: string) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const res = await fetch(`${apiUrl}/employees/onboarding/draft/complete`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ draftId: id })
+      });
+
+      if (!res.ok) throw new Error("Failed to finalize employee");
+      
       alert('Employee Created Successfully!');
+      window.location.href = "/employees";
+    } catch (error) {
+      console.error(error);
+      alert("Failed to complete onboarding.");
     }
   };
 
@@ -44,14 +102,14 @@ export default function AddEmployeePage() {
 
   const renderStepContent = () => {
     switch (activeStep) {
-      case 1: return <PersonalInformationForm />;
-      case 2: return <EmploymentForm />;
-      case 3: return <IdentityForm />;
-      case 4: return <BankingForm />;
-      case 5: return <EmergencyForm />;
-      case 6: return <AssetsForm />;
-      case 7: return <DocumentsForm />;
-      case 8: return <AccessControlForm />;
+      case 1: return <PersonalInformationForm onSave={handleStepSave} />;
+      case 2: return <EmploymentForm onSave={handleStepSave} />;
+      case 3: return <IdentityForm onSave={handleStepSave} />;
+      case 4: return <BankingForm onSave={handleStepSave} />;
+      case 5: return <EmergencyForm onSave={handleStepSave} />;
+      case 6: return <AssetsForm onSave={handleStepSave} />;
+      case 7: return <DocumentsForm onSave={handleStepSave} />;
+      case 8: return <AccessControlForm onSave={handleStepSave} />;
       default: return null;
     }
   };
@@ -103,10 +161,12 @@ export default function AddEmployeePage() {
           </button>
           
           <button 
-            onClick={handleNext}
-            className="flex items-center gap-2 h-10 px-6 bg-[#0052CC] hover:bg-[#0047B3] text-white rounded-md text-sm font-bold shadow-sm transition-all active:scale-[0.98]"
+            type="submit"
+            form="onboarding-form"
+            disabled={isSubmitting}
+            className="flex items-center gap-2 h-10 px-6 bg-[#0052CC] hover:bg-[#0047B3] text-white rounded-md text-sm font-bold shadow-sm transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {activeStep === STEPS.length ? (
+            {isSubmitting ? 'Saving...' : activeStep === STEPS.length ? (
               <>
                 Complete Onboarding <CheckCircle className="w-4 h-4 ml-1" />
               </>
