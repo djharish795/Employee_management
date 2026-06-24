@@ -3,9 +3,16 @@ import { User, Shield, Grid, ShieldCheck, Eye, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 
-export function AccessControlForm() {
+export function AccessControlForm({ onSave }: { onSave: (data: any) => void }) {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const data = Object.fromEntries(formData.entries());
+    onSave(data);
+  };
+
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <form id="onboarding-form" onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-3 gap-6">
       
       {/* Left Column: Forms */}
       <div className="xl:col-span-2 space-y-6">
@@ -22,18 +29,18 @@ export function AccessControlForm() {
             <div className="space-y-5">
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Email Address</label>
-                <Input type="email" placeholder="e.g. employee@company.com" />
+                <Input name="email" type="email" placeholder="e.g. employee@company.com" required />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-slate-700">Username</label>
-                  <Input type="text" placeholder="Generate username" />
+                  <Input name="username" type="text" placeholder="Generate username" />
                 </div>
                 <div className="space-y-1.5 relative">
                   <label className="text-sm font-semibold text-slate-700">Password</label>
                   <div className="relative">
-                    <Input type="password" placeholder="••••••••" />
-                    <button className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                    <Input name="password" type="password" placeholder="••••••••" required />
+                    <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                       <Eye className="w-4 h-4" />
                     </button>
                   </div>
@@ -270,7 +277,7 @@ export function AccessControlForm() {
         </Card>
 
       </div>
-    </div>
+    </form>
   );
 }
 

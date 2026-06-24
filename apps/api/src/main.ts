@@ -14,7 +14,7 @@ async function bootstrap() {
     new ValidationPipe({
       whitelist: true,
       transform: true,
-      forbidNonWhitelisted: true,
+      forbidNonWhitelisted: false, // Set to false so unmapped frontend fields are silently stripped instead of throwing 400 Bad Request
     }),
   );
 
@@ -27,3 +27,4 @@ async function bootstrap() {
 }
 
 bootstrap();
+

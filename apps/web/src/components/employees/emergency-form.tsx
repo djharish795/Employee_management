@@ -3,9 +3,16 @@ import { HeartPulse, Phone, MapPin } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 
-export function EmergencyForm() {
+export function EmergencyForm({ onSave }: { onSave: (data: any) => void }) {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const data = Object.fromEntries(formData.entries());
+    onSave(data);
+  };
+
   return (
-    <div className="space-y-6 max-w-4xl">
+    <form id="onboarding-form" onSubmit={handleSubmit} className="space-y-6 max-w-4xl">
       
       {/* Emergency Contacts */}
       <Card className="border-slate-200 shadow-sm rounded-xl">
@@ -20,15 +27,15 @@ export function EmergencyForm() {
               <h4 className="text-sm font-bold text-slate-800 border-b border-slate-200 pb-2 mb-4">Primary Contact</h4>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-700">Name*</label>
-                <Input type="text" placeholder="Full Name" required maxLength={100} pattern="[A-Za-z\s]+" />
+                <Input name="emergencyContactName" type="text" placeholder="Full Name" required maxLength={100} pattern="[A-Za-z\s]+" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-700">Phone*</label>
-                <Input type="tel" placeholder="+91 9876543210" required pattern="^(\+91[\-\s]?)?[0]?(91)?[789]\d{9}$" title="Enter a valid Indian phone number" />
+                <Input name="emergencyContactPhone" type="tel" placeholder="+91 9876543210" required pattern="^(\+91[\-\s]?)?[0]?(91)?[789]\d{9}$" title="Enter a valid Indian phone number" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-700">Relationship*</label>
-                <Input type="text" placeholder="e.g. Spouse, Parent" required maxLength={50} pattern="[A-Za-z\s]+" />
+                <Input name="emergencyContactRelation" type="text" placeholder="e.g. Spouse, Parent" required maxLength={50} pattern="[A-Za-z\s]+" />
               </div>
             </div>
 
@@ -113,6 +120,6 @@ export function EmergencyForm() {
         </CardContent>
       </Card>
 
-    </div>
+    </form>
   );
 }

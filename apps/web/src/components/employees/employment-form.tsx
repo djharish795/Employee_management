@@ -3,9 +3,16 @@ import { Briefcase, Network, Building2, Calendar, Banknote } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 
-export function EmploymentForm() {
+export function EmploymentForm({ onSave }: { onSave: (data: any) => void }) {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const data = Object.fromEntries(formData.entries());
+    onSave(data);
+  };
+
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <form id="onboarding-form" onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-3 gap-6">
       <div className="xl:col-span-2 space-y-6">
         
         {/* Job Details */}
@@ -17,52 +24,64 @@ export function EmploymentForm() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
               <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-700">Resource Type</label>
+                <select name="resourceType" required className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 outline-none">
+                  <option value="">Select Resource Type</option>
+                  <option value="TR">Technical Resources (TR)</option>
+                  <option value="AR">Admin Resources (AR)</option>
+                  <option value="OR">Operational Resources (OR)</option>
+                  <option value="SR">Services Resources (SR)</option>
+                  <option value="HR">Human Resources (HR)</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Employee ID</label>
-                <Input type="text" placeholder="Enter Employee ID" />
+                <Input name="employeeId" type="text" placeholder="Auto-generated on save" disabled />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Employment Type</label>
-                <select className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 outline-none">
+                <select name="employeeType" className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 outline-none">
                   <option value="">Select Type</option>
-                  <option>Full-Time</option>
-                  <option>Part-Time</option>
-                  <option>Contractor</option>
+                  <option value="FULL_TIME">Full-Time</option>
+                  <option value="PART_TIME">Part-Time</option>
+                  <option value="CONTRACTOR">Contractor</option>
                 </select>
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Status</label>
-                <select className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 outline-none">
+                <select name="status" className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 outline-none">
                   <option value="">Select Status</option>
-                  <option>Active</option>
-                  <option>Inactive</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="INACTIVE">Inactive</option>
                 </select>
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Department</label>
-                <select className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 outline-none">
+                <select name="departmentId" className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 outline-none">
                   <option value="">Select Department</option>
-                  <option>Engineering</option>
-                  <option>HR</option>
-                  <option>Finance</option>
+                  {/* Options will be loaded from API */}
                 </select>
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Designation</label>
-                <Input type="text" placeholder="e.g. Software Engineer" />
+                <select name="designationId" className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 outline-none">
+                  <option value="">Select Designation</option>
+                  {/* Options will be loaded from API */}
+                </select>
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Role</label>
-                <Input type="text" placeholder="e.g. Individual Contributor" />
+                <Input name="jobRole" type="text" placeholder="e.g. Individual Contributor" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Reporting Manager</label>
-                <select className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 outline-none">
+                <select name="reportingManagerId" className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 outline-none">
                   <option value="">Select Manager</option>
                 </select>
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Team Lead</label>
-                <select className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 outline-none">
+                <select name="teamLeadId" className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 outline-none">
                   <option value="">Select Team Lead</option>
                 </select>
               </div>
@@ -112,7 +131,7 @@ export function EmploymentForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Start Date</label>
-                <Input type="date" className="text-slate-500" />
+                <Input name="joiningDate" type="date" className="text-slate-500" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Probation Period (Months)</label>
@@ -213,6 +232,6 @@ export function EmploymentForm() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </form>
   );
 }

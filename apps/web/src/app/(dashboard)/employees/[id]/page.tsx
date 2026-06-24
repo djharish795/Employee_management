@@ -11,197 +11,7 @@ import ProfileTabs from "@/components/modules/employees/profile/profile-tabs";
 
 const CACHE_KEY = "naprocs_directory_employees";
 
-// Enrichment function to construct a Full Profile from basic Employee details
-const enrichProfile = (emp: Employee): FullEmployeeProfile => {
-  return {
-    ...emp,
-    personalInfo: {
-      dateOfBirth: emp.id === "NAP-9821" ? "12 May 1990" : "28 Aug 1993",
-      gender: emp.id === "NAP-9742" ? "Female" : "Male",
-      maritalStatus: "Married",
-      nationality: "Indian",
-      primaryLanguage: "English, Hindi",
-    },
-    contactInfo: {
-      mobile: "+91 98765 43210",
-      workEmail: emp.email,
-      personalEmail: `${emp.name.toLowerCase().replace(" ", ".")}@personal.com`,
-      currentAddress: "12, Outer Ring Road, Bellandur, Bangalore, Karnataka, 560103",
-    },
-    emergencyContact: {
-      name: "Rohan Mehta",
-      relationship: "Spouse",
-      phone: "+91 99887 76655",
-    },
-    directReports:
-      emp.id === "NAP-9821"
-        ? [
-            {
-              id: "NAP-9082",
-              name: "Ravi Kumar",
-              designation: "DevOps Engineer",
-              photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Ravi",
-            },
-            {
-              id: "NAP-9204",
-              name: "Anita M.",
-              designation: "Frontend Developer",
-              photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Anita",
-            },
-          ]
-        : [],
-    careerMilestones: [
-      {
-        date: "01 Jan 2024",
-        event: "Performance Promotion",
-        department: emp.department,
-        designation: emp.designation,
-        details: "Promoted due to exceptional delivery on Core Architecture migration project.",
-      },
-      {
-        date: emp.joinedDate,
-        event: "Joined Organization",
-        department: emp.department,
-        designation: "Associate Member of Technical Staff",
-        details: "Completed onboarding checks and security induction.",
-      },
-    ],
-    attendanceRecords: [
-      {
-        date: "15 Jun 2026",
-        checkIn: "08:52 AM",
-        checkOut: "06:05 PM",
-        duration: "9h 13m",
-        status: "PRESENT",
-        remarks: "Checked in via office network.",
-      },
-      {
-        date: "14 Jun 2026",
-        checkIn: "09:15 AM",
-        checkOut: "06:00 PM",
-        duration: "8h 45m",
-        status: "LATE",
-        remarks: "Heavy traffic delay.",
-      },
-      {
-        date: "13 Jun 2026",
-        checkIn: "09:00 AM",
-        checkOut: "05:45 PM",
-        duration: "8h 45m",
-        status: "WFH",
-        remarks: "Approved remote session.",
-      },
-    ],
-    leaveBalances: [
-      { type: "SICK LEAVE", allocated: 12, used: 2, available: 10 },
-      { type: "CASUAL LEAVE", allocated: 15, used: 3, available: 12 },
-      { type: "ANNUAL LEAVE", allocated: 20, used: 5, available: 15 },
-    ],
-    leaveRequests: [
-      {
-        id: "L-1021",
-        type: "ANNUAL LEAVE",
-        startDate: "24 Dec 2025",
-        endDate: "30 Dec 2025",
-        days: 5,
-        status: "APPROVED",
-      },
-      {
-        id: "L-1082",
-        type: "SICK LEAVE",
-        startDate: "10 Oct 2025",
-        endDate: "11 Oct 2025",
-        days: 1,
-        status: "APPROVED",
-      },
-    ],
-    assignedAssets: [
-      {
-        id: "AST-8201",
-        name: "MacBook Pro 16\" (M3 Max, 64GB RAM, 1TB SSD)",
-        category: "LAPTOP",
-        serialNo: "C02XYZ123ABC",
-        assignedDate: emp.joinedDate,
-        status: "ACTIVE",
-      },
-      {
-        id: "AST-8402",
-        name: "Dell UltraSharp 32\" 4K USB-C Monitor",
-        category: "MONITOR",
-        serialNo: "CN-084W2M-744",
-        assignedDate: "15 Jan 2024",
-        status: "ACTIVE",
-      },
-    ],
-    assetRequests: [
-      {
-        id: "REQ-401",
-        assetName: "Apple Magic Keyboard + Mouse",
-        requestedDate: "10 Mar 2024",
-        reason: "Requesting ergonomics setup upgrades.",
-        status: "APPROVED",
-      },
-    ],
-    identityDocuments: [
-      {
-        id: "DOC-901",
-        name: "Aadhaar Card (UIDAI)",
-        type: "AADHAAR",
-        maskedValue: "•••• •••• 9812",
-        verifiedAt: "15 May 2021",
-        status: "VERIFIED",
-      },
-      {
-        id: "DOC-902",
-        name: "Permanent Account Number (PAN)",
-        type: "PAN",
-        maskedValue: "••••• 4021 F",
-        verifiedAt: "15 May 2021",
-        status: "VERIFIED",
-      },
-    ],
-    complianceRecords: [
-      {
-        id: "CMP-01",
-        policyName: "Digital Personal Data Protection Act (DPDPA) Consent Log",
-        acknowledgedAt: "12 May 2021 09:30 AM",
-        status: "COMPLIANT",
-      },
-      {
-        id: "CMP-02",
-        policyName: "Enterprise Information Security Policy v2.4",
-        acknowledgedAt: "12 May 2021 10:15 AM",
-        status: "COMPLIANT",
-      },
-    ],
-    timelineEvents: [
-      {
-        id: "EVT-801",
-        timestamp: "15 Jun 2026 08:52 AM",
-        category: "ATTENDANCE",
-        title: "Checked In (Office Network)",
-        description: "Registered check-in event using office gateway.",
-        operator: "System Agent",
-      },
-      {
-        id: "EVT-802",
-        timestamp: "01 Jan 2024 10:00 AM",
-        category: "PROMOTION",
-        title: "Promoted to Staff Software Engineer",
-        description: "Promoted from Senior Software Engineer.",
-        operator: "HR Administrator (HR-003)",
-      },
-      {
-        id: "EVT-803",
-        timestamp: "15 Jan 2024 02:30 PM",
-        category: "ASSET",
-        title: "Asset Issued: Dell UltraSharp Monitor",
-        description: "Monitor issued and recorded by IT department.",
-        operator: "IT Helpdesk",
-      },
-    ],
-  };
-};
+
 
 export default function EmployeeProfilePage() {
   const params = useParams();
@@ -215,22 +25,112 @@ export default function EmployeeProfilePage() {
   const { data: profile, isLoading, error } = useQuery<FullEmployeeProfile>({
     queryKey: ["employeeProfile", id],
     queryFn: async () => {
-      // Fetch list from localstorage to find matched user details
-      let list: Employee[] = [];
-      if (typeof window !== "undefined") {
-        const saved = localStorage.getItem(CACHE_KEY);
-        if (saved) list = JSON.parse(saved);
-      }
+      // Fetch directly from API
+      const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const token = localStorage.getItem("auth-storage") ? JSON.parse(localStorage.getItem("auth-storage") as string).state?.accessToken : "";
+      
+      const res = await fetch(`${url}/employees/${id}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
 
-      const found = list.find((emp) => emp.id === id);
-      if (!found) {
+      if (!res.ok) {
         throw new Error("Employee Profile not found in directory.");
       }
 
-      // Simulate network request delay
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      const empData = await res.json();
+      
+      const emp: Employee = {
+        id: empData.id,
+        employeeId: empData.employeeId,
+        name: `${empData.firstName || ""} ${empData.lastName || ""}`.trim(),
+        email: empData.officialEmail,
+        photoUrl: empData.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${empData.firstName}`,
+        initials: `${empData.firstName?.[0] || ""}${empData.lastName?.[0] || ""}`.toUpperCase(),
+        avatarBg: "bg-blue-100 text-blue-600",
+        department: empData.department?.name || empData.departmentId || "Unassigned",
+        designation: empData.designation?.title || empData.designationId || "Unassigned",
+        status: empData.status || "ACTIVE",
+        joinedDate: new Date(empData.createdAt).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }),
+        location: empData.workLocation || "India",
+      };
 
-      return enrichProfile(found);
+      const fullProfile: FullEmployeeProfile = {
+        ...emp,
+        personalInfo: {
+          dateOfBirth: empData.dateOfBirth ? new Date(empData.dateOfBirth).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }) : "Not specified",
+          gender: empData.gender || "Not specified",
+          maritalStatus: empData.maritalStatus || "Not specified",
+          nationality: empData.nationality || "Indian",
+          primaryLanguage: "English", // Default fallback
+        },
+        contactInfo: {
+          mobile: empData.phone || "Not provided",
+          workEmail: empData.officialEmail,
+          personalEmail: empData.personalEmail || "Not provided",
+          currentAddress: empData.currentAddress ? (typeof empData.currentAddress === 'object' ? JSON.stringify(empData.currentAddress) : empData.currentAddress) : "Not specified",
+        },
+        emergencyContact: empData.emergencyContact ? (empData.emergencyContact as any) : {
+          name: "Not specified",
+          relationship: "N/A",
+          phone: "N/A",
+        },
+        directReports: (empData.subordinates || []).map((sub: any) => ({
+          id: sub.employeeId || sub.id,
+          name: `${sub.firstName} ${sub.lastName}`.trim(),
+          designation: sub.designation?.title || "Unassigned",
+          photoUrl: sub.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${sub.firstName}`,
+        })),
+        careerMilestones: [
+          {
+            date: emp.joinedDate,
+            event: "Joined Organization",
+            department: emp.department,
+            designation: emp.designation,
+            details: "Started employment at Naprocs Technologies.",
+          }
+        ],
+        attendanceRecords: (empData.attendanceRecords || []).map((att: any) => ({
+          date: new Date(att.date).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }),
+          checkIn: att.checkInTime ? new Date(att.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--:--",
+          checkOut: att.checkOutTime ? new Date(att.checkOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--:--",
+          duration: att.workHours ? `${att.workHours}h` : "0h",
+          status: att.status || "PRESENT",
+          remarks: att.notes || "Recorded via system.",
+        })),
+        leaveBalances: (empData.leaveBalances || []).map((lb: any) => ({
+          type: lb.leaveType?.name || "LEAVE",
+          allocated: Number(lb.allocated) || 0,
+          used: Number(lb.used) || 0,
+          available: (Number(lb.allocated) + Number(lb.carriedOver)) - Number(lb.used) || 0,
+        })),
+        leaveRequests: (empData.leaveRequestsMade || []).map((lr: any) => ({
+          id: lr.id,
+          type: lr.leaveType?.name || "LEAVE",
+          startDate: new Date(lr.startDate).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }),
+          endDate: new Date(lr.endDate).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }),
+          days: Number(lr.totalDays) || 0,
+          status: lr.status || "PENDING",
+        })),
+        assignedAssets: (empData.assetsHeld || []).map((ast: any) => ({
+          id: ast.assetTag,
+          name: ast.name,
+          category: ast.category || "PERIPHERAL",
+          serialNo: ast.serialNumber || "N/A",
+          assignedDate: "Assigned", 
+          status: ast.status || "ACTIVE",
+        })),
+        assetRequests: [],
+        identityDocuments: [],
+        complianceRecords: (empData.consentLogsAsSubject || []).map((log: any) => ({
+          id: log.id,
+          policyName: log.purpose,
+          acknowledgedAt: new Date(log.consentedAt).toLocaleString("en-GB", { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+          status: "COMPLIANT",
+        })),
+        timelineEvents: [],
+      };
+
+      return fullProfile;
     },
     retry: false,
   });

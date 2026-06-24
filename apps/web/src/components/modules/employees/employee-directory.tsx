@@ -99,7 +99,8 @@ const ROLE_CONFIGS: Record<DirectoryRole, DirectoryRoleConfig> = {
 // Seed Mock Data matching Figma screenshot elements
 const MOCK_EMPLOYEES: Employee[] = [
   {
-    id: "NAP-9821",
+    id: "uuid-1",
+    employeeId: "NAP-9821",
     name: "Arjun Mehta",
     email: "arjun.m@naprocs.com",
     photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Arjun&backgroundColor=dbeafe",
@@ -299,14 +300,15 @@ export default function EmployeeDirectory() {
     
     // Map backend data to frontend Employee interface
     return responseData.data.map((emp: any) => ({
-      id: emp.employeeId || emp.id,
+      id: emp.id,
+      employeeId: emp.employeeId,
       name: `${emp.firstName || ""} ${emp.lastName || ""}`.trim(),
       email: emp.officialEmail,
       photoUrl: emp.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${emp.firstName}`,
       initials: `${emp.firstName?.[0] || ""}${emp.lastName?.[0] || ""}`.toUpperCase(),
       avatarBg: "bg-blue-100 text-blue-600",
-      department: emp.departmentId || "Unassigned", 
-      designation: emp.designationId || "Unassigned",
+      department: emp.department?.name || emp.departmentId || "Unassigned", 
+      designation: emp.designation?.title || emp.designationId || "Unassigned",
       status: emp.status || "ACTIVE",
       joinedDate: new Date(emp.createdAt).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }),
       location: emp.workLocation || "India",
@@ -341,7 +343,7 @@ export default function EmployeeDirectory() {
       result = result.filter(
         (emp) =>
           emp.name.toLowerCase().includes(q) ||
-          emp.id.toLowerCase().includes(q) ||
+          (emp.employeeId || emp.id).toLowerCase().includes(q) ||
           emp.email.toLowerCase().includes(q)
       );
     }
@@ -451,7 +453,11 @@ export default function EmployeeDirectory() {
           return (
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 relative border border-slate-200 shadow-sm overflow-hidden ${emp.avatarBg}`}>
-                <span>{emp.initials}</span>
+                {emp.photoUrl ? (
+                  <img src={emp.photoUrl} alt={emp.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span>{emp.initials}</span>
+                )}
               </div>
               <div>
                 <div className="text-sm font-bold text-slate-900 leading-snug">{emp.name}</div>
@@ -462,11 +468,11 @@ export default function EmployeeDirectory() {
         },
       },
       {
-        accessorKey: "id",
+        accessorKey: "employeeId",
         header: "EMP ID",
         cell: ({ row }) => (
           <span className="text-xs font-bold font-mono text-slate-500 bg-slate-100/60 px-2 py-1 rounded">
-            {row.original.id}
+            {row.original.employeeId || row.original.id}
           </span>
         ),
       },
@@ -888,9 +894,9 @@ export default function EmployeeDirectory() {
                         ))}
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button className="text-xs font-bold text-slate-900 hover:text-slate-900 transition-colors">
+                            <Link href={`/employees/${row.original.id}`} className="text-xs font-bold text-slate-900 hover:text-slate-900 transition-colors">
                               View
-                            </button>
+                            </Link>
                             <span className="text-slate-300 select-none">•</span>
                             <button className="hover:text-slate-600 transition-colors">
                               <MoreHorizontal className="w-4 h-4" />
@@ -924,21 +930,30 @@ export default function EmployeeDirectory() {
                           }}
                           className="rounded border-slate-300 text-slate-900 focus:ring-slate-900 w-4 h-4 cursor-pointer"
                         />
-                        <button className="text-slate-400 hover:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <Link href={`/employees/${emp.id}`} className="text-xs font-bold text-slate-900 hover:underline opacity-0 group-hover:opacity-100 transition-opacity">
+                            View
+                          </Link>
+                          <button className="text-slate-400 hover:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <MoreHorizontal className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
 
                       {/* Info body */}
                       <div className="flex items-center gap-3">
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center text-base font-bold flex-shrink-0 relative border border-slate-200 shadow-sm overflow-hidden ${emp.avatarBg}`}>
-                          <span>{emp.initials}</span>
+                          {emp.photoUrl ? (
+                            <img src={emp.photoUrl} alt={emp.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span>{emp.initials}</span>
+                          )}
                         </div>
                         <div className="truncate">
                           <h4 className="text-sm font-bold text-slate-900 truncate">{emp.name}</h4>
                           <p className="text-xs font-semibold text-slate-400 mt-0.5">{emp.email}</p>
                           <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded mt-1 inline-block">
-                            {emp.id}
+                            {emp.employeeId || emp.id}
                           </span>
                         </div>
                       </div>

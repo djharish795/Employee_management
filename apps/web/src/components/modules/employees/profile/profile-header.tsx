@@ -26,15 +26,18 @@ export default function ProfileHeader({ profile, activeRole, onRoleChange }: Pro
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
           {/* Avatar frame */}
           <div className={`w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold border-4 border-white shadow-md overflow-hidden flex-shrink-0 relative ${profile.avatarBg}`}>
-            <img src={profile.photoUrl} alt={profile.name} className="w-full h-full object-cover" />
-            <span className="absolute">{profile.initials}</span>
+            {profile.photoUrl ? (
+              <img src={profile.photoUrl} alt={profile.name} className="w-full h-full object-cover" />
+            ) : (
+              <span>{profile.initials}</span>
+            )}
           </div>
 
           <div className="text-center sm:text-left">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
               <h2 className="text-xl font-bold text-slate-900 leading-tight tracking-tight">{profile.name}</h2>
-              <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
-                {profile.id}
+              <span className="text-[11px] font-mono font-bold text-slate-500 bg-white/60 backdrop-blur-sm px-2 py-1 rounded-md border border-slate-200/50">
+                {profile.employeeId || profile.id}
               </span>
               <span className="px-2.5 py-0.5 text-[9px] font-bold tracking-wider rounded uppercase text-emerald-700 bg-emerald-50 border border-emerald-200/50">
                 {profile.status}
