@@ -5,39 +5,54 @@ import { UpdateEmployeeDto } from "./dto/update-employee.dto";
 import { OnboardingDraftStepDto } from "./dto/onboarding-step.dto";
 import { PaginationParams, PaginatedResult } from "../../common/utils/pagination.util";
 import { Employee } from "@naprocs/database";
+import { UseGuards, UseInterceptors } from "@nestjs/common";
+import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
+import { RbacGuard } from "../../common/guards/rbac.guard";
+import { AuditInterceptor } from "../../common/interceptors/audit.interceptor";
+import { Permissions } from "../../common/decorators/permissions.decorator";
+import { Permission } from "@naprocs/types";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
 
 @Controller("employees")
+@UseGuards(JwtAuthGuard, RbacGuard)
+@UseInterceptors(AuditInterceptor)
 export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) { }
 
   @Post("onboarding/draft/step")
+  @Permissions(Permission.WRITE_EMPLOYEES)
   async saveOnboardingStep(@Body() body: OnboardingDraftStepDto) {
     return this.employeesService.saveOnboardingStep(body.draftId || "", body.stepNumber, body.payload);
   }
 
   @Post("onboarding/draft/complete")
+  @Permissions(Permission.WRITE_EMPLOYEES)
   async completeOnboarding(@Body() body: { draftId: string }): Promise<Employee> {
     return this.employeesService.completeOnboarding(body.draftId);
   }
 
   @Post()
+  @Permissions(Permission.WRITE_EMPLOYEES)
   createEmployee(@Body() dto: CreateEmployeeDto): Promise<Employee> {
     return this.employeesService.createEmployee(dto);
   }
 
   @Get()
+  @Permissions(Permission.READ_EMPLOYEES)
   getEmployees(@Query() params: PaginationParams): Promise<PaginatedResult<Employee>> {
     return this.employeesService.getEmployees(params);
   }
 
   @Get(":id")
-  getEmployeeById(@Param("id") id: string): Promise<Employee> {
-    return this.employeesService.getEmployeeById(id);
+  @Permissions(Permission.READ_EMPLOYEES, Permission.READ_TEAM_PROFILES, Permission.READ_OWN_PROFILE)
+  getEmployeeById(@Param("id") id: string, @CurrentUser() user: any): Promise<Employee> {
+    return this.employeesService.getEmployeeById(id, user);
   }
 
   @Patch(":id")
-  updateEmployee(@Param("id") id: string, @Body() dto: UpdateEmployeeDto): Promise<Employee> {
-    return this.employeesService.updateEmployee(id, dto);
+  @Permissions(Permission.WRITE_EMPLOYEES, Permission.WRITE_OWN_PROFILE)
+  updateEmployee(@Param("id") id: string, @Body() dto: UpdateEmployeeDto, @CurrentUser() user: any): Promise<Employee> {
+    return this.employeesService.updateEmployee(id, dto, user);
   }
 }
 

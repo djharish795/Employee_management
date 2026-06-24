@@ -8,6 +8,8 @@ import { RedisModule } from "./redis/redis.module";
 import { DashboardModule } from "./modules/dashboard/dashboard.module";
 import { EmployeesModule } from "./modules/employees/employees.module";
 import { OrganizationModule } from "./modules/organization/organization.module";
+import { RbacModule } from "./modules/rbac/rbac.module";
+import { AuditModule } from "./modules/audit/audit.module";
 
 @Module({
   imports: [
@@ -23,6 +25,8 @@ import { OrganizationModule } from "./modules/organization/organization.module";
     EmployeesModule,
     OrganizationModule,
     DocumentsModule,
+    RbacModule,
+    AuditModule,
   ],
 })
 export class AppModule { }

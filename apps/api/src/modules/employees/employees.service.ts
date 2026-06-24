@@ -1,9 +1,11 @@
-import { Injectable, ConflictException, NotFoundException } from "@nestjs/common";
+import { Injectable, ConflictException, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
+import { RbacService } from "../rbac/rbac.service";
 import { CreateEmployeeDto } from "./dto/create-employee.dto";
 import { UpdateEmployeeDto } from "./dto/update-employee.dto";
 import { getPaginationOptions, createPaginatedResponse, PaginationParams, PaginatedResult } from "../../common/utils/pagination.util";
 import { Employee, UserRole } from "@naprocs/database";
+import { Permission } from "@naprocs/types";
 import * as bcrypt from "bcrypt";
 import { encryptData } from "../../common/utils/encrypt.util";
 import { RedisService } from "../../redis/redis.service";
@@ -19,7 +21,8 @@ export class EmployeesService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly redis: RedisService
+    private readonly redis: RedisService,
+    private readonly rbacService: RbacService
   ) {
     this.s3 = createS3Client();
     this.bucketName = (process.env.AWS_S3_BUCKET || "naprocs-ems-documents").trim();
@@ -79,11 +82,11 @@ export class EmployeesService {
         if (value === "" || value === null || value === undefined) {
           continue; // Skip empty fields so Prisma uses defaults or null
         }
-        
+
         // Format dates
         if ((key === "dateOfBirth" || key === "joiningDate") && typeof value === "string") {
           employeeData[key] = new Date(value).toISOString();
-        } 
+        }
         // Uppercase enums
         else if (key === "gender" || key === "maritalStatus" || key === "employeeType" || key === "status") {
           employeeData[key] = typeof value === "string" ? value.toUpperCase() : value;
@@ -102,7 +105,7 @@ export class EmployeesService {
         "paymentFrequency", "accountType", "documents", "departmentId", "designationId", "status",
         "joiningDate", "employeeType", "grade", "band", "workLocation", "reportingManagerId"
       ];
-      
+
       const cleanData: any = {};
       for (const key of allowedPrismaFields) {
         if (employeeData[key] !== undefined) {
@@ -151,39 +154,39 @@ export class EmployeesService {
   async saveOnboardingStep(draftId: string, stepNumber: string, payload: any): Promise<{ draftId: string }> {
     const id = draftId || uuidv4();
     const redisKey = `employee_draft:${id}`;
-    
+
     // Fetch existing draft
     const existingDraft = await this.redis.getJson<any>(redisKey) || {};
-    
+
     // Merge new step data
     const updatedDraft = {
       ...existingDraft,
       ...payload,
     };
-    
+
     // Save back to Redis with 24 hours expiry
     await this.redis.setJson(redisKey, updatedDraft, 60 * 60 * 24);
-    
+
     return { draftId: id };
   }
 
   async completeOnboarding(draftId: string): Promise<Employee> {
     if (!draftId) throw new ConflictException("draftId is required");
-    
+
     const redisKey = `employee_draft:${draftId}`;
     const draftData = await this.redis.getJson<any>(redisKey);
-    
+
     if (!draftData) {
       throw new NotFoundException("Draft not found or expired");
     }
-    
+
     // Transform draftData into CreateEmployeeDto if necessary, 
     // but we can pass it directly to createEmployee since it handles the DTO structure.
     const employee = await this.createEmployee(draftData as CreateEmployeeDto);
-    
+
     // Delete the draft after successful creation
     await this.redis.del(redisKey);
-    
+
     return employee;
   }
 
@@ -225,7 +228,7 @@ export class EmployeesService {
     return createPaginatedResponse(data, total, page, limit);
   }
 
-  async getEmployeeById(id: string): Promise<Employee> {
+  async getEmployeeById(id: string, currentUser?: any): Promise<Employee> {
     const employee = await this.prisma.employee.findUnique({
       where: { id },
       include: {
@@ -262,6 +265,23 @@ export class EmployeesService {
       throw new NotFoundException(`Employee with ID ${id} not found.`);
     }
 
+    // Ownership Validation
+    if (currentUser && currentUser.role) {
+      const hasGlobal = this.rbacService.hasPermission(currentUser.role, [Permission.READ_EMPLOYEES]);
+      const hasOwn = this.rbacService.hasPermission(currentUser.role, [Permission.READ_OWN_PROFILE]);
+      const hasTeam = this.rbacService.hasPermission(currentUser.role, [Permission.READ_TEAM_PROFILES]);
+
+      if (!hasGlobal) {
+        if (hasOwn && currentUser.employeeId === id) {
+          // OK
+        } else if (hasTeam && employee.reportingManagerId === currentUser.employeeId) {
+          // OK
+        } else {
+          throw new ForbiddenException("You do not have permission to view this employee profile.");
+        }
+      }
+    }
+
     if (employee.photoUrl && !employee.photoUrl.startsWith("http")) {
       try {
         const command = new GetObjectCommand({
@@ -294,9 +314,23 @@ export class EmployeesService {
     return employee;
   }
 
-  async updateEmployee(id: string, dto: UpdateEmployeeDto): Promise<Employee> {
-    // Verify the employee exists
-    const employee = await this.getEmployeeById(id);
+  async updateEmployee(id: string, dto: UpdateEmployeeDto, currentUser?: any): Promise<Employee> {
+    // Verify the employee exists (also validates read access if we pass currentUser)
+    const employee = await this.getEmployeeById(id, currentUser);
+
+    // Ownership Validation for Write
+    if (currentUser && currentUser.role) {
+      const hasGlobal = this.rbacService.hasPermission(currentUser.role, [Permission.WRITE_EMPLOYEES]);
+      const hasOwn = this.rbacService.hasPermission(currentUser.role, [Permission.WRITE_OWN_PROFILE]);
+
+      if (!hasGlobal) {
+        if (hasOwn && currentUser.employeeId === id) {
+          // OK
+        } else {
+          throw new ForbiddenException("You do not have permission to update this employee profile.");
+        }
+      }
+    }
 
     // If updating designation or department, ensure they match
     if (dto.designationId !== undefined || dto.departmentId !== undefined) {
