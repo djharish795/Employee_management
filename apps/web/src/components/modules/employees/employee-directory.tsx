@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 import { Employee, DirectoryRole, DirectoryRoleConfig, DirectoryFilters } from "@/types/employees";
 import { useAuthStore } from "@/store/auth";
-import { EmployeeViewDrawer } from "./employee-view-drawer";
+
 import { EmployeeActionModals } from "./employee-action-modals";
 import { EmployeeRowActions, EmployeeActionType } from "./employee-row-actions";
 
@@ -277,7 +277,7 @@ export default function EmployeeDirectory() {
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedEmployeeForView, setSelectedEmployeeForView] = useState<Employee | null>(null);
+
   const [actionModalState, setActionModalState] = useState<{
     isOpen: boolean;
     type: EmployeeActionType | null;
@@ -948,12 +948,9 @@ export default function EmployeeDirectory() {
                         ))}
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button 
-                              onClick={() => setSelectedEmployeeForView(row.original)}
-                              className="text-xs font-bold text-slate-900 hover:text-slate-900 transition-colors"
-                            >
+                            <Link href={`/employees/${row.original.id}`} className="text-xs font-bold text-slate-900 hover:underline transition-colors">
                               View
-                            </button>
+                            </Link>
                             <span className="text-slate-300 select-none">•</span>
                             <EmployeeRowActions 
                               employeeId={row.original.id} 
@@ -1001,7 +998,7 @@ export default function EmployeeDirectory() {
                       </div>
 
                       {/* Info body */}
-                      <div className="flex items-center gap-3 cursor-pointer" onClick={() => setSelectedEmployeeForView(emp)}>
+                      <Link href={`/employees/${emp.id}`} className="flex items-center gap-3 hover:bg-slate-50 p-1 -m-1 rounded-lg transition-colors">
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center text-base font-bold flex-shrink-0 relative border border-slate-200 shadow-sm overflow-hidden ${emp.avatarBg}`}>
                           {emp.photoUrl ? (
                             <img src={emp.photoUrl} alt={emp.name} className="w-full h-full object-cover" />
@@ -1016,7 +1013,7 @@ export default function EmployeeDirectory() {
                             {emp.employeeId || emp.id}
                           </span>
                         </div>
-                      </div>
+                      </Link>
 
                       {/* Footer tags */}
                       <div className="flex items-center justify-between border-t border-slate-100 pt-3 mt-3">
@@ -1155,11 +1152,7 @@ export default function EmployeeDirectory() {
         </div>
       </div>
 
-      <EmployeeViewDrawer 
-        employee={selectedEmployeeForView} 
-        isOpen={!!selectedEmployeeForView} 
-        onClose={() => setSelectedEmployeeForView(null)} 
-      />
+
 
       <EmployeeActionModals 
         actionType={actionModalState.type}

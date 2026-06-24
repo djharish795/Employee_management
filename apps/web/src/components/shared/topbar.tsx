@@ -58,9 +58,10 @@ export function Topbar() {
   };
 
   return (
-    <header className="h-[72px] px-8 flex items-center justify-between border-b border-slate-200 bg-white sticky top-0 z-10">
-      {/* Search Bar */}
-      <div className="flex-1 max-w-2xl">
+    // pl-14 on mobile to leave room for the fixed hamburger button (lg:pl-8 resets it)
+    <header className="h-14 sm:h-[72px] pl-14 lg:pl-8 pr-4 sm:pr-8 flex items-center justify-between border-b border-slate-200 bg-white sticky top-0 z-10">
+      {/* Search Bar — hidden on very small screens, visible from sm: */}
+      <div className="hidden sm:flex flex-1 max-w-2xl">
         <div className="relative flex items-center w-full h-10 rounded-lg bg-slate-100/80 px-3 text-slate-500 focus-within:ring-2 focus-within:ring-slate-900/20 focus-within:bg-white transition-all">
           <Search className="w-4 h-4 mr-2.5 flex-shrink-0" />
           <input
@@ -74,13 +75,20 @@ export function Topbar() {
         </div>
       </div>
 
+      {/* Mobile: show only icon search button */}
+      <div className="flex sm:hidden items-center">
+        <button className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors">
+          <Search className="w-5 h-5" />
+        </button>
+      </div>
+
       {/* Right Actions */}
-      <div className="flex items-center gap-6 ml-4">
-        <div className="flex items-center gap-4 text-slate-600">
+      <div className="flex items-center gap-3 sm:gap-6 ml-auto">
+        <div className="flex items-center gap-2 sm:gap-4 text-slate-600">
           <button onClick={() => {}} className="hover:text-slate-900 transition-colors focus:outline-none">
             <Bell className="w-5 h-5" />
           </button>
-          <button onClick={() => {}} className="hover:text-slate-900 transition-colors focus:outline-none">
+          <button onClick={() => {}} className="hidden sm:block hover:text-slate-900 transition-colors focus:outline-none">
             <HelpCircle className="w-5 h-5" />
           </button>
         </div>
@@ -88,17 +96,18 @@ export function Topbar() {
         {/* Divider */}
         <div className="w-px h-8 bg-slate-200" />
 
-        {/* Profile Profile with Dropdown */}
+        {/* Profile with Dropdown */}
         <div className="relative" ref={dropdownRef}>
           <div 
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center gap-3 cursor-pointer group"
+            className="flex items-center gap-2 sm:gap-3 cursor-pointer group"
           >
-            <div className="text-right flex flex-col">
-              <span className="text-sm font-bold text-slate-900 leading-tight group-hover:text-slate-900 transition-colors">Pradeep Chandra</span>
+            {/* Hide text name on mobile, show only avatar */}
+            <div className="hidden sm:flex text-right flex-col">
+              <span className="text-sm font-bold text-slate-900 leading-tight">Pradeep Chandra</span>
               <span className="text-[11px] font-semibold tracking-wide text-slate-500">CEO & Founder</span>
             </div>
-            <div className="w-9 h-9 rounded-full bg-slate-200 overflow-hidden flex-shrink-0 border border-slate-200 shadow-sm flex items-center justify-center text-slate-700 font-bold text-sm">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-200 overflow-hidden flex-shrink-0 border border-slate-200 shadow-sm flex items-center justify-center text-slate-700 font-bold text-sm">
               PC
             </div>
           </div>
@@ -128,3 +137,4 @@ export function Topbar() {
     </header>
   );
 }
+
