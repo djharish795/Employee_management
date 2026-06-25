@@ -37,17 +37,17 @@ export const BrandingPanel: React.FC = () => {
             src="/logo.png" 
             alt="Naprocs Logo" 
             fill 
-            className="object-contain"
+            className="object-contain brightness-0 invert"
             priority 
           />
         </div>
 
         {/* Text Area */}
-        <div className="flex flex-col justify-center translate-y-2">
-          <h1 className="text-[44px] font-serif tracking-wide text-white leading-none mb-1 drop-shadow-lg">
+        <div className="flex flex-col justify-center items-center">
+          <h1 className="text-[46px] font-serif tracking-wide text-white leading-none mb-1 drop-shadow-lg text-center">
             NAPROCS
           </h1>
-          <p className="text-[20px] font-serif text-slate-200 tracking-wide text-left drop-shadow-md">
+          <p className="text-[20px] font-serif text-white tracking-wide text-center drop-shadow-md">
             AI Echo System
           </p>
         </div>
