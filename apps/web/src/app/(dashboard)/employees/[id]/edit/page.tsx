@@ -91,13 +91,13 @@ export default function EditEmployeePage() {
 
     switch (activeStep) {
       case 1: return <PersonalInformationForm onSave={handleStepSave} initialData={employeeData} />;
-      case 2: return <EmploymentForm onSave={handleStepSave} initialData={employeeData} />;
-      case 3: return <IdentityForm onSave={handleStepSave} initialData={employeeData} />;
-      case 4: return <BankingForm onSave={handleStepSave} initialData={employeeData} />;
-      case 5: return <EmergencyForm onSave={handleStepSave} initialData={employeeData} />;
-      case 6: return <AssetsForm onSave={handleStepSave} initialData={employeeData} />;
-      case 7: return <DocumentsForm onSave={handleStepSave} initialData={employeeData} />;
-      case 8: return <AccessControlForm onSave={handleStepSave} initialData={employeeData} />;
+      case 2: return <EmploymentForm onSave={handleStepSave} />;
+      case 3: return <IdentityForm onSave={handleStepSave} />;
+      case 4: return <BankingForm onSave={handleStepSave} />;
+      case 5: return <EmergencyForm onSave={handleStepSave} />;
+      case 6: return <AssetsForm onSave={handleStepSave} />;
+      case 7: return <DocumentsForm onSave={handleStepSave} />;
+      case 8: return <AccessControlForm onSave={handleStepSave} />;
       default: return null;
     }
   };

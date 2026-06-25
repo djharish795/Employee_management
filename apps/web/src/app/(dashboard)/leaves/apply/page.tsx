@@ -4,10 +4,11 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, ChevronRight, AlertCircle, FileUp, Calendar as CalendarIcon } from "lucide-react";
 import LeavesLayout from "@/components/modules/leaves/leaves-layout";
-import { useLeavesTestStore } from "@/store/leaves-test";
+import { useAuthStore } from "@/store/auth";
 
 export default function ApplyLeavePage() {
-  const { activeRole, setActiveRole } = useLeavesTestStore();
+  const role = useAuthStore((state) => state.role) ?? "EMPLOYEE";
+  const activeRole = role.toUpperCase() as "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -249,7 +250,7 @@ export default function ApplyLeavePage() {
   };
 
   return (
-    <LeavesLayout activeRole={activeRole} onRoleChange={setActiveRole}>
+    <LeavesLayout activeRole={activeRole}>
       {renderPageContent()}
     </LeavesLayout>
   );

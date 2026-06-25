@@ -3,13 +3,14 @@
 import React from "react";
 import AttendanceLayout from "@/components/modules/attendance/attendance-layout";
 import HistoryPanel from "@/components/modules/attendance/history-panel";
-import { useAttendanceTestStore } from "@/store/attendance-test";
+import { useAuthStore } from "@/store/auth";
 
 export default function AttendanceHistoryPage() {
-  const { activeRole, setActiveRole } = useAttendanceTestStore();
+  const role = useAuthStore((state) => state.role) ?? "EMPLOYEE";
+  const activeRole = role.toUpperCase() as "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
 
   return (
-    <AttendanceLayout activeRole={activeRole} onRoleChange={setActiveRole}>
+    <AttendanceLayout activeRole={activeRole}>
       <HistoryPanel activeRole={activeRole} />
     </AttendanceLayout>
   );
