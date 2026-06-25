@@ -127,9 +127,10 @@ export function PersonalInformationForm({ onSave, initialData = {} }: PersonalIn
               <label className="text-sm font-semibold text-slate-700">Gender*</label>
               <select name="gender" defaultValue={initialData.gender || ""} required className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all">
                 <option value="">Select gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="OTHER">Other</option>
+                <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
               </select>
             </div>
             <div className="space-y-1.5">
@@ -154,8 +155,10 @@ export function PersonalInformationForm({ onSave, initialData = {} }: PersonalIn
               <label className="text-sm font-semibold text-slate-700">Marital status</label>
               <select name="maritalStatus" defaultValue={initialData.maritalStatus || ""} className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all">
                 <option value="">Select status</option>
-                <option value="Single">Single</option>
-                <option value="Married">Married</option>
+                <option value="SINGLE">Single</option>
+                <option value="MARRIED">Married</option>
+                <option value="DIVORCED">Divorced</option>
+                <option value="WIDOWED">Widowed</option>
               </select>
             </div>
 

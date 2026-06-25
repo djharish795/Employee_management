@@ -43,8 +43,14 @@ const getRoleTitle = (role: string | null) => {
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const role = useAuthStore((state) => state.role);
+  const storeRole = useAuthStore((state) => state.role);
   const clearSession = useAuthStore((state) => state.clearSession);
+
+  // Fallback to cookie if Zustand hasn't hydrated yet (prevents flashing 'Employee' layout for executives)
+  const cookieRole = typeof document !== 'undefined' 
+    ? document.cookie.match(new RegExp('(^| )role=([^;]+)'))?.[2] 
+    : null;
+  const role = storeRole || cookieRole;
 
   // Mobile drawer state
   const [mobileOpen, setMobileOpen] = useState(false);
