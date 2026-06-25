@@ -14,7 +14,9 @@ const apiClient = axios.create({
 // For now, if the user has an auth token, we would inject it via an interceptor here.
 apiClient.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
-    const token = localStorage.getItem("auth_token");
+    const tokenMatch = document.cookie.match(new RegExp('(^| )token=([^;]+)'));
+    const token = tokenMatch ? tokenMatch[2] : null;
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
