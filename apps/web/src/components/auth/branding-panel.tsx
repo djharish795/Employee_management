@@ -1,130 +1,64 @@
-import * as React from "react";
-
-interface StatItemProps {
-  value: string;
-  label: string;
-  badgeText: string;
-  badgeVariant: "info" | "success" | "warning";
-}
-
-const StatCard: React.FC<StatItemProps> = ({
-  value,
-  label,
-  badgeText,
-  badgeVariant,
-}) => {
-  return (
-    <div className="bg-[#152347]/40 border border-slate-700/35 rounded-xl p-5 backdrop-blur-md transition-all duration-300 hover:border-slate-700/60 hover:bg-[#152347]/55">
-      <div className="text-3xl font-bold text-white tracking-tight">{value}</div>
-      <div className="text-sm text-slate-400 mt-1 font-medium">{label}</div>
-      <div className="mt-3">
-        <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-            badgeVariant === "success"
-              ? "bg-emerald-500/10 text-emerald-400"
-              : badgeVariant === "warning"
-                ? "bg-amber-500/10 text-amber-400"
-                : "bg-slate-700/10 text-blue-400"
-          }`}
-        >
-          {badgeVariant === "success" && "● "}
-          {badgeText}
-        </span>
-      </div>
-    </div>
-  );
-};
+import Image from "next/image";
 
 export const BrandingPanel: React.FC = () => {
   return (
-    <div className="relative flex-col justify-between hidden h-full p-10 text-white lg:flex lg:w-[48%] bg-gradient-to-br from-[#0c152c] to-[#050a16] border-r border-slate-800/60 overflow-y-auto">
-      {/* Top logo & version */}
-      <div className="flex items-center space-x-3 select-none">
-        <div className="flex items-center justify-center w-10 h-10 bg-slate-900 rounded-lg shadow-lg shadow-blue-500/30">
-          <svg
-            className="w-6 h-6 text-white"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-            width="24"
-            height="24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+    <div className="relative flex-col justify-center items-center hidden h-full p-10 lg:flex lg:w-[50%] bg-[#030914] overflow-hidden">
+      
+      {/* Dynamic Background Effects */}
+      {/* 1. Deep glowing orb in the center behind the logo */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-blue-600/15 blur-[120px] rounded-full pointer-events-none" />
+      
+      {/* 2. Sweeping light rays */}
+      <div className="absolute top-[-20%] left-[-10%] w-[140%] h-[140%] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/10 via-transparent to-transparent opacity-60 rotate-12 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-20%] w-[120%] h-[120%] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-800/10 via-transparent to-transparent opacity-40 -rotate-12 blur-3xl pointer-events-none" />
+      
+      {/* 3. Abstract Network / Constellation placeholder (SVG Overlay) */}
+      <div className="absolute inset-0 opacity-[0.15] pointer-events-none mix-blend-screen">
+        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="network-pattern" x="0" y="0" width="200" height="200" patternUnits="userSpaceOnUse">
+              <circle cx="20" cy="20" r="2" fill="#fff" />
+              <circle cx="150" cy="80" r="3" fill="#fff" />
+              <circle cx="80" cy="160" r="1.5" fill="#fff" />
+              <circle cx="180" cy="180" r="2.5" fill="#fff" />
+              <path d="M 20 20 L 150 80 L 80 160 L 20 20" fill="none" stroke="#fff" strokeWidth="0.5" strokeOpacity="0.4" />
+              <path d="M 150 80 L 180 180 L 80 160" fill="none" stroke="#fff" strokeWidth="0.5" strokeOpacity="0.3" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#network-pattern)" />
+        </svg>
+      </div>
+
+      {/* Main Content */}
+      <div className="relative z-10 flex flex-col items-center gap-10 select-none max-w-lg">
+        
+        {/* Glassmorphism Logo Container */}
+        <div className="relative p-12 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden group">
+          {/* subtle inner shine */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+          
+          <div className="relative w-[140px] h-[140px]">
+            <Image 
+              src="/logo.png" 
+              alt="Naprocs Logo" 
+              fill 
+              className="object-contain drop-shadow-[0_0_15px_rgba(37,99,235,0.3)]"
+              priority 
             />
-          </svg>
-        </div>
-        <div>
-          <div className="font-bold text-lg tracking-wider text-white">NAPROCS</div>
-          <div className="text-[10px] text-slate-500 font-mono tracking-widest leading-none">
-            EMS V2.0
           </div>
         </div>
-      </div>
 
-      {/* Hero statement */}
-      <div className="my-auto max-w-[480px]">
-        <h1 className="text-4xl lg:text-5xl font-extrabold leading-[1.1] tracking-tight">
-          Your people. <br />
-          <span className="text-slate-700">Your enterprise.</span> <br />
-          One platform.
-        </h1>
-        <p className="mt-6 text-base text-slate-400 font-normal leading-relaxed">
-          Naprocs EMS unifies workforce operations — attendance, compliance, approvals,
-          and people analytics — into a single command layer for enterprise HR teams.
-        </p>
-
-        {/* 2x2 Stats Grid */}
-        <div className="grid grid-cols-2 gap-4 mt-10">
-          <StatCard
-            value="4,287"
-            label="Active Employees"
-            badgeText="12 offices"
-            badgeVariant="info"
-          />
-          <StatCard
-            value="98.4%"
-            label="Attendance Rate"
-            badgeText="▲ 1.2% this month"
-            badgeVariant="success"
-          />
-          <StatCard
-            value="34"
-            label="Open Requests"
-            badgeText="Pending review"
-            badgeVariant="warning"
-          />
-          <StatCard
-            value="9"
-            label="Departments"
-            badgeText="All active"
-            badgeVariant="success"
-          />
-        </div>
-      </div>
-
-      {/* Footer tags */}
-      <div className="flex items-center space-x-6 text-xs text-slate-500 font-semibold tracking-widest uppercase select-none">
-        <div className="flex items-center space-x-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-slate-700" />
-          <span>Attendance</span>
-        </div>
-        <div className="flex items-center space-x-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-slate-700" />
-          <span>Approvals</span>
-        </div>
-        <div className="flex items-center space-x-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-slate-700" />
-          <span>Analytics</span>
-        </div>
-        <div className="flex items-center space-x-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-slate-700" />
-          <span>Compliance</span>
+        {/* Text Area */}
+        <div className="flex flex-col items-center justify-center text-center">
+          <h1 className="text-[48px] font-serif tracking-widest text-white leading-none mb-3 drop-shadow-lg">
+            NAPROCS
+          </h1>
+          <p className="text-[22px] font-serif text-blue-200/80 tracking-widest drop-shadow-md">
+            AI Echo System
+          </p>
         </div>
       </div>
     </div>
   );
 };
+

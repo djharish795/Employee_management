@@ -278,6 +278,17 @@ export default function EmployeeDirectory() {
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [showFilters, setShowFilters] = useState(false);
 
+  // Restore view mode preference from localStorage
+  React.useEffect(() => {
+    const savedMode = localStorage.getItem("employeeViewMode") as "table" | "grid" | null;
+    if (savedMode) setViewMode(savedMode);
+  }, []);
+
+  const handleViewModeChange = (mode: "table" | "grid") => {
+    setViewMode(mode);
+    localStorage.setItem("employeeViewMode", mode);
+  };
+
   const [actionModalState, setActionModalState] = useState<{
     isOpen: boolean;
     type: EmployeeActionType | null;
@@ -396,7 +407,8 @@ export default function EmployeeDirectory() {
   const handleBulkDeactivate = () => {
     const updated = rawEmployees.map((emp) => {
       if (selectedIds.includes(emp.id)) {
-        return { ...emp, status: isAllDeactivated ? "ACTIVE" : "DEACTIVATED" as const };
+        const newStatus: Employee["status"] = isAllDeactivated ? "ACTIVE" : "DEACTIVATED";
+        return { ...emp, status: newStatus };
       }
       return emp;
     });
@@ -636,8 +648,8 @@ export default function EmployeeDirectory() {
     filters.search || filters.department || filters.designation || filters.location || filters.status;
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 font-sans">
-      <div className="p-8 max-w-[1400px] mx-auto w-full flex-1 flex flex-col gap-6">
+    <div className="flex flex-col min-h-full bg-slate-50 font-sans">
+      <div className="p-8 max-w-[1400px] mx-auto w-full flex flex-col gap-6">
         {/* Header with Switcher and Stats */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
@@ -799,7 +811,7 @@ export default function EmployeeDirectory() {
             {/* List / Grid Switcher */}
             <div className="flex items-center gap-1.5 border border-slate-200 p-1.5 rounded-lg self-end lg:self-center">
               <button
-                onClick={() => setViewMode("table")}
+                onClick={() => handleViewModeChange("table")}
                 className={`p-1.5 rounded-md transition-all ${
                   viewMode === "table" ? "bg-slate-100 text-slate-800 font-bold" : "text-slate-400 hover:text-slate-700"
                 }`}
@@ -808,7 +820,7 @@ export default function EmployeeDirectory() {
                 <List className="w-4 h-4" />
               </button>
               <button
-                onClick={() => setViewMode("grid")}
+                onClick={() => handleViewModeChange("grid")}
                 className={`p-1.5 rounded-md transition-all ${
                   viewMode === "grid" ? "bg-slate-100 text-slate-800 font-bold" : "text-slate-400 hover:text-slate-700"
                 }`}

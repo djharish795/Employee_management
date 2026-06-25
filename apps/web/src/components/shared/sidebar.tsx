@@ -48,7 +48,7 @@ export function Sidebar() {
 
   // Fallback to cookie if Zustand hasn't hydrated yet (prevents flashing 'Employee' layout for executives)
   const cookieRole = typeof document !== 'undefined' 
-    ? document.cookie.match(new RegExp('(^| )role=([^;]+)'))?.[2] 
+    ? (document.cookie.match(new RegExp('(^| )role=([^;]+)'))?.[2] ?? null) 
     : null;
   const role = storeRole || cookieRole;
 
@@ -56,6 +56,12 @@ export function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   // Desktop collapsed (icon-only) state
   const [collapsed, setCollapsed] = useState(false);
+  // Hydration state
+  const [mounted, setMounted] = useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogout = () => {
     clearSession();
@@ -167,6 +173,14 @@ export function Sidebar() {
       </div>
     </>
   );
+
+  if (!mounted) {
+    return (
+      <aside className="hidden lg:flex flex-col flex-shrink-0 bg-white h-screen border-r border-slate-200 overflow-hidden w-[240px]">
+        {/* Placeholder to prevent layout shift during hydration */}
+      </aside>
+    );
+  }
 
   return (
     <>

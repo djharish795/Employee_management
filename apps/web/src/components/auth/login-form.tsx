@@ -209,7 +209,7 @@ export const LoginForm: React.FC = () => {
         {/* Submit Button */}
         <Button
           type="submit"
-          className="w-full text-sm font-semibold tracking-wide bg-blue-600 hover:bg-blue-700 text-white h-11"
+          className="w-full text-sm font-semibold tracking-wide bg-slate-900 hover:bg-slate-800 text-white h-11"
           disabled={isLoading}
         >
           {isLoading ? "Signing in..." : "Sign In"}
