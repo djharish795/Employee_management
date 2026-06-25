@@ -51,7 +51,13 @@ export class RbacService {
   };
 
   getPermissionsForRole(role: UserRole): Permission[] {
-    return this.rolePermissions[role] || [];
+    const basePerms = this.rolePermissions[role] || [];
+    // Universally grant own profile read/write access to all roles for testing and standard profile usage
+    return Array.from(new Set([
+      ...basePerms,
+      Permission.READ_OWN_PROFILE,
+      Permission.WRITE_OWN_PROFILE,
+    ]));
   }
 
   hasPermission(role: UserRole, requiredPermissions: Permission[]): boolean {

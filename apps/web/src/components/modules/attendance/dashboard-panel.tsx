@@ -79,6 +79,10 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
       queryClient.invalidateQueries({ queryKey: ["attendanceStatus"] });
       queryClient.invalidateQueries({ queryKey: ["attendanceKpis"] });
     },
+    onError: (error: any) => {
+      alert("Error: Cannot connect to server or Access Denied. Check console for details.");
+      console.error("Punch Mutation Failed:", error);
+    }
   });
 
   const punchState = statusData?.state || "OUT";
