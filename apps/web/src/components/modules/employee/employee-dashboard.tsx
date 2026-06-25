@@ -69,12 +69,13 @@ export default function EmployeeDashboardPanel() {
 
   // ── Hours worked today ────────────────────────────────────────────────────
   const hoursToday = (() => {
-    if (kpisQuery.data?.hoursToday != null) return fmtHours(Number(kpisQuery.data.hoursToday) * 3600);
+    // Assuming avgHoursWorked is available instead of hoursToday based on AttendanceKPIs type
+    if (kpisQuery.data?.avgHoursWorked != null) return kpisQuery.data.avgHoursWorked;
     return null;
   })();
 
   // ── Leave balance (from kpis if available) ────────────────────────────────
-  const leaveBalance = kpisQuery.data?.leaveBalance ?? null;
+  const leaveBalance = kpisQuery.data?.leaveDays ?? null;
 
   const greetingHour = new Date().getHours();
   const greeting =
