@@ -12,6 +12,7 @@ import { KpiGrid } from '@/components/executive-dashboard/KpiGrid';
 import { HeadcountChart } from '@/components/executive-dashboard/HeadcountChart';
 import { HighlightsPanel } from '@/components/executive-dashboard/HighlightsPanel';
 import { QuickLinks } from '@/components/executive-dashboard/QuickLinks';
+import { LeavesSummaryWidget } from '@/components/executive-dashboard/LeavesSummaryWidget';
 
 // Types
 import { QuickLinkType } from '@/types/executive-dashboard';
@@ -84,20 +85,25 @@ export function DashboardClient() {
 
       {/* Main Grid Content — stacks vertically on mobile, 3 cols on lg+ */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        
-        {/* Headcount Chart — full width on mobile/tablet, 1 col on desktop */}
+
+        {/* Headcount Chart */}
         <div className="md:col-span-1">
           <HeadcountChart data={headcountData} total={totalEmployees} />
         </div>
 
-        {/* Highlights — full width on mobile, half on tablet, 1 col desktop */}
+        {/* This Month Highlights */}
         <div className="md:col-span-1">
           <HighlightsPanel highlights={highlightsData} />
         </div>
 
-        {/* Quick Links — full width on mobile, full on tablet (2nd row), 1 col desktop */}
+        {/* Quick Links */}
         <div className="md:col-span-2 lg:col-span-1">
           <QuickLinks links={quickLinksData} />
+        </div>
+
+        {/* CEO Read-Only Leave Summary — spans full width on md, 2 cols on lg */}
+        <div className="md:col-span-2 lg:col-span-2">
+          <LeavesSummaryWidget />
         </div>
 
       </div>
