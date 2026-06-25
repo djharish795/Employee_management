@@ -9,12 +9,13 @@ interface PersonalInfoProps {
   initialData?: any;
 }
 
-export function PersonalInformationForm({ onSave, initialData = {} }: PersonalInfoProps) {
+export function PersonalInformationForm({ onSave, initialData: incomingData }: PersonalInfoProps) {
+  const initialData = incomingData || {};
   const [isUploading, setIsUploading] = useState(false);
-  const [photoKey, setPhotoKey] = useState<string>(initialData.photoUrl || '');
-  const [previewUrl, setPreviewUrl] = useState<string>(initialData.photoUrl || '');
+  const [photoKey, setPhotoKey] = useState<string>(initialData?.photoUrl || '');
+  const [previewUrl, setPreviewUrl] = useState<string>(initialData?.photoUrl || '');
   const accessToken = useAuthStore((state) => state.accessToken);
-  
+
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -24,7 +25,7 @@ export function PersonalInformationForm({ onSave, initialData = {} }: PersonalIn
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
       const res = await fetch(`${apiUrl}/documents/upload-url`, {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${accessToken}`
         },
@@ -71,7 +72,7 @@ export function PersonalInformationForm({ onSave, initialData = {} }: PersonalIn
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const rawData = Object.fromEntries(formData.entries());
-    
+
     // Structure data to match backend Prisma schema expectations
     const data: any = {
       ...rawData,
@@ -91,7 +92,7 @@ export function PersonalInformationForm({ onSave, initialData = {} }: PersonalIn
     if (photoKey) {
       data.photoUrl = photoKey; // Use photoUrl as defined in Prisma schema
     }
-    
+
     onSave(data);
   };
   return (
@@ -184,7 +185,7 @@ export function PersonalInformationForm({ onSave, initialData = {} }: PersonalIn
                   )}
                 </label>
                 <div className="text-xs font-medium text-slate-500 leading-relaxed">
-                  Max size 2MB. Format: JPG, PNG.<br/>
+                  Max size 2MB. Format: JPG, PNG.<br />
                   Recommended size: 400x400px
                 </div>
               </div>
@@ -209,12 +210,12 @@ export function PersonalInformationForm({ onSave, initialData = {} }: PersonalIn
               <label className="text-sm font-semibold text-slate-700">Alternate phone</label>
               <Input name="alternatePhone" type="tel" defaultValue={initialData.alternatePhone} placeholder="+91 9876543210" pattern="^(\+91[\-\s]?)?[0]?(91)?[789]\d{9}$" title="Enter a valid Indian phone number" />
             </div>
-            
+
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-slate-700">Current address</label>
               <textarea name="currentAddress" defaultValue={initialData.currentAddress} placeholder="Enter current residence address" className="w-full h-[90px] p-3 rounded-md border border-slate-200 text-sm resize-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all" maxLength={250} />
             </div>
-            
+
             <div className="space-y-1.5 relative">
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-sm font-semibold text-slate-700">Permanent address</label>

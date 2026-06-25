@@ -11,6 +11,7 @@ import { EmployeesModule } from "./modules/employees/employees.module";
 import { OrganizationModule } from "./modules/organization/organization.module";
 import { RbacModule } from "./modules/rbac/rbac.module";
 import { AuditModule } from "./modules/audit/audit.module";
+import { AttendanceModule } from "./modules/attendance/attendance.module";
 
 @Module({
   imports: [
@@ -26,12 +27,9 @@ import { AuditModule } from "./modules/audit/audit.module";
     EmployeesModule,
     OrganizationModule,
     DocumentsModule,
-<<<<<<< HEAD
-    LeavesModule,
-=======
     RbacModule,
     AuditModule,
->>>>>>> 0ea0c16ed861d22e50ddb19736f5c68e5a31ab54
+    AttendanceModule,
   ],
 })
 export class AppModule { }

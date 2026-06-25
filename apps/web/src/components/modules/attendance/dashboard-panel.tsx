@@ -1,92 +1,64 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Play, Square, Coffee, ShieldAlert, CheckCircle2, Clock, Calendar, ArrowRight, UserCheck } from "lucide-react";
 import Link from "next/link";
 import { AttendanceLog, AttendanceKPIs } from "@/types/attendance";
+import { fetchTodayStatus, fetchMyLogs, fetchMyKpis, submitPunch } from "@/lib/api/attendance";
 
 interface DashboardPanelProps {
   activeRole: "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
 }
 
-// Initial mock log data
-const INITIAL_LOGS: AttendanceLog[] = [
-  { date: "15 Jun 2026", checkIn: "08:52 AM", checkOut: "06:05 PM", hoursWorked: "9.2h", status: "PRESENT", remarks: "Standard office check-in" },
-  { date: "14 Jun 2026", checkIn: "09:15 AM", checkOut: "06:00 PM", hoursWorked: "8.7h", status: "LATE", remarks: "Traffic delay on highway" },
-  { date: "13 Jun 2026", checkIn: "09:00 AM", checkOut: "05:45 PM", hoursWorked: "8.7h", status: "WFH", remarks: "Client integration meeting" },
-  { date: "12 Jun 2026", checkIn: "08:55 AM", checkOut: "06:00 PM", hoursWorked: "9.0h", status: "PRESENT", remarks: "Regular log" },
-  { date: "11 Jun 2026", checkIn: "08:45 AM", checkOut: "05:30 PM", hoursWorked: "8.7h", status: "PRESENT", remarks: "Log validation" },
-];
-
-const LOCAL_LOGS_KEY = "naprocs_attendance_logs";
-const PUNCH_STATE_KEY = "naprocs_punch_state";
-
 export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
   const queryClient = useQueryClient();
 
-  // Local state for interactive daily punch actions
-  // punchState values: "OUT" | "IN" | "BREAK"
-  const [punchState, setPunchState] = useState<"OUT" | "IN" | "BREAK">("OUT");
+  // Fetch Attendance logs list via React Query
+  const { data: logs = [] } = useQuery<AttendanceLog[]>({
+    queryKey: ["attendanceLogs"],
+    queryFn: fetchMyLogs,
+  });
+
+  // Fetch KPI Data
+  const { data: kpis } = useQuery<AttendanceKPIs>({
+    queryKey: ["attendanceKpis"],
+    queryFn: fetchMyKpis,
+  });
+
+  // Fetch Today's Shift Status from Redis Backend
+  const { data: statusData } = useQuery({
+    queryKey: ["attendanceStatus"],
+    queryFn: fetchTodayStatus,
+    refetchInterval: 60000, // Optional: Poll every minute to ensure sync across devices
+  });
+
+  // Local clock state that ticks based on backend offset
   const [secondsElapsed, setSecondsElapsed] = useState(0);
 
-  // Initialize punch state and timer from storage
+  // Sync internal clock when backend status changes
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedState = localStorage.getItem(PUNCH_STATE_KEY);
-      if (savedState) {
-        const parsed = JSON.parse(savedState);
-        setPunchState(parsed.state);
-        
-        if (parsed.state !== "OUT") {
-          const now = Date.now();
-          const elapsed = Math.round((now - parsed.startTime) / 1000) + parsed.offset;
-          setSecondsElapsed(elapsed > 0 ? elapsed : 0);
-        }
+    if (statusData) {
+      if (statusData.state !== "OUT" && statusData.state !== "BREAK") {
+        const now = Date.now();
+        const elapsed = Math.round((now - statusData.startTime) / 1000) + statusData.offset;
+        setSecondsElapsed(elapsed > 0 ? elapsed : 0);
+      } else {
+        setSecondsElapsed(statusData.offset);
       }
     }
-  }, []);
+  }, [statusData]);
 
   // Live timer tick
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (punchState === "IN") {
+    if (statusData?.state === "IN") {
       interval = setInterval(() => {
         setSecondsElapsed((prev) => prev + 1);
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [punchState]);
-
-  // Fetch Attendance logs list via React Query
-  const fetchLogs = async (): Promise<AttendanceLog[]> => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(LOCAL_LOGS_KEY);
-      if (saved) return JSON.parse(saved);
-      localStorage.setItem(LOCAL_LOGS_KEY, JSON.stringify(INITIAL_LOGS));
-    }
-    return INITIAL_LOGS;
-  };
-
-  const { data: logs = [], refetch } = useQuery<AttendanceLog[]>({
-    queryKey: ["attendanceLogs"],
-    queryFn: fetchLogs,
-  });
-
-  // KPI Calculations
-  const kpis = useMemo<AttendanceKPIs>(() => {
-    const isEmployee = activeRole === "EMPLOYEE";
-    
-    // For Admin/HR/CEO/Manager show organizational KPIs, for employee show self KPIs
-    return {
-      presentToday: isEmployee ? "Present" : "74/87 Present",
-      attendanceRate: isEmployee ? 98 : 96.4,
-      avgHoursWorked: isEmployee ? "8.8h" : "8.2h",
-      lateArrivals: isEmployee ? 1 : 12,
-      leaveDays: isEmployee ? 2 : 8,
-      wfhDays: isEmployee ? 3 : 18,
-    };
-  }, [activeRole]);
+  }, [statusData?.state]);
 
   // Formatting seconds to standard HH:MM:SS
   const formatTimerValue = (sec: number) => {
@@ -99,44 +71,26 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
   // Punch actions mutations
   const punchMutation = useMutation({
     mutationFn: async (action: "IN" | "BREAK" | "OUT") => {
-      const now = Date.now();
-      let updatedLogs = [...logs];
-
-      if (action === "IN") {
-        const stateObj = { state: "IN", startTime: now, offset: secondsElapsed };
-        localStorage.setItem(PUNCH_STATE_KEY, JSON.stringify(stateObj));
-        setPunchState("IN");
-      } else if (action === "BREAK") {
-        const stateObj = { state: "BREAK", startTime: now, offset: secondsElapsed };
-        localStorage.setItem(PUNCH_STATE_KEY, JSON.stringify(stateObj));
-        setPunchState("BREAK");
-      } else if (action === "OUT") {
-        // Append a new log item representing today's attendance log
-        const timeFormatted = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const hoursWorkedFormatted = (secondsElapsed / 3600).toFixed(1) + "h";
-        
-        const newLog: AttendanceLog = {
-          date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
-          checkIn: "09:00 AM", // Assumed check-in for mock visual completeness
-          checkOut: timeFormatted,
-          hoursWorked: hoursWorkedFormatted,
-          status: "PRESENT",
-          remarks: "Self check-out recorded",
-        };
-
-        updatedLogs = [newLog, ...updatedLogs];
-        localStorage.setItem(LOCAL_LOGS_KEY, JSON.stringify(updatedLogs));
-        localStorage.removeItem(PUNCH_STATE_KEY);
-        setPunchState("OUT");
-        setSecondsElapsed(0);
-      }
-      return updatedLogs;
+      await submitPunch(action);
     },
-    onSuccess: (data) => {
-      queryClient.setQueryData(["attendanceLogs"], data);
-      refetch();
+    onSuccess: () => {
+      // Instantly refresh logs, kpis, and status
+      queryClient.invalidateQueries({ queryKey: ["attendanceLogs"] });
+      queryClient.invalidateQueries({ queryKey: ["attendanceStatus"] });
+      queryClient.invalidateQueries({ queryKey: ["attendanceKpis"] });
     },
   });
+
+  const punchState = statusData?.state || "OUT";
+  const defaultKpis = kpis || {
+    presentToday: 0,
+    attendanceRate: 0,
+    avgHoursWorked: "0.0h",
+    lateArrivals: 0,
+    leaveDays: 0,
+    wfhDays: 0,
+    weeklyTrends: []
+  };
 
   return (
     <div className="space-y-6">
@@ -144,34 +98,34 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Present Today</div>
-          <div className="text-xl font-bold text-slate-900 mt-1">{kpis.presentToday}</div>
+          <div className="text-xl font-bold text-slate-900 mt-1">{defaultKpis.presentToday}</div>
           <div className="text-[10px] font-semibold text-emerald-600 mt-1">+2% from yesterday</div>
         </div>
         <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Attendance Rate</div>
-          <div className="text-xl font-bold text-slate-900 mt-1">{kpis.attendanceRate}%</div>
+          <div className="text-xl font-bold text-slate-900 mt-1">{defaultKpis.attendanceRate}%</div>
           <div className="w-full h-1 bg-slate-100 rounded-full mt-2 overflow-hidden">
-            <div className="h-full bg-slate-900 rounded-full" style={{ width: `${kpis.attendanceRate}%` }} />
+            <div className="h-full bg-slate-900 rounded-full" style={{ width: `${defaultKpis.attendanceRate}%` }} />
           </div>
         </div>
         <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Avg. Work Hours</div>
-          <div className="text-xl font-bold text-slate-900 mt-1">{kpis.avgHoursWorked}</div>
+          <div className="text-xl font-bold text-slate-900 mt-1">{defaultKpis.avgHoursWorked}</div>
           <div className="text-[10px] font-semibold text-slate-500 mt-1">Target: 9.0h / Day</div>
         </div>
         <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Late Arrivals</div>
-          <div className="text-xl font-bold text-slate-900 mt-1">{kpis.lateArrivals} Days</div>
+          <div className="text-xl font-bold text-slate-900 mt-1">{defaultKpis.lateArrivals} Days</div>
           <div className="text-[10px] font-semibold text-amber-600 mt-1">Check logs to regularize</div>
         </div>
         <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Leaves Taken</div>
-          <div className="text-xl font-bold text-slate-900 mt-1">{kpis.leaveDays} Days</div>
+          <div className="text-xl font-bold text-slate-900 mt-1">{defaultKpis.leaveDays} Days</div>
           <div className="text-[10px] font-semibold text-slate-500 mt-1">Approved logs</div>
         </div>
         <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">WFH Sessions</div>
-          <div className="text-xl font-bold text-slate-900 mt-1">{kpis.wfhDays} Days</div>
+          <div className="text-xl font-bold text-slate-900 mt-1">{defaultKpis.wfhDays} Days</div>
           <div className="text-[10px] font-semibold text-slate-900 mt-1">Remote connection logs</div>
         </div>
       </div>
@@ -333,12 +287,17 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                   else if (log.status === "LATE") badge = "text-amber-700 bg-amber-50 border border-amber-100";
                   else if (log.status === "WFH") badge = "text-slate-900 bg-slate-100 border border-slate-200";
 
+                  const formattedDate = new Date(log.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+                  const formattedCheckIn = log.checkIn ? new Date(log.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
+                  const formattedCheckOut = log.checkOut ? new Date(log.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
+                  const formattedHours = typeof log.hoursWorked === 'number' ? `${log.hoursWorked.toFixed(1)}h` : log.hoursWorked;
+
                   return (
                     <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-5 py-3 font-bold text-slate-900">{log.date}</td>
-                      <td className="px-5 py-3 font-mono">{log.checkIn}</td>
-                      <td className="px-5 py-3 font-mono">{log.checkOut || "—"}</td>
-                      <td className="px-5 py-3 font-bold">{log.hoursWorked}</td>
+                      <td className="px-5 py-3 font-bold text-slate-900">{formattedDate}</td>
+                      <td className="px-5 py-3 font-mono">{formattedCheckIn}</td>
+                      <td className="px-5 py-3 font-mono">{formattedCheckOut}</td>
+                      <td className="px-5 py-3 font-bold">{formattedHours}</td>
                       <td className="px-5 py-3">
                         <span className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase ${badge}`}>{log.status}</span>
                       </td>
