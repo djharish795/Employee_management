@@ -3,16 +3,17 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { 
-  LayoutDashboard, Users, CalendarCheck, Calendar, 
-  MonitorSmartphone, ShieldCheck, History, UserPlus, 
-  UserMinus, BookOpen, GitBranch, UserSearch, 
-  Banknote, TrendingUp, Network, Settings, LogOut, Plus,
-  Menu, X, ChevronLeft
+import {
+  LayoutDashboard, Users, CalendarCheck, Calendar,
+  MonitorSmartphone, ShieldCheck, History, UserPlus,
+  UserMinus, BookOpen, GitBranch, UserSearch,
+  Banknote, TrendingUp, Network, Settings, LogOut,
+  Menu, X, ChevronLeft, BarChart3, Plus
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 
-const getDashboardPath = (role: string | null) => {
+// ─── Role → home dashboard ────────────────────────────────────────────────
+const getDashboardPath = (role: string | null): string => {
   if (!role) return '/employee/dashboard';
   const r = role.toUpperCase();
   if (['SUPER_ADMIN', 'IT'].includes(r)) return '/admin/dashboard';
@@ -23,80 +24,128 @@ const getDashboardPath = (role: string | null) => {
   return '/employee/dashboard';
 };
 
-const getRoleTitle = (role: string | null) => {
+const getRoleTitle = (role: string | null): string => {
   if (!role) return 'Employee';
   const r = role.toUpperCase();
-  if (r === 'SUPER_ADMIN') return 'Super Admin';
-  if (r === 'CEO') return 'CEO';
-  if (r === 'CTO') return 'CTO';
-  if (r === 'COO') return 'COO';
-  if (r === 'CFO') return 'CFO';
-  if (r === 'CHRO') return 'CHRO';
-  if (r === 'HR') return 'HR Admin';
-  if (r === 'IT') return 'IT Admin';
-  if (r === 'FINANCE') return 'Finance';
-  if (r === 'MANAGER') return 'Manager';
-  if (r === 'TEAM_LEAD') return 'Team Lead';
-  return 'Employee';
+  const map: Record<string, string> = {
+    SUPER_ADMIN: 'Super Admin',
+    CEO: 'CEO', COO: 'COO', CTO: 'CTO',
+    CFO: 'CFO', CHRO: 'CHRO', HR: 'HR Admin',
+    IT: 'IT Admin', FINANCE: 'Finance',
+    MANAGER: 'Manager', TEAM_LEAD: 'Team Lead',
+  };
+  return map[r] ?? 'Employee';
+};
+
+// ─── All possible nav items ───────────────────────────────────────────────
+const ALL_NAV = [
+  { title: 'Dashboard',     icon: LayoutDashboard, href: null },          // href injected dynamically
+  { title: 'Employees',     icon: Users,            href: '/employees' },
+  { title: 'Attendance',    icon: CalendarCheck,    href: '/attendance' },
+  { title: 'Leaves',        icon: Calendar,         href: '/leaves' },
+  { title: 'Assets',        icon: MonitorSmartphone,href: '/assets' },
+  { title: 'Compliance',    icon: ShieldCheck,      href: '/compliance' },
+  { title: 'Audit Log',     icon: History,          href: '/audit' },
+  { title: 'Onboarding',    icon: UserPlus,         href: '/onboarding' },
+  { title: 'Offboarding',   icon: UserMinus,        href: '/offboarding' },
+  { title: 'Knowledge Base',icon: BookOpen,         href: '/knowledge' },
+  { title: 'Workflows',     icon: GitBranch,        href: '/workflows' },
+  { title: 'Recruitment',   icon: UserSearch,       href: '/recruitment' },
+  { title: 'Payroll',       icon: Banknote,         href: '/payroll' },
+  { title: 'Performance',   icon: TrendingUp,       href: '/performance' },
+  { title: 'Org Chart',     icon: Network,          href: '/org-chart' },
+  { title: 'Analytics',     icon: BarChart3,        href: '/analytics' },
+  { title: 'Settings',      icon: Settings,         href: '/settings' },
+];
+
+// ─── Role → allowed modules list ─────────────────────────────────────────
+const NAV_BY_ROLE: Record<string, string[]> = {
+  EMPLOYEE: [
+    'Dashboard', 'Attendance', 'Leaves', 'Assets',
+    'Knowledge Base', 'Org Chart', 'Settings',
+  ],
+  MANAGER: [
+    'Dashboard', 'Employees', 'Attendance', 'Leaves',
+    'Performance', 'Workflows', 'Org Chart', 'Settings',
+  ],
+  TEAM_LEAD: [
+    'Dashboard', 'Employees', 'Attendance', 'Leaves',
+    'Performance', 'Org Chart', 'Settings',
+  ],
+  CTO: [
+    'Dashboard', 'Employees', 'Attendance', 'Leaves',
+    'Performance', 'Org Chart', 'Settings',
+  ],
+  HR: [
+    'Dashboard', 'Employees', 'Attendance', 'Leaves',
+    'Compliance', 'Onboarding', 'Offboarding',
+    'Recruitment', 'Knowledge Base', 'Workflows', 'Settings',
+  ],
+  CHRO: [
+    'Dashboard', 'Employees', 'Attendance', 'Leaves',
+    'Compliance', 'Onboarding', 'Offboarding',
+    'Recruitment', 'Payroll', 'Knowledge Base', 'Workflows', 'Settings',
+  ],
+  CFO: [
+    'Dashboard', 'Employees', 'Payroll', 'Compliance', 'Settings',
+  ],
+  FINANCE: [
+    'Dashboard', 'Employees', 'Payroll', 'Compliance', 'Settings',
+  ],
+  CEO: [
+    'Dashboard', 'Employees', 'Org Chart', 'Analytics',
+    'Compliance', 'Leaves', 'Audit Log',
+  ],
+  COO: [
+    'Dashboard', 'Employees', 'Org Chart', 'Analytics',
+    'Compliance', 'Leaves', 'Workflows',
+  ],
+  SUPER_ADMIN: [
+    'Dashboard', 'Employees', 'Attendance', 'Leaves', 'Assets',
+    'Compliance', 'Audit Log', 'Onboarding', 'Offboarding',
+    'Knowledge Base', 'Workflows', 'Recruitment', 'Payroll',
+    'Performance', 'Org Chart', 'Analytics', 'Settings',
+  ],
+  IT: [
+    'Dashboard', 'Employees', 'Assets', 'Audit Log',
+    'Compliance', 'Settings',
+  ],
 };
 
 export function Sidebar() {
-  const pathname = usePathname();
-  const router = useRouter();
+  const pathname  = usePathname();
+  const router    = useRouter();
   const storeRole = useAuthStore((state) => state.role);
   const clearSession = useAuthStore((state) => state.clearSession);
 
-  // Fallback to cookie if Zustand hasn't hydrated yet (prevents flashing 'Employee' layout for executives)
-  const cookieRole = typeof document !== 'undefined' 
-    ? (document.cookie.match(new RegExp('(^| )role=([^;]+)'))?.[2] ?? null) 
+  // Cookie fallback for SSR hydration race
+  const cookieRole = typeof document !== 'undefined'
+    ? (document.cookie.match(new RegExp('(^| )role=([^;]+)'))?.[2] ?? null)
     : null;
-  const role = storeRole || cookieRole;
+  const role = (storeRole || cookieRole)?.toUpperCase() ?? 'EMPLOYEE';
 
-  // Mobile drawer state
   const [mobileOpen, setMobileOpen] = useState(false);
-  // Desktop collapsed (icon-only) state
-  const [collapsed, setCollapsed] = useState(false);
-  // Hydration state
-  const [mounted, setMounted] = useState(false);
+  const [collapsed, setCollapsed]   = useState(false);
+  const [mounted, setMounted]       = useState(false);
 
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
+  React.useEffect(() => { setMounted(true); }, []);
 
   const handleLogout = () => {
     clearSession();
     router.push('/login');
   };
+
   const dashboardPath = getDashboardPath(role);
-  const roleTitle = getRoleTitle(role);
+  const roleTitle     = getRoleTitle(role);
 
-  const allNavItems = [
-    { title: 'Dashboard', icon: LayoutDashboard, href: dashboardPath },
-    { title: 'Employees', icon: Users, href: '/employees' },
-    { title: 'Attendance', icon: CalendarCheck, href: '/attendance' },
-    { title: 'Leaves', icon: Calendar, href: '/leaves' },
-    { title: 'Assets', icon: MonitorSmartphone, href: '/assets' },
-    { title: 'Compliance', icon: ShieldCheck, href: '/compliance' },
-    { title: 'Audit Log', icon: History, href: '/audit' },
-    { title: 'Onboarding', icon: UserPlus, href: '/onboarding' },
-    { title: 'Offboarding', icon: UserMinus, href: '/offboarding' },
-    { title: 'Knowledge Base', icon: BookOpen, href: '/knowledge' },
-    { title: 'Workflows', icon: GitBranch, href: '/workflows' },
-    { title: 'Recruitment', icon: UserSearch, href: '/recruitment' },
-    { title: 'Payroll', icon: Banknote, href: '/payroll' },
-    { title: 'Performance', icon: TrendingUp, href: '/performance' },
-    { title: 'Org Chart', icon: Network, href: '/org-chart' },
-    { title: 'Settings', icon: Settings, href: '/settings' },
-  ];
-
-  const employeeAllowedModules = [
-    'Dashboard', 'Attendance', 'Leaves', 'Assets', 'Knowledge Base', 'Org Chart', 'Settings'
-  ];
-
-  const isEmployee = !role || role.toUpperCase() === 'EMPLOYEE';
-  const navItems = isEmployee 
-    ? allNavItems.filter(item => employeeAllowedModules.includes(item.title))
-    : allNavItems;
+  // Build filtered nav list for the current role
+  const allowedTitles = NAV_BY_ROLE[role] ?? NAV_BY_ROLE['EMPLOYEE'];
+  const navItems = ALL_NAV
+    .filter(item => allowedTitles.includes(item.title))
+    .map(item => ({
+      ...item,
+      href: item.title === 'Dashboard' ? dashboardPath : (item.href ?? '#'),
+    }));
 
   const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => (
     <>
@@ -104,11 +153,10 @@ export function Sidebar() {
       <div className={`p-5 pb-4 flex items-center ${collapsed ? 'justify-center px-3' : 'justify-between'}`}>
         {!collapsed && (
           <div>
-            <h2 className="text-base font-bold text-slate-900 tracking-tight leading-snug">Naprocs {roleTitle}</h2>
+            <h2 className="text-base font-bold text-slate-900 tracking-tight leading-snug">Naprocs EMS</h2>
             <p className="text-[11px] text-slate-500 font-medium tracking-wide mt-0.5">{roleTitle} Dashboard</p>
           </div>
         )}
-        {/* Collapse toggle — desktop only */}
         <button
           onClick={() => setCollapsed(c => !c)}
           className="hidden lg:flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors flex-shrink-0"
@@ -118,7 +166,7 @@ export function Sidebar() {
         </button>
       </div>
 
-      {/* New Request Action */}
+      {/* Quick Action */}
       {!collapsed && (
         <div className="px-4 pb-5">
           <button className="w-full bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm">
@@ -138,18 +186,18 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className={`flex-1 space-y-0.5 overflow-y-auto ${collapsed ? 'px-2' : 'px-3'}`}>
         {navItems.map((item) => {
-          const isActive = pathname.startsWith(item.href) || (pathname === '/' && item.href === '/executive');
+          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
-            <Link 
-              key={item.title} 
+            <Link
+              key={item.title}
               href={item.href}
               onClick={onNavigate}
               title={collapsed ? item.title : undefined}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 collapsed ? 'justify-center' : ''
               } ${
-                isActive 
-                  ? 'bg-slate-100 text-slate-900 font-semibold' 
+                isActive
+                  ? 'bg-slate-100 text-slate-900 font-semibold'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
               }`}
             >
@@ -160,9 +208,9 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer Logout */}
+      {/* Logout Footer */}
       <div className={`p-4 mt-auto border-t border-slate-100 ${collapsed ? 'px-2' : ''}`}>
-        <button 
+        <button
           onClick={handleLogout}
           title={collapsed ? 'Logout' : undefined}
           className={`flex items-center gap-3 px-3 py-2.5 w-full text-left rounded-lg text-sm font-medium text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors ${collapsed ? 'justify-center' : ''}`}
@@ -176,15 +224,13 @@ export function Sidebar() {
 
   if (!mounted) {
     return (
-      <aside className="hidden lg:flex flex-col flex-shrink-0 bg-white h-screen border-r border-slate-200 overflow-hidden w-[240px]">
-        {/* Placeholder to prevent layout shift during hydration */}
-      </aside>
+      <aside className="hidden lg:flex flex-col flex-shrink-0 bg-white h-screen border-r border-slate-200 overflow-hidden w-[240px]" />
     );
   }
 
   return (
     <>
-      {/* Mobile Hamburger Toggle — shown only on mobile, positioned in top-left */}
+      {/* Mobile Toggle */}
       <button
         onClick={() => setMobileOpen(true)}
         className="lg:hidden fixed top-3.5 left-4 z-50 p-2 bg-white border border-slate-200 rounded-lg shadow-sm text-slate-700 hover:bg-slate-50 transition-colors"
