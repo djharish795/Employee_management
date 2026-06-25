@@ -1,41 +1,111 @@
 "use client";
 
 import React, { useState } from "react";
-import { 
-  Clock, Calendar, LogIn, LogOut, CheckCircle2, 
-  ChevronRight, CalendarDays, Bell, Coffee
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Clock, Calendar, LogIn, LogOut, CheckCircle2,
+  ChevronRight, CalendarDays, Bell, Coffee, Loader2, AlertCircle
 } from "lucide-react";
 import Link from "next/link";
+import { useAuthStore } from "@/store/auth";
+import {
+  fetchTodayStatus,
+  fetchMyKpis,
+  submitPunch,
+} from "@/lib/api/attendance";
+
+// Format seconds into h mm string
+const fmtHours = (secs: number) => {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+};
 
 export default function EmployeeDashboardPanel() {
-  const [isPunchedIn, setIsPunchedIn] = useState(false);
-  const [punchTime, setPunchTime] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const accessToken = useAuthStore((state) => state.accessToken);
+
+  // ── Today's attendance state from backend ─────────────────────────────────
+  const todayQuery = useQuery({
+    queryKey: ["attendance-today"],
+    queryFn: fetchTodayStatus,
+    refetchInterval: 60_000, // refresh every minute
+    retry: 1,
+  });
+
+  // ── My KPIs from backend ──────────────────────────────────────────────────
+  const kpisQuery = useQuery({
+    queryKey: ["attendance-kpis"],
+    queryFn: fetchMyKpis,
+    staleTime: 120_000,
+    retry: 1,
+  });
+
+  const todayState = todayQuery.data?.state ?? "OUT";
+  const isPunchedIn = todayState === "IN" || todayState === "BREAK";
+
+  // ── Punch mutation ────────────────────────────────────────────────────────
+  const punchMutation = useMutation({
+    mutationFn: (action: "IN" | "OUT") => submitPunch(action),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["attendance-today"] });
+      queryClient.invalidateQueries({ queryKey: ["attendance-kpis"] });
+    },
+  });
 
   const handlePunch = () => {
-    if (!isPunchedIn) {
-      setPunchTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-      setIsPunchedIn(true);
-    } else {
-      setIsPunchedIn(false);
-      setPunchTime(null);
-    }
+    const nextAction = isPunchedIn ? "OUT" : "IN";
+    punchMutation.mutate(nextAction);
   };
+
+  // ── Formatted clock-in time ───────────────────────────────────────────────
+  const checkInTimeDisplay = (() => {
+    if (!todayQuery.data?.startTime) return null;
+    return new Date(todayQuery.data.startTime * 1000).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  })();
+
+  // ── Hours worked today ────────────────────────────────────────────────────
+  const hoursToday = (() => {
+    // Assuming avgHoursWorked is available instead of hoursToday based on AttendanceKPIs type
+    if (kpisQuery.data?.avgHoursWorked != null) return kpisQuery.data.avgHoursWorked;
+    return null;
+  })();
+
+  // ── Leave balance (from kpis if available) ────────────────────────────────
+  const leaveBalance = kpisQuery.data?.leaveDays ?? null;
+
+  const greetingHour = new Date().getHours();
+  const greeting =
+    greetingHour < 12 ? "Good Morning" :
+    greetingHour < 17 ? "Good Afternoon" :
+    "Good Evening";
 
   return (
     <div className="space-y-6">
-      
-      {/* ── KPI Cards ──────────────────────────────────────────────────── */}
+
+      {/* ── KPI Cards ─────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        {/* Hours Worked */}
+
+        {/* Hours Worked Today */}
         <div className="bg-white border border-slate-200 p-6 rounded-xl shadow-sm flex items-start gap-4">
           <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-900 flex items-center justify-center flex-shrink-0">
             <Clock className="w-6 h-6" />
           </div>
           <div>
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Today's Hours</p>
-            <h3 className="text-2xl font-black text-slate-900 mt-1">4h 30m</h3>
-            <p className="text-[10px] font-semibold text-emerald-600 mt-1">On track for 8 hours</p>
+            {kpisQuery.isLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin text-slate-400 mt-1" />
+            ) : (
+              <h3 className="text-2xl font-black text-slate-900 mt-1">
+                {hoursToday ?? "0h 0m"}
+              </h3>
+            )}
+            <p className="text-[10px] font-semibold text-emerald-600 mt-1">
+              {todayState === "IN" ? "Currently clocked in" : todayState === "BREAK" ? "On break" : "Not clocked in"}
+            </p>
           </div>
         </div>
 
@@ -46,68 +116,115 @@ export default function EmployeeDashboardPanel() {
           </div>
           <div>
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Leave Balance</p>
-            <h3 className="text-2xl font-black text-slate-900 mt-1">12 Days</h3>
-            <p className="text-[10px] font-semibold text-slate-500 mt-1">8 Casual • 4 Sick</p>
+            {kpisQuery.isLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin text-slate-400 mt-1" />
+            ) : leaveBalance != null ? (
+              <h3 className="text-2xl font-black text-slate-900 mt-1">{leaveBalance} Days</h3>
+            ) : (
+              <h3 className="text-2xl font-black text-slate-900 mt-1">—</h3>
+            )}
+            <p className="text-[10px] font-semibold text-slate-500 mt-1">Available this year</p>
           </div>
         </div>
 
-        {/* Next Holiday */}
+        {/* Attendance Rate */}
         <div className="bg-white border border-slate-200 p-6 rounded-xl shadow-sm flex items-start gap-4">
           <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center flex-shrink-0">
             <CalendarDays className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Next Holiday</p>
-            <h3 className="text-2xl font-black text-slate-900 mt-1">Dec 25</h3>
-            <p className="text-[10px] font-semibold text-slate-500 mt-1">Christmas Day (in 9 days)</p>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Attendance Rate</p>
+            {kpisQuery.isLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin text-slate-400 mt-1" />
+            ) : (
+              <h3 className="text-2xl font-black text-slate-900 mt-1">
+                {kpisQuery.data?.attendanceRate != null
+                  ? `${Number(kpisQuery.data.attendanceRate).toFixed(0)}%`
+                  : "—"}
+              </h3>
+            )}
+            <p className="text-[10px] font-semibold text-slate-500 mt-1">This month</p>
           </div>
         </div>
-
       </div>
 
+      {/* ── Main Grid ─────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* ── Left Column: Tasks & Actions ───────────────────────────────── */}
+
+        {/* ── Left Column ─────────────────────────────────────────────────── */}
         <div className="lg:col-span-2 space-y-6">
-          
-          {/* Quick Punch Widget */}
+
+          {/* Punch Widget */}
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
             <div className="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="flex items-center gap-4 text-left w-full md:w-auto">
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 ${
-                  isPunchedIn ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-500'
-                }`}>
-                  {isPunchedIn ? <CheckCircle2 className="w-8 h-8" /> : <Coffee className="w-8 h-8" />}
+                <div
+                  className={`w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    todayState === "IN"
+                      ? "bg-emerald-100 text-emerald-600"
+                      : todayState === "BREAK"
+                      ? "bg-amber-100 text-amber-600"
+                      : "bg-slate-100 text-slate-500"
+                  }`}
+                >
+                  {todayState === "IN" ? (
+                    <CheckCircle2 className="w-8 h-8" />
+                  ) : todayState === "BREAK" ? (
+                    <Coffee className="w-8 h-8" />
+                  ) : (
+                    <Coffee className="w-8 h-8" />
+                  )}
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-slate-900">
-                    {isPunchedIn ? "You're checked in!" : "Good Morning!"}
+                    {todayState === "IN"
+                      ? "You're checked in!"
+                      : todayState === "BREAK"
+                      ? "On a break"
+                      : `${greeting}!`}
                   </h3>
                   <p className="text-sm font-medium text-slate-500 mt-0.5">
-                    {isPunchedIn ? `Punched in at ${punchTime}` : "Ready to start your day?"}
+                    {todayState === "IN" && checkInTimeDisplay
+                      ? `Clocked in at ${checkInTimeDisplay}`
+                      : todayState === "BREAK"
+                      ? "Break in progress..."
+                      : "Ready to start your day?"}
                   </p>
                 </div>
               </div>
-              
-              <button 
+
+              <button
                 onClick={handlePunch}
-                className={`w-full md:w-auto px-8 py-3.5 rounded-xl font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2 ${
-                  isPunchedIn 
-                    ? 'bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200' 
-                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                disabled={punchMutation.isPending || todayQuery.isLoading}
+                className={`w-full md:w-auto px-8 py-3.5 rounded-xl font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
+                  isPunchedIn
+                    ? "bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200"
+                    : "bg-indigo-600 text-white hover:bg-indigo-700"
                 }`}
               >
-                {isPunchedIn ? (
+                {punchMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : isPunchedIn ? (
                   <><LogOut className="w-4 h-4" /> Clock Out</>
                 ) : (
                   <><LogIn className="w-4 h-4" /> Clock In</>
                 )}
               </button>
             </div>
+
+            {/* Error banner */}
+            {(punchMutation.isError || todayQuery.isError) && (
+              <div className="px-6 pb-4 flex items-center gap-2 text-rose-600 text-xs font-semibold">
+                <AlertCircle className="w-4 h-4" />
+                {punchMutation.isError
+                  ? "Failed to record punch. Please try again."
+                  : "Could not load today's status from server."}
+              </div>
+            )}
           </div>
 
-          {/* Pending Tasks / Empty State */}
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm h-[300px] flex flex-col">
+          {/* Pending Tasks / Compliance */}
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col" style={{ minHeight: "220px" }}>
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <h3 className="text-sm font-bold text-slate-900">Pending Tasks</h3>
               <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-bold">0</span>
@@ -122,13 +239,12 @@ export default function EmployeeDashboardPanel() {
               </p>
             </div>
           </div>
-          
         </div>
 
-        {/* ── Right Column: Announcements & Quick Links ────────────────── */}
+        {/* ── Right Column ─────────────────────────────────────────────────── */}
         <div className="space-y-6">
-          
-          {/* Announcements */}
+
+          {/* Announcement */}
           <div className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-xl p-6 text-white shadow-md relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-10">
               <Bell className="w-24 h-24" />
@@ -141,7 +257,7 @@ export default function EmployeeDashboardPanel() {
               </div>
               <h3 className="text-lg font-bold leading-tight mb-2">Annual Townhall Meeting</h3>
               <p className="text-xs text-indigo-100/80 mb-6 line-clamp-2">
-                Join us this Friday at 3:00 PM IST for our annual townhall. The CEO will discuss our Q4 roadmap and Phase 2 implementations.
+                Join us this Friday at 3:00 PM IST for our annual townhall. The CEO will discuss our Q4 roadmap and Phase 2 milestones.
               </p>
               <button className="text-xs font-bold text-white flex items-center gap-1 hover:text-indigo-200 transition-colors">
                 Read full memo <ChevronRight className="w-3.5 h-3.5" />
@@ -153,23 +269,26 @@ export default function EmployeeDashboardPanel() {
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
             <h3 className="text-sm font-bold text-slate-900 mb-4">Quick Links</h3>
             <div className="flex flex-col gap-2">
-              <Link href="/leaves" className="w-full py-3 px-4 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors flex items-center justify-between group">
-                Apply for Leave 
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
-              </Link>
-              <Link href="/attendance" className="w-full py-3 px-4 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors flex items-center justify-between group">
-                View Timesheet 
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
-              </Link>
-              <Link href="/compliance" className="w-full py-3 px-4 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors flex items-center justify-between group">
-                Company Policies 
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
-              </Link>
+              {[
+                { label: "Apply for Leave", href: "/leaves/apply" },
+                { label: "View Timesheet", href: "/attendance/history" },
+                { label: "Company Policies", href: "/compliance" },
+                { label: "Knowledge Base", href: "/knowledge" },
+                { label: "Org Chart", href: "/org-chart" },
+              ].map(({ label, href }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className="w-full py-3 px-4 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors flex items-center justify-between group"
+                >
+                  {label}
+                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
+                </Link>
+              ))}
             </div>
           </div>
 
         </div>
-
       </div>
     </div>
   );

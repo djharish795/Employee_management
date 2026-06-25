@@ -2,221 +2,321 @@
 
 import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Plane, Calendar, FileText, CheckCircle2, Clock, AlertTriangle, ArrowRight, BookOpen, UserPlus } from "lucide-react";
+import { Plane, Calendar, FileText, CheckCircle2, UserPlus, BookOpen, ArrowRight, AlertCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { LeaveRequest, LeaveBalance, Holiday } from "@/types/leaves";
+import { useAuthStore } from "@/store/auth";
+import { fetchMyLeaveKpi, fetchLeaveCalendar, ApiLeaveRequest, ApiLeaveKpi } from "@/lib/api/leaves";
 
 interface DashboardPanelProps {
   activeRole: "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
 }
 
-const INITIAL_REQUESTS: LeaveRequest[] = [
-  { id: "L-101", type: "CASUAL_LEAVE", startDate: "20 Jun 2026", endDate: "21 Jun 2026", days: 2, reason: "Attending family function", status: "APPROVED", submittedDate: "15 Jun 2026", employeeName: "Arjun Mehta", department: "Engineering", emergencyContact: "+91 9988776655", currentStep: 3, approvalQueue: [{role: 'TR', status: 'APPROVED'}, {role: 'HR', status: 'APPROVED'}, {role: 'OR', status: 'APPROVED'}] },
-  { id: "L-102", type: "SICK_LEAVE", startDate: "18 Jun 2026", endDate: "18 Jun 2026", days: 1, reason: "Severe migraine", status: "PENDING", submittedDate: "17 Jun 2026", employeeName: "Linda Chen", department: "Product Design", emergencyContact: "+91 8877665544", currentStep: 1, approvalQueue: [{role: 'TR', status: 'APPROVED'}, {role: 'HR', status: 'PENDING'}, {role: 'OR', status: 'PENDING'}] },
-  { id: "L-103", type: "EARNED_LEAVE", startDate: "05 Jul 2026", endDate: "10 Jul 2026", days: 6, reason: "Annual family summer vacation", status: "PENDING", submittedDate: "16 Jun 2026", employeeName: "Marcus Thorne", department: "Legal & Compliance", emergencyContact: "+91 7766554433", currentStep: 0, approvalQueue: [{role: 'TR', status: 'PENDING'}, {role: 'HR', status: 'PENDING'}, {role: 'OR', status: 'PENDING'}] },
-];
-
-const INITIAL_BALANCES: LeaveBalance[] = [
-  { type: "Casual Leave", allocated: 12, used: 4, available: 8, pendingApproval: 0 },
-  { type: "Sick Leave", allocated: 10, used: 2, available: 8, pendingApproval: 1 },
-  { type: "Earned Leave", allocated: 20, used: 5, available: 15, pendingApproval: 6 },
-];
-
-const UPCOMING_HOLIDAYS: Holiday[] = [
-  { date: "25 Dec 2026", name: "Christmas Day", type: "PUBLIC" },
-  { date: "01 Jan 2027", name: "New Year's Day", type: "PUBLIC" },
-  { date: "26 Jan 2027", name: "Republic Day", type: "PUBLIC" },
-];
-
-const CACHE_KEY = "naprocs_leave_requests";
+// Format ISO date string to "20 Jun 2026"
+const fmtDate = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
 export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
-  // Fetch leave requests list via React Query
-  const fetchLeaveRequests = async (): Promise<LeaveRequest[]> => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(CACHE_KEY);
-      if (saved) return JSON.parse(saved);
-      localStorage.setItem(CACHE_KEY, JSON.stringify(INITIAL_REQUESTS));
-    }
-    return INITIAL_REQUESTS;
-  };
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const isEmployee = activeRole === "EMPLOYEE";
 
-  const { data: allRequests = [] } = useQuery<LeaveRequest[]>({
-    queryKey: ["leaveRequests"],
-    queryFn: fetchLeaveRequests,
+  // ── 1. Fetch the logged-in employee's leave KPI (balance) ──────────────────
+  // The backend endpoint is GET /api/v1/leaves/kpi/:employeeId
+  // We derive employeeId from localStorage persisted auth-storage
+  const employeeId = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = localStorage.getItem("auth-storage");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return parsed?.state?.employeeId ?? null;
+      }
+    } catch {}
+    return null;
+  }, []);
+
+  const kpiQuery = useQuery<ApiLeaveKpi>({
+    queryKey: ["leaves-kpi", employeeId],
+    queryFn: () => fetchMyLeaveKpi(employeeId!),
+    enabled: !!employeeId,
+    staleTime: 60_000,
+    retry: 1,
   });
 
-  const isEmployee = activeRole === "EMPLOYEE";
-  // Filter for employee view: normally we'd filter by userId, here we mock it by picking a specific name or just returning fewer items to simulate "My Requests"
-  const requests = isEmployee 
-    ? allRequests.filter(r => r.employeeName === "Arjun Mehta") 
-    : allRequests;
+  // ── 2. Fetch approved leaves for the calendar sidebar ─────────────────────
+  const calendarQuery = useQuery<ApiLeaveRequest[]>({
+    queryKey: ["leaves-calendar"],
+    queryFn: fetchLeaveCalendar as any,
+    staleTime: 120_000,
+    retry: 1,
+  });
 
-  // Calculate dynamic KPIs based on role
-  const kpis = useMemo(() => {
-    const available = INITIAL_BALANCES.reduce((acc, curr) => acc + curr.available, 0);
-    const used = INITIAL_BALANCES.reduce((acc, curr) => acc + curr.used, 0);
-    const pending = requests.filter((r) => r.status === "PENDING").length;
-
+  // ── Computed KPI values ───────────────────────────────────────────────────
+  const kpi = useMemo(() => {
+    if (!kpiQuery.data) return null;
+    const { totalLeaves, usedLeaves, pendingLeaves, availableLeaves } = kpiQuery.data;
     return {
-      available: `${available} Days`,
-      used: `${used} Days`,
-      pending: `${pending} Requests`,
-      conflicts: isEmployee ? "0 Conflicts" : "2 Team Conflicts",
-      holidays: "3 Holidays MTD",
+      available: `${availableLeaves} Days`,
+      used: `${usedLeaves} Days`,
+      pending: `${pendingLeaves} Requests`,
     };
-  }, [requests, isEmployee]);
+  }, [kpiQuery.data]);
+
+  // ── Recent leave requests (from calendar = approved leaves, for display) ──
+  const recentRequests = useMemo(() => {
+    if (!calendarQuery.data) return [];
+    const items = calendarQuery.data as any[];
+    // Employee view: filter to own records (employeeId match)
+    if (isEmployee && employeeId) {
+      return items.filter((r) => r.employeeId === employeeId).slice(0, 5);
+    }
+    return items.slice(0, 5);
+  }, [calendarQuery.data, isEmployee, employeeId]);
+
+  // ── Balance breakdown per leave type ─────────────────────────────────────
+  const balanceDetails = kpiQuery.data?.details ?? [];
 
   return (
     <div className="space-y-6">
-      {/* KPIs Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Available Balance</div>
-          <div className="text-xl font-bold text-slate-900 mt-1">{kpis.available}</div>
-          <div className="text-[10px] font-semibold text-emerald-600 mt-1">Ready for time-off</div>
-        </div>
-        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Used Leave</div>
-          <div className="text-xl font-bold text-slate-900 mt-1">{kpis.used}</div>
-          <div className="text-[10px] font-semibold text-slate-500 mt-1">Since Jan 1st</div>
-        </div>
-        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pending Requests</div>
-          <div className="text-xl font-bold text-slate-900 mt-1">{kpis.pending}</div>
-          <div className="text-[10px] font-semibold text-amber-500 mt-1">Awaiting approval</div>
-        </div>
-        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Upcoming Holidays</div>
-          <div className="text-xl font-bold text-slate-900 mt-1">{kpis.holidays}</div>
-          <div className="text-[10px] font-semibold text-slate-900 mt-1">Company-wide calendar</div>
-        </div>
-        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Team Leave Conflicts</div>
-          <div className="text-xl font-bold text-slate-900 mt-1">{kpis.conflicts}</div>
-          <div className="text-[10px] font-semibold text-rose-500 mt-1">Overlapping requests</div>
-        </div>
+
+      {/* ── KPI Strip ─────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          {
+            label: "Available Balance",
+            value: kpiQuery.isLoading ? "..." : (kpi?.available ?? "-- Days"),
+            sub: "Ready for time-off",
+            color: "text-emerald-600",
+            icon: CheckCircle2,
+          },
+          {
+            label: "Leave Used",
+            value: kpiQuery.isLoading ? "..." : (kpi?.used ?? "-- Days"),
+            sub: `Since Jan 1, ${new Date().getFullYear()}`,
+            color: "text-slate-700",
+            icon: Calendar,
+          },
+          {
+            label: "Pending Requests",
+            value: kpiQuery.isLoading ? "..." : (kpi?.pending ?? "-- Requests"),
+            sub: "Awaiting approval",
+            color: "text-amber-600",
+            icon: FileText,
+          },
+          {
+            label: "Upcoming Holidays",
+            value: "—",
+            sub: "Company-wide calendar",
+            color: "text-indigo-600",
+            icon: Plane,
+          },
+        ].map((card, idx) => {
+          const Icon = card.icon;
+          return (
+            <div key={idx} className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{card.label}</p>
+                  <p className={`text-xl font-bold mt-1 ${card.color}`}>{card.value}</p>
+                  <p className="text-[10px] font-semibold text-slate-500 mt-1">{card.sub}</p>
+                </div>
+                <div className="w-8 h-8 flex-shrink-0 rounded-lg bg-slate-100 flex items-center justify-center">
+                  <Icon className="w-4 h-4 text-slate-500" />
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Main Column Split Layout */}
+      {/* ── Main Content Grid ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
-        
-        {/* Left Column (Leave History & Trend Chart) */}
+
+        {/* ── Left: Recent Leave Requests ─────────────────────────────────── */}
         <div className="xl:col-span-2 space-y-6">
-          
-          {/* History / Recent List */}
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
+
+          {/* Leave History Table */}
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
             <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/20">
-              <h3 className="text-sm font-bold text-slate-900">{isEmployee ? "My Recent Leave Applications" : "Recent Leave Applications"}</h3>
-              <Link href="/leaves/apply" className="flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-colors cursor-pointer">
+              <h3 className="text-sm font-bold text-slate-900">
+                {isEmployee ? "My Recent Leave Applications" : "Recent Approved Leaves"}
+              </h3>
+              <Link
+                href="/leaves/apply"
+                className="flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-colors"
+              >
                 <UserPlus className="w-3.5 h-3.5" /> Apply for Leave
               </Link>
             </div>
-            
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
-                  <th className="px-5 py-3">Employee</th>
-                  <th className="px-5 py-3">Leave Type</th>
-                  <th className="px-5 py-3">Duration</th>
-                  <th className="px-5 py-3 text-center">Days</th>
-                  <th className="px-5 py-3">Status</th>
-                </tr>
-              </thead>
-              <tbody className="text-xs font-semibold text-slate-600 divide-y divide-slate-100">
-                {requests.slice(0, 5).map((req) => {
-                  let badge = "text-slate-600 bg-slate-100";
-                  if (req.status === "APPROVED") badge = "text-emerald-700 bg-emerald-50 border border-emerald-100";
-                  else if (req.status === "PENDING") badge = "text-amber-700 bg-amber-50 border border-amber-100";
-                  else if (req.status === "REJECTED") badge = "text-rose-700 bg-rose-50 border border-rose-100";
 
+            {calendarQuery.isLoading ? (
+              <div className="py-16 flex flex-col items-center text-slate-400">
+                <Loader2 className="w-6 h-6 animate-spin mb-2" />
+                <p className="text-xs font-bold">Loading leave records...</p>
+              </div>
+            ) : calendarQuery.error ? (
+              <div className="py-10 flex flex-col items-center text-slate-400">
+                <AlertCircle className="w-6 h-6 text-rose-400 mb-2" />
+                <p className="text-xs font-bold text-slate-600">Could not load leave data</p>
+                <p className="text-xs text-slate-400 mt-1">Check backend connection</p>
+              </div>
+            ) : recentRequests.length === 0 ? (
+              <div className="py-14 flex flex-col items-center text-slate-400">
+                <CheckCircle2 className="w-8 h-8 text-slate-200 mb-2" />
+                <p className="text-xs font-bold text-slate-600">No leave records found</p>
+                <p className="text-xs mt-1">Apply for your first leave to see it here</p>
+              </div>
+            ) : (
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                    <th className="px-5 py-3">Employee</th>
+                    <th className="px-5 py-3">Leave Type</th>
+                    <th className="px-5 py-3">Duration</th>
+                    <th className="px-5 py-3 text-center">Days</th>
+                    <th className="px-5 py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="text-xs font-semibold text-slate-600 divide-y divide-slate-100">
+                  {recentRequests.map((req: any) => {
+                    const badge =
+                      req.status === "APPROVED"
+                        ? "text-emerald-700 bg-emerald-50 border border-emerald-100"
+                        : req.status === "PENDING"
+                        ? "text-amber-700 bg-amber-50 border border-amber-100"
+                        : "text-rose-700 bg-rose-50 border border-rose-100";
+                    const empName = req.employee
+                      ? `${req.employee.firstName} ${req.employee.lastName}`
+                      : "Employee";
+                    const leaveTypeName = req.leaveType?.name ?? req.leaveTypeId;
+                    return (
+                      <tr key={req.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-5 py-3.5 font-bold text-slate-900">{empName}</td>
+                        <td className="px-5 py-3.5 uppercase text-[9px] tracking-wide text-slate-500 font-bold">
+                          {leaveTypeName}
+                        </td>
+                        <td className="px-5 py-3.5">{fmtDate(req.startDate)} – {fmtDate(req.endDate)}</td>
+                        <td className="px-5 py-3.5 text-center font-bold text-slate-900">{req.totalDays}</td>
+                        <td className="px-5 py-3.5">
+                          <span className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase ${badge}`}>
+                            {req.status}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* Leave Balance Breakdown */}
+          {balanceDetails.length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+              <div className="p-4 border-b border-slate-100 bg-slate-50/20">
+                <h3 className="text-sm font-bold text-slate-900">Leave Balance Breakdown</h3>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {balanceDetails.map((b: any) => {
+                  const allocated = Number(b.allocated) + Number(b.carriedOver);
+                  const available = allocated - Number(b.used) - Number(b.pending);
+                  const usedPct = allocated > 0 ? Math.round((Number(b.used) / allocated) * 100) : 0;
                   return (
-                    <tr key={req.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-5 py-3.5 font-bold text-slate-900">{req.employeeName}</td>
-                      <td className="px-5 py-3.5 uppercase text-[9px] tracking-wide text-slate-500 font-bold">{req.type.replace("_", " ")}</td>
-                      <td className="px-5 py-3.5">{req.startDate} to {req.endDate}</td>
-                      <td className="px-5 py-3.5 text-center font-bold text-slate-900">{req.days}</td>
-                      <td className="px-5 py-3.5">
-                        <span className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase ${badge}`}>{req.status}</span>
-                      </td>
-                    </tr>
+                    <div key={b.id} className="px-5 py-4 flex items-center gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <p className="text-xs font-bold text-slate-800">{b.leaveType?.name}</p>
+                          <div className="flex items-center gap-3 text-[10px] font-bold text-slate-500">
+                            <span className="text-emerald-600">{available} avail</span>
+                            <span className="text-slate-400">/</span>
+                            <span>{allocated} total</span>
+                          </div>
+                        </div>
+                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-indigo-500 rounded-full transition-all"
+                            style={{ width: `${usedPct}%` }}
+                          />
+                        </div>
+                      </div>
+                      {b.pending > 0 && (
+                        <span className="flex-shrink-0 px-2 py-0.5 text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded uppercase">
+                          {b.pending} pending
+                        </span>
+                      )}
+                    </div>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Leave Trends Chart */}
-          <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm space-y-4">
-            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <FileText className="w-4 h-4 text-slate-700" />
-              Monthly Time-Off Trends
-            </h3>
-            
-            {/* SVG/HTML visual bar representation */}
-            <div className="h-44 flex items-end justify-between gap-4 pt-6 px-4">
-              {[
-                { label: "Jan", days: 6, percent: 30 },
-                { label: "Feb", days: 12, percent: 60 },
-                { label: "Mar", days: 4, percent: 20 },
-                { label: "Apr", days: 8, percent: 40 },
-                { label: "May", days: 15, percent: 75 },
-                { label: "Jun", days: 20, percent: 100 },
-              ].map((item, idx) => (
-                <div key={idx} className="flex-1 flex flex-col items-center gap-2 group cursor-pointer">
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-[9px] font-bold px-1.5 py-0.5 rounded absolute -translate-y-12 z-20 shadow">
-                    {item.days} Days
-                  </div>
-                  <div className="w-full bg-slate-100 h-28 rounded-md flex items-end">
-                    <div className="w-full bg-indigo-500 rounded-md transition-all duration-500" style={{ height: `${item.percent}%` }} />
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-400">{item.label}</span>
-                </div>
-              ))}
+              </div>
             </div>
-          </div>
-
+          )}
         </div>
 
-        {/* Right Column (Upcoming Holidays & Shortcuts) */}
-        <div className="space-y-6">
-          
-          {/* Quick Shortcuts */}
+        {/* ── Right: Quick Operations ──────────────────────────────────────── */}
+        <div className="space-y-5">
+
+          {/* Quick Actions */}
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
             <h3 className="text-sm font-bold text-slate-900">Time-Off Operations</h3>
-            <div className="flex flex-col gap-2.5">
-              <Link href="/leaves/apply" className="flex items-center justify-center gap-2 py-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-900 text-xs font-bold rounded-lg transition-all shadow-sm">
-                Apply for Leave
+            <div className="flex flex-col gap-2">
+              <Link
+                href="/leaves/apply"
+                className="flex items-center justify-center gap-2 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition-all shadow-sm"
+              >
+                <UserPlus className="w-3.5 h-3.5" /> Apply for Leave
               </Link>
-              <Link href="/leaves/policies" className="flex items-center justify-center gap-2 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-all shadow-sm">
+              <Link
+                href="/leaves/calendar"
+                className="flex items-center justify-center gap-2 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-all shadow-sm"
+              >
+                <Calendar className="w-3.5 h-3.5" /> Leave Calendar
+              </Link>
+              <Link
+                href="/leaves/policies"
+                className="flex items-center justify-center gap-2 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-all shadow-sm"
+              >
                 <BookOpen className="w-3.5 h-3.5" /> View Policies
               </Link>
+              {/* Approver-only shortcut */}
+              {!isEmployee && activeRole !== "CEO" && (
+                <Link
+                  href="/leaves/approvals"
+                  className="flex items-center justify-center gap-2 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 text-xs font-bold rounded-lg transition-all shadow-sm"
+                >
+                  <ArrowRight className="w-3.5 h-3.5" /> Review Pending Queue
+                </Link>
+              )}
             </div>
           </div>
 
-          {/* Holidays list */}
-          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
-            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-emerald-500" />
-              Upcoming Holidays
-            </h3>
-            <div className="space-y-3 pt-2">
-              {UPCOMING_HOLIDAYS.map((h, idx) => (
-                <div key={idx} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg border border-slate-100">
-                  <div>
-                    <h5 className="text-xs font-bold text-slate-800">{h.name}</h5>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">{h.type}</p>
-                  </div>
-                  <span className="text-xs font-mono font-bold text-slate-600 bg-white border border-slate-100 px-2 py-1 rounded">
-                    {h.date.split(" ")[0]} {h.date.split(" ")[1]}
-                  </span>
+          {/* Leave Policy Quick Summary */}
+          {kpiQuery.data && !kpiQuery.isLoading && (
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-indigo-500" />
+                Your Leave Summary
+              </h3>
+              <div className="space-y-2 text-xs font-semibold text-slate-600">
+                <div className="flex justify-between py-1.5 border-b border-slate-50">
+                  <span className="text-slate-400">Total Allocated</span>
+                  <span className="font-bold text-slate-900">{kpiQuery.data.totalLeaves} days</span>
                 </div>
-              ))}
+                <div className="flex justify-between py-1.5 border-b border-slate-50">
+                  <span className="text-slate-400">Used This Year</span>
+                  <span className="font-bold text-slate-700">{kpiQuery.data.usedLeaves} days</span>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-slate-50">
+                  <span className="text-slate-400">Pending Approval</span>
+                  <span className="font-bold text-amber-600">{kpiQuery.data.pendingLeaves} days</span>
+                </div>
+                <div className="flex justify-between py-1.5">
+                  <span className="text-slate-400">Available Balance</span>
+                  <span className="font-bold text-emerald-600">{kpiQuery.data.availableLeaves} days</span>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
         </div>
-
       </div>
     </div>
   );

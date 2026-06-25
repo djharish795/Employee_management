@@ -3,13 +3,14 @@
 import React from "react";
 import AttendanceLayout from "@/components/modules/attendance/attendance-layout";
 import ReportsPanel from "@/components/modules/attendance/reports-panel";
-import { useAttendanceTestStore } from "@/store/attendance-test";
+import { useAuthStore } from "@/store/auth";
 
 export default function AttendanceReportsPage() {
-  const { activeRole, setActiveRole } = useAttendanceTestStore();
+  const role = useAuthStore((state) => state.role) ?? "EMPLOYEE";
+  const activeRole = role.toUpperCase() as "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
 
   return (
-    <AttendanceLayout activeRole={activeRole} onRoleChange={setActiveRole}>
+    <AttendanceLayout activeRole={activeRole}>
       <ReportsPanel activeRole={activeRole} />
     </AttendanceLayout>
   );

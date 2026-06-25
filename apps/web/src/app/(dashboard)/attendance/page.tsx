@@ -3,22 +3,32 @@
 import React, { useEffect } from "react";
 import AttendanceLayout from "@/components/modules/attendance/attendance-layout";
 import DashboardPanel from "@/components/modules/attendance/dashboard-panel";
-import { useAttendanceTestStore } from "@/store/attendance-test";
 import { useAuthStore } from "@/store/auth";
 
 export default function AttendanceDashboardPage() {
-  const { activeRole, setActiveRole } = useAttendanceTestStore();
-  const authRole = useAuthStore((state) => state.role);
+  const role = useAuthStore((state) => state.role) ?? "EMPLOYEE";
 
-  useEffect(() => {
-    if (authRole) {
-      setActiveRole(authRole as any);
+  const effectiveRole = (() => {
+    if (role) return role.toUpperCase();
+    if (typeof document !== "undefined") {
+      const match = document.cookie.match(new RegExp("(^| )role=([^;]+)"));
+      return match ? decodeURIComponent(match[2]).toUpperCase() : "EMPLOYEE";
     }
-  }, [authRole, setActiveRole]);
+    return "EMPLOYEE";
+  })();
+
+  // Map backend roles to attendance panel roles
+  const attendancePanelRole = ((): "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE" => {
+    if (["SUPER_ADMIN", "IT"].includes(effectiveRole)) return "ADMIN";
+    if (["HR", "CHRO"].includes(effectiveRole)) return "HR";
+    if (["CEO", "COO"].includes(effectiveRole)) return "CEO";
+    if (["CTO", "CFO", "FINANCE", "MANAGER", "TEAM_LEAD"].includes(effectiveRole)) return "MANAGER";
+    return "EMPLOYEE";
+  })();
 
   return (
-    <AttendanceLayout activeRole={activeRole} onRoleChange={setActiveRole}>
-      <DashboardPanel activeRole={activeRole} />
+    <AttendanceLayout activeRole={attendancePanelRole}>
+      <DashboardPanel activeRole={attendancePanelRole} />
     </AttendanceLayout>
   );
 }

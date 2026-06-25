@@ -1,110 +1,116 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Define the role to dashboard mapping
+// Role → home dashboard mapping
 const roleDashboardMap: Record<string, string> = {
   SUPER_ADMIN: '/admin/dashboard',
-  IT: '/admin/dashboard',
-  CEO: '/executive/dashboard',
-  COO: '/executive/dashboard',
-  CTO: '/cto/dashboard',
-  CFO: '/finance/dashboard',
-  FINANCE: '/finance/dashboard',
-  CHRO: '/hr/dashboard',
-  HR: '/hr/dashboard',
+  IT:          '/admin/dashboard',
+  CEO:         '/executive/dashboard',
+  COO:         '/executive/dashboard',
+  CTO:         '/cto/dashboard',
+  CFO:         '/finance/dashboard',
+  FINANCE:     '/finance/dashboard',
+  CHRO:        '/hr/dashboard',
+  HR:          '/hr/dashboard',
+  MANAGER:     '/employee/dashboard',
+  TEAM_LEAD:   '/employee/dashboard',
+  EMPLOYEE:    '/employee/dashboard',
 };
 
-// Define protected route prefixes
+// Roles that may act as approvers in the Leave Approvals queue
+const leaveApproverRoles = new Set(['HR', 'CHRO', 'MANAGER', 'TEAM_LEAD', 'CTO', 'SUPER_ADMIN', 'IT']);
+
+// Roles that may view the /employees list
+const employeeViewRoles = new Set(['HR', 'CHRO', 'MANAGER', 'TEAM_LEAD', 'CTO', 'CEO', 'COO', 'CFO', 'FINANCE', 'SUPER_ADMIN', 'IT']);
+
+// All protected route prefixes (require authentication)
 const protectedRoutes = [
-  '/employee',
-  '/admin',
-  '/executive',
-  '/cto',
-  '/finance',
-  '/hr',
-  '/employees',
-  '/attendance',
-  '/leaves',
-  '/assets',
-  '/compliance',
-  '/audit',
-  '/onboarding',
-  '/offboarding',
-  '/knowledge',
-  '/workflows',
-  '/recruitment',
-  '/payroll',
-  '/performance',
-  '/org-chart',
-  '/settings'
+  '/employee', '/admin', '/executive', '/cto', '/finance', '/hr',
+  '/employees', '/attendance', '/leaves', '/assets', '/compliance',
+  '/audit', '/onboarding', '/offboarding', '/knowledge', '/workflows',
+  '/recruitment', '/payroll', '/performance', '/org-chart', '/settings',
 ];
 
-// List of all role base paths to prevent cross-role access
-const roleNamespaces = [
-  '/employee',
-  '/admin',
-  '/executive',
-  '/cto',
-  '/finance',
-  '/hr'
-];
+// Role-specific dashboard namespaces (cross-role isolation)
+const roleNamespaces = ['/employee', '/admin', '/executive', '/cto', '/finance', '/hr'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Skip middleware for public routes and static files
-  if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/api') ||
-    pathname.includes('.')
-  ) {
+  // Always pass through Next.js internals and static files
+  if (pathname.startsWith('/_next') || pathname.startsWith('/api') || pathname.includes('.')) {
     return NextResponse.next();
   }
 
   const token = request.cookies.get('token')?.value;
-  const role = request.cookies.get('role')?.value?.toUpperCase();
+  const rawRole = request.cookies.get('role')?.value?.toUpperCase() ?? '';
+  const role = rawRole || 'EMPLOYEE';
 
-  // If an authenticated user tries to visit any login-related route, redirect them to their dashboard
+  // ─── Redirect authenticated users away from /login ───────────────────────
   if (token && pathname.startsWith('/login')) {
-    const targetDashboard = (role ? roleDashboardMap[role] : null) || '/employee/dashboard';
-    return NextResponse.redirect(new URL(targetDashboard, request.url));
-  }
-  // Check if it's a protected route
-  const isProtectedRoute = protectedRoutes.some(route => 
-    pathname === route || pathname.startsWith(`${route}/`)
-  );
-
-  // If trying to access a protected route without a token, redirect to login
-  if (isProtectedRoute && !token) {
-    const loginUrl = new URL('/login', request.url);
-    return NextResponse.redirect(loginUrl);
+    const target = roleDashboardMap[role] ?? '/employee/dashboard';
+    return NextResponse.redirect(new URL(target, request.url));
   }
 
-  // RBAC for Role-Specific Dashboards
-  if (token && role) {
-    const targetDashboard = roleDashboardMap[role] || '/employee/dashboard';
+  // ─── Enforce authentication on protected routes ───────────────────────────
+  const isProtected = protectedRoutes.some(r => pathname === r || pathname.startsWith(`${r}/`));
+  if (isProtected && !token) {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
 
-    // Strict Cross-Role Isolation
-    // If the user tries to access ANY role namespace that doesn't match their designated target, bounce them.
+  // ─── Module-level RBAC (authenticated users only) ────────────────────────
+  if (token) {
+    const targetDashboard = roleDashboardMap[role] ?? '/employee/dashboard';
+
+    // 1. Leave Approvals — only approver roles (HR, CHRO, MANAGER, CTO, SUPER_ADMIN)
+    //    CEO is excluded — CEO sees read-only summary only on their Executive Dashboard
+    if (pathname.startsWith('/leaves/approvals')) {
+      if (!leaveApproverRoles.has(role)) {
+        return NextResponse.redirect(new URL('/access-restricted', request.url));
+      }
+    }
+
+    // 2. Audit Log — SUPER_ADMIN only per RBAC matrix
+    if (pathname.startsWith('/audit') && role !== 'SUPER_ADMIN') {
+      return NextResponse.redirect(new URL('/access-restricted', request.url));
+    }
+
+    // 3. Employee directory — plain EMPLOYEE role cannot access the directory
+    if (pathname.startsWith('/employees') && !employeeViewRoles.has(role)) {
+      return NextResponse.redirect(new URL('/access-restricted', request.url));
+    }
+
+    // 4. Employee add/edit write operations — HR, CHRO, SUPER_ADMIN, IT only
+    const isEmployeeWrite =
+      pathname.startsWith('/employees/add') ||
+      !!pathname.match(/^\/employees\/[^/]+\/edit/);
+    if (isEmployeeWrite && !['HR', 'CHRO', 'SUPER_ADMIN', 'IT'].includes(role)) {
+      return NextResponse.redirect(new URL('/access-restricted', request.url));
+    }
+
+    // 5. Admin panel — SUPER_ADMIN and IT only
+    if (pathname.startsWith('/admin') && !['SUPER_ADMIN', 'IT'].includes(role)) {
+      return NextResponse.redirect(new URL('/access-restricted', request.url));
+    }
+
+    // ─── Strict cross-role namespace isolation ───────────────────────────────
     for (const ns of roleNamespaces) {
-      // If the current path is inside a restricted namespace...
       if (pathname === ns || pathname.startsWith(`${ns}/`)) {
-        // And their target dashboard does NOT start with this namespace...
         if (!targetDashboard.startsWith(ns)) {
-          // Kick them back to their authorized dashboard!
           return NextResponse.redirect(new URL(targetDashboard, request.url));
         }
       }
     }
-    
-    // Auto-redirect from root / to their respective dashboard
+
+    // ─── Root / → their respective dashboard ─────────────────────────────────
     if (pathname === '/') {
       return NextResponse.redirect(new URL(targetDashboard, request.url));
     }
 
-    // Auto-redirect from their namespace root (e.g., /executive) to the dashboard (e.g., /executive/dashboard)
-    if (pathname === targetDashboard.split('/dashboard')[0]) {
-       return NextResponse.redirect(new URL(targetDashboard, request.url));
+    // ─── Namespace root (e.g. /executive) → their dashboard ──────────────────
+    const nsRoot = targetDashboard.split('/dashboard')[0];
+    if (nsRoot && pathname === nsRoot) {
+      return NextResponse.redirect(new URL(targetDashboard, request.url));
     }
   }
 
@@ -114,4 +120,3 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };
-
