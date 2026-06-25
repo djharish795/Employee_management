@@ -224,13 +224,15 @@ model AttendanceRecord {
   createdAt       DateTime         @default(now())
   date            DateTime         @db.Date
   employeeId      String
-  isRegularized   Boolean          @default(false)
-  notes           String?
-  overtime        Decimal?         @db.Decimal(5, 2)
-  regularizedById String?
-  status          AttendanceStatus @default(PRESENT)
-  updatedAt       DateTime         @updatedAt
-  workHours       Decimal?         @db.Decimal(5, 2)
+  isRegularized         Boolean          @default(false)
+  notes                 String?
+  overtime              Decimal?         @db.Decimal(5, 2)
+  regularizedById       String?
+  status                AttendanceStatus @default(PRESENT)
+  totalBreakSeconds     Int              @default(0)
+  currentBreakStartTime DateTime?
+  updatedAt             DateTime         @updatedAt
+  workHours             Decimal?         @db.Decimal(5, 2)
   employee        Employee         @relation(fields: [employeeId], references: [id])
   regularizedBy   Employee?        @relation("AttendanceRegularizer", fields: [regularizedById], references: [id])
 
@@ -290,6 +292,8 @@ model LeaveRequest {
   status             LeaveRequestStatus @default(PENDING)
   totalDays          Decimal            @db.Decimal(4, 1)
   workflowInstanceId String?
+  approvalQueue      Json?
+  currentStep        Int                @default(0)
   approver           Employee?          @relation("LeaveApprover", fields: [approverId], references: [id])
   employee           Employee           @relation("LeaveRequester", fields: [employeeId], references: [id])
   leaveType          LeaveType          @relation(fields: [leaveTypeId], references: [id])

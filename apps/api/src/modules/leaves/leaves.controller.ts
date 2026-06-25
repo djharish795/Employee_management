@@ -1,20 +1,47 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Req, UseGuards } from '@nestjs/common';
 import { ApplyLeaveDto } from './dto/apply-leave.dto';
 import { LeavesService } from './leaves.service';
+// Add proper guards and auth when integrating fully
+// import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('leaves')
+// @UseGuards(JwtAuthGuard) // Uncomment when authentication is ready
 export class LeavesController {
 
   constructor(private readonly leaveService: LeavesService) {}
 
-  @Get()
-getLeaves(): any {
-  return this.leaveService.getLeaves();
-}
+  @Get('kpi/:employeeId')
+  getLeavesKPI(@Param('employeeId') employeeId: string): Promise<unknown> {
+    return this.leaveService.getLeavesKPI(employeeId);
+  }
 
-@Post('apply')
-applyLeave(@Body() data: ApplyLeaveDto): Promise<any> {
-  return this.leaveService.applyLeave(data);
-}
+  @Get('approvals/:approverId')
+  getApprovals(@Param('approverId') approverId: string): Promise<unknown> {
+    return this.leaveService.getApprovals(approverId);
+  }
 
+  @Post('apply')
+  applyLeave(@Body() data: ApplyLeaveDto): Promise<unknown> {
+    return this.leaveService.applyLeave(data);
+  }
+
+  @Post(':id/approve')
+  approveLeave(@Param('id') id: string, @Body('approverId') approverId: string): Promise<unknown> {
+    return this.leaveService.approveLeave(id, approverId);
+  }
+
+  @Post(':id/reject')
+  rejectLeave(@Param('id') id: string, @Body('approverId') approverId: string, @Body('reason') reason: string): Promise<unknown> {
+    return this.leaveService.rejectLeave(id, approverId, reason || 'No reason provided');
+  }
+
+  @Post('admin/accrue-monthly')
+  accrueMonthlyLeaves(): Promise<unknown> {
+    return this.leaveService.accrueMonthlyLeaves();
+  }
+
+  @Get('calendar')
+  getCalendar(): Promise<unknown> {
+    return this.leaveService.getCalendar();
+  }
 }

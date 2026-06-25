@@ -11,9 +11,9 @@ interface DashboardPanelProps {
 }
 
 const INITIAL_REQUESTS: LeaveRequest[] = [
-  { id: "L-101", type: "CASUAL_LEAVE", startDate: "20 Jun 2026", endDate: "21 Jun 2026", days: 2, reason: "Attending family function", status: "APPROVED", submittedDate: "15 Jun 2026", employeeName: "Arjun Mehta", department: "Engineering", emergencyContact: "+91 9988776655" },
-  { id: "L-102", type: "SICK_LEAVE", startDate: "18 Jun 2026", endDate: "18 Jun 2026", days: 1, reason: "Severe migraine", status: "PENDING", submittedDate: "17 Jun 2026", employeeName: "Linda Chen", department: "Product Design", emergencyContact: "+91 8877665544" },
-  { id: "L-103", type: "EARNED_LEAVE", startDate: "05 Jul 2026", endDate: "10 Jul 2026", days: 6, reason: "Annual family summer vacation", status: "PENDING", submittedDate: "16 Jun 2026", employeeName: "Marcus Thorne", department: "Legal & Compliance", emergencyContact: "+91 7766554433" },
+  { id: "L-101", type: "CASUAL_LEAVE", startDate: "20 Jun 2026", endDate: "21 Jun 2026", days: 2, reason: "Attending family function", status: "APPROVED", submittedDate: "15 Jun 2026", employeeName: "Arjun Mehta", department: "Engineering", emergencyContact: "+91 9988776655", currentStep: 3, approvalQueue: [{role: 'TR', status: 'APPROVED'}, {role: 'HR', status: 'APPROVED'}, {role: 'OR', status: 'APPROVED'}] },
+  { id: "L-102", type: "SICK_LEAVE", startDate: "18 Jun 2026", endDate: "18 Jun 2026", days: 1, reason: "Severe migraine", status: "PENDING", submittedDate: "17 Jun 2026", employeeName: "Linda Chen", department: "Product Design", emergencyContact: "+91 8877665544", currentStep: 1, approvalQueue: [{role: 'TR', status: 'APPROVED'}, {role: 'HR', status: 'PENDING'}, {role: 'OR', status: 'PENDING'}] },
+  { id: "L-103", type: "EARNED_LEAVE", startDate: "05 Jul 2026", endDate: "10 Jul 2026", days: 6, reason: "Annual family summer vacation", status: "PENDING", submittedDate: "16 Jun 2026", employeeName: "Marcus Thorne", department: "Legal & Compliance", emergencyContact: "+91 7766554433", currentStep: 0, approvalQueue: [{role: 'TR', status: 'PENDING'}, {role: 'HR', status: 'PENDING'}, {role: 'OR', status: 'PENDING'}] },
 ];
 
 const INITIAL_BALANCES: LeaveBalance[] = [

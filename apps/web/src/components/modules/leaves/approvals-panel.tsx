@@ -20,11 +20,17 @@ export default function ApprovalsPanel({ activeRole }: ApprovalsPanelProps) {
   const [filterStatus, setFilterStatus] = useState("PENDING");
 
   const fetchRequests = async (): Promise<LeaveRequest[]> => {
+    const INITIAL_REQUESTS: LeaveRequest[] = [
+      { id: "L-101", type: "CASUAL_LEAVE", startDate: "20 Jun 2026", endDate: "21 Jun 2026", days: 2, reason: "Attending family function", status: "APPROVED", submittedDate: "15 Jun 2026", employeeName: "Arjun Mehta", department: "Engineering", emergencyContact: "+91 9988776655", currentStep: 3, approvalQueue: [{role: 'TR', status: 'APPROVED'}, {role: 'HR', status: 'APPROVED'}, {role: 'OR', status: 'APPROVED'}] },
+      { id: "L-102", type: "SICK_LEAVE", startDate: "18 Jun 2026", endDate: "18 Jun 2026", days: 1, reason: "Severe migraine", status: "PENDING", submittedDate: "17 Jun 2026", employeeName: "Linda Chen", department: "Product Design", emergencyContact: "+91 8877665544", currentStep: 1, approvalQueue: [{role: 'TR', status: 'APPROVED'}, {role: 'HR', status: 'PENDING'}, {role: 'OR', status: 'PENDING'}] },
+      { id: "L-103", type: "EARNED_LEAVE", startDate: "05 Jul 2026", endDate: "10 Jul 2026", days: 6, reason: "Annual family summer vacation", status: "PENDING", submittedDate: "16 Jun 2026", employeeName: "Marcus Thorne", department: "Legal & Compliance", emergencyContact: "+91 7766554433", currentStep: 0, approvalQueue: [{role: 'TR', status: 'PENDING'}, {role: 'HR', status: 'PENDING'}, {role: 'OR', status: 'PENDING'}] },
+    ];
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem(LOCAL_REGS_KEY);
       if (saved) return JSON.parse(saved);
+      localStorage.setItem(LOCAL_REGS_KEY, JSON.stringify(INITIAL_REQUESTS));
     }
-    return [];
+    return INITIAL_REQUESTS;
   };
 
   const { data: requests = [], refetch } = useQuery<LeaveRequest[]>({
@@ -58,7 +64,30 @@ export default function ApprovalsPanel({ activeRole }: ApprovalsPanelProps) {
     mutationFn: async ({ id, status, comments }: { id: string; status: LeaveRequest["status"]; comments?: string }) => {
       const updated = requests.map((r) => {
         if (r.id === id) {
-          return { ...r, status, comments };
+          const newRequest = { ...r, comments };
+          if (newRequest.approvalQueue && newRequest.currentStep !== undefined) {
+             const queue = [...newRequest.approvalQueue];
+             const currentStepIdx = newRequest.currentStep;
+             
+             // OR / CEO override simulation
+             if (activeRole === "CEO" || activeRole === "HR" && status === "APPROVED") { // Simply marking all as approved if full override, but let's just do sequential
+                 if (queue[currentStepIdx]) {
+                     queue[currentStepIdx] = { ...queue[currentStepIdx], status };
+                 }
+                 newRequest.approvalQueue = queue;
+                 newRequest.currentStep = currentStepIdx + 1;
+                 
+                 // If last step or rejected, update main status
+                 if (status === "REJECTED" || newRequest.currentStep >= queue.length) {
+                     newRequest.status = status;
+                 } else {
+                     newRequest.status = "PENDING";
+                 }
+             }
+          } else {
+             newRequest.status = status;
+          }
+          return newRequest;
         }
         return r;
       });
@@ -230,6 +259,35 @@ export default function ApprovalsPanel({ activeRole }: ApprovalsPanelProps) {
                     {selectedRequest.reason}
                   </p>
                 </div>
+
+                {/* Queue Visualization */}
+                {selectedRequest.approvalQueue && selectedRequest.approvalQueue.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-slate-100">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Approval Progress</span>
+                    <div className="flex flex-col gap-2">
+                      {selectedRequest.approvalQueue.map((step, idx) => (
+                        <div key={idx} className="flex items-center gap-3">
+                          <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center border text-[10px] font-bold ${
+                            step.status === 'APPROVED' ? 'bg-emerald-100 border-emerald-200 text-emerald-700' :
+                            step.status === 'REJECTED' ? 'bg-rose-100 border-rose-200 text-rose-700' :
+                            idx === selectedRequest.currentStep ? 'bg-amber-100 border-amber-200 text-amber-700 animate-pulse' :
+                            'bg-slate-50 border-slate-200 text-slate-400'
+                          }`}>
+                            {step.status === 'APPROVED' ? <Check className="w-3.5 h-3.5" /> : step.status === 'REJECTED' ? <X className="w-3.5 h-3.5" /> : (idx + 1)}
+                          </div>
+                          <div className="flex-1 flex justify-between items-center bg-slate-50 border border-slate-100 rounded p-2">
+                             <span className="font-bold text-slate-800 text-xs">{step.role}</span>
+                             <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                               step.status === 'APPROVED' ? 'text-emerald-700 bg-emerald-50' :
+                               step.status === 'REJECTED' ? 'text-rose-700 bg-rose-50' :
+                               'text-slate-500 bg-slate-100'
+                             }`}>{step.status}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Approver Action Panel */}
                 {selectedRequest.status === "PENDING" && (

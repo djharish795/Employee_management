@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "../../prisma/prisma.service";
 
 @Injectable()
 export class LeavesRepository {
@@ -13,7 +13,7 @@ export class LeavesRepository {
     });
 
     if (!employee) {
-      throw new NotFoundException('Employee not found');
+      throw new NotFoundException("Employee not found");
     }
 
     const leaveType = await this.prisma.leaveType.findUnique({
@@ -23,7 +23,7 @@ export class LeavesRepository {
     });
 
     if (!leaveType) {
-      throw new NotFoundException('Leave type not found');
+      throw new NotFoundException("Leave type not found");
     }
 
     return this.prisma.leaveRequest.create({

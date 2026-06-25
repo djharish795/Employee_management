@@ -2,7 +2,7 @@ export interface AttendanceLog {
   date: string;
   checkIn: string;
   checkOut: string;
-  hoursWorked: string;
+  hoursWorked: number | string;
   status: "PRESENT" | "LATE" | "WFH" | "ABSENT" | "ON_LEAVE";
   remarks: string;
 }

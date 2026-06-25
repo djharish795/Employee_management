@@ -20,21 +20,59 @@ export class AttendanceService {
     return d;
   }
 
-  async getTodayStatus(employeeId: string) {
-    if (!employeeId) throw new BadRequestException("Employee ID is required");
+  private async getState(employeeId: string) {
+    const key = this.getRedisKey(employeeId);
+    let state = await this.redis.getJson<any>(key);
     
-    const state = await this.redis.getJson<any>(this.getRedisKey(employeeId));
     if (!state) {
-      return { state: "OUT", startTime: 0, offset: 0, shiftDate: null };
+      const today = this.getTodayUTC();
+      const dbRecord = await this.prisma.attendanceRecord.findUnique({
+        where: { employeeId_date: { employeeId, date: today } }
+      });
+
+      if (dbRecord && !dbRecord.checkOutTime && dbRecord.checkInTime) {
+        const now = Date.now();
+        const checkInTime = dbRecord.checkInTime.getTime();
+        
+        let currentState = "IN";
+        let startTime = now;
+        let offset = 0;
+
+        if ((dbRecord as any).currentBreakStartTime) {
+          currentState = "BREAK";
+          startTime = (dbRecord as any).currentBreakStartTime.getTime();
+          offset = Math.floor((startTime - checkInTime) / 1000) - (dbRecord as any).totalBreakSeconds;
+        } else {
+          const totalElapsedSeconds = Math.floor((now - checkInTime) / 1000) - ((dbRecord as any).totalBreakSeconds || 0);
+          offset = totalElapsedSeconds;
+          startTime = now;
+        }
+
+        state = {
+          state: currentState,
+          startTime: startTime,
+          offset: Math.max(0, offset),
+          shiftDate: dbRecord.date.toISOString()
+        };
+        
+        await this.redis.setJson(key, state, 60 * 60 * 24);
+      } else {
+        state = { state: "OUT", startTime: 0, offset: 0, shiftDate: null };
+      }
     }
     return state;
+  }
+
+  async getTodayStatus(employeeId: string) {
+    if (!employeeId) throw new BadRequestException("Employee ID is required");
+    return await this.getState(employeeId);
   }
 
   async punch(employeeId: string, dto: PunchDto, ipAddress: string) {
     if (!employeeId) throw new BadRequestException("Employee ID is required");
 
     const key = this.getRedisKey(employeeId);
-    let state = await this.redis.getJson<any>(key) || { state: "OUT", startTime: 0, offset: 0, shiftDate: null };
+    let state = await this.getState(employeeId);
     const now = Date.now();
     const today = this.getTodayUTC();
 
@@ -49,6 +87,18 @@ export class AttendanceService {
       }
 
       const shiftDate = new Date(state.shiftDate);
+
+      const isReturnFromBreak = state.state === "BREAK";
+      if (isReturnFromBreak) {
+        const breakElapsed = Math.floor((now - state.startTime) / 1000);
+        await this.prisma.attendanceRecord.update({
+          where: { employeeId_date: { employeeId, date: shiftDate } },
+          data: {
+            totalBreakSeconds: { increment: breakElapsed },
+            currentBreakStartTime: null
+          } as any
+        }).catch(() => {}); // Ignore if DB record doesn't exist yet (edge case)
+      }
 
       state.state = "IN";
       state.startTime = now;
@@ -83,6 +133,13 @@ export class AttendanceService {
       state.state = "BREAK";
       state.startTime = now;
       await this.redis.setJson(key, state, 60 * 60 * 24);
+
+      const shiftDate = state.shiftDate ? new Date(state.shiftDate) : today;
+      await this.prisma.attendanceRecord.update({
+        where: { employeeId_date: { employeeId, date: shiftDate } },
+        data: { currentBreakStartTime: new Date(now) } as any
+      }).catch(() => {});
+
       return state;
     }
 
