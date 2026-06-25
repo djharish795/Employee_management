@@ -31,3 +31,11 @@ export const ROLE_DASHBOARD_PATH: Record<UserRole, string> = {
 export function getDashboardPathForRole(role: string): string {
   return ROLE_DASHBOARD_PATH[role as UserRole] ?? "/employee/dashboard";
 }
+
+export enum Permission {
+  READ_EMPLOYEES = "READ_EMPLOYEES",
+  WRITE_EMPLOYEES = "WRITE_EMPLOYEES",
+  READ_TEAM_PROFILES = "READ_TEAM_PROFILES",
+  READ_OWN_PROFILE = "READ_OWN_PROFILE",
+  WRITE_OWN_PROFILE = "WRITE_OWN_PROFILE",
+}

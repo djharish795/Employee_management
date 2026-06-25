@@ -5,9 +5,10 @@ import { Check } from 'lucide-react';
 interface StepperProps {
   steps: WizardStep[];
   activeStep: number;
+  onStepClick?: (stepNum: number) => void;
 }
 
-export function Stepper({ steps, activeStep }: StepperProps) {
+export function Stepper({ steps, activeStep, onStepClick }: StepperProps) {
   return (
     <div className="bg-white border-b border-slate-200 px-8 py-6 sticky top-0 z-30">
       <div className="max-w-6xl mx-auto">
@@ -26,7 +27,11 @@ export function Stepper({ steps, activeStep }: StepperProps) {
             const isCompleted = step.num < activeStep;
             
             return (
-              <div key={step.num} className="flex flex-col items-center gap-2 relative z-10 bg-white px-3">
+              <div 
+                key={step.num} 
+                className={`flex flex-col items-center gap-2 relative z-10 bg-white px-3 ${onStepClick ? 'cursor-pointer hover:opacity-80' : ''}`}
+                onClick={() => onStepClick && onStepClick(step.num)}
+              >
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
                   isActive 
                     ? 'bg-[#0052CC] text-white shadow-[0_0_0_4px_rgba(0,82,204,0.1)]' 

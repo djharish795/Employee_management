@@ -63,40 +63,40 @@ export function DashboardClient() {
     (headcountData?.reduce((acc: number, curr: any) => acc + curr.count, 0) || 0);
 
   return (
-    <div className="flex-1 w-full p-6 md:p-8 bg-slate-50 min-h-screen font-sans">
+    <div className="flex-1 w-full p-4 sm:p-6 md:p-8 bg-slate-50 min-h-screen font-sans">
       
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-8">
         <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Organisation overview</h1>
-          <p className="text-sm font-medium text-slate-500 mt-1">Reporting period: December 2024</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Organisation overview</h1>
+          <p className="text-xs sm:text-sm font-medium text-slate-500 mt-1">Reporting period: December 2024</p>
         </div>
-        <Button variant="outline" className="flex items-center gap-2 bg-white text-slate-700 border-slate-200 hover:bg-slate-100 font-semibold shadow-sm">
+        <Button variant="outline" className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white text-slate-700 border-slate-200 hover:bg-slate-100 font-semibold shadow-sm">
           <Download className="w-4 h-4" />
           Export report
         </Button>
       </div>
 
-      {/* KPI Grid (Top Row) */}
+      {/* KPI Grid (Top Row) — 1 col mobile, 2 tablet, 4 desktop */}
       <div className="mb-6">
         <KpiGrid metrics={kpiData} />
       </div>
 
-      {/* Main Grid Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Main Grid Content — stacks vertically on mobile, 3 cols on lg+ */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         
-        {/* Left Column (Headcount chart spans 1 column but might be wider on tablet) */}
-        <div className="lg:col-span-1">
+        {/* Headcount Chart — full width on mobile/tablet, 1 col on desktop */}
+        <div className="md:col-span-1">
           <HeadcountChart data={headcountData} total={totalEmployees} />
         </div>
 
-        {/* Middle Column (Highlights) */}
-        <div className="lg:col-span-1">
+        {/* Highlights — full width on mobile, half on tablet, 1 col desktop */}
+        <div className="md:col-span-1">
           <HighlightsPanel highlights={highlightsData} />
         </div>
 
-        {/* Right Column (Quick Links) */}
-        <div className="lg:col-span-1">
+        {/* Quick Links — full width on mobile, full on tablet (2nd row), 1 col desktop */}
+        <div className="md:col-span-2 lg:col-span-1">
           <QuickLinks links={quickLinksData} />
         </div>
 
@@ -104,3 +104,4 @@ export function DashboardClient() {
     </div>
   );
 }
+

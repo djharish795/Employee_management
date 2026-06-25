@@ -36,6 +36,9 @@ import {
 import { Employee, DirectoryRole, DirectoryRoleConfig, DirectoryFilters } from "@/types/employees";
 import { useAuthStore } from "@/store/auth";
 
+import { EmployeeActionModals } from "./employee-action-modals";
+import { EmployeeRowActions, EmployeeActionType } from "./employee-row-actions";
+
 // Role Configurations for visibility & action controls
 const ROLE_CONFIGS: Record<DirectoryRole, DirectoryRoleConfig> = {
   ADMIN: {
@@ -269,11 +272,17 @@ const CACHE_KEY = "naprocs_directory_employees";
 export default function EmployeeDirectory() {
   const queryClient = useQueryClient();
 
-  // Local state to simulate active role testing
   const [activeRole, setActiveRole] = useState<DirectoryRole>("ADMIN");
+  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [showFilters, setShowFilters] = useState(false);
+
+  const [actionModalState, setActionModalState] = useState<{
+    isOpen: boolean;
+    type: EmployeeActionType | null;
+    employee: Employee | null;
+  }>({ isOpen: false, type: null, employee: null });
 
   // Filters State
   const [filters, setFilters] = useState<DirectoryFilters>({
@@ -379,11 +388,15 @@ export default function EmployeeDirectory() {
     },
   });
 
+  // Derived bulk properties
+  const selectedIds = Object.keys(rowSelection).filter((key) => rowSelection[key]);
+  const selectedEmployeesList = rawEmployees.filter(emp => selectedIds.includes(emp.id));
+  const isAllDeactivated = selectedEmployeesList.length > 0 && selectedEmployeesList.every(emp => emp.status === "DEACTIVATED");
+
   const handleBulkDeactivate = () => {
-    const selectedIds = Object.keys(rowSelection).filter((key) => rowSelection[key]);
     const updated = rawEmployees.map((emp) => {
       if (selectedIds.includes(emp.id)) {
-        return { ...emp, status: "DEACTIVATED" as const };
+        return { ...emp, status: isAllDeactivated ? "ACTIVE" : "DEACTIVATED" as const };
       }
       return emp;
     });
@@ -391,22 +404,53 @@ export default function EmployeeDirectory() {
   };
 
   const handleBulkAssignManager = () => {
-    const selectedIds = Object.keys(rowSelection).filter((key) => rowSelection[key]);
-    const updated = rawEmployees.map((emp) => {
-      if (selectedIds.includes(emp.id)) {
-        return {
-          ...emp,
-          manager: {
-            id: "NAP-0001",
-            name: "Alex Thompson",
-            photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Alex",
-          },
-        };
-      }
-      return emp;
-    });
-    updateEmployeesMutation.mutate(updated);
+    // Instead of randomly assigning, open the Assign Manager modal for the first selected employee
+    // In a real app, you'd have a specific Bulk Assign Manager modal.
+    if (selectedEmployeesList.length > 0) {
+      setActionModalState({ isOpen: true, type: "assign-manager", employee: selectedEmployeesList[0] });
+    }
   };
+
+  // Row Action Handlers
+  const handleAction = (action: EmployeeActionType, employeeId: string) => {
+    const employee = rawEmployees.find(e => e.id === employeeId);
+    if (!employee) return;
+    
+    if (action === "view-documents" || action === "download-pdf") {
+      alert(`Simulating ${action} for ${employee.name}`);
+      return;
+    }
+    
+    setActionModalState({ isOpen: true, type: action, employee });
+  };
+
+  const handleActionSuccess = (action: EmployeeActionType, employeeId: string, payload?: any) => {
+    let updatedList = [...rawEmployees];
+    
+    if (action === "delete") {
+      updatedList = updatedList.filter(e => e.id !== employeeId);
+    } else {
+      updatedList = updatedList.map(emp => {
+        if (emp.id !== employeeId) return emp;
+        
+        switch (action) {
+          case "edit":
+          case "transfer-dept":
+          case "change-designation":
+          case "assign-manager":
+            return { ...emp, ...payload };
+          case "toggle-status":
+            return { ...emp, status: emp.status === "DEACTIVATED" ? "ACTIVE" : "DEACTIVATED" };
+          default:
+            return emp;
+        }
+      });
+    }
+    
+    updateEmployeesMutation.mutate(updatedList);
+  };
+
+
 
   // Define unique lists for dropdown filters
   const departments = useMemo(
@@ -600,29 +644,35 @@ export default function EmployeeDirectory() {
             <div className="flex items-center gap-4">
               <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Employee Directory</h1>
               {/* Premium Interactive Role Config Switcher */}
-              <div className="relative inline-block text-left group">
-                <button className="flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-full transition-all shadow-sm">
+              <div className="relative inline-block text-left">
+                <button 
+                  onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
+                  className="flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-full transition-all shadow-sm"
+                >
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-700 animate-pulse" />
                   View Config: <span className="text-slate-900 font-bold">{activeRole}</span>
-                  <ChevronDown className="w-3 h-3 text-slate-400" />
+                  <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${isRoleDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
-                <div className="absolute left-0 mt-1.5 w-40 bg-white border border-slate-200 rounded-lg shadow-lg py-1 hidden group-hover:block z-50">
-                  {(["ADMIN", "HR", "CEO", "MANAGER"] as DirectoryRole[]).map((role) => (
-                    <button
-                      key={role}
-                      onClick={() => {
-                        setActiveRole(role);
-                        setRowSelection({});
-                      }}
-                      className={`w-full text-left px-3.5 py-2 text-xs font-medium hover:bg-slate-50 flex items-center justify-between ${
-                        activeRole === role ? "text-slate-900 bg-slate-100/50 font-bold" : "text-slate-600"
-                      }`}
-                    >
-                      {role}
-                      {activeRole === role && <Check className="w-3.5 h-3.5 text-slate-900" />}
-                    </button>
-                  ))}
-                </div>
+                {isRoleDropdownOpen && (
+                  <div className="absolute left-0 mt-1.5 w-40 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-50">
+                    {(["ADMIN", "HR", "CEO", "MANAGER"] as DirectoryRole[]).map((role) => (
+                      <button
+                        key={role}
+                        onClick={() => {
+                          setActiveRole(role);
+                          setRowSelection({});
+                          setIsRoleDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-3.5 py-2 text-xs font-medium hover:bg-slate-50 flex items-center justify-between ${
+                          activeRole === role ? "text-slate-900 bg-slate-100/50 font-bold" : "text-slate-600"
+                        }`}
+                      >
+                        {role}
+                        {activeRole === role && <Check className="w-3.5 h-3.5 text-slate-900" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             <p className="text-sm font-medium text-slate-500 mt-1">
@@ -819,10 +869,14 @@ export default function EmployeeDirectory() {
                 {roleConfig.canBulkDeactivate && (
                   <button
                     onClick={handleBulkDeactivate}
-                    className="flex items-center gap-1.5 h-8 px-3 rounded-md bg-white border border-rose-200 hover:bg-rose-50 text-rose-600 font-semibold text-xs shadow-sm transition-colors"
+                    className={`flex items-center gap-1.5 h-8 px-3 rounded-md border font-semibold text-xs shadow-sm transition-colors ${
+                      isAllDeactivated 
+                        ? "bg-white border-emerald-200 hover:bg-emerald-50 text-emerald-600" 
+                        : "bg-white border-rose-200 hover:bg-rose-50 text-rose-600"
+                    }`}
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    Deactivate
+                    {isAllDeactivated ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Trash2 className="w-3.5 h-3.5" />}
+                    {isAllDeactivated ? "Activate" : "Deactivate"}
                   </button>
                 )}
 
@@ -894,13 +948,16 @@ export default function EmployeeDirectory() {
                         ))}
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Link href={`/employees/${row.original.id}`} className="text-xs font-bold text-slate-900 hover:text-slate-900 transition-colors">
+                            <Link href={`/employees/${row.original.id}`} className="text-xs font-bold text-slate-900 hover:underline transition-colors">
                               View
                             </Link>
                             <span className="text-slate-300 select-none">•</span>
-                            <button className="hover:text-slate-600 transition-colors">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </button>
+                            <EmployeeRowActions 
+                              employeeId={row.original.id} 
+                              employeeName={row.original.name} 
+                              status={row.original.status}
+                              onAction={handleAction} 
+                            />
                           </div>
                         </td>
                       </tr>
@@ -930,18 +987,18 @@ export default function EmployeeDirectory() {
                           }}
                           className="rounded border-slate-300 text-slate-900 focus:ring-slate-900 w-4 h-4 cursor-pointer"
                         />
-                        <div className="flex items-center gap-2">
-                          <Link href={`/employees/${emp.id}`} className="text-xs font-bold text-slate-900 hover:underline opacity-0 group-hover:opacity-100 transition-opacity">
-                            View
-                          </Link>
-                          <button className="text-slate-400 hover:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </button>
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <EmployeeRowActions 
+                            employeeId={emp.id} 
+                            employeeName={emp.name} 
+                            status={emp.status}
+                            onAction={handleAction} 
+                          />
                         </div>
                       </div>
 
                       {/* Info body */}
-                      <div className="flex items-center gap-3">
+                      <Link href={`/employees/${emp.id}`} className="flex items-center gap-3 hover:bg-slate-50 p-1 -m-1 rounded-lg transition-colors">
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center text-base font-bold flex-shrink-0 relative border border-slate-200 shadow-sm overflow-hidden ${emp.avatarBg}`}>
                           {emp.photoUrl ? (
                             <img src={emp.photoUrl} alt={emp.name} className="w-full h-full object-cover" />
@@ -956,7 +1013,7 @@ export default function EmployeeDirectory() {
                             {emp.employeeId || emp.id}
                           </span>
                         </div>
-                      </div>
+                      </Link>
 
                       {/* Footer tags */}
                       <div className="flex items-center justify-between border-t border-slate-100 pt-3 mt-3">
@@ -1094,6 +1151,16 @@ export default function EmployeeDirectory() {
           )}
         </div>
       </div>
+
+
+
+      <EmployeeActionModals 
+        actionType={actionModalState.type}
+        employee={actionModalState.employee}
+        isOpen={actionModalState.isOpen}
+        onClose={() => setActionModalState({ isOpen: false, type: null, employee: null })}
+        onSuccess={handleActionSuccess}
+      />
     </div>
   );
 }
