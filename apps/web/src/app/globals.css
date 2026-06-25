@@ -9,6 +9,7 @@
     --font-heading: var(--font-sans);
     --font-sans: var(--font-sans)
   }
+
   :root {
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
@@ -43,6 +44,7 @@
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0)
   }
+
   .dark {
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
@@ -76,15 +78,18 @@
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0)
   }
+
   * {
     @apply border-border outline-ring/50;
     box-sizing: border-box;
   }
+
   body {
     @apply bg-background text-foreground;
     /* Prevent horizontal overflow on mobile */
     overflow-x: hidden;
   }
+
   html {
     @apply font-sans;
     overflow-x: hidden;
@@ -92,18 +97,22 @@
 }
 
 @layer utilities {
+
   /* Hide scrollbar but keep scrollability */
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
