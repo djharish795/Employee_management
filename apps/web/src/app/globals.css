@@ -86,13 +86,13 @@
 
   body {
     @apply bg-background text-foreground;
-    /* Prevent horizontal overflow on mobile */
-    overflow-x: hidden;
+    /* Prevent any outer scrollbars, as the layout manages its own scrolling */
+    overflow: hidden;
   }
 
   html {
     @apply font-sans;
-    overflow-x: hidden;
+    overflow: hidden;
   }
 }
 

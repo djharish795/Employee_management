@@ -30,30 +30,24 @@ export const BrandingPanel: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 flex flex-col items-center gap-10 select-none max-w-lg">
-        
-        {/* Glassmorphism Logo Container */}
-        <div className="relative p-12 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden group">
-          {/* subtle inner shine */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-          
-          <div className="relative w-[140px] h-[140px]">
-            <Image 
-              src="/logo.png" 
-              alt="Naprocs Logo" 
-              fill 
-              className="object-contain drop-shadow-[0_0_15px_rgba(37,99,235,0.3)]"
-              priority 
-            />
-          </div>
+      <div className="relative z-10 flex items-center gap-6 select-none max-w-lg">
+        {/* Logo Image */}
+        <div className="flex-shrink-0 relative w-[120px] h-[120px]">
+          <Image 
+            src="/logo.png" 
+            alt="Naprocs Logo" 
+            fill 
+            className="object-contain"
+            priority 
+          />
         </div>
 
         {/* Text Area */}
-        <div className="flex flex-col items-center justify-center text-center">
-          <h1 className="text-[48px] font-serif tracking-widest text-white leading-none mb-3 drop-shadow-lg">
+        <div className="flex flex-col justify-center translate-y-2">
+          <h1 className="text-[44px] font-serif tracking-wide text-white leading-none mb-1 drop-shadow-lg">
             NAPROCS
           </h1>
-          <p className="text-[22px] font-serif text-blue-200/80 tracking-widest drop-shadow-md">
+          <p className="text-[20px] font-serif text-slate-200 tracking-wide text-left drop-shadow-md">
             AI Echo System
           </p>
         </div>

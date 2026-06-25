@@ -99,176 +99,6 @@ const ROLE_CONFIGS: Record<DirectoryRole, DirectoryRoleConfig> = {
   },
 };
 
-// Seed Mock Data matching Figma screenshot elements
-const MOCK_EMPLOYEES: Employee[] = [
-  {
-    id: "uuid-1",
-    employeeId: "NAP-9821",
-    name: "Arjun Mehta",
-    email: "arjun.m@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Arjun&backgroundColor=dbeafe",
-    initials: "AM",
-    avatarBg: "bg-slate-200 text-slate-900",
-    department: "Engineering",
-    designation: "Staff Software Engineer",
-    status: "ACTIVE",
-    joinedDate: "12 May 2021",
-    location: "Bangalore, IN",
-    manager: {
-      id: "NAP-0001",
-      name: "Alex Thompson",
-      photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Alex",
-    },
-  },
-  {
-    id: "NAP-9742",
-    name: "Linda Chen",
-    email: "linda.c@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Linda&backgroundColor=fce7f3",
-    initials: "LC",
-    avatarBg: "bg-pink-100 text-pink-600",
-    department: "Product Design",
-    designation: "Sr. Product Designer",
-    status: "ACTIVE",
-    joinedDate: "03 Jan 2023",
-    location: "San Francisco, US",
-    manager: {
-      id: "NAP-0001",
-      name: "Alex Thompson",
-      photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Alex",
-    },
-  },
-  {
-    id: "NAP-9105",
-    name: "Marcus Thorne",
-    email: "marcus.t@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Marcus&backgroundColor=fef3c7",
-    initials: "MT",
-    avatarBg: "bg-orange-100 text-orange-600",
-    department: "Legal & Compliance",
-    designation: "VP of Compliance",
-    status: "ACTIVE",
-    joinedDate: "15 Nov 2020",
-    location: "Bangalore, IN",
-    manager: {
-      id: "NAP-0001",
-      name: "Alex Thompson",
-      photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Alex",
-    },
-  },
-  {
-    id: "NAP-9440",
-    name: "Sophia Rossi",
-    email: "sophia.r@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Sophia&backgroundColor=e0f2fe",
-    initials: "SR",
-    avatarBg: "bg-sky-100 text-sky-600",
-    department: "Sales & Marketing",
-    designation: "Regional Sales Lead",
-    status: "ACTIVE",
-    joinedDate: "22 Mar 2022",
-    location: "San Francisco, US",
-    manager: {
-      id: "NAP-0003",
-      name: "Sarah Q.",
-      photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Sarah",
-    },
-  },
-  {
-    id: "NAP-9311",
-    name: "Becca Williams",
-    email: "becca.w@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Becca&backgroundColor=f3e8ff",
-    initials: "BW",
-    avatarBg: "bg-purple-100 text-purple-600",
-    department: "Customer Success",
-    designation: "CS Manager",
-    status: "ACTIVE",
-    joinedDate: "09 Aug 2023",
-    location: "Bangalore, IN",
-    manager: {
-      id: "NAP-0003",
-      name: "Sarah Q.",
-      photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Sarah",
-    },
-  },
-  {
-    id: "NAP-9082",
-    name: "Ravi Kumar",
-    email: "ravi.k@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Ravi&backgroundColor=d1fae5",
-    initials: "RK",
-    avatarBg: "bg-emerald-100 text-emerald-600",
-    department: "Engineering",
-    designation: "DevOps Engineer",
-    status: "PROBATION",
-    joinedDate: "15 Nov 2024",
-    location: "Bangalore, IN",
-    manager: {
-      id: "NAP-9821",
-      name: "Arjun Mehta",
-      photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Arjun",
-    },
-  },
-  {
-    id: "NAP-9204",
-    name: "Anita M.",
-    email: "anita.m@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Anita&backgroundColor=fee2e2",
-    initials: "AM",
-    avatarBg: "bg-rose-100 text-rose-600",
-    department: "Engineering",
-    designation: "Frontend Developer",
-    status: "NOTICE PERIOD",
-    joinedDate: "14 Feb 2022",
-    location: "Mumbai, IN",
-    manager: {
-      id: "NAP-9821",
-      name: "Arjun Mehta",
-      photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Arjun",
-    },
-  },
-  {
-    id: "NAP-8401",
-    name: "Thomas Wright",
-    email: "thomas.w@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Thomas&backgroundColor=e0f2fe",
-    initials: "TW",
-    avatarBg: "bg-teal-100 text-teal-600",
-    department: "Operations",
-    designation: "Operations Director",
-    status: "ACTIVE",
-    joinedDate: "10 Oct 2019",
-    location: "London, UK",
-    manager: {
-      id: "NAP-0001",
-      name: "Alex Thompson",
-      photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Alex",
-    },
-  },
-  {
-    id: "NAP-8201",
-    name: "Carla Gomez",
-    email: "carla.g@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Carla&backgroundColor=fce7f3",
-    initials: "CG",
-    avatarBg: "bg-fuchsia-100 text-fuchsia-600",
-    department: "Customer Success",
-    designation: "CS Representative",
-    status: "ONBOARDING",
-    joinedDate: "01 Jun 2026",
-    location: "Mumbai, IN",
-    manager: {
-      id: "NAP-9311",
-      name: "Becca Williams",
-      photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Becca",
-    },
-  },
-];
-
-// Seed storage key
-const CACHE_KEY = "naprocs_directory_employees";
-
 export default function EmployeeDirectory() {
   const queryClient = useQueryClient();
 
@@ -308,7 +138,7 @@ export default function EmployeeDirectory() {
 
   const accessToken = useAuthStore((state) => state.accessToken);
 
-  // Fetch from API instead of localStorage
+  // Fetch from API
   const fetchEmployees = async (): Promise<Employee[]> => {
     const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
     const res = await fetch(`${url}/employees?page=1&limit=100`, {
@@ -322,15 +152,15 @@ export default function EmployeeDirectory() {
     return responseData.data.map((emp: any) => ({
       id: emp.id,
       employeeId: emp.employeeId,
-      name: `${emp.firstName || ""} ${emp.lastName || ""}`.trim(),
-      email: emp.officialEmail,
-      photoUrl: emp.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${emp.firstName}`,
-      initials: `${emp.firstName?.[0] || ""}${emp.lastName?.[0] || ""}`.toUpperCase(),
+      name: `${emp.firstName || ""} ${emp.lastName || ""}`.trim() || "Unknown Employee",
+      email: emp.officialEmail || "",
+      photoUrl: emp.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${emp.firstName || "U"}`,
+      initials: `${emp.firstName?.[0] || ""}${emp.lastName?.[0] || ""}`.toUpperCase() || "UN",
       avatarBg: "bg-blue-100 text-blue-600",
       department: emp.department?.name || emp.departmentId || "Unassigned", 
       designation: emp.designation?.title || emp.designationId || "Unassigned",
       status: emp.status || "ACTIVE",
-      joinedDate: new Date(emp.createdAt).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }),
+      joinedDate: emp.createdAt ? new Date(emp.createdAt).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }) : "Unknown",
       location: emp.workLocation || "India",
       manager: emp.reportingManagerId ? {
         id: emp.reportingManagerId,
@@ -388,9 +218,8 @@ export default function EmployeeDirectory() {
   // Bulk mutations
   const updateEmployeesMutation = useMutation({
     mutationFn: async (updatedList: Employee[]) => {
-      if (typeof window !== "undefined") {
-        localStorage.setItem(CACHE_KEY, JSON.stringify(updatedList));
-      }
+      // Pure logic: In the future, loop through and make PUT requests.
+      // For now, we rely on the React Query optimistic update without storing in local temporary states.
       return updatedList;
     },
     onSuccess: (data) => {
@@ -617,7 +446,8 @@ export default function EmployeeDirectory() {
     // Locations counts
     const locMap: Record<string, number> = {};
     filteredEmployees.forEach((e) => {
-      locMap[e.location] = (locMap[e.location] || 0) + 1;
+      const loc = e.location || "Unknown";
+      locMap[loc] = (locMap[loc] || 0) + 1;
     });
 
     return {
@@ -626,10 +456,10 @@ export default function EmployeeDirectory() {
       onboarding,
       newHires: probation + onboarding,
       depts: Object.entries(deptMap)
-        .map(([name, count]) => ({ name, count, percent: total > 0 ? Math.round((count / total) * 100) : 0 }))
+        .map(([name, count]) => ({ name: name || "Unassigned", count, percent: total > 0 ? Math.round((count / total) * 100) : 0 }))
         .sort((a, b) => b.count - a.count),
       locs: Object.entries(locMap)
-        .map(([name, count]) => ({ name, count }))
+        .map(([name, count]) => ({ name: name || "Unknown", count }))
         .sort((a, b) => b.count - a.count),
     };
   }, [filteredEmployees]);
