@@ -10,6 +10,22 @@ export function Topbar() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const clearSession = useAuthStore((state) => state.clearSession);
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const role = useAuthStore((state) => state.role);
+
+  let userEmail = "User";
+  if (accessToken) {
+    try {
+      const payload = JSON.parse(atob(accessToken.split('.')[1]));
+      if (payload.email) {
+        userEmail = payload.email.split('@')[0];
+        // Replace dots with spaces and capitalize
+        userEmail = userEmail.split('.').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
 
   const handleLogout = () => {
     setIsDropdownOpen(false);
@@ -104,11 +120,11 @@ export function Topbar() {
           >
             {/* Hide text name on mobile, show only avatar */}
             <div className="hidden sm:flex text-right flex-col">
-              <span className="text-sm font-bold text-slate-900 leading-tight">Pradeep Chandra</span>
-              <span className="text-[11px] font-semibold tracking-wide text-slate-500">CEO & Founder</span>
+              <span className="text-sm font-bold text-slate-900 leading-tight">{userEmail}</span>
+              <span className="text-[11px] font-semibold tracking-wide text-slate-500">{role || 'Employee'}</span>
             </div>
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-200 overflow-hidden flex-shrink-0 border border-slate-200 shadow-sm flex items-center justify-center text-slate-700 font-bold text-sm">
-              PC
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-200 overflow-hidden flex-shrink-0 border border-slate-200 shadow-sm flex items-center justify-center text-slate-700 font-bold text-sm uppercase">
+              {userEmail.charAt(0)}
             </div>
           </div>
 
