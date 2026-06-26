@@ -22,7 +22,7 @@ export default function EmployeeDashboardV2() {
 
   // ── Today's attendance state from backend ─────────────────────────────────
   const todayQuery = useQuery({
-    queryKey: ["attendance-today"],
+    queryKey: ["attendanceStatus"],
     queryFn: fetchTodayStatus,
     refetchInterval: 60_000, // refresh every minute
     retry: 1,
@@ -30,7 +30,7 @@ export default function EmployeeDashboardV2() {
 
   // ── My KPIs from backend ──────────────────────────────────────────────────
   const kpisQuery = useQuery({
-    queryKey: ["attendance-kpis"],
+    queryKey: ["attendanceKpis"],
     queryFn: fetchMyKpis,
     staleTime: 120_000,
     retry: 1,
@@ -42,13 +42,18 @@ export default function EmployeeDashboardV2() {
   // ── Punch mutation ────────────────────────────────────────────────────────
   const punchMutation = useMutation({
     mutationFn: (action: "IN" | "OUT") => submitPunch(action),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["attendance-today"] });
-      queryClient.invalidateQueries({ queryKey: ["attendance-kpis"] });
+    onSuccess: (newData) => {
+      // Instantly update local state with backend response
+      queryClient.setQueryData(["attendanceStatus"], newData);
+      
+      // Refresh background data
+      queryClient.invalidateQueries({ queryKey: ["attendanceKpis"] });
+      queryClient.invalidateQueries({ queryKey: ["attendanceLogs"] });
     },
   });
 
   const handlePunch = () => {
+    if (punchMutation.isPending) return;
     const nextAction = isPunchedIn ? "OUT" : "IN";
     punchMutation.mutate(nextAction);
   };

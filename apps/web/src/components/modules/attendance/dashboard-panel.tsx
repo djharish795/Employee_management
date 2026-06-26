@@ -254,26 +254,29 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
               <div className="flex gap-2 w-full sm:w-auto">
                 {punchState === "OUT" ? (
                   <button
+                    disabled={punchMutation.isPending}
                     onClick={() => punchMutation.mutate("IN")}
-                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Play className="w-3.5 h-3.5" /> Check In
+                    <Play className="w-3.5 h-3.5" /> {punchMutation.isPending ? "Processing..." : "Check In"}
                   </button>
                 ) : (
                   <>
                     <button
+                      disabled={punchMutation.isPending}
                       onClick={() => punchMutation.mutate(punchState === "BREAK" ? "IN" : "BREAK")}
-                      className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold rounded-lg border transition-colors shadow-sm ${punchState === "BREAK" ? "bg-amber-500 text-white hover:bg-amber-600 border-amber-500" : "bg-white border-slate-200 hover:bg-slate-50 text-slate-700"
+                      className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold rounded-lg border transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${punchState === "BREAK" ? "bg-amber-500 text-white hover:bg-amber-600 border-amber-500" : "bg-white border-slate-200 hover:bg-slate-50 text-slate-700"
                         }`}
                     >
                       <Coffee className="w-3.5 h-3.5" />
-                      {punchState === "BREAK" ? "End Break" : "Take Break"}
+                      {punchMutation.isPending ? "Processing..." : punchState === "BREAK" ? "End Break" : "Take Break"}
                     </button>
                     <button
+                      disabled={punchMutation.isPending}
                       onClick={() => punchMutation.mutate("OUT")}
-                      className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
+                      className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <Square className="w-3.5 h-3.5" /> Check Out
+                      <Square className="w-3.5 h-3.5" /> {punchMutation.isPending ? "Processing..." : "Check Out"}
                     </button>
                   </>
                 )}
