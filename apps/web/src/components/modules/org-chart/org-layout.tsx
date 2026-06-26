@@ -25,7 +25,10 @@ export default function OrgLayout({ children, activeRole, onRoleChange }: OrgLay
       { title: "Reporting Structure", href: "/org-chart/reporting", icon: GitFork },
     ];
 
-    // All roles can see these tabs but the data scope inside will change based on the role.
+    if (activeRole === "EMPLOYEE") {
+      return items.filter(i => i.title === "Hierarchy");
+    }
+
     return items;
   }, [activeRole]);
 

@@ -908,6 +908,7 @@ enum UserRole {
   CEO
   CTO
   COO
+  OPERATIONS_HEAD
   CFO
   CHRO
   HR

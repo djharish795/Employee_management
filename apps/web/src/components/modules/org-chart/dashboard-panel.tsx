@@ -6,64 +6,48 @@ import {
   Users, Building2, UserCircle, GitFork, UserPlus, ArrowRight, Network 
 } from "lucide-react";
 import Link from "next/link";
-import { OrgRole, OrgKPIs } from "@/types/org-chart";
+import { OrgRole } from "@/types/org-chart";
+import { apiClient } from "@/lib/api/client";
 
 interface OrgDashboardPanelProps {
   activeRole: OrgRole;
 }
 
-const ORG_DISTRIBUTION = [
-  { dept: "Engineering", percent: 45, color: "bg-slate-900", count: 185 },
-  { dept: "Sales", percent: 25, color: "bg-emerald-500", count: 103 },
-  { dept: "Design", percent: 12, color: "bg-violet-500", count: 49 },
-  { dept: "HR & Ops", percent: 10, color: "bg-amber-500", count: 41 },
-  { dept: "Finance", percent: 8, color: "bg-rose-500", count: 34 },
-];
 
-const MANAGEMENT_DISTRIBUTION = [
-  { title: "Individual Contributors", percent: 82, color: "bg-slate-300", count: 338 },
-  { title: "Managers", percent: 14, color: "bg-indigo-400", count: 58 },
-  { title: "Directors & VP", percent: 3, color: "bg-indigo-600", count: 12 },
-  { title: "C-Level", percent: 1, color: "bg-indigo-900", count: 4 },
-];
 
 export default function OrgDashboardPanel({ activeRole }: OrgDashboardPanelProps) {
   const isEmployee = activeRole === "EMPLOYEE";
   const isManager = activeRole === "MANAGER";
   
-  // Use mock data mimicking database fetching
-  const { data: kpis } = useQuery<OrgKPIs>({
-    queryKey: ["orgKPIs", activeRole],
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ["orgStats"],
     queryFn: async () => {
-      if (isEmployee) {
-        return {
-          totalEmployees: 412,
-          totalDepartments: 8,
-          totalManagers: 74,
-          vacantPositions: 0,
-          avgSpanOfControl: "—",
-        };
-      }
-      if (isManager) {
-        return {
-          totalEmployees: 18,
-          totalDepartments: 1,
-          totalManagers: 2,
-          vacantPositions: 2,
-          avgSpanOfControl: "4.5",
-        };
-      }
-      return {
-        totalEmployees: 412,
-        totalDepartments: 8,
-        totalManagers: 74,
-        vacantPositions: 23,
-        avgSpanOfControl: "5.6",
-      };
+      const res = await apiClient.get('/employees/org-stats');
+      return res.data;
     },
+    enabled: !isEmployee // Only fetch if they have access
   });
 
-  if (!kpis) return null;
+  if (isEmployee || isLoading || !stats) return null;
+
+  const colors = ["bg-slate-900", "bg-emerald-500", "bg-violet-500", "bg-amber-500", "bg-rose-500", "bg-blue-500", "bg-cyan-500"];
+  const orgDistribution = stats.breakdown.map((d: any, i: number) => ({
+    dept: d.name,
+    percent: d.percentage,
+    color: colors[i % colors.length],
+    count: d.count
+  }));
+
+  const mStruct = stats.managementStructure;
+  const totalMStruct = mStruct.cLevel + mStruct.directors + mStruct.managers + mStruct.individualContributors;
+  const calcPercent = (val: number) => totalMStruct > 0 ? Math.round((val / totalMStruct) * 100) : 0;
+  
+  const managementDistribution = [
+    { title: "Individual Contributors", percent: calcPercent(mStruct.individualContributors), color: "bg-slate-300", count: mStruct.individualContributors },
+    { title: "Managers", percent: calcPercent(mStruct.managers), color: "bg-indigo-400", count: mStruct.managers },
+    { title: "Directors & VP", percent: calcPercent(mStruct.directors), color: "bg-indigo-600", count: mStruct.directors },
+    { title: "C-Level", percent: calcPercent(mStruct.cLevel), color: "bg-indigo-900", count: mStruct.cLevel },
+  ];
 
   return (
     <div className="space-y-6">
@@ -75,7 +59,7 @@ export default function OrgDashboardPanel({ activeRole }: OrgDashboardPanelProps
               <Users className="w-4.5 h-4.5" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-slate-900">{kpis.totalEmployees}</div>
+          <div className="text-2xl font-bold text-slate-900">{stats.totalEmployees}</div>
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">
             {isManager ? "Team Size" : "Total Employees"}
           </div>
@@ -87,7 +71,7 @@ export default function OrgDashboardPanel({ activeRole }: OrgDashboardPanelProps
               <Building2 className="w-4.5 h-4.5" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-slate-900">{kpis.totalDepartments}</div>
+          <div className="text-2xl font-bold text-slate-900">{stats.departments}</div>
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">
             Departments
           </div>
@@ -99,7 +83,7 @@ export default function OrgDashboardPanel({ activeRole }: OrgDashboardPanelProps
               <UserCircle className="w-4.5 h-4.5" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-slate-900">{kpis.totalManagers}</div>
+          <div className="text-2xl font-bold text-slate-900">{stats.managers}</div>
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">
             Managers
           </div>
@@ -112,7 +96,7 @@ export default function OrgDashboardPanel({ activeRole }: OrgDashboardPanelProps
                 <UserPlus className="w-4.5 h-4.5" />
               </div>
             </div>
-            <div className="text-2xl font-bold text-slate-900">{kpis.vacantPositions}</div>
+            <div className="text-2xl font-bold text-slate-900">{stats.vacantPositions}</div>
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">
               Vacant Positions
             </div>
@@ -126,7 +110,7 @@ export default function OrgDashboardPanel({ activeRole }: OrgDashboardPanelProps
                 <GitFork className="w-4.5 h-4.5" />
               </div>
             </div>
-            <div className="text-2xl font-bold text-slate-900">{kpis.avgSpanOfControl}</div>
+            <div className="text-2xl font-bold text-slate-900">{stats.avgSpanOfControl}</div>
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">
               Avg Span of Control
             </div>
@@ -148,14 +132,14 @@ export default function OrgDashboardPanel({ activeRole }: OrgDashboardPanelProps
 
             <div className="mb-6">
               <div className="w-full h-4 rounded-full flex overflow-hidden">
-                {ORG_DISTRIBUTION.map((d, i) => (
+                {orgDistribution.map((d: any, i: number) => (
                   <div key={i} className={`h-full ${d.color}`} style={{ width: `${d.percent}%` }} title={`${d.dept}: ${d.percent}%`} />
                 ))}
               </div>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {ORG_DISTRIBUTION.map((d, i) => (
+              {orgDistribution.map((d: any, i: number) => (
                 <div key={i} className="flex items-center gap-2">
                   <div className={`w-3 h-3 rounded-full flex-shrink-0 ${d.color}`} />
                   <div className="flex-1 min-w-0">
@@ -171,7 +155,7 @@ export default function OrgDashboardPanel({ activeRole }: OrgDashboardPanelProps
           <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
             <h3 className="text-sm font-bold text-slate-900 mb-6">Management Structure</h3>
             <div className="space-y-4">
-              {MANAGEMENT_DISTRIBUTION.map((m, i) => (
+              {managementDistribution.map((m, i) => (
                 <div key={i} className="flex items-center gap-4">
                   <div className="w-32 text-xs font-bold text-slate-700 flex-shrink-0">{m.title}</div>
                   <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">

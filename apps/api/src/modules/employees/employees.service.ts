@@ -314,6 +314,86 @@ export class EmployeesService {
     return employee;
   }
 
+  async getOrgChart() {
+    const employees = await this.prisma.employee.findMany({
+      where: { status: "ACTIVE" },
+      select: {
+        id: true,
+        employeeId: true,
+        firstName: true,
+        lastName: true,
+        officialEmail: true,
+        photoUrl: true,
+        reportingManagerId: true,
+        workLocation: true,
+        department: { select: { name: true } },
+        designation: { select: { title: true } }
+      }
+    });
+
+    for (const emp of employees) {
+      if (emp.photoUrl && !emp.photoUrl.startsWith("http")) {
+        try {
+          const command = new GetObjectCommand({
+            Bucket: this.bucketName,
+            Key: emp.photoUrl,
+          });
+          emp.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
+        } catch (e) {
+          console.error(`Failed to sign URL for org chart emp ${emp.id}:`, e);
+        }
+      }
+    }
+
+    return employees;
+  }
+
+  async getOrgStats() {
+    const totalEmployees = await this.prisma.employee.count({ where: { status: "ACTIVE" } });
+    const departmentsCount = await this.prisma.department.count();
+    
+    const managersResult = await this.prisma.employee.findMany({
+      where: { status: "ACTIVE", reportingManagerId: { not: null } },
+      select: { reportingManagerId: true },
+      distinct: ['reportingManagerId']
+    });
+    const managersCount = managersResult.length;
+    
+    const openJobs = await this.prisma.job.findMany({ where: { status: "OPEN" } });
+    const vacantCount = openJobs.reduce((acc, job) => acc + (job.openPositions - job.filledPositions), 0);
+    
+    const avgSpanOfControl = managersCount > 0 ? (totalEmployees / managersCount).toFixed(1) : "0";
+
+    const deps = await this.prisma.department.findMany({
+      include: { _count: { select: { employees: { where: { status: "ACTIVE" } } } } }
+    });
+    const breakdown = deps.map(d => ({
+      name: d.name,
+      count: d._count.employees,
+      percentage: totalEmployees > 0 ? Math.round((d._count.employees / totalEmployees) * 100) : 0
+    })).filter(d => d.count > 0);
+
+    const cLevel = await this.prisma.user.count({ where: { role: { in: ["CEO", "CTO", "CHRO"] } } });
+    const directors = await this.prisma.user.count({ where: { role: "OPERATIONS_HEAD" } });
+    const managers = await this.prisma.user.count({ where: { role: { in: ["HR", "MANAGER"] } } });
+    const individualContributors = await this.prisma.user.count({ where: { role: "EMPLOYEE" } });
+
+    return {
+      totalEmployees,
+      departments: departmentsCount,
+      managers: managersCount,
+      vacantPositions: vacantCount,
+      avgSpanOfControl,
+      breakdown,
+      managementStructure: {
+        cLevel,
+        directors,
+        managers,
+        individualContributors
+      }
+    };
+  }
+
   async updateEmployee(id: string, dto: UpdateEmployeeDto, currentUser?: any): Promise<Employee> {
     // Verify the employee exists (also validates read access if we pass currentUser)
     const employee = await this.getEmployeeById(id, currentUser);

@@ -6,123 +6,14 @@ import {
   Search, ZoomIn, ZoomOut, Maximize, Navigation, X, Mail, Phone, Calendar, LayoutGrid
 } from "lucide-react";
 import { OrgRole, OrgEmployee, OrgTreeNode } from "@/types/org-chart";
-import { TreeNode } from "./tree-node";
+import { TreeNode, EmployeeCard } from "./tree-node";
+import { apiClient } from "@/lib/api/client";
 
 interface HierarchyPanelProps {
   activeRole: OrgRole;
 }
 
-// Flat list of employees for building the tree
-const MOCK_FLAT_EMPLOYEES: OrgEmployee[] = [
-  {
-    id: "EMP-100",
-    name: "Pradeep Chandra",
-    designation: "Chief Executive Officer",
-    department: "Leadership",
-    location: "Hyderabad HQ",
-    email: "pradeep@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Pradeep",
-    initials: "PC",
-    avatarBg: "bg-indigo-100 text-indigo-600",
-    managerId: null,
-  },
-  {
-    id: "EMP-101",
-    name: "Lokesh Kumar",
-    designation: "Chief Technology Officer",
-    department: "Engineering",
-    location: "Hyderabad HQ",
-    email: "lokesh@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Lokesh",
-    initials: "LK",
-    avatarBg: "bg-slate-200 text-slate-900",
-    managerId: "EMP-100",
-  },
-  {
-    id: "EMP-102",
-    name: "Tejesh Kumar",
-    designation: "HR Management Director",
-    department: "HR",
-    location: "Hyderabad HQ",
-    email: "tejesh@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Tejesh",
-    initials: "TK",
-    avatarBg: "bg-rose-100 text-rose-600",
-    managerId: "EMP-100",
-  },
-  {
-    id: "EMP-103",
-    name: "Alex Thompson",
-    designation: "VP of Engineering",
-    department: "Engineering",
-    location: "London, UK",
-    email: "alex.t@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Alex",
-    initials: "AT",
-    avatarBg: "bg-emerald-100 text-emerald-600",
-    managerId: "EMP-101",
-  },
-  {
-    id: "EMP-104",
-    name: "Sarah Q.",
-    designation: "VP of Sales",
-    department: "Sales",
-    location: "San Francisco, US",
-    email: "sarah.q@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Sarah",
-    initials: "SQ",
-    avatarBg: "bg-amber-100 text-amber-600",
-    managerId: "EMP-100",
-  },
-  {
-    id: "EMP-105",
-    name: "Arjun Mehta",
-    designation: "Staff Software Engineer",
-    department: "Engineering",
-    location: "Bangalore, IN",
-    email: "arjun.m@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Arjun",
-    initials: "AM",
-    avatarBg: "bg-slate-200 text-slate-900",
-    managerId: "EMP-103",
-  },
-  {
-    id: "EMP-106",
-    name: "Anita M.",
-    designation: "Frontend Developer",
-    department: "Engineering",
-    location: "Mumbai, IN",
-    email: "anita.m@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Anita",
-    initials: "AM",
-    avatarBg: "bg-pink-100 text-pink-600",
-    managerId: "EMP-105",
-  },
-  {
-    id: "EMP-107",
-    name: "Ravi Kumar",
-    designation: "DevOps Engineer",
-    department: "Engineering",
-    location: "Bangalore, IN",
-    email: "ravi.k@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Ravi",
-    initials: "RK",
-    avatarBg: "bg-teal-100 text-teal-600",
-    managerId: "EMP-105",
-  },
-  {
-    id: "EMP-108",
-    name: "Priya Menon",
-    designation: "HR Business Partner",
-    department: "HR",
-    location: "Hyderabad HQ",
-    email: "priya.m@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Priya",
-    initials: "PM",
-    avatarBg: "bg-fuchsia-100 text-fuchsia-600",
-    managerId: "EMP-102",
-  },
-];
+
 
 // Helper to build recursive tree from flat list
 function buildTree(employees: OrgEmployee[], rootId: string | null = null): OrgTreeNode[] {
@@ -159,14 +50,54 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
 
   const { data: treeData } = useQuery({
     queryKey: ["orgTree"],
-    queryFn: async () => buildTree(MOCK_FLAT_EMPLOYEES),
+    queryFn: async () => {
+      const { data } = await apiClient.get("/employees/org-chart");
+      
+      const colors = ["bg-indigo-100 text-indigo-600", "bg-slate-200 text-slate-900", "bg-rose-100 text-rose-600", "bg-emerald-100 text-emerald-600", "bg-amber-100 text-amber-600", "bg-pink-100 text-pink-600", "bg-teal-100 text-teal-600", "bg-fuchsia-100 text-fuchsia-600"];
+      
+      const mappedEmployees: OrgEmployee[] = data.map((emp: any, index: number) => ({
+        id: emp.id,
+        name: `${emp.firstName} ${emp.lastName || ''}`.trim(),
+        designation: emp.designation?.title || 'Employee',
+        department: emp.department?.name || 'Organization',
+        location: emp.workLocation || 'Hyderabad HQ',
+        email: emp.officialEmail,
+        photoUrl: emp.photoUrl || '',
+        initials: (emp.firstName?.[0] || '') + (emp.lastName?.[0] || ''),
+        avatarBg: colors[index % colors.length],
+        managerId: emp.reportingManagerId
+      }));
+
+      return mappedEmployees;
+    },
   });
 
   const toggleNode = (id: string) => {
     setExpandedNodes(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const rootNode = treeData?.[0];
+  const flatEmployees = treeData || [];
+  
+  // Find top level nodes
+  const ceo = flatEmployees.find(e => e.designation?.includes('Chief Executive'));
+  const cto = flatEmployees.find(e => e.designation?.includes('Chief Technology'));
+  const coo = flatEmployees.find(e => e.designation?.includes('Chief Operating'));
+  const opsHead = flatEmployees.find(e => e.designation?.includes('Operations Head'));
+
+  // Convert raw to OrgTreeNode for EmployeeCard
+  const toOrgTreeNode = (emp: OrgEmployee | undefined): OrgTreeNode | null => {
+    if (!emp) return null;
+    return { ...emp, children: [], directReportsCount: 0, totalReportsCount: 0 };
+  };
+
+  const ceoNode = toOrgTreeNode(ceo);
+  const ctoNode = toOrgTreeNode(cto);
+  const cooNode = toOrgTreeNode(coo);
+  
+  const opsHeadNode = toOrgTreeNode(opsHead);
+  if (opsHeadNode) {
+    opsHeadNode.children = buildTree(flatEmployees, opsHeadNode.id);
+  }
 
   return (
     <div className="flex flex-col h-[700px] bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden relative">
@@ -209,13 +140,62 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
           className="min-w-max min-h-max p-16 flex justify-center transition-transform duration-200 origin-top"
           style={{ transform: `scale(${zoom})` }}
         >
-          {rootNode ? (
-            <TreeNode 
-              node={rootNode} 
-              isExpanded={expandedNodes[rootNode.id]} 
-              onToggle={toggleNode} 
-              onSelect={setSelectedNode}
-            />
+          {flatEmployees.length > 0 ? (
+            <div className="flex flex-col items-center">
+              {/* TIER 1: CEO */}
+              {ceoNode && (
+                <div className="flex flex-col items-center">
+                  <EmployeeCard node={ceoNode} onSelect={setSelectedNode} />
+                  <div className="w-px h-6 bg-slate-300" />
+                </div>
+              )}
+
+              {/* TIER 2: CTO and COO */}
+              <div className="flex items-start relative pt-4">
+                <div className="absolute top-0 left-[25%] right-[25%] h-px bg-slate-300" />
+                
+                {/* CTO Branch */}
+                {ctoNode && (
+                  <div className="flex flex-col items-center relative px-8">
+                    <div className="absolute top-0 w-px h-4 bg-slate-300" />
+                    <EmployeeCard node={ctoNode} onSelect={setSelectedNode} />
+                  </div>
+                )}
+                
+                {/* COO Branch */}
+                {cooNode && (
+                  <div className="flex flex-col items-center relative px-8">
+                    <div className="absolute top-0 w-px h-4 bg-slate-300" />
+                    <EmployeeCard node={cooNode} onSelect={setSelectedNode} />
+                  </div>
+                )}
+              </div>
+
+              {/* TIER 3: The Merged Line to Ops Head */}
+              {(ctoNode && cooNode && opsHeadNode) && (
+                <div className="flex flex-col items-center mt-6 w-full">
+                  {/* The U-shape merging from bottoms of CTO and COO */}
+                  <div className="relative w-full flex justify-center">
+                    <div className="absolute bottom-full flex justify-between w-[calc(100%-8rem)] max-w-[20rem]">
+                      <div className="w-px h-6 bg-slate-300" />
+                      <div className="w-px h-6 bg-slate-300" />
+                    </div>
+                    {/* Horizontal bridge */}
+                    <div className="absolute bottom-full w-[calc(100%-8rem)] max-w-[20rem] h-px bg-slate-300" />
+                    {/* Vertical drop to Ops Head */}
+                    <div className="w-px h-6 bg-slate-300" />
+                  </div>
+                  
+                  {/* Ops Head and below rendered standardly */}
+                  <TreeNode 
+                    node={opsHeadNode} 
+                    isExpanded={expandedNodes[opsHeadNode.id] ?? true} 
+                    onToggle={toggleNode} 
+                    onSelect={setSelectedNode}
+                  />
+                </div>
+              )}
+            </div>
           ) : (
             <div className="text-sm font-bold text-slate-400">Loading organization tree...</div>
           )}

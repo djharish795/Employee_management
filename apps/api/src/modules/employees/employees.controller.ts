@@ -37,6 +37,19 @@ export class EmployeesController {
     return this.employeesService.createEmployee(dto);
   }
 
+  @Get("org-chart")
+  // Using READ_OWN_PROFILE since all users should have access to the public directory
+  @Permissions(Permission.READ_OWN_PROFILE, Permission.READ_EMPLOYEES)
+  getOrgChart(): Promise<any> {
+    return this.employeesService.getOrgChart();
+  }
+
+  @Get("org-stats")
+  @Permissions(Permission.READ_EMPLOYEES)
+  getOrgStats() {
+    return this.employeesService.getOrgStats();
+  }
+
   @Get()
   @Permissions(Permission.READ_EMPLOYEES)
   getEmployees(@Query() params: PaginationParams): Promise<PaginatedResult<Employee>> {
