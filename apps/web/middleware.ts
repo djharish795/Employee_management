@@ -1,21 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Role → home dashboard mapping
-const roleDashboardMap: Record<string, string> = {
-  SUPER_ADMIN: '/admin/dashboard',
-  IT:          '/admin/dashboard',
-  CEO:         '/executive/dashboard',
-  COO:         '/executive/dashboard',
-  CTO:         '/cto/dashboard',
-  CFO:         '/finance/dashboard',
-  FINANCE:     '/finance/dashboard',
-  CHRO:        '/hr/dashboard',
-  HR:          '/hr/dashboard',
-  MANAGER:     '/employee/dashboard',
-  TEAM_LEAD:   '/employee/dashboard',
-  EMPLOYEE:    '/employee/dashboard',
-};
+
 
 // Roles that may act as approvers in the Leave Approvals queue
 const leaveApproverRoles = new Set(['HR', 'CHRO', 'MANAGER', 'TEAM_LEAD', 'CTO', 'SUPER_ADMIN', 'IT']);
@@ -46,10 +32,17 @@ export function middleware(request: NextRequest) {
   const rawRole = request.cookies.get('role')?.value?.toUpperCase() ?? '';
   const role = rawRole || 'EMPLOYEE';
 
+  // ─── Resolve Target Dashboard ────────────────────────────────────────────────
+  let targetDashboard = '/employee/dashboard';
+  if (['SUPER_ADMIN', 'IT'].includes(role)) targetDashboard = '/admin/dashboard';
+  else if (['CEO', 'COO'].includes(role)) targetDashboard = '/executive/dashboard';
+  else if (role === 'CTO') targetDashboard = '/cto/dashboard';
+  else if (['CFO', 'FINANCE'].includes(role)) targetDashboard = '/finance/dashboard';
+  else if (['CHRO', 'HR'].includes(role)) targetDashboard = '/hr/dashboard';
+
   // ─── Redirect authenticated users away from /login ───────────────────────
   if (token && pathname.startsWith('/login')) {
-    const target = roleDashboardMap[role] ?? '/employee/dashboard';
-    return NextResponse.redirect(new URL(target, request.url));
+    return NextResponse.redirect(new URL(targetDashboard, request.url));
   }
 
   // ─── Enforce authentication on protected routes ───────────────────────────
@@ -60,14 +53,9 @@ export function middleware(request: NextRequest) {
 
   // ─── Module-level RBAC (authenticated users only) ────────────────────────
   if (token) {
-    const targetDashboard = roleDashboardMap[role] ?? '/employee/dashboard';
-
     // 1. Leave Approvals — only approver roles (HR, CHRO, MANAGER, CTO, SUPER_ADMIN)
-    //    CEO is excluded — CEO sees read-only summary only on their Executive Dashboard
-    if (pathname.startsWith('/leaves/approvals')) {
-      if (!leaveApproverRoles.has(role)) {
-        return NextResponse.redirect(new URL('/access-restricted', request.url));
-      }
+    if (pathname.startsWith('/leaves/approvals') && !leaveApproverRoles.has(role)) {
+      return NextResponse.redirect(new URL('/access-restricted', request.url));
     }
 
     // 2. Audit Log — SUPER_ADMIN only per RBAC matrix
@@ -81,9 +69,7 @@ export function middleware(request: NextRequest) {
     }
 
     // 4. Employee add/edit write operations — HR, CHRO, SUPER_ADMIN, IT only
-    const isEmployeeWrite =
-      pathname.startsWith('/employees/add') ||
-      !!pathname.match(/^\/employees\/[^/]+\/edit/);
+    const isEmployeeWrite = pathname.startsWith('/employees/add') || !!pathname.match(/^\/employees\/[^/]+\/edit/);
     if (isEmployeeWrite && !['HR', 'CHRO', 'SUPER_ADMIN', 'IT'].includes(role)) {
       return NextResponse.redirect(new URL('/access-restricted', request.url));
     }
@@ -108,9 +94,8 @@ export function middleware(request: NextRequest) {
     }
 
     // ─── Namespace root (e.g. /executive) → their dashboard ──────────────────
-    const nsRoot = targetDashboard.split('/dashboard')[0];
-    if (nsRoot && pathname === nsRoot) {
-      return NextResponse.redirect(new URL(targetDashboard, request.url));
+    if (pathname === '/executive' && role === 'CEO') {
+       return NextResponse.redirect(new URL('/executive/dashboard', request.url));
     }
   }
 
