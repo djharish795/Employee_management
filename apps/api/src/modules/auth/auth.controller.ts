@@ -3,6 +3,7 @@ import { AuthService } from "./auth.service";
 import { LoginDto } from "./dto/login.dto";
 import { MfaVerifyDto } from "./dto/mfa-verify.dto";
 import { TrustDeviceDto } from "./dto/trust-device.dto";
+import { RefreshAuthDto } from "./dto/refresh.dto";
 
 @Controller("auth")
 export class AuthController {
@@ -21,5 +22,10 @@ export class AuthController {
   @Post("device/trust")
   trustDevice(@Body() dto: TrustDeviceDto) {
     return this.authService.trustDevice(dto.challengeId);
+  }
+
+  @Post("refresh")
+  refresh(@Body() dto: RefreshAuthDto) {
+    return this.authService.refreshAuthToken(dto.refreshToken);
   }
 }

@@ -136,10 +136,10 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
 
       {/* Main Content Layout */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
-        
+
         {/* Left Column (Timeline, Punch actions, Trend charts) */}
         <div className="xl:col-span-2 space-y-6">
-          
+
           {/* Timeline Punch Actions Card */}
           <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col justify-between">
             <div className="flex justify-between items-center mb-6">
@@ -191,9 +191,8 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                 </div>
                 <div>
                   <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</div>
-                  <span className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded mt-1.5 inline-block ${
-                    punchState === "IN" ? "bg-emerald-100 text-emerald-700" : punchState === "BREAK" ? "bg-amber-100 text-amber-700" : "bg-slate-200 text-slate-700"
-                  }`}>
+                  <span className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded mt-1.5 inline-block ${punchState === "IN" ? "bg-emerald-100 text-emerald-700" : punchState === "BREAK" ? "bg-amber-100 text-amber-700" : "bg-slate-200 text-slate-700"
+                    }`}>
                     {punchState === "IN" ? "On Track" : punchState === "BREAK" ? "Break Session" : "Punch Required"}
                   </span>
                 </div>
@@ -211,10 +210,9 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                 ) : (
                   <>
                     <button
-                      onClick={() => punchMutation.mutate("BREAK")}
-                      className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold rounded-lg border transition-colors shadow-sm ${
-                        punchState === "BREAK" ? "bg-amber-500 text-white hover:bg-amber-600 border-amber-500" : "bg-white border-slate-200 hover:bg-slate-50 text-slate-700"
-                      }`}
+                      onClick={() => punchMutation.mutate(punchState === "BREAK" ? "IN" : "BREAK")}
+                      className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold rounded-lg border transition-colors shadow-sm ${punchState === "BREAK" ? "bg-amber-500 text-white hover:bg-amber-600 border-amber-500" : "bg-white border-slate-200 hover:bg-slate-50 text-slate-700"
+                        }`}
                     >
                       <Coffee className="w-3.5 h-3.5" />
                       {punchState === "BREAK" ? "End Break" : "Take Break"}
@@ -234,7 +232,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
           {/* Attendance Trend Chart */}
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
             <h3 className="text-sm font-bold text-slate-900 mb-4">Weekly Working Hours Trends</h3>
-            
+
             {/* Custom Bar Chart Visuals */}
             <div className="h-44 flex items-end justify-between gap-4 pt-4 px-2">
               {[
@@ -254,9 +252,8 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                   {/* Column block */}
                   <div className="w-full bg-slate-100 rounded-t-lg h-28 flex items-end">
                     <div
-                      className={`w-full rounded-t-lg transition-all duration-500 ${
-                        item.hours >= 9.0 ? "bg-slate-900" : item.hours > 0 ? "bg-amber-400" : "bg-transparent"
-                      }`}
+                      className={`w-full rounded-t-lg transition-all duration-500 ${item.hours >= 9.0 ? "bg-slate-900" : item.hours > 0 ? "bg-amber-400" : "bg-transparent"
+                        }`}
                       style={{ height: `${item.percent}%` }}
                     />
                   </div>
@@ -316,7 +313,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
 
         {/* Right Column (Quick Actions, Mini Calendar, Pending Approvals) */}
         <div className="space-y-6">
-          
+
           {/* Quick Actions Panel */}
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
             <h3 className="text-sm font-bold text-slate-900 mb-4">Quick Shortcuts</h3>
@@ -361,9 +358,8 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                 return (
                   <div
                     key={day}
-                    className={`p-1.5 rounded relative hover:bg-slate-50 cursor-pointer ${
-                      day === 15 ? "bg-slate-900 text-white hover:bg-slate-900" : ""
-                    }`}
+                    className={`p-1.5 rounded relative hover:bg-slate-50 cursor-pointer ${day === 15 ? "bg-slate-900 text-white hover:bg-slate-900" : ""
+                      }`}
                   >
                     {day}
                     {day !== 15 && dot}

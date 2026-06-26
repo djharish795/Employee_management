@@ -7,6 +7,7 @@ import * as bcrypt from "bcrypt";
 import { PrismaService } from "../../prisma/prisma.service";
 import { MfaService } from "./mfa.service";
 import { TokenService } from "./token.service";
+import { RedisService } from "../../redis/redis.service";
 import { UserRole } from "@naprocs/types";
 import { LoginDto } from "./dto/login.dto";
 import { MfaVerifyDto } from "./dto/mfa-verify.dto";
@@ -17,6 +18,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly mfa: MfaService,
     private readonly tokens: TokenService,
+    private readonly redis: RedisService,
   ) {}
 
   async login(dto: LoginDto) {
@@ -111,5 +113,47 @@ export class AuthService {
     // Device trust is persisted in a later iteration; acknowledge for UI flow.
     void challengeId;
     return { success: true };
+  }
+
+  async refreshAuthToken(refreshToken: string) {
+    if (!refreshToken) {
+      throw new UnauthorizedException("Refresh token is required.");
+    }
+
+    const refreshKey = `auth:refresh:${refreshToken}`;
+    const sessionData = await this.redis.getJson<{ userId: string; email: string; role: string }>(refreshKey);
+
+    if (!sessionData) {
+      throw new UnauthorizedException("Invalid or expired refresh token.");
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: sessionData.userId },
+      include: { employee: true },
+    });
+
+    if (!user || user.status !== "ACTIVE") {
+      await this.redis.del(refreshKey);
+      throw new ForbiddenException("Account is not allowed to sign in.");
+    }
+
+    // Revoke old token family (basic rotation)
+    await this.redis.del(refreshKey);
+    await this.redis.del(`auth:session:${user.id}:${refreshToken}`);
+
+    const issued = await this.tokens.issueTokens({
+      userId: user.id,
+      email: user.email,
+      role: user.role as UserRole,
+      employeeId: user.employeeId ?? undefined,
+    });
+
+    return {
+      success: true,
+      token: issued.accessToken,
+      refreshToken: issued.refreshToken,
+      role: issued.role,
+      redirectPath: issued.redirectPath,
+    };
   }
 }

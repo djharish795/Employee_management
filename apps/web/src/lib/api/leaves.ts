@@ -1,19 +1,4 @@
-import axios from "axios";
-
-// Shared axios instance — reads JWT from cookie (same pattern as attendance.ts)
-const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001",
-  headers: { "Content-Type": "application/json" },
-});
-
-apiClient.interceptors.request.use((config) => {
-  if (typeof window !== "undefined") {
-    const tokenMatch = document.cookie.match(new RegExp("(^| )token=([^;]+)"));
-    const token = tokenMatch ? tokenMatch[2] : null;
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+import { apiClient } from "./client";
 
 // ─── Types matching the backend LeavesService responses ─────────────────────
 

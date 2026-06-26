@@ -89,11 +89,12 @@ export const LoginForm: React.FC = () => {
           method: res.method,
         });
         router.push("/mfa");
-      } else if (res.token) {
+      } else if (res.token && res.refreshToken) {
         // Direct entry case (if MFA disabled in local testing)
         const role = res.role ?? "EMPLOYEE";
         setAuthSession({
           accessToken: res.token,
+          refreshToken: res.refreshToken,
           role: role,
         });
         document.cookie = `token=${res.token}; path=/; max-age=86400; SameSite=Strict`;

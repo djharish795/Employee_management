@@ -17,10 +17,11 @@ interface AuthState {
   tempSession: TempSession | null;
   deviceDetails: DeviceDetails | null;
   accessToken: string | null;
+  refreshToken: string | null;
   role: string | null;
   setTempSession: (session: TempSession | null) => void;
   setDeviceDetails: (details: DeviceDetails | null) => void;
-  setAuthSession: (params: { accessToken: string; role: string }) => void;
+  setAuthSession: (params: { accessToken: string; refreshToken: string; role: string }) => void;
   clearSession: () => void;
 }
 
@@ -30,11 +31,12 @@ export const useAuthStore = create<AuthState>()(
       tempSession: null,
       deviceDetails: null,
       accessToken: null,
+      refreshToken: null,
       role: null,
       setTempSession: (session) => set({ tempSession: session }),
       setDeviceDetails: (details) => set({ deviceDetails: details }),
-      setAuthSession: ({ accessToken, role }) =>
-        set({ accessToken, role, tempSession: null }),
+      setAuthSession: ({ accessToken, refreshToken, role }) =>
+        set({ accessToken, refreshToken, role, tempSession: null }),
       clearSession: () => {
         // Also clear cookies on logout
         if (typeof document !== "undefined") {
@@ -45,6 +47,7 @@ export const useAuthStore = create<AuthState>()(
           tempSession: null,
           deviceDetails: null,
           accessToken: null,
+          refreshToken: null,
           role: null,
         });
       },
@@ -54,6 +57,7 @@ export const useAuthStore = create<AuthState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ 
         accessToken: state.accessToken, 
+        refreshToken: state.refreshToken,
         role: state.role,
         deviceDetails: state.deviceDetails
       }),
