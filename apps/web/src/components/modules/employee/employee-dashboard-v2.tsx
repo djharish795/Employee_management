@@ -78,9 +78,18 @@ export default function EmployeeDashboardV2() {
     greetingHour < 17 ? "Good afternoon" :
     "Good evening";
 
-  // Assuming user data is available
-  const userName = "Ravi"; 
-
+  let userName = "Employee";
+  if (accessToken) {
+    try {
+      const payload = JSON.parse(atob(accessToken.split('.')[1]));
+      if (payload.email) {
+        userName = payload.email.split('@')[0];
+        userName = userName.split('.').map((part: string) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
   const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
   const todayFormatted = new Date().toLocaleDateString('en-US', dateOptions);
 

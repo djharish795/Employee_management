@@ -25,6 +25,19 @@ export default function EmployeeDashboardPanel() {
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((state) => state.accessToken);
 
+  let userName = "Employee";
+  if (accessToken) {
+    try {
+      const payload = JSON.parse(atob(accessToken.split('.')[1]));
+      if (payload.email) {
+        userName = payload.email.split('@')[0];
+        userName = userName.split('.').map((part: string) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
   // ── Today's attendance state from backend ─────────────────────────────────
   const todayQuery = useQuery({
     queryKey: ["attendanceStatus"],

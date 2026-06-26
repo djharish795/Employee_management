@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { 
+import {
   Search, ZoomIn, ZoomOut, Maximize, Navigation, X, Mail, Phone, Calendar, LayoutGrid
 } from "lucide-react";
 import { OrgRole, OrgEmployee, OrgTreeNode } from "@/types/org-chart";
@@ -21,7 +21,7 @@ function buildTree(employees: OrgEmployee[], rootId: string | null = null): OrgT
     .filter((emp) => emp.managerId === rootId)
     .map((emp) => {
       const children = buildTree(employees, emp.id);
-      
+
       // Calculate total nested reports
       const calculateTotalReports = (nodes: OrgTreeNode[]): number => {
         let count = nodes.length;
@@ -52,9 +52,9 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
     queryKey: ["orgTree"],
     queryFn: async () => {
       const { data } = await apiClient.get("/employees/org-chart");
-      
+
       const colors = ["bg-indigo-100 text-indigo-600", "bg-slate-200 text-slate-900", "bg-rose-100 text-rose-600", "bg-emerald-100 text-emerald-600", "bg-amber-100 text-amber-600", "bg-pink-100 text-pink-600", "bg-teal-100 text-teal-600", "bg-fuchsia-100 text-fuchsia-600"];
-      
+
       const mappedEmployees: OrgEmployee[] = data.map((emp: any, index: number) => ({
         id: emp.id,
         name: `${emp.firstName} ${emp.lastName || ''}`.trim(),
@@ -77,11 +77,11 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
   };
 
   const flatEmployees = treeData || [];
-  
+
   // Find top level nodes
-  const ceo = flatEmployees.find(e => e.designation?.includes('Chief Executive'));
-  const cto = flatEmployees.find(e => e.designation?.includes('Chief Technology'));
-  const coo = flatEmployees.find(e => e.designation?.includes('Chief Operating'));
+  const ceo = flatEmployees.find(e => e.designation?.includes('Chief Executive') || e.designation === 'CEO');
+  const cto = flatEmployees.find(e => e.designation?.includes('Chief Technology') || e.designation === 'CTO');
+  const coo = flatEmployees.find(e => e.designation?.includes('Chief Operating') || e.designation === 'COO');
   const opsHead = flatEmployees.find(e => e.designation?.includes('Operations Head'));
 
   // Convert raw to OrgTreeNode for EmployeeCard
@@ -93,7 +93,7 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
   const ceoNode = toOrgTreeNode(ceo);
   const ctoNode = toOrgTreeNode(cto);
   const cooNode = toOrgTreeNode(coo);
-  
+
   const opsHeadNode = toOrgTreeNode(opsHead);
   if (opsHeadNode) {
     opsHeadNode.children = buildTree(flatEmployees, opsHeadNode.id);
@@ -101,16 +101,16 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
 
   return (
     <div className="flex flex-col h-[700px] bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden relative">
-      
+
       {/* ── Toolbar ──────────────────────────────────────────────────────── */}
       <div className="h-14 border-b border-slate-200 px-4 flex items-center justify-between bg-white z-10 relative shadow-sm">
         <div className="flex items-center gap-4">
           <h2 className="text-sm font-bold text-slate-900">Interactive Directory</h2>
           <div className="relative">
             <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Search employee..." 
+            <input
+              type="text"
+              placeholder="Search employee..."
               className="w-48 h-8 pl-8 pr-3 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all font-medium"
             />
           </div>
@@ -136,7 +136,7 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
 
       {/* ── Canvas Area ──────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-auto bg-slate-50/50 cursor-grab active:cursor-grabbing relative">
-        <div 
+        <div
           className="min-w-max min-h-max p-16 flex justify-center transition-transform duration-200 origin-top"
           style={{ transform: `scale(${zoom})` }}
         >
@@ -153,7 +153,7 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
               {/* TIER 2: CTO and COO */}
               <div className="flex items-start relative pt-4">
                 <div className="absolute top-0 left-[25%] right-[25%] h-px bg-slate-300" />
-                
+
                 {/* CTO Branch */}
                 {ctoNode && (
                   <div className="flex flex-col items-center relative px-8">
@@ -161,7 +161,7 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
                     <EmployeeCard node={ctoNode} onSelect={setSelectedNode} />
                   </div>
                 )}
-                
+
                 {/* COO Branch */}
                 {cooNode && (
                   <div className="flex flex-col items-center relative px-8">
@@ -185,12 +185,12 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
                     {/* Vertical drop to Ops Head */}
                     <div className="w-px h-6 bg-slate-300" />
                   </div>
-                  
+
                   {/* Ops Head and below rendered standardly */}
-                  <TreeNode 
-                    node={opsHeadNode} 
-                    isExpanded={expandedNodes[opsHeadNode.id] ?? true} 
-                    onToggle={toggleNode} 
+                  <TreeNode
+                    node={opsHeadNode}
+                    isExpanded={expandedNodes[opsHeadNode.id] ?? true}
+                    onToggle={toggleNode}
                     onSelect={setSelectedNode}
                   />
                 </div>
@@ -212,14 +212,14 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            
+
             <div className="p-6 flex flex-col items-center border-b border-slate-100">
               <div className={`w-20 h-20 rounded-full flex items-center justify-center text-xl font-bold mb-4 shadow-sm border-2 border-white ring-1 ring-slate-200 ${selectedNode.avatarBg}`}>
                 <img src={selectedNode.photoUrl} alt={selectedNode.name} className="w-full h-full rounded-full object-cover" />
               </div>
               <h2 className="text-lg font-bold text-slate-900">{selectedNode.name}</h2>
               <p className="text-sm font-semibold text-slate-500 text-center mt-1">{selectedNode.designation}</p>
-              
+
               <div className="flex gap-2 mt-5 w-full">
                 <button className="flex-1 flex items-center justify-center gap-2 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-lg transition-colors border border-indigo-100">
                   <Mail className="w-3.5 h-3.5" /> Message
