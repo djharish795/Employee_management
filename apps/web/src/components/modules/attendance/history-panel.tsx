@@ -5,29 +5,38 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, Filter, Download, ArrowUpDown, Calendar, RefreshCcw } from "lucide-react";
 import { AttendanceLog } from "@/types/attendance";
 
+import { fetchMyLogs } from "@/lib/api/attendance";
+
 interface HistoryPanelProps {
   activeRole: "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
 }
-
-const LOCAL_LOGS_KEY = "naprocs_attendance_logs";
 
 export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
   const [filterMonth, setFilterMonth] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterSearch, setFilterSearch] = useState("");
 
-  const fetchLogs = async (): Promise<AttendanceLog[]> => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(LOCAL_LOGS_KEY);
-      if (saved) return JSON.parse(saved);
-    }
-    return [];
-  };
-
-  const { data: logs = [], isLoading } = useQuery<AttendanceLog[]>({
+  const { data: rawLogs = [], isLoading } = useQuery<AttendanceLog[]>({
     queryKey: ["attendanceLogs"],
-    queryFn: fetchLogs,
+    queryFn: fetchMyLogs,
   });
+
+  const logs = useMemo(() => {
+    return rawLogs.map((log) => {
+      const formattedDate = new Date(log.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      const formattedCheckIn = log.checkIn ? new Date(log.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
+      const formattedCheckOut = log.checkOut ? new Date(log.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
+      const formattedHours = typeof log.hoursWorked === 'number' ? `${log.hoursWorked.toFixed(1)}h` : log.hoursWorked;
+      
+      return {
+        ...log,
+        displayDate: formattedDate,
+        displayCheckIn: formattedCheckIn,
+        displayCheckOut: formattedCheckOut,
+        displayHours: formattedHours,
+      };
+    });
+  }, [rawLogs]);
 
   // Calculate filtered logs
   const filteredLogs = useMemo(() => {
@@ -38,14 +47,14 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
     }
 
     if (filterMonth) {
-      result = result.filter((log) => log.date.includes(filterMonth));
+      result = result.filter((log) => log.displayDate.includes(filterMonth));
     }
 
     if (filterSearch.trim()) {
       const q = filterSearch.toLowerCase();
       result = result.filter(
         (log) =>
-          log.date.toLowerCase().includes(q) ||
+          log.displayDate.toLowerCase().includes(q) ||
           log.remarks.toLowerCase().includes(q) ||
           log.status.toLowerCase().includes(q)
       );
@@ -61,10 +70,10 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
     // Header
     const headers = ["Date", "Check In", "Check Out", "Hours Worked", "Status", "Remarks"];
     const rows = filteredLogs.map((log) => [
-      log.date,
-      log.checkIn,
-      log.checkOut || "—",
-      log.hoursWorked,
+      log.displayDate,
+      log.displayCheckIn,
+      log.displayCheckOut,
+      log.displayHours,
       log.status,
       `"${log.remarks}"`,
     ]);
@@ -84,7 +93,7 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
 
   const uniqueMonths = useMemo(() => {
     const months = logs.map((log) => {
-      const parts = log.date.split(" ");
+      const parts = log.displayDate.split(" ");
       return parts[1] ? `${parts[1]} ${parts[2]}` : "";
     });
     return Array.from(new Set(months.filter(Boolean)));
@@ -140,6 +149,7 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
           >
             <option value="">All Statuses</option>
             <option value="PRESENT">PRESENT</option>
+            <option value="EARLY_CHECKOUT">EARLY CHECKOUT</option>
             <option value="LATE">LATE</option>
             <option value="WFH">WFH</option>
             <option value="ABSENT">ABSENT</option>
@@ -187,15 +197,16 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
                   let badge = "text-slate-600 bg-slate-100";
                   if (log.status === "PRESENT") badge = "text-emerald-700 bg-emerald-50 border border-emerald-200/50";
                   else if (log.status === "LATE") badge = "text-amber-700 bg-amber-50 border border-amber-200/50";
+                  else if (log.status === "EARLY_CHECKOUT") badge = "text-rose-700 bg-rose-50 border border-rose-200/50";
                   else if (log.status === "WFH") badge = "text-slate-900 bg-slate-100 border border-slate-300/50";
                   else if (log.status === "ABSENT") badge = "text-rose-700 bg-rose-50 border border-rose-200/50";
 
                   return (
                     <tr key={index} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-6 py-4 font-bold text-slate-900">{log.date}</td>
-                      <td className="px-6 py-4 font-mono text-slate-500">{log.checkIn}</td>
-                      <td className="px-6 py-4 font-mono text-slate-500">{log.checkOut || "—"}</td>
-                      <td className="px-6 py-4 font-bold text-slate-900">{log.hoursWorked}</td>
+                      <td className="px-6 py-4 font-bold text-slate-900">{log.displayDate}</td>
+                      <td className="px-6 py-4 font-mono text-slate-500">{log.displayCheckIn}</td>
+                      <td className="px-6 py-4 font-mono text-slate-500">{log.displayCheckOut}</td>
+                      <td className="px-6 py-4 font-bold text-slate-900">{log.displayHours}</td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase ${badge}`}>
                           {log.status}

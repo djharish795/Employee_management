@@ -23,9 +23,15 @@ export class AttendanceService {
   private async getState(employeeId: string) {
     const key = this.getRedisKey(employeeId);
     let state = await this.redis.getJson<any>(key);
+    const today = this.getTodayUTC();
+
+    // Reset state for a new day if the employee is currently checked out
+    if (state && state.state === "OUT" && state.shiftDate && state.shiftDate !== today.toISOString()) {
+      state = { state: "OUT", startTime: 0, offset: 0, shiftDate: null };
+      await this.redis.setJson(key, state, 60 * 60 * 24);
+    }
     
     if (!state) {
-      const today = this.getTodayUTC();
       const dbRecord = await this.prisma.attendanceRecord.findUnique({
         where: { employeeId_date: { employeeId, date: today } }
       });
@@ -158,12 +164,15 @@ export class AttendanceService {
       await this.redis.setJson(key, state, 60 * 60 * 24);
       
       const workHoursDecimal = state.offset / 3600;
+      // Threshold: 9 hours = 32400 seconds for early checkout
+      const finalStatus = state.offset < 32400 ? "EARLY_CHECKOUT" : "PRESENT";
       
       await this.prisma.attendanceRecord.update({
         where: { employeeId_date: { employeeId, date: shiftDate } },
         data: {
           checkOutTime: new Date(now),
           workHours: workHoursDecimal,
+          status: finalStatus,
         },
       }).catch(err => {
         // If redis shiftDate gets corrupted or out of sync, log and fallback gracefully
