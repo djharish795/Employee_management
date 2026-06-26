@@ -86,10 +86,10 @@ export default function EmployeeDirectory() {
     const res = await fetch(`${url}/employees?page=1&limit=100`, {
       headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
     });
-    
+
     if (!res.ok) throw new Error("Failed to fetch employees");
     const responseData = await res.json();
-    
+
     // Map backend data to frontend Employee interface
     return responseData.data.map((emp: any) => ({
       id: emp.id,
@@ -99,14 +99,14 @@ export default function EmployeeDirectory() {
       photoUrl: emp.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${emp.firstName || "U"}`,
       initials: `${emp.firstName?.[0] || ""}${emp.lastName?.[0] || ""}`.toUpperCase() || "UN",
       avatarBg: "bg-blue-100 text-blue-600",
-      department: emp.department?.name || emp.departmentId || "Unassigned", 
+      department: emp.department?.name || emp.departmentId || "Unassigned",
       designation: emp.designation?.title || emp.designationId || "Unassigned",
       status: emp.status || "ACTIVE",
       joinedDate: emp.createdAt ? new Date(emp.createdAt).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }) : "Unknown",
       location: emp.workLocation || "India",
       manager: emp.reportingManagerId ? {
         id: emp.reportingManagerId,
-        name: "Assigned Manager", 
+        name: "Assigned Manager",
         photoUrl: `https://api.dicebear.com/7.x/initials/svg?seed=Manager`,
       } : undefined
     }));
@@ -194,24 +194,24 @@ export default function EmployeeDirectory() {
   const handleAction = (action: EmployeeActionType, employeeId: string) => {
     const employee = rawEmployees.find(e => e.id === employeeId);
     if (!employee) return;
-    
+
     if (action === "view-documents" || action === "download-pdf") {
       alert(`Simulating ${action} for ${employee.name}`);
       return;
     }
-    
+
     setActionModalState({ isOpen: true, type: action, employee });
   };
 
   const handleActionSuccess = (action: EmployeeActionType, employeeId: string, payload?: any) => {
     let updatedList = [...rawEmployees];
-    
+
     if (action === "delete") {
       updatedList = updatedList.filter(e => e.id !== employeeId);
     } else {
       updatedList = updatedList.map(emp => {
         if (emp.id !== employeeId) return emp;
-        
+
         switch (action) {
           case "edit":
           case "transfer-dept":
@@ -225,7 +225,7 @@ export default function EmployeeDirectory() {
         }
       });
     }
-    
+
     updateEmployeesMutation.mutate(updatedList);
   };
 
@@ -550,18 +550,16 @@ export default function EmployeeDirectory() {
             <div className="flex items-center gap-1.5 border border-slate-200 p-1.5 rounded-lg self-end lg:self-center">
               <button
                 onClick={() => handleViewModeChange("table")}
-                className={`p-1.5 rounded-md transition-all ${
-                  viewMode === "table" ? "bg-slate-100 text-slate-800 font-bold" : "text-slate-400 hover:text-slate-700"
-                }`}
+                className={`p-1.5 rounded-md transition-all ${viewMode === "table" ? "bg-slate-100 text-slate-800 font-bold" : "text-slate-400 hover:text-slate-700"
+                  }`}
                 title="Table View"
               >
                 <List className="w-4 h-4" />
               </button>
               <button
                 onClick={() => handleViewModeChange("grid")}
-                className={`p-1.5 rounded-md transition-all ${
-                  viewMode === "grid" ? "bg-slate-100 text-slate-800 font-bold" : "text-slate-400 hover:text-slate-700"
-                }`}
+                className={`p-1.5 rounded-md transition-all ${viewMode === "grid" ? "bg-slate-100 text-slate-800 font-bold" : "text-slate-400 hover:text-slate-700"
+                  }`}
                 title="Grid View"
               >
                 <Grid className="w-4 h-4" />
@@ -620,11 +618,10 @@ export default function EmployeeDirectory() {
                 {false && (
                   <button
                     onClick={handleBulkDeactivate}
-                    className={`flex items-center gap-1.5 h-8 px-3 rounded-md border font-semibold text-xs shadow-sm transition-colors ${
-                      isAllDeactivated 
-                        ? "bg-white border-emerald-200 hover:bg-emerald-50 text-emerald-600" 
+                    className={`flex items-center gap-1.5 h-8 px-3 rounded-md border font-semibold text-xs shadow-sm transition-colors ${isAllDeactivated
+                        ? "bg-white border-emerald-200 hover:bg-emerald-50 text-emerald-600"
                         : "bg-white border-rose-200 hover:bg-rose-50 text-rose-600"
-                    }`}
+                      }`}
                   >
                     {isAllDeactivated ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Trash2 className="w-3.5 h-3.5" />}
                     {isAllDeactivated ? "Activate" : "Deactivate"}
@@ -647,7 +644,7 @@ export default function EmployeeDirectory() {
           {/* Add Employee CTA */}
           {/* CEO cannot add employee directly */}
           {false && (
-            <Link 
+            <Link
               href="/employees/add"
               className="flex items-center justify-center gap-2 h-10 px-5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm shadow-sm transition-colors w-full md:w-auto"
             >
@@ -704,11 +701,11 @@ export default function EmployeeDirectory() {
                               View
                             </Link>
                             <span className="text-slate-300 select-none">•</span>
-                            <EmployeeRowActions 
-                              employeeId={row.original.id} 
-                              employeeName={row.original.name} 
+                            <EmployeeRowActions
+                              employeeId={row.original.id}
+                              employeeName={row.original.name}
                               status={row.original.status}
-                              onAction={handleAction} 
+                              onAction={handleAction}
                             />
                           </div>
                         </td>
@@ -725,9 +722,8 @@ export default function EmployeeDirectory() {
                   return (
                     <div
                       key={emp.id}
-                      className={`border p-4 rounded-xl shadow-sm transition-all hover:shadow-md relative flex flex-col justify-between h-48 group ${
-                        isSelected ? "border-slate-700 bg-slate-100/10" : "border-slate-200 bg-white"
-                      }`}
+                      className={`border p-4 rounded-xl shadow-sm transition-all hover:shadow-md relative flex flex-col justify-between h-48 group ${isSelected ? "border-slate-700 bg-slate-100/10" : "border-slate-200 bg-white"
+                        }`}
                     >
                       {/* Grid Checkbox & Actions */}
                       <div className="flex justify-between items-start mb-2">
@@ -740,11 +736,11 @@ export default function EmployeeDirectory() {
                           className="rounded border-slate-300 text-slate-900 focus:ring-slate-900 w-4 h-4 cursor-pointer"
                         />
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                          <EmployeeRowActions 
-                            employeeId={emp.id} 
-                            employeeName={emp.name} 
+                          <EmployeeRowActions
+                            employeeId={emp.id}
+                            employeeName={emp.name}
                             status={emp.status}
-                            onAction={handleAction} 
+                            onAction={handleAction}
                           />
                         </div>
                       </div>
@@ -778,11 +774,10 @@ export default function EmployeeDirectory() {
                           </span>
                         </div>
                         <span
-                          className={`px-2 py-0.5 text-[9px] font-bold tracking-wider rounded uppercase ${
-                            emp.status === "ACTIVE"
+                          className={`px-2 py-0.5 text-[9px] font-bold tracking-wider rounded uppercase ${emp.status === "ACTIVE"
                               ? "text-emerald-700 bg-emerald-50 border border-emerald-200/50"
                               : "text-amber-700 bg-amber-50 border border-amber-200/50"
-                          }`}
+                            }`}
                         >
                           {emp.status}
                         </span>
@@ -805,7 +800,7 @@ export default function EmployeeDirectory() {
                   <span className="font-bold text-slate-900">{filteredEmployees.length}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button 
+                  <button
                     onClick={() => table.previousPage()}
                     disabled={!table.getCanPreviousPage()}
                     className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold border border-slate-200 rounded-lg bg-white shadow-sm transition-all text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -815,7 +810,7 @@ export default function EmployeeDirectory() {
                   <button className="flex items-center justify-center w-8 h-8 text-xs font-bold bg-slate-900 text-white rounded-lg shadow-sm">
                     {table.getState().pagination.pageIndex + 1}
                   </button>
-                  <button 
+                  <button
                     onClick={() => table.nextPage()}
                     disabled={!table.getCanNextPage()}
                     className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 bg-white shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed">
@@ -906,7 +901,7 @@ export default function EmployeeDirectory() {
 
 
 
-      <EmployeeActionModals 
+      <EmployeeActionModals
         actionType={actionModalState.type}
         employee={actionModalState.employee}
         isOpen={actionModalState.isOpen}

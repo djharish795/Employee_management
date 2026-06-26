@@ -165,19 +165,26 @@ export class AttendanceService {
       
       const workHoursDecimal = state.offset / 3600;
       // Threshold: 9 hours = 32400 seconds for early checkout
-      const finalStatus = state.offset < 32400 ? "EARLY_CHECKOUT" : "PRESENT";
+      const finalStatus = state.offset < 32400 ? "HALF_DAY" : "PRESENT";
       
-      await this.prisma.attendanceRecord.update({
+      await this.prisma.attendanceRecord.upsert({
         where: { employeeId_date: { employeeId, date: shiftDate } },
-        data: {
+        update: {
           checkOutTime: new Date(now),
           workHours: workHoursDecimal,
-          status: finalStatus,
+          status: finalStatus as any,
         },
+        create: {
+          employeeId,
+          date: shiftDate,
+          checkInTime: new Date(state.startTime),
+          checkOutTime: new Date(now),
+          status: finalStatus as any,
+          isRegularized: false,
+          workHours: workHoursDecimal,
+        }
       }).catch(err => {
-        // If redis shiftDate gets corrupted or out of sync, log and fallback gracefully
-        console.error(`Midnight crossover update failed for employee ${employeeId}:`, err);
-        throw new BadRequestException("Failed to finalize shift. Active record missing.");
+        console.error(`Check-out upsert failed for employee ${employeeId}:`, err);
       });
 
       return state;
@@ -241,14 +248,19 @@ export class AttendanceService {
 
     let totalHours = 0;
     let daysPresent = 0;
+    let lateArrivals = 0;
+    let wfhDays = 0;
     
     monthlyRecords.forEach(record => {
       if (record.workHours) {
         totalHours += Number(record.workHours);
       }
-      if (["PRESENT", "WFH", "HALF_DAY"].includes(record.status)) {
-        daysPresent += record.status === "HALF_DAY" ? 0.5 : 1;
+      const statusStr = record.status as string;
+      if (["PRESENT", "WFH", "HALF_DAY", "LATE", "EARLY_CHECKOUT"].includes(statusStr)) {
+        daysPresent += statusStr === "HALF_DAY" ? 0.5 : 1;
       }
+      if (statusStr === "LATE") lateArrivals++;
+      if (statusStr === "WFH") wfhDays++;
     });
 
     const avgHoursWorked = monthlyRecords.length > 0 ? (totalHours / monthlyRecords.length) : 0;
@@ -297,10 +309,18 @@ export class AttendanceService {
       });
     }
 
+    // Calculate this week hours
+    const thisWeekHours = weeklyTrends.reduce((sum, day) => sum + day.hours, 0);
+
     return {
       presentToday,
       attendanceRate: Number(attendanceRate.toFixed(1)),
       avgHoursWorked: Number(avgHoursWorked.toFixed(1)),
+      lateArrivals,
+      wfhDays,
+      leaveDays: holidaysAndLeaves,
+      thisWeekHours: Number(thisWeekHours.toFixed(1)),
+      thisMonthDays: daysPresent,
       weeklyTrends
     };
   }

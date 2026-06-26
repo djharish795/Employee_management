@@ -26,4 +26,7 @@ export interface AttendanceKPIs {
   lateArrivals: number;
   leaveDays: number;
   wfhDays: number;
+  thisWeekHours?: number;
+  thisMonthDays?: number;
+  weeklyTrends?: Array<{ date: string; hours: number }>;
 }

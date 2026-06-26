@@ -85,12 +85,14 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
   // Punch actions mutations
   const punchMutation = useMutation({
     mutationFn: async (action: "IN" | "BREAK" | "OUT") => {
-      await submitPunch(action);
+      return await submitPunch(action);
     },
-    onSuccess: () => {
-      // Instantly refresh logs, kpis, and status
+    onSuccess: (newData) => {
+      // Instantly update local state with backend response for zero-latency refresh
+      queryClient.setQueryData(["attendanceStatus"], newData);
+      
+      // Refresh logs and kpis in the background
       queryClient.invalidateQueries({ queryKey: ["attendanceLogs"] });
-      queryClient.invalidateQueries({ queryKey: ["attendanceStatus"] });
       queryClient.invalidateQueries({ queryKey: ["attendanceKpis"] });
     },
     onError: (error: any) => {
@@ -120,40 +122,61 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
   return (
     <div className="space-y-6">
       {/* KPIs Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Present Today</div>
-          <div className="text-xl font-bold text-slate-900 mt-1">{defaultKpis.presentToday}</div>
-          <div className="text-[10px] font-semibold text-emerald-600 mt-1">+2% from yesterday</div>
-        </div>
-        <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Attendance Rate</div>
-          <div className="text-xl font-bold text-slate-900 mt-1">{defaultKpis.attendanceRate}%</div>
-          <div className="w-full h-1 bg-slate-100 rounded-full mt-2 overflow-hidden">
-            <div className="h-full bg-slate-900 rounded-full" style={{ width: `${defaultKpis.attendanceRate}%` }} />
+      {activeRole === "EMPLOYEE" ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">This Week</div>
+            <div className="text-2xl font-bold text-slate-900 mt-1">{defaultKpis.thisWeekHours ?? "0.0"} hrs</div>
+          </div>
+          <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">This Month</div>
+            <div className="text-2xl font-bold text-slate-900 mt-1">{defaultKpis.thisMonthDays ?? 0} days</div>
+          </div>
+          <div className="bg-white border border-slate-200 border-l-[3px] border-l-orange-400 p-5 rounded-xl shadow-sm">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Late Arrivals</div>
+            <div className="text-2xl font-bold text-orange-500 mt-1">{defaultKpis.lateArrivals ?? 0}</div>
+          </div>
+          <div className="bg-white border border-slate-200 border-l-[3px] border-l-blue-500 p-5 rounded-xl shadow-sm">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">WFH Days</div>
+            <div className="text-2xl font-bold text-blue-500 mt-1">{defaultKpis.wfhDays ?? 0}</div>
           </div>
         </div>
-        <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Avg. Work Hours</div>
-          <div className="text-xl font-bold text-slate-900 mt-1">{defaultKpis.avgHoursWorked}</div>
-          <div className="text-[10px] font-semibold text-slate-500 mt-1">Target: 9.0h / Day</div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Present Today</div>
+            <div className="text-xl font-bold text-slate-900 mt-1">{defaultKpis.presentToday}</div>
+            <div className="text-[10px] font-semibold text-emerald-600 mt-1">+2% from yesterday</div>
+          </div>
+          <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Attendance Rate</div>
+            <div className="text-xl font-bold text-slate-900 mt-1">{defaultKpis.attendanceRate}%</div>
+            <div className="w-full h-1 bg-slate-100 rounded-full mt-2 overflow-hidden">
+              <div className="h-full bg-slate-900 rounded-full" style={{ width: `${defaultKpis.attendanceRate}%` }} />
+            </div>
+          </div>
+          <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Avg. Work Hours</div>
+            <div className="text-xl font-bold text-slate-900 mt-1">{defaultKpis.avgHoursWorked}</div>
+            <div className="text-[10px] font-semibold text-slate-500 mt-1">Target: 9.0h / Day</div>
+          </div>
+          <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Late Arrivals</div>
+            <div className="text-xl font-bold text-slate-900 mt-1">{defaultKpis.lateArrivals} Days</div>
+            <div className="text-[10px] font-semibold text-amber-600 mt-1">Check logs to regularize</div>
+          </div>
+          <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Leaves Taken</div>
+            <div className="text-xl font-bold text-slate-900 mt-1">{defaultKpis.leaveDays} Days</div>
+            <div className="text-[10px] font-semibold text-slate-500 mt-1">Approved logs</div>
+          </div>
+          <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">WFH Sessions</div>
+            <div className="text-xl font-bold text-slate-900 mt-1">{defaultKpis.wfhDays} Days</div>
+            <div className="text-[10px] font-semibold text-slate-900 mt-1">Remote connection logs</div>
+          </div>
         </div>
-        <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Late Arrivals</div>
-          <div className="text-xl font-bold text-slate-900 mt-1">{defaultKpis.lateArrivals} Days</div>
-          <div className="text-[10px] font-semibold text-amber-600 mt-1">Check logs to regularize</div>
-        </div>
-        <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Leaves Taken</div>
-          <div className="text-xl font-bold text-slate-900 mt-1">{defaultKpis.leaveDays} Days</div>
-          <div className="text-[10px] font-semibold text-slate-500 mt-1">Approved logs</div>
-        </div>
-        <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">WFH Sessions</div>
-          <div className="text-xl font-bold text-slate-900 mt-1">{defaultKpis.wfhDays} Days</div>
-          <div className="text-[10px] font-semibold text-slate-900 mt-1">Remote connection logs</div>
-        </div>
-      </div>
+      )}
 
       {/* Main Content Layout */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
