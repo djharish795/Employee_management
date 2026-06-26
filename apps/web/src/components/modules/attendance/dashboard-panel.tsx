@@ -35,6 +35,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
 
   // Local clock state that ticks based on backend offset
   const [secondsElapsed, setSecondsElapsed] = useState(0);
+  const [breakSecondsElapsed, setBreakSecondsElapsed] = useState(0);
 
   // Sync internal clock when backend status changes
   useEffect(() => {
@@ -46,6 +47,14 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
       } else {
         setSecondsElapsed(statusData.offset);
       }
+
+      if (statusData.state === "BREAK") {
+        const now = Date.now();
+        const elapsed = Math.round((now - statusData.startTime) / 1000);
+        setBreakSecondsElapsed(elapsed > 0 ? elapsed : 0);
+      } else {
+        setBreakSecondsElapsed(0);
+      }
     }
   }, [statusData]);
 
@@ -55,6 +64,11 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
     if (statusData?.state === "IN") {
       interval = setInterval(() => {
         setSecondsElapsed((prev) => prev + 1);
+      }, 1000);
+    } else if (statusData?.state === "BREAK") {
+      interval = setInterval(() => {
+        setBreakSecondsElapsed((prev) => prev + 1);
+        setSecondsElapsed((prev) => prev + 1); // Also tick effective hours during break
       }, 1000);
     }
     return () => clearInterval(interval);
@@ -95,6 +109,13 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
     wfhDays: 0,
     weeklyTrends: []
   };
+
+  const todayDateStr = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  const todayLog = logs.find((log) => new Date(log.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) === todayDateStr);
+
+  const checkInDisplay = todayLog?.checkIn ? new Date(todayLog.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--:--";
+  const breakDisplay = punchState === "BREAK" && statusData ? new Date(statusData.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--:--";
+  const checkOutDisplay = todayLog?.checkOut ? new Date(todayLog.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--:--";
 
   return (
     <div className="space-y-6">
@@ -164,17 +185,17 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
               <div className="relative flex justify-between">
                 <div className="flex flex-col items-center">
                   <div className={`w-4 h-4 rounded-full border-[3px] border-white shadow-sm z-10 transition-all ${punchState !== "OUT" ? "bg-slate-900 ring-4 ring-blue-50" : "bg-slate-200"}`} />
-                  <span className="text-[11px] font-bold text-slate-900 mt-2">08:52 AM</span>
+                  <span className="text-[11px] font-bold text-slate-900 mt-2">{checkInDisplay}</span>
                   <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Check-In</span>
                 </div>
                 <div className="flex flex-col items-center">
                   <div className={`w-4 h-4 rounded-full border-[3px] border-white shadow-sm z-10 transition-all ${punchState === "BREAK" || punchState === "OUT" && secondsElapsed > 0 ? "bg-amber-400 ring-4 ring-amber-50" : "bg-slate-200"}`} />
-                  <span className="text-[11px] font-bold text-slate-900 mt-2">12:30 PM</span>
+                  <span className="text-[11px] font-bold text-slate-900 mt-2">{breakDisplay}</span>
                   <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Break Start</span>
                 </div>
                 <div className="flex flex-col items-center">
                   <div className={`w-4 h-4 rounded-full border-[3px] border-white shadow-sm z-10 transition-all ${punchState === "OUT" && secondsElapsed > 0 ? "bg-emerald-500 ring-4 ring-emerald-50" : "bg-slate-200"}`} />
-                  <span className="text-[11px] font-bold text-slate-900 mt-2">--:--</span>
+                  <span className="text-[11px] font-bold text-slate-900 mt-2">{checkOutDisplay}</span>
                   <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Check-Out</span>
                 </div>
               </div>
@@ -196,6 +217,14 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                     {punchState === "IN" ? "On Track" : punchState === "BREAK" ? "Break Session" : "Punch Required"}
                   </span>
                 </div>
+                {punchState === "BREAK" && (
+                  <div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Break Timer</div>
+                    <div className="text-xl font-bold text-amber-600 font-mono tracking-tight mt-0.5">
+                      {formatTimerValue(breakSecondsElapsed)}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Punch trigger buttons */}
@@ -286,6 +315,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                   let badge = "text-slate-600 bg-slate-100";
                   if (log.status === "PRESENT") badge = "text-emerald-700 bg-emerald-50 border border-emerald-100";
                   else if (log.status === "LATE") badge = "text-amber-700 bg-amber-50 border border-amber-100";
+                  else if (log.status === "EARLY_CHECKOUT") badge = "text-rose-700 bg-rose-50 border border-rose-100";
                   else if (log.status === "WFH") badge = "text-slate-900 bg-slate-100 border border-slate-200";
 
                   const formattedDate = new Date(log.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });

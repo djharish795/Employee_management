@@ -964,6 +964,7 @@ enum AttendanceStatus {
   HOLIDAY
   WFH
   ON_LEAVE
+  EARLY_CHECKOUT
 }
 
 enum CheckInMethod {
