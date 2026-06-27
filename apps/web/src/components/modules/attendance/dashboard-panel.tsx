@@ -109,6 +109,8 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
     lateArrivals: 0,
     leaveDays: 0,
     wfhDays: 0,
+    thisWeekHours: 0,
+    thisMonthDays: 0,
     weeklyTrends: []
   };
 
@@ -116,7 +118,11 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
   const todayLog = logs.find((log) => new Date(log.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) === todayDateStr);
 
   const checkInDisplay = todayLog?.checkIn ? new Date(todayLog.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--:--";
-  const breakDisplay = punchState === "BREAK" && statusData ? new Date(statusData.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--:--";
+  const breakDisplay = punchState === "BREAK" && statusData 
+    ? new Date(statusData.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+    : (todayLog?.totalBreakSeconds && todayLog.totalBreakSeconds > 0) 
+      ? `${Math.ceil(todayLog.totalBreakSeconds / 60)} mins` 
+      : "--:--";
   const checkOutDisplay = todayLog?.checkOut ? new Date(todayLog.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--:--";
 
   return (
@@ -197,9 +203,9 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
             {/* Horizontal Timeline Tracker */}
             <div className="relative mb-10 px-6">
               {/* Tracker lines */}
-              <div className="absolute top-1/2 left-0 right-0 h-1 bg-slate-100 rounded-full -translate-y-1/2" />
+              <div className="absolute top-2 left-0 right-0 h-1 bg-slate-100 rounded-full -translate-y-1/2" />
               <div
-                className="absolute top-1/2 left-0 h-1 bg-slate-900 rounded-full -translate-y-1/2 transition-all duration-500"
+                className="absolute top-2 left-0 h-1 bg-slate-900 rounded-full -translate-y-1/2 transition-all duration-500"
                 style={{
                   width: punchState === "OUT" ? "0%" : punchState === "BREAK" ? "50%" : "100%",
                 }}
@@ -212,9 +218,9 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                   <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Check-In</span>
                 </div>
                 <div className="flex flex-col items-center">
-                  <div className={`w-4 h-4 rounded-full border-[3px] border-white shadow-sm z-10 transition-all ${punchState === "BREAK" || punchState === "OUT" && secondsElapsed > 0 ? "bg-amber-400 ring-4 ring-amber-50" : "bg-slate-200"}`} />
+                  <div className={`w-4 h-4 rounded-full border-[3px] border-white shadow-sm z-10 transition-all ${punchState === "BREAK" || (punchState === "OUT" && secondsElapsed > 0 && todayLog?.totalBreakSeconds) || (punchState === "IN" && todayLog?.totalBreakSeconds) ? "bg-amber-400 ring-4 ring-amber-50" : "bg-slate-200"}`} />
                   <span className="text-[11px] font-bold text-slate-900 mt-2">{breakDisplay}</span>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Break Start</span>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">{punchState === "BREAK" ? "Break Start" : "Break Taken"}</span>
                 </div>
                 <div className="flex flex-col items-center">
                   <div className={`w-4 h-4 rounded-full border-[3px] border-white shadow-sm z-10 transition-all ${punchState === "OUT" && secondsElapsed > 0 ? "bg-emerald-500 ring-4 ring-emerald-50" : "bg-slate-200"}`} />

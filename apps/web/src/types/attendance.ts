@@ -3,8 +3,9 @@ export interface AttendanceLog {
   checkIn: string;
   checkOut: string;
   hoursWorked: number | string;
-  status: "PRESENT" | "LATE" | "WFH" | "ABSENT" | "ON_LEAVE";
+  status: "PRESENT" | "LATE" | "WFH" | "ABSENT" | "ON_LEAVE" | "EARLY_CHECKOUT" | "HALF_DAY";
   remarks: string;
+  totalBreakSeconds?: number;
 }
 
 export interface RegularizationRequest {

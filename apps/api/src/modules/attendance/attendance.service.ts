@@ -165,7 +165,7 @@ export class AttendanceService {
       
       const workHoursDecimal = state.offset / 3600;
       // Threshold: 9 hours = 32400 seconds for early checkout
-      const finalStatus = state.offset < 32400 ? "HALF_DAY" : "PRESENT";
+      const finalStatus = state.offset < 32400 ? "EARLY_CHECKOUT" : "PRESENT";
       
       await this.prisma.attendanceRecord.upsert({
         where: { employeeId_date: { employeeId, date: shiftDate } },
@@ -217,7 +217,8 @@ export class AttendanceService {
       checkOut: record.checkOutTime ? record.checkOutTime.toISOString() : null,
       hoursWorked: record.workHours ? Number(record.workHours) : 0,
       status: record.status,
-      remarks: record.notes || ""
+      remarks: record.notes || "",
+      totalBreakSeconds: record.totalBreakSeconds || 0
     }));
 
     return { data: mappedData, total, page, limit };
@@ -234,7 +235,7 @@ export class AttendanceService {
     const todayRecord = await this.prisma.attendanceRecord.findUnique({
       where: { employeeId_date: { employeeId, date: today } },
     });
-    const presentToday = todayRecord && ["PRESENT", "WFH", "HALF_DAY"].includes(todayRecord.status) ? 1 : 0;
+    const presentToday = todayRecord && ["PRESENT", "WFH", "HALF_DAY", "EARLY_CHECKOUT"].includes(todayRecord.status) ? 1 : 0;
 
     // 2. Avg Work Hours this month
     const monthlyRecords = await this.prisma.attendanceRecord.findMany({
@@ -257,7 +258,7 @@ export class AttendanceService {
       }
       const statusStr = record.status as string;
       if (["PRESENT", "WFH", "HALF_DAY", "LATE", "EARLY_CHECKOUT"].includes(statusStr)) {
-        daysPresent += statusStr === "HALF_DAY" ? 0.5 : 1;
+        daysPresent += (statusStr === "HALF_DAY" || statusStr === "EARLY_CHECKOUT") ? 0.5 : 1;
       }
       if (statusStr === "LATE") lateArrivals++;
       if (statusStr === "WFH") wfhDays++;

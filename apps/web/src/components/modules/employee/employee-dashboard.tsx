@@ -63,7 +63,7 @@ export default function EmployeeDashboardPanel() {
     onSuccess: (newData) => {
       // Instantly update local state with backend response
       queryClient.setQueryData(["attendanceStatus"], newData);
-      
+
       // Refresh background data
       queryClient.invalidateQueries({ queryKey: ["attendanceKpis"] });
       queryClient.invalidateQueries({ queryKey: ["attendanceLogs"] });
@@ -98,8 +98,8 @@ export default function EmployeeDashboardPanel() {
   const greetingHour = new Date().getHours();
   const greeting =
     greetingHour < 12 ? "Good Morning" :
-    greetingHour < 17 ? "Good Afternoon" :
-    "Good Evening";
+      greetingHour < 17 ? "Good Afternoon" :
+        "Good Evening";
 
   return (
     <div className="space-y-6">
@@ -177,13 +177,12 @@ export default function EmployeeDashboardPanel() {
             <div className="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="flex items-center gap-4 text-left w-full md:w-auto">
                 <div
-                  className={`w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    todayState === "IN"
+                  className={`w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 ${todayState === "IN"
                       ? "bg-emerald-100 text-emerald-600"
                       : todayState === "BREAK"
-                      ? "bg-amber-100 text-amber-600"
-                      : "bg-slate-100 text-slate-500"
-                  }`}
+                        ? "bg-amber-100 text-amber-600"
+                        : "bg-slate-100 text-slate-500"
+                    }`}
                 >
                   {todayState === "IN" ? (
                     <CheckCircle2 className="w-8 h-8" />
@@ -198,15 +197,15 @@ export default function EmployeeDashboardPanel() {
                     {todayState === "IN"
                       ? "You're checked in!"
                       : todayState === "BREAK"
-                      ? "On a break"
-                      : `${greeting}!`}
+                        ? "On a break"
+                        : `${greeting}!`}
                   </h3>
                   <p className="text-sm font-medium text-slate-500 mt-0.5">
                     {todayState === "IN" && checkInTimeDisplay
                       ? `Clocked in at ${checkInTimeDisplay}`
                       : todayState === "BREAK"
-                      ? "Break in progress..."
-                      : "Ready to start your day?"}
+                        ? "Break in progress..."
+                        : "Ready to start your day?"}
                   </p>
                 </div>
               </div>
@@ -214,11 +213,10 @@ export default function EmployeeDashboardPanel() {
               <button
                 onClick={handlePunch}
                 disabled={punchMutation.isPending || todayQuery.isLoading}
-                className={`w-full md:w-auto px-8 py-3.5 rounded-xl font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
-                  isPunchedIn
+                className={`w-full md:w-auto px-8 py-3.5 rounded-xl font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${isPunchedIn
                     ? "bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200"
                     : "bg-indigo-600 text-white hover:bg-indigo-700"
-                }`}
+                  }`}
               >
                 {punchMutation.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

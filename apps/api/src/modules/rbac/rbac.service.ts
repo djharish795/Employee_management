@@ -21,6 +21,7 @@ export class RbacService {
     [UserRole.HR]: [
       Permission.READ_EMPLOYEES,
       Permission.WRITE_EMPLOYEES,
+      Permission.READ_AUDIT,
     ],
     [UserRole.CHRO]: [
       Permission.READ_EMPLOYEES,
@@ -29,15 +30,18 @@ export class RbacService {
     [UserRole.SUPER_ADMIN]: [
       Permission.READ_EMPLOYEES,
       Permission.WRITE_EMPLOYEES,
+      Permission.READ_AUDIT,
     ],
     [UserRole.FINANCE]: [
       Permission.READ_EMPLOYEES,
     ],
     [UserRole.CEO]: [
       Permission.READ_EMPLOYEES,
+      Permission.READ_AUDIT,
     ],
     [UserRole.CTO]: [
       Permission.READ_EMPLOYEES,
+      Permission.READ_AUDIT,
     ],
     [UserRole.COO]: [
       Permission.READ_EMPLOYEES,
