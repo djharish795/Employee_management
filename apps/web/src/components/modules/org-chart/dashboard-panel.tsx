@@ -43,7 +43,7 @@ export default function OrgDashboardPanel({ activeRole }: OrgDashboardPanelProps
   const calcPercent = (val: number) => totalMStruct > 0 ? Math.round((val / totalMStruct) * 100) : 0;
   
   const managementDistribution = [
-    { title: "Individual Contributors", percent: calcPercent(mStruct.individualContributors), color: "bg-slate-300", count: mStruct.individualContributors },
+    { title: "Individual Contributors", percent: calcPercent(mStruct.individualContributors), color: "bg-sky-400", count: mStruct.individualContributors },
     { title: "Managers", percent: calcPercent(mStruct.managers), color: "bg-indigo-400", count: mStruct.managers },
     { title: "Directors & VP", percent: calcPercent(mStruct.directors), color: "bg-indigo-600", count: mStruct.directors },
     { title: "C-Level", percent: calcPercent(mStruct.cLevel), color: "bg-indigo-900", count: mStruct.cLevel },

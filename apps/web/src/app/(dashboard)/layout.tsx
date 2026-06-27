@@ -11,10 +11,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const storeRole = useAuthStore((state) => state.role);
 
+  const [mounted, setMounted] = React.useState(false);
+  
   // Client-side auth guard: fires on every mount of any dashboard page.
   // Handles the browser Back-button cache bypass after logout — the server
   // middleware never runs for cached pages, so we enforce auth here.
   React.useEffect(() => {
+    setMounted(true);
     const getCookie = (name: string) => {
       const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
       return match ? decodeURIComponent(match[2]) : null;
@@ -25,6 +28,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.replace('/login');
     }
   }, [router]);
+
+  if (!mounted) return null;
 
   // Determine which sidebar to show
   const cookieRole = typeof document !== 'undefined'

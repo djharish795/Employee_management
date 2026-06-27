@@ -27,6 +27,9 @@ export function CeoSidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed]   = useState(false);
   const [mounted, setMounted]       = useState(false);
+  
+  const role = useAuthStore((state) => state.role) || 'CEO';
+  const displayRole = role.replace('_', ' ');
 
   React.useEffect(() => { setMounted(true); }, []);
 
@@ -42,7 +45,7 @@ export function CeoSidebar() {
         {!collapsed && (
           <div>
             <h2 className="text-base font-bold text-slate-900 tracking-tight leading-snug">Naprocs EMS</h2>
-            <p className="text-[11px] text-slate-500 font-medium tracking-wide mt-0.5">CEO Dashboard</p>
+            <p className="text-[11px] text-slate-500 font-medium tracking-wide mt-0.5 capitalize">{displayRole} Dashboard</p>
           </div>
         )}
         <button
@@ -142,7 +145,7 @@ export function CeoSidebar() {
         }`}
       >
         <div className="flex items-center justify-between p-4 border-b border-slate-100">
-          <h2 className="text-base font-bold text-slate-900">Naprocs CEO</h2>
+          <h2 className="text-base font-bold text-slate-900 capitalize">Naprocs {displayRole}</h2>
           <button onClick={() => setMobileOpen(false)} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
             <X className="w-4 h-4" />
           </button>
