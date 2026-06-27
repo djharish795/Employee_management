@@ -12,7 +12,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const storeRole = useAuthStore((state) => state.role);
 
   const [mounted, setMounted] = React.useState(false);
-  
+
   // Client-side auth guard: fires on every mount of any dashboard page.
   // Handles the browser Back-button cache bypass after logout — the server
   // middleware never runs for cached pages, so we enforce auth here.
