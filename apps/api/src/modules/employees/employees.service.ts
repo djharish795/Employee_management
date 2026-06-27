@@ -324,6 +324,7 @@ export class EmployeesService {
         lastName: true,
         officialEmail: true,
         photoUrl: true,
+        gender: true,
         reportingManagerId: true,
         workLocation: true,
         department: { select: { name: true } },

@@ -10,6 +10,7 @@ export interface OrgEmployee {
   photoUrl: string;
   initials: string;
   avatarBg: string;
+  gender?: string;
   managerId: string | null; // Adjacency list relation
 }
 
