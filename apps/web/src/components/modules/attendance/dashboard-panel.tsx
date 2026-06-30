@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Play, Square, Coffee, ShieldAlert, CheckCircle2, Clock, Calendar, ArrowRight, UserCheck } from "lucide-react";
+import { Play, Square, Coffee, ShieldAlert, CheckCircle2, Clock, Calendar, ArrowRight, UserCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { AttendanceLog, AttendanceKPIs } from "@/types/attendance";
 import { fetchTodayStatus, fetchMyLogs, fetchMyKpis, submitPunch } from "@/lib/api/attendance";
@@ -36,6 +36,9 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
   // Local clock state that ticks based on backend offset
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const [breakSecondsElapsed, setBreakSecondsElapsed] = useState(0);
+  
+  // Mini Calendar State
+  const [calendarDate, setCalendarDate] = useState(new Date());
 
   // Sync internal clock when backend status changes
   useEffect(() => {
@@ -123,7 +126,14 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
     : (todayLog?.totalBreakSeconds && todayLog.totalBreakSeconds > 0) 
       ? `${Math.ceil(todayLog.totalBreakSeconds / 60)} mins` 
       : "--:--";
-  const checkOutDisplay = todayLog?.checkOut ? new Date(todayLog.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--:--";
+  let expectedCheckOutStr = "--:--";
+  if (!todayLog?.checkOut && todayLog?.checkIn) {
+    const shiftMs = 9 * 60 * 60 * 1000;
+    const checkInMs = new Date(todayLog.checkIn).getTime();
+    const expectedOutMs = checkInMs + shiftMs;
+    expectedCheckOutStr = new Date(expectedOutMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  const checkOutDisplay = todayLog?.checkOut ? new Date(todayLog.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : expectedCheckOutStr;
 
   return (
     <div className="space-y-6">
@@ -347,7 +357,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                   let badge = "text-slate-600 bg-slate-100";
                   if (log.status === "PRESENT") badge = "text-emerald-700 bg-emerald-50 border border-emerald-100";
                   else if (log.status === "LATE") badge = "text-amber-700 bg-amber-50 border border-amber-100";
-                  else if (log.status === "EARLY_CHECKOUT") badge = "text-rose-700 bg-rose-50 border border-rose-100";
+                  else if (log.status === "EARLY_CHECKOUT") badge = "text-orange-700 bg-orange-50 border border-orange-100";
                   else if (log.status === "WFH") badge = "text-slate-900 bg-slate-100 border border-slate-200";
 
                   const formattedDate = new Date(log.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
@@ -398,8 +408,23 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
           {/* Mini Calendar Widget */}
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-sm font-bold text-slate-900">June 2026</h3>
-              <div className="text-[10px] font-bold text-slate-400">Monthly Calendar</div>
+              <h3 className="text-sm font-bold text-slate-900">
+                {calendarDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+              </h3>
+              <div className="flex items-center gap-1">
+                <button 
+                  onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1))}
+                  className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button 
+                  onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1))}
+                  className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
             {/* Days initials */}
             <div className="grid grid-cols-7 gap-1 text-center text-[9px] font-bold text-slate-400 mb-2">
@@ -407,33 +432,58 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
             </div>
             {/* Simplified calendar cells */}
             <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-slate-700">
-              {/* Empty offset items for June 2026 starting on Monday */}
-              {Array.from({ length: 14 }).map((_, idx) => {
-                const day = idx + 1;
-                // Add color dots based on logs matching day
-                let dot = null;
-                if (day === 15) dot = <div className="w-1 h-1 bg-emerald-500 rounded-full mx-auto mt-0.5" />;
-                else if (day === 14) dot = <div className="w-1 h-1 bg-amber-500 rounded-full mx-auto mt-0.5" />;
-                else if (day === 13) dot = <div className="w-1 h-1 bg-slate-700 rounded-full mx-auto mt-0.5" />;
-                else if (day < 13) dot = <div className="w-1 h-1 bg-emerald-500 rounded-full mx-auto mt-0.5" />;
+              {(() => {
+                const year = calendarDate.getFullYear();
+                const month = calendarDate.getMonth();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const firstDayOfMonth = new Date(year, month, 1).getDay();
+                // Adjust to make Monday the first day of the week (0=Mon, 6=Sun)
+                const startOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
+                
+                const cells = [];
+                // Empty offset items
+                for (let i = 0; i < startOffset; i++) {
+                  cells.push(<div key={`empty-${i}`} className="p-1.5 opacity-30 text-slate-400"></div>);
+                }
+                
+                // Actual days
+                for (let day = 1; day <= daysInMonth; day++) {
+                  const dateStr = new Date(year, month, day).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+                  const dayLog = logs.find((l: any) => new Date(l.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) === dateStr);
+                  
+                  let dot = null;
+                  if (dayLog) {
+                    if (dayLog.status === "PRESENT") dot = <div className="w-1 h-1 bg-emerald-500 rounded-full mx-auto mt-0.5" />;
+                    else if (dayLog.status === "LATE") dot = <div className="w-1 h-1 bg-amber-500 rounded-full mx-auto mt-0.5" />;
+                    else if (dayLog.status === "EARLY_CHECKOUT") dot = <div className="w-1 h-1 bg-orange-500 rounded-full mx-auto mt-0.5" />;
+                    else if (dayLog.status === "ABSENT") dot = <div className="w-1 h-1 bg-rose-500 rounded-full mx-auto mt-0.5" />;
+                    else if (dayLog.status === "WFH") dot = <div className="w-1 h-1 bg-slate-700 rounded-full mx-auto mt-0.5" />;
+                  }
 
-                return (
-                  <div
-                    key={day}
-                    className={`p-1.5 rounded relative hover:bg-slate-50 cursor-pointer ${day === 15 ? "bg-slate-900 text-white hover:bg-slate-900" : ""
+                  const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
+
+                  cells.push(
+                    <div
+                      key={`day-${day}`}
+                      title={dayLog ? `${dayLog.status}: ${typeof dayLog.hoursWorked === 'number' ? dayLog.hoursWorked.toFixed(1) : dayLog.hoursWorked}h` : "No Record"}
+                      className={`p-1.5 rounded relative hover:bg-slate-50 cursor-pointer ${
+                        isToday ? "bg-slate-900 text-white hover:bg-slate-900" : ""
                       }`}
-                  >
-                    {day}
-                    {day !== 15 && dot}
-                  </div>
-                );
-              })}
-              {/* Fill remaining empty calendar grid slots */}
-              {Array.from({ length: 16 }).map((_, idx) => (
-                <div key={idx} className="p-1.5 opacity-30 text-slate-400">
-                  {idx + 15}
-                </div>
-              ))}
+                    >
+                      {day}
+                      {!isToday && dot}
+                    </div>
+                  );
+                }
+                
+                // Fill remaining
+                const remaining = Math.ceil((startOffset + daysInMonth) / 7) * 7 - (startOffset + daysInMonth);
+                for (let i = 0; i < remaining; i++) {
+                  cells.push(<div key={`end-empty-${i}`} className="p-1.5 opacity-30 text-slate-400"></div>);
+                }
+                
+                return cells;
+              })()}
             </div>
           </div>
 

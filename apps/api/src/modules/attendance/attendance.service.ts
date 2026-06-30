@@ -97,6 +97,7 @@ export class AttendanceService {
       const isReturnFromBreak = state.state === "BREAK";
       if (isReturnFromBreak) {
         const breakElapsed = Math.floor((now - state.startTime) / 1000);
+        state.offset += breakElapsed;
         await this.prisma.attendanceRecord.update({
           where: { employeeId_date: { employeeId, date: shiftDate } },
           data: {
@@ -152,7 +153,7 @@ export class AttendanceService {
     if (dto.action === "OUT") {
       if (state.state === "OUT") throw new BadRequestException("Already punched out");
       
-      if (state.state === "IN") {
+      if (state.state === "IN" || state.state === "BREAK") {
         const elapsed = Math.floor((now - state.startTime) / 1000);
         state.offset += elapsed;
       }

@@ -79,7 +79,7 @@ export default function EmployeeDashboardPanel() {
   // ── Formatted clock-in time ───────────────────────────────────────────────
   const checkInTimeDisplay = (() => {
     if (!todayQuery.data?.startTime) return null;
-    return new Date(todayQuery.data.startTime * 1000).toLocaleTimeString([], {
+    return new Date(todayQuery.data.startTime).toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -198,14 +198,18 @@ export default function EmployeeDashboardPanel() {
                       ? "You're checked in!"
                       : todayState === "BREAK"
                         ? "On a break"
-                        : `${greeting}!`}
+                        : (todayQuery.data?.offset && todayQuery.data.offset > 0 
+                            ? (todayQuery.data.offset < 32400 ? "Early Checkout" : "Checked Out") 
+                            : `${greeting}!`)}
                   </h3>
                   <p className="text-sm font-medium text-slate-500 mt-0.5">
                     {todayState === "IN" && checkInTimeDisplay
                       ? `Clocked in at ${checkInTimeDisplay}`
                       : todayState === "BREAK"
                         ? "Break in progress..."
-                        : "Ready to start your day?"}
+                        : (todayQuery.data?.offset && todayQuery.data.offset > 0 
+                            ? (todayQuery.data.offset < 32400 ? "Shift ended early today" : "Shift completed today") 
+                            : "Ready to start your day?")}
                   </p>
                 </div>
               </div>
