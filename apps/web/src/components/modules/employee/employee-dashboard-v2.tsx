@@ -13,12 +13,22 @@ import { useAuthStore } from "@/store/auth";
 import {
   fetchTodayStatus,
   fetchMyKpis,
+  fetchMyLogs,
   submitPunch,
 } from "@/lib/api/attendance";
 
 export default function EmployeeDashboardV2() {
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((state) => state.accessToken);
+  
+  const [calendarDate, setCalendarDate] = useState(new Date());
+  
+  const logsQuery = useQuery({
+    queryKey: ["attendanceLogs"],
+    queryFn: fetchMyLogs,
+    staleTime: 60_000,
+  });
+  const logs = logsQuery.data || [];
 
   // ── Today's attendance state from backend ─────────────────────────────────
   const todayQuery = useQuery({
@@ -61,7 +71,7 @@ export default function EmployeeDashboardV2() {
   // ── Formatted clock-in time ───────────────────────────────────────────────
   const checkInTimeDisplay = (() => {
     if (!todayQuery.data?.startTime) return null;
-    return new Date(todayQuery.data.startTime * 1000).toLocaleTimeString([], {
+    return new Date(todayQuery.data.startTime).toLocaleTimeString([], {
       hour: "numeric",
       minute: "2-digit",
       hour12: true
@@ -128,13 +138,17 @@ export default function EmployeeDashboardV2() {
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Today's Status</p>
           <div>
             <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${isPunchedIn ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
-              <span className={`text-base font-bold ${isPunchedIn ? 'text-emerald-600' : 'text-slate-600'}`}>
-                {isPunchedIn ? 'Present' : 'Not checked in'}
+              <span className={`w-2 h-2 rounded-full ${isPunchedIn ? 'bg-emerald-500' : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32400 ? 'bg-orange-500' : 'bg-emerald-500') : 'bg-slate-300')}`}></span>
+              <span className={`text-base font-bold ${isPunchedIn ? 'text-emerald-600' : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32400 ? 'text-orange-600' : 'text-emerald-600') : 'text-slate-600')}`}>
+                {isPunchedIn ? 'Present' : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32400 ? 'Early Checkout' : 'Checked Out') : 'Not checked in')}
               </span>
             </div>
             <p className="text-xs font-medium text-slate-500 mt-1.5">
-              {isPunchedIn && checkInTimeDisplay ? `Checked in ${checkInTimeDisplay}` : 'No punch recorded today'}
+              {isPunchedIn && checkInTimeDisplay 
+                ? `Checked in ${checkInTimeDisplay}` 
+                : (todayQuery.data?.offset && todayQuery.data.offset > 0 
+                  ? (todayQuery.data.offset < 32400 ? 'Shift ended early today' : 'Shift completed today') 
+                  : 'No punch recorded today')}
             </p>
           </div>
         </div>
@@ -176,9 +190,21 @@ export default function EmployeeDashboardV2() {
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-sm font-bold text-slate-900">Attendance this month</h3>
             <div className="flex items-center gap-3">
-              <button className="text-slate-400 hover:text-slate-600"><ChevronLeft className="w-4 h-4" /></button>
-              <span className="text-sm font-semibold text-slate-900">January 2025</span>
-              <button className="text-slate-400 hover:text-slate-600"><ChevronRight className="w-4 h-4" /></button>
+              <button 
+                onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1))}
+                className="text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-50 rounded transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-sm font-semibold text-slate-900 w-28 text-center">
+                {calendarDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+              </span>
+              <button 
+                onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1))}
+                className="text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-50 rounded transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
           
@@ -191,30 +217,62 @@ export default function EmployeeDashboardV2() {
             </div>
             {/* Calendar Days */}
             <div className="grid grid-cols-7 gap-y-4 gap-x-2 text-sm font-semibold text-slate-700">
-              {/* Padding for month start (assuming Wed is 1st) */}
-              <div></div><div></div>
-              {/* Example Days */}
-              <div className="flex flex-col items-center gap-1">1<span className="w-1 h-1 rounded-full bg-emerald-500"></span></div>
-              <div className="flex flex-col items-center gap-1">2<span className="w-1 h-1 rounded-full bg-emerald-500"></span></div>
-              <div className="flex flex-col items-center gap-1">3<span className="w-1 h-1 rounded-full bg-emerald-500"></span></div>
-              <div className="flex flex-col items-center gap-1 text-slate-400">4<span className="w-1 h-1 rounded-full bg-slate-300"></span></div>
-              <div className="flex flex-col items-center gap-1 text-slate-400">5<span className="w-1 h-1 rounded-full bg-slate-300"></span></div>
-              
-              <div className="flex flex-col items-center gap-1">6<span className="w-1 h-1 rounded-full bg-emerald-500"></span></div>
-              <div className="flex flex-col items-center gap-1">7<span className="w-1 h-1 rounded-full bg-emerald-500"></span></div>
-              <div className="flex flex-col items-center gap-1">8<span className="w-1 h-1 rounded-full bg-amber-500"></span></div>
-              <div className="flex flex-col items-center gap-1">9<span className="w-1 h-1 rounded-full bg-emerald-500"></span></div>
-              <div className="flex flex-col items-center gap-1">10<span className="w-1.5 h-1.5 rounded-full border border-rose-500 bg-white"></span></div>
-              <div className="flex flex-col items-center gap-1 text-slate-400">11<span className="w-1 h-1 rounded-full bg-slate-300"></span></div>
-              <div className="flex flex-col items-center gap-1 text-slate-400">12<span className="w-1 h-1 rounded-full bg-slate-300"></span></div>
+              {(() => {
+                const year = calendarDate.getFullYear();
+                const month = calendarDate.getMonth();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const firstDayOfMonth = new Date(year, month, 1).getDay();
+                // Adjust to make Monday the first day of the week (0=Mon, 6=Sun)
+                const startOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
+                
+                const cells = [];
+                // Empty offset items
+                for (let i = 0; i < startOffset; i++) {
+                  cells.push(<div key={`empty-${i}`}></div>);
+                }
+                
+                // Actual days
+                for (let day = 1; day <= daysInMonth; day++) {
+                  const dateStr = new Date(year, month, day).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+                  const dayLog = logs.find((l: any) => new Date(l.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) === dateStr);
+                  
+                  let dot = null;
+                  if (dayLog) {
+                    if (dayLog.status === "PRESENT") dot = <span className="w-1 h-1 rounded-full bg-emerald-500 mt-0.5"></span>;
+                    else if (dayLog.status === "LATE") dot = <span className="w-1 h-1 rounded-full bg-amber-500 mt-0.5"></span>;
+                    else if (dayLog.status === "EARLY_CHECKOUT") dot = <span className="w-1 h-1 rounded-full bg-orange-500 mt-0.5"></span>;
+                    else if (dayLog.status === "ABSENT") dot = <span className="w-1.5 h-1.5 rounded-full border border-rose-500 bg-white mt-0.5"></span>;
+                    else if (dayLog.status === "WFH") dot = <span className="w-1 h-1 rounded-full bg-slate-700 mt-0.5"></span>;
+                  } else {
+                    dot = <span className="w-1 h-1 rounded-full bg-transparent mt-0.5"></span>; // Placeholder to maintain height
+                  }
 
-              <div className="flex flex-col items-center gap-1">13<span className="w-1 h-1 rounded-full bg-emerald-500"></span></div>
-              <div className="flex flex-col items-center gap-1">14<span className="w-1 h-1 rounded-full bg-emerald-500"></span></div>
-              <div className="flex flex-col items-center gap-1 border border-slate-400 rounded bg-slate-100 py-1">15<span className="w-1 h-1 rounded-full bg-emerald-500 mt-1"></span></div>
-              <div className="flex flex-col items-center gap-1 text-slate-300">16</div>
-              <div className="flex flex-col items-center gap-1 text-slate-300">17</div>
-              <div className="flex flex-col items-center gap-1 text-slate-300">18</div>
-              <div className="flex flex-col items-center gap-1 text-slate-300">19</div>
+                  const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
+                  const isFuture = new Date(year, month, day) > new Date();
+                  const isWeekend = new Date(year, month, day).getDay() === 0 || new Date(year, month, day).getDay() === 6;
+
+                  cells.push(
+                    <div 
+                      key={`day-${day}`} 
+                      title={dayLog ? `${dayLog.status}: ${typeof dayLog.hoursWorked === 'number' ? dayLog.hoursWorked.toFixed(1) : dayLog.hoursWorked}h` : "No Record"}
+                      className={`flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors hover:bg-slate-50 py-1 rounded ${
+                        isToday ? "border border-slate-400 bg-slate-100 shadow-sm" : ""
+                      } ${isFuture ? "text-slate-300" : isWeekend && !dayLog ? "text-slate-400" : ""}`}
+                    >
+                      {day}
+                      {dot}
+                    </div>
+                  );
+                }
+                
+                // Fill remaining
+                const remaining = Math.ceil((startOffset + daysInMonth) / 7) * 7 - (startOffset + daysInMonth);
+                for (let i = 0; i < remaining; i++) {
+                  cells.push(<div key={`end-empty-${i}`}></div>);
+                }
+                
+                return cells;
+              })()}
             </div>
             
             {/* Legend */}

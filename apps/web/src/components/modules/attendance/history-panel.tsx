@@ -197,7 +197,7 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
                   let badge = "text-slate-600 bg-slate-100";
                   if (log.status === "PRESENT") badge = "text-emerald-700 bg-emerald-50 border border-emerald-200/50";
                   else if (log.status === "LATE") badge = "text-amber-700 bg-amber-50 border border-amber-200/50";
-                  else if (log.status === "EARLY_CHECKOUT") badge = "text-rose-700 bg-rose-50 border border-rose-200/50";
+                  else if (log.status === "EARLY_CHECKOUT") badge = "text-orange-700 bg-orange-50 border border-orange-200/50";
                   else if (log.status === "WFH") badge = "text-slate-900 bg-slate-100 border border-slate-300/50";
                   else if (log.status === "ABSENT") badge = "text-rose-700 bg-rose-50 border border-rose-200/50";
 
