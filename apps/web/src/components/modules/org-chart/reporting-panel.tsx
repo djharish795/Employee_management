@@ -26,7 +26,7 @@ export default function ReportingPanel({ activeRole }: ReportingPanelProps) {
         "bg-violet-100 text-violet-700",
         "bg-cyan-100 text-cyan-700"
       ];
-      
+
       return emps.map((e: any, index: number) => {
         const nameStr = e.name ? String(e.name) : `${e.firstName || ""} ${e.lastName || ""}`.trim();
         return {
@@ -50,7 +50,7 @@ export default function ReportingPanel({ activeRole }: ReportingPanelProps) {
   const targetId = useMemo(() => {
     if (selectedId) return selectedId;
     if (employees.length === 0) return null;
-    
+
     // Try to find an employee matching the active role, otherwise just use the first employee
     const fallback = employees.find(e => String(e.designation || "").toUpperCase().includes(activeRole)) || employees[0];
     return fallback?.id || null;
@@ -59,10 +59,10 @@ export default function ReportingPanel({ activeRole }: ReportingPanelProps) {
   // Build upward chain recursively
   const upwardChain = useMemo(() => {
     if (!targetId || !employees.length) return [];
-    
+
     const chain: (OrgEmployee & { level: number; isCurrentUser: boolean })[] = [];
     let currentId: string | null = targetId;
-    
+
     // Safeguard against infinite loops in circular references
     const visited = new Set<string>();
 
@@ -70,11 +70,11 @@ export default function ReportingPanel({ activeRole }: ReportingPanelProps) {
       visited.add(currentId);
       const emp = employees.find(e => e.id === currentId);
       if (!emp) break;
-      
+
       chain.unshift({ ...emp, level: 0, isCurrentUser: emp.id === targetId });
       currentId = emp.managerId;
     }
-    
+
     // Assign top-down levels (CEO is level 1)
     return chain.map((e, index) => ({ ...e, level: index + 1 }));
   }, [targetId, employees]);
@@ -89,8 +89,8 @@ export default function ReportingPanel({ activeRole }: ReportingPanelProps) {
   const searchResults = useMemo(() => {
     if (!search.trim()) return [];
     const term = search.toLowerCase();
-    return employees.filter(e => 
-      String(e.name || "").toLowerCase().includes(term) || 
+    return employees.filter(e =>
+      String(e.name || "").toLowerCase().includes(term) ||
       String(e.designation || "").toLowerCase().includes(term)
     ).slice(0, 5);
   }, [search, employees]);
@@ -118,17 +118,17 @@ export default function ReportingPanel({ activeRole }: ReportingPanelProps) {
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 max-w-6xl mx-auto">
-      
+
       {/* ── Left Column: Search & Upward Chain ───────────────────────── */}
       <div className="flex-1 space-y-6">
-        
+
         {isPrivileged ? (
           <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
             <h2 className="text-sm font-bold text-slate-900 mb-4">Lookup Employee Chain</h2>
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -139,13 +139,13 @@ export default function ReportingPanel({ activeRole }: ReportingPanelProps) {
                 placeholder="Search by name or designation..."
                 className="w-full h-10 pl-9 pr-3 text-sm font-medium border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
               />
-              
+
               {/* Search Dropdown */}
               {showDropdown && searchResults.length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-lg shadow-xl z-50 overflow-hidden">
                   {searchResults.map(emp => (
-                    <div 
-                      key={emp.id} 
+                    <div
+                      key={emp.id}
                       onMouseDown={(e) => {
                         e.preventDefault(); // prevent onBlur from firing before click
                         handleSelect(emp.id);
@@ -186,10 +186,10 @@ export default function ReportingPanel({ activeRole }: ReportingPanelProps) {
               <ArrowUp className="w-3.5 h-3.5" /> Approvals Flow Up
             </div>
           </div>
-          
+
           <div className="p-6">
             {upwardChain.length === 0 ? (
-               <div className="text-sm text-slate-500 py-10 text-center">No reporting chain found.</div>
+              <div className="text-sm text-slate-500 py-10 text-center">No reporting chain found.</div>
             ) : (
               <div className="relative border-l-2 border-slate-200 ml-6 space-y-8 py-2">
                 {upwardChain.map((emp, index) => (
@@ -198,7 +198,7 @@ export default function ReportingPanel({ activeRole }: ReportingPanelProps) {
                     <div className={`absolute -left-[17px] top-4 w-8 h-8 rounded-full flex items-center justify-center border-4 border-white ${emp.isCurrentUser ? 'bg-indigo-600' : 'bg-slate-300'}`}>
                       <UserCircle className="w-4 h-4 text-white" />
                     </div>
-                    
+
                     {/* Card */}
                     <div className={`p-4 rounded-xl border ${emp.isCurrentUser ? 'border-indigo-200 bg-indigo-50/30 shadow-sm' : 'border-slate-200 bg-white shadow-sm hover:border-indigo-200 transition-colors cursor-pointer'} flex items-center gap-4`}>
                       <div className={`w-12 h-12 rounded-full overflow-hidden border border-slate-200 ${emp.avatarBg || 'bg-slate-100 text-slate-700'} flex items-center justify-center flex-shrink-0 font-bold text-sm`}>
@@ -222,7 +222,7 @@ export default function ReportingPanel({ activeRole }: ReportingPanelProps) {
 
       {/* ── Right Column: Direct Reports & Peers ─────────────────────── */}
       <div className="w-full lg:w-80 space-y-6">
-        
+
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
           <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900">Direct Reports</h3>
@@ -230,9 +230,9 @@ export default function ReportingPanel({ activeRole }: ReportingPanelProps) {
           </div>
           <div className="p-5 space-y-4">
             {directReports.length === 0 ? (
-               <div className="text-xs font-medium text-slate-500 text-center py-4">No direct reports</div>
+              <div className="text-xs font-medium text-slate-500 text-center py-4">No direct reports</div>
             ) : (
-               directReports.map((report) => (
+              directReports.map((report) => (
                 <div key={report.id} onClick={() => handleSelect(report.id)} className="flex items-center gap-3 p-2 -mx-2 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
                   <div className={`w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold flex-shrink-0 border border-slate-200 ${report.avatarBg || 'bg-slate-100 text-slate-700'}`}>
                     {getAvatarContent(report)}
@@ -242,9 +242,9 @@ export default function ReportingPanel({ activeRole }: ReportingPanelProps) {
                     <div className="text-[10px] font-medium text-slate-500 mt-0.5">{report.designation}</div>
                   </div>
                 </div>
-               ))
+              ))
             )}
-            
+
             {directReports.length > 0 && (
               <button className="w-full py-2 border border-dashed border-slate-300 rounded-lg text-xs font-bold text-slate-500 hover:text-indigo-600 hover:border-indigo-300 transition-colors mt-2">
                 View Entire Sub-tree
