@@ -46,6 +46,9 @@ export class RbacService {
     [UserRole.COO]: [
       Permission.READ_EMPLOYEES,
     ],
+    [UserRole.OPERATIONS_HEAD]: [
+      Permission.READ_EMPLOYEES,
+    ],
     [UserRole.CFO]: [
       Permission.READ_EMPLOYEES,
     ],
