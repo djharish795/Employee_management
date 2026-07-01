@@ -18,7 +18,7 @@ const ALL_ROLES: AuditRole[] = ["ADMIN", "IT_ADMIN", "COMPLIANCE_OFFICER", "HR",
 
 export default function AuditLayout({ children, activeRole, onRoleChange }: AuditLayoutProps) {
   const pathname = usePathname();
-  const currentUserRole = useAuthStore((state) => state.user?.role) || "EMPLOYEE";
+  const currentUserRole = useAuthStore((state) => state.role) || "EMPLOYEE";
   const isActualEmployee = currentUserRole === "EMPLOYEE";
 
   const navItems = React.useMemo(() => {

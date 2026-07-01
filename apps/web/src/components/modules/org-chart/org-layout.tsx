@@ -18,7 +18,7 @@ const ALL_ROLES: OrgRole[] = ["ADMIN", "HR", "CEO", "MANAGER", "EMPLOYEE"];
 
 export default function OrgLayout({ children, activeRole, onRoleChange }: OrgLayoutProps) {
   const pathname = usePathname();
-  const currentUserRole = useAuthStore((state) => state.user?.role) || "EMPLOYEE";
+  const currentUserRole = useAuthStore((state) => state.role) || "EMPLOYEE";
   const isActualEmployee = currentUserRole === "EMPLOYEE";
   const effectiveRole = isActualEmployee ? "EMPLOYEE" : activeRole;
 

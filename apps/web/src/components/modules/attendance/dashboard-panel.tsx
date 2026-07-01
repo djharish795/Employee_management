@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Play, Square, Coffee, ShieldAlert, CheckCircle2, Clock, Calendar, ArrowRight, UserCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
@@ -135,6 +135,171 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
   }
   const checkOutDisplay = todayLog?.checkOut ? new Date(todayLog.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : expectedCheckOutStr;
 
+  // ── Dynamic Timeline Logic ──────────────────────────────────────────────
+  const timelineEvents = useMemo(() => {
+    const events = [];
+    const shiftMs = 9 * 60 * 60 * 1000; // 9 hours
+    
+    if (todayLog?.checkIn) {
+      const checkInTime = new Date(todayLog.checkIn).getTime();
+      events.push({
+        type: "CHECK_IN",
+        timestamp: checkInTime,
+        label: "Check-In",
+        displayTime: new Date(checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        position: 0,
+      });
+
+      if (todayLog?.breakHistory && Array.isArray(todayLog.breakHistory)) {
+        todayLog.breakHistory.forEach((b: any, index: number) => {
+          if (b.start) {
+            const bStart = new Date(b.start).getTime();
+            const bEnd = b.end ? new Date(b.end).getTime() : Date.now();
+            const durationMs = bEnd - bStart;
+            const durationMins = Math.max(1, Math.round(durationMs / 60000));
+            
+            let durationStr = `${durationMins} min`;
+            if (durationMins >= 60) {
+              const hrs = Math.floor(durationMins / 60);
+              const mins = durationMins % 60;
+              durationStr = mins > 0 ? `${hrs}hr ${mins}m` : `${hrs}hr`;
+            }
+
+            events.push({
+              type: "BREAK_MARKER",
+              timestamp: bStart,
+              label: `${durationStr} Break`,
+              displayTime: new Date(bStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              position: Math.min(99, Math.max(1, ((bStart - checkInTime) / shiftMs) * 100)),
+            });
+          }
+        });
+      }
+
+      if (todayLog?.checkOut) {
+        const checkOutTime = new Date(todayLog.checkOut).getTime();
+        events.push({
+          type: "CHECK_OUT",
+          timestamp: checkOutTime,
+          label: "Check-Out",
+          displayTime: new Date(checkOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          position: 100, // Force to end of timeline
+        });
+      } else {
+        const expectedOut = checkInTime + shiftMs;
+        events.push({
+          type: "CHECK_OUT",
+          timestamp: expectedOut,
+          label: "Check-Out",
+          displayTime: new Date(expectedOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          position: 100, // Force to end of timeline
+        });
+      }
+    }
+    
+    // Check-in at 0, Check-out at 100. Sort inner markers by timestamp.
+    return events.sort((a, b) => {
+      if (a.type === "CHECK_IN") return -1;
+      if (b.type === "CHECK_IN") return 1;
+      if (a.type === "CHECK_OUT") return 1;
+      if (b.type === "CHECK_OUT") return -1;
+      return a.timestamp - b.timestamp;
+    });
+  }, [todayLog, statusData, punchState]);
+
+  const timelineProgress = useMemo(() => {
+    if (!todayLog?.checkIn) return 0;
+    const checkInTime = new Date(todayLog.checkIn).getTime();
+    const shiftMs = 9 * 60 * 60 * 1000;
+    
+    if (todayLog?.checkOut) {
+      const checkOutTime = new Date(todayLog.checkOut).getTime();
+      return Math.min(100, Math.max(0, ((checkOutTime - checkInTime) / shiftMs) * 100));
+    }
+    
+    const now = Date.now();
+    return Math.min(100, Math.max(0, ((now - checkInTime) / shiftMs) * 100));
+  }, [todayLog, secondsElapsed]);
+
+  const timelineSegments = useMemo(() => {
+    const segments: Array<{ type: string; start: number; end: number }> = [];
+    if (!todayLog?.checkIn) return segments;
+    const checkInTime = new Date(todayLog.checkIn).getTime();
+    const shiftMs = 9 * 60 * 60 * 1000;
+    
+    let lastTime = checkInTime;
+
+    if (todayLog?.breakHistory && Array.isArray(todayLog.breakHistory)) {
+      todayLog.breakHistory.forEach((b: any) => {
+        if (b.start) {
+          const bStart = new Date(b.start).getTime();
+          // Work segment before break
+          segments.push({
+            type: "WORK",
+            start: Math.min(100, Math.max(0, ((lastTime - checkInTime) / shiftMs) * 100)),
+            end: Math.min(100, Math.max(0, ((bStart - checkInTime) / shiftMs) * 100))
+          });
+
+          // Break segment
+          const bEnd = b.end ? new Date(b.end).getTime() : Date.now();
+          segments.push({
+            type: "BREAK",
+            start: Math.min(100, Math.max(0, ((bStart - checkInTime) / shiftMs) * 100)),
+            end: Math.min(100, Math.max(0, ((bEnd - checkInTime) / shiftMs) * 100))
+          });
+          lastTime = bEnd;
+        }
+      });
+    }
+
+    // Final work segment
+    const finalEndTime = todayLog?.checkOut ? new Date(todayLog.checkOut).getTime() : Date.now();
+    
+    if (punchState === "IN" || punchState === "OUT" || todayLog?.checkOut) {
+       segments.push({
+         type: "WORK",
+         start: Math.min(100, Math.max(0, ((lastTime - checkInTime) / shiftMs) * 100)),
+         end: Math.min(100, Math.max(0, ((finalEndTime - checkInTime) / shiftMs) * 100))
+       });
+    }
+
+    return segments;
+  }, [todayLog, punchState, secondsElapsed]);
+
+  // Dynamic Weekly Trend Data
+  const weeklyData = useMemo(() => {
+    const today = new Date();
+    const currentDay = today.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    // Offset to get Monday
+    const diff = today.getDate() - currentDay + (currentDay === 0 ? -6 : 1);
+    const startOfWeek = new Date(today.setDate(diff));
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    return days.map((dayName, idx) => {
+      const date = new Date(startOfWeek);
+      date.setDate(startOfWeek.getDate() + idx);
+      const dateStr = date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      
+      const dayLog = logs.find((l: any) => new Date(l.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) === dateStr);
+      
+      let hours = 0;
+      if (dayLog && typeof dayLog.hoursWorked === 'number') {
+        hours = dayLog.hoursWorked;
+      }
+      
+      const isToday = new Date().toDateString() === date.toDateString();
+      if (isToday && secondsElapsed > 0 && !dayLog?.checkOut) {
+        hours = secondsElapsed / 3600;
+      }
+
+      hours = Number(hours.toFixed(1));
+      const percent = Math.min(100, Math.round((hours / 9) * 100));
+
+      return { day: dayName, hours, percent };
+    });
+  }, [logs, secondsElapsed]);
+
   return (
     <div className="space-y-6">
       {/* KPIs Grid */}
@@ -211,32 +376,71 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
             </div>
 
             {/* Horizontal Timeline Tracker */}
-            <div className="relative mb-10 px-6">
+            <div className="relative mb-16 px-6 mt-16">
               {/* Tracker lines */}
               <div className="absolute top-2 left-0 right-0 h-1 bg-slate-100 rounded-full -translate-y-1/2" />
-              <div
-                className="absolute top-2 left-0 h-1 bg-slate-900 rounded-full -translate-y-1/2 transition-all duration-500"
-                style={{
-                  width: punchState === "OUT" ? "0%" : punchState === "BREAK" ? "50%" : "100%",
-                }}
-              />
+              
+              {/* Progress Segments */}
+              {timelineSegments.map((seg, i) => (
+                <div
+                  key={`seg-${i}`}
+                  className={`absolute top-2 h-1 rounded-full -translate-y-1/2 transition-all duration-1000 ease-linear ${
+                    seg.type === "WORK" ? "bg-slate-900" : "bg-amber-400"
+                  }`}
+                  style={{
+                    left: `${seg.start}%`,
+                    width: `${seg.end - seg.start}%`,
+                  }}
+                />
+              ))}
 
-              <div className="relative flex justify-between">
-                <div className="flex flex-col items-center">
-                  <div className={`w-4 h-4 rounded-full border-[3px] border-white shadow-sm z-10 transition-all ${punchState !== "OUT" ? "bg-slate-900 ring-4 ring-blue-50" : "bg-slate-200"}`} />
-                  <span className="text-[11px] font-bold text-slate-900 mt-2">{checkInDisplay}</span>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Check-In</span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <div className={`w-4 h-4 rounded-full border-[3px] border-white shadow-sm z-10 transition-all ${punchState === "BREAK" || (punchState === "OUT" && secondsElapsed > 0 && todayLog?.totalBreakSeconds) || (punchState === "IN" && todayLog?.totalBreakSeconds) ? "bg-amber-400 ring-4 ring-amber-50" : "bg-slate-200"}`} />
-                  <span className="text-[11px] font-bold text-slate-900 mt-2">{breakDisplay}</span>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">{punchState === "BREAK" ? "Break Start" : "Break Taken"}</span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <div className={`w-4 h-4 rounded-full border-[3px] border-white shadow-sm z-10 transition-all ${punchState === "OUT" && secondsElapsed > 0 ? "bg-emerald-500 ring-4 ring-emerald-50" : "bg-slate-200"}`} />
-                  <span className="text-[11px] font-bold text-slate-900 mt-2">{checkOutDisplay}</span>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Check-Out</span>
-                </div>
+              {/* Render Events */}
+              <div className="relative w-full h-4">
+                {timelineEvents.map((ev, i, arr) => {
+                  let bgColor = "bg-slate-900";
+                  let ringColor = "ring-blue-50";
+                  if (ev.type.includes("BREAK")) {
+                    bgColor = "bg-amber-400";
+                    ringColor = "ring-amber-50";
+                  } else if (ev.type === "CHECK_OUT") {
+                    bgColor = "bg-emerald-500";
+                    ringColor = "ring-emerald-50";
+                  }
+
+                  const isBreak = ev.type.includes("BREAK");
+                  
+                  // Calculate break index for 4-level alternating positions
+                  let breakIndex = 0;
+                  if (isBreak) {
+                     breakIndex = arr.slice(0, i).filter(e => e.type.includes("BREAK")).length;
+                  }
+
+                  // CheckIn/CheckOut always below (top-6). Breaks stagger across 4 levels.
+                  const positions = ["bottom-6", "top-6", "bottom-14", "top-14"];
+                  const labelPosition = isBreak ? positions[breakIndex % 4] : "top-6";
+
+                  return (
+                    <div 
+                      key={i} 
+                      className="absolute flex flex-col items-center group -translate-x-1/2"
+                      style={{ left: `${ev.position}%`, top: "-4px" }}
+                    >
+                      <div className={`w-4 h-4 rounded-full border-[3px] border-white shadow-sm z-10 transition-all ${bgColor} ring-4 ${ringColor}`} />
+                      
+                      {/* Hover Tooltip */}
+                      <div className="absolute top-6 flex flex-col items-center opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 border border-slate-700 shadow-lg rounded p-2 z-20 w-max pointer-events-none">
+                        <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">{ev.label}</span>
+                        <span className="text-[11px] font-bold text-white">{ev.displayTime}</span>
+                      </div>
+
+                      {/* Default visible label */}
+                      <div className={`absolute flex flex-col items-center ${labelPosition}`}>
+                        <span className="text-[11px] font-bold text-slate-900 whitespace-nowrap">{ev.displayTime}</span>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5 whitespace-nowrap">{ev.label}</span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -306,15 +510,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
 
             {/* Custom Bar Chart Visuals */}
             <div className="h-44 flex items-end justify-between gap-4 pt-4 px-2">
-              {[
-                { day: "Mon", hours: 9.2, percent: 100 },
-                { day: "Tue", hours: 8.7, percent: 94 },
-                { day: "Wed", hours: 8.7, percent: 94 },
-                { day: "Thu", hours: 9.0, percent: 97 },
-                { day: "Fri", hours: 8.7, percent: 94 },
-                { day: "Sat", hours: 0, percent: 0 },
-                { day: "Sun", hours: 0, percent: 0 },
-              ].map((item, idx) => (
+              {weeklyData.map((item, idx) => (
                 <div key={idx} className="flex-1 flex flex-col items-center gap-2 group cursor-pointer">
                   {/* Tooltip */}
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-[9px] font-bold px-1.5 py-0.5 rounded absolute -translate-y-14 z-20 shadow">

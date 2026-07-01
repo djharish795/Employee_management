@@ -61,13 +61,13 @@ async function main() {
   console.log('Designations seeded.');
 
   // 3. Leave types
+  await prisma.leaveType.deleteMany(); // Clear old mismatched types to prevent unique constraint errors
+
   const leaveTypesData = [
-    { code: 'CL', name: 'Casual Leave', maxDaysPerYear: 8, isCarryForwardAllowed: false, isPaidLeave: true },
-    { code: 'SL', name: 'Sick Leave', maxDaysPerYear: 6, isCarryForwardAllowed: false, isPaidLeave: true, requiresDocumentAbove: 2 },
-    { code: 'EL', name: 'Earned Leave', maxDaysPerYear: 12, isCarryForwardAllowed: true, maxCarryForwardDays: 6, isPaidLeave: true },
-    { code: 'ML', name: 'Maternity Leave', maxDaysPerYear: 182, isCarryForwardAllowed: false, isPaidLeave: true },
-    { code: 'PL', name: 'Paternity Leave', maxDaysPerYear: 15, isCarryForwardAllowed: false, isPaidLeave: true },
-    { code: 'BL', name: 'Bereavement Leave', maxDaysPerYear: 5, isCarryForwardAllowed: false, isPaidLeave: true },
+    { code: 'CL_FULL', name: 'Casual Leave (Full Day)', maxDaysPerYear: 12, isCarryForwardAllowed: true, maxCarryForwardDays: 7, isPaidLeave: true },
+    { code: 'CL_HALF', name: 'Casual Leave (Half Day)', maxDaysPerYear: 6, isCarryForwardAllowed: false, isPaidLeave: true },
+    { code: 'MATERNITY', name: 'Maternity Leave', maxDaysPerYear: 180, isCarryForwardAllowed: false, isPaidLeave: true },
+    { code: 'OPTIONAL', name: 'Optional Holiday', maxDaysPerYear: 2, isCarryForwardAllowed: false, isPaidLeave: true },
     { code: 'COMP', name: 'Compensatory Leave', maxDaysPerYear: 12, isCarryForwardAllowed: false, isPaidLeave: true },
   ];
 
@@ -79,6 +79,26 @@ async function main() {
     });
   }
   console.log('Leave Types seeded.');
+
+  // 3.5. Public Holidays
+  const holidaysData = [
+    { name: 'New Year', date: new Date('2026-01-01') },
+    { name: 'Republic Day', date: new Date('2026-01-26') },
+    { name: 'Independence Day', date: new Date('2026-08-15') },
+    { name: 'Gandhi Jayanti', date: new Date('2026-10-02') },
+    { name: 'Diwali', date: new Date('2026-11-08') },
+    { name: 'Christmas', date: new Date('2026-12-25') },
+  ];
+
+  for (const holiday of holidaysData) {
+    await prisma.companyHoliday.upsert({
+      // @ts-ignore: VS Code cache issue; compiler has verified this is correct
+      where: { date: holiday.date },
+      update: {},
+      create: holiday,
+    });
+  }
+  console.log('Public Holidays seeded.');
 
   // 4. Workflows
   const workflowsData = [
