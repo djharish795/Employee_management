@@ -15,6 +15,7 @@ import { AttendanceModule } from "./modules/attendance/attendance.module";
 import { WfhModule } from "./modules/wfh/wfh.module";
 import { HolidaysModule } from "./modules/holidays/holidays.module";
 import { AssetsModule } from "./modules/assets/assets.module";
+import { KnowledgeModule } from "./modules/knowledge/knowledge.module";
 
 
 @Module({
@@ -37,6 +38,7 @@ import { AssetsModule } from "./modules/assets/assets.module";
     WfhModule,
     HolidaysModule,
     AssetsModule,
+    KnowledgeModule,
   ],
 })
 export class AppModule { }
