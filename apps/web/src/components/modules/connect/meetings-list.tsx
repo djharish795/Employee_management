@@ -1,7 +1,9 @@
 import React from "react";
 import { ArrowRight, Video } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export function MeetingsList() {
+  const router = useRouter();
   const upcomingMeetings = [
     {
       id: "m1",
@@ -52,7 +54,7 @@ export function MeetingsList() {
       <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
         <div className="p-6 pb-4 flex items-center justify-between border-b border-slate-100">
           <h3 className="text-base font-bold text-slate-900">Your upcoming meetings</h3>
-          <button className="text-sm font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition-colors">
+          <button onClick={() => router.push("/connect/meetings")} className="text-sm font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition-colors">
             View all <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -71,7 +73,7 @@ export function MeetingsList() {
                   </p>
                 </div>
               </div>
-              <button className="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-slate-300 rounded-lg text-sm font-semibold text-slate-700 shadow-sm transition-all sm:w-auto w-full">
+              <button onClick={() => window.open('https://meet.google.com/new', '_blank')} className="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-slate-300 rounded-lg text-sm font-semibold text-slate-700 shadow-sm transition-all sm:w-auto w-full">
                 Join Meet
               </button>
             </div>
@@ -108,7 +110,7 @@ export function MeetingsList() {
           ))}
           
           <div className="pt-4 mt-2 border-t border-slate-100 text-center">
-            <button className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center justify-center gap-1 mx-auto transition-colors">
+            <button onClick={() => router.push("/connect/requests")} className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center justify-center gap-1 mx-auto transition-colors">
               View all requests <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
