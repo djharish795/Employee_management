@@ -15,4 +15,9 @@ export class ApplyLeaveDto {
 
   @IsString()
   reason!: string;
+
+  @IsString()
+  attachmentUrl?: string;
+
+  isHalfDay?: boolean;
 }

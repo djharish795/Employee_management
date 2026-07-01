@@ -12,6 +12,8 @@ import { OrganizationModule } from "./modules/organization/organization.module";
 import { RbacModule } from "./modules/rbac/rbac.module";
 import { AuditModule } from "./modules/audit/audit.module";
 import { AttendanceModule } from "./modules/attendance/attendance.module";
+import { WfhModule } from './modules/wfh/wfh.module';
+import { HolidaysModule } from './modules/holidays/holidays.module';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { AttendanceModule } from "./modules/attendance/attendance.module";
     RbacModule,
     AuditModule,
     AttendanceModule,
+    WfhModule,
+    HolidaysModule,
   ],
 })
 export class AppModule { }

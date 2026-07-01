@@ -126,7 +126,32 @@ export class LeavesService {
 
     const startDate = new Date(data.startDate);
     const endDate = new Date(data.endDate);
-    const totalDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24) + 1;
+    let totalDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24) + 1;
+    
+    if (data.isHalfDay) {
+        if (totalDays > 1) throw new BadRequestException('Half day leave can only be applied for a single date');
+        totalDays = 0.5;
+    }
+    
+    if (totalDays > 2 && !data.attachmentUrl) {
+        throw new BadRequestException('Continuous leaves for more than 2 days require an attachment/document.');
+    }
+
+    if (leaveType.code === 'MATERNITY') {
+        if (employee.gender !== 'FEMALE' || employee.maritalStatus !== 'MARRIED') {
+            throw new BadRequestException('Maternity leave is only applicable for married female employees.');
+        }
+    }
+
+    const noticeHours = (startDate.getTime() - Date.now()) / (1000 * 60 * 60);
+    let isEmergency = false;
+    
+    if (leaveType.code.startsWith('CL') && noticeHours < 24) {
+        isEmergency = true;
+    } else if (leaveType.code === 'OPTIONAL' && noticeHours < (7 * 24)) {
+        throw new BadRequestException('Optional holidays require at least 7 days prior notice.');
+    }
+
     const currentYear = startDate.getFullYear();
 
     const balance = await this.prisma.leaveBalance.findUnique({
@@ -148,7 +173,13 @@ export class LeavesService {
       throw new BadRequestException(`Insufficient leave balance. You have ${available} days available.`);
     }
 
-    const approvalQueue = this.determineQueue(employee);
+    let approvalQueue = this.determineQueue(employee);
+    if (isEmergency) {
+        approvalQueue = [
+            { role: 'CTO', status: 'PENDING' },
+            { role: 'CEO', status: 'PENDING' }
+        ];
+    }
 
     const leave = await this.prisma.$transaction(async (tx) => {
       const newLeave = await tx.leaveRequest.create({
@@ -160,6 +191,9 @@ export class LeavesService {
           reason: data.reason,
           totalDays,
           status: 'PENDING',
+          attachmentUrl: data.attachmentUrl,
+          isHalfDay: data.isHalfDay || false,
+          isEmergency,
           ...({ approvalQueue: approvalQueue as unknown as object, currentStep: 0 })
         }
       });
@@ -410,28 +444,54 @@ export class LeavesService {
 
     for (const emp of employees) {
       for (const lt of leaveTypes) {
-        await this.prisma.leaveBalance.upsert({
-          where: {
-            employeeId_leaveTypeId_year: {
+        if (lt.code === 'CL_FULL') {
+          await this.prisma.leaveBalance.upsert({
+            where: {
+              employeeId_leaveTypeId_year: {
+                employeeId: emp.id,
+                leaveTypeId: lt.id,
+                year: currentYear
+              }
+            },
+            update: {
+              allocated: { increment: 1 }
+            },
+            create: {
               employeeId: emp.id,
               leaveTypeId: lt.id,
-              year: currentYear
+              year: currentYear,
+              allocated: 1,
+              carriedOver: 0,
+              pending: 0,
+              used: 0
             }
-          },
-          update: {
-            allocated: { increment: 1 }
-          },
-          create: {
-            employeeId: emp.id,
-            leaveTypeId: lt.id,
-            year: currentYear,
-            allocated: 1,
-            carriedOver: 0,
-            pending: 0,
-            used: 0
-          }
-        });
-        accruedCount++;
+          });
+          accruedCount++;
+        } else if (lt.code === 'CL_HALF') {
+          await this.prisma.leaveBalance.upsert({
+            where: {
+              employeeId_leaveTypeId_year: {
+                employeeId: emp.id,
+                leaveTypeId: lt.id,
+                year: currentYear
+              }
+            },
+            update: {
+              allocated: 0.5,
+              carriedOver: 0
+            },
+            create: {
+              employeeId: emp.id,
+              leaveTypeId: lt.id,
+              year: currentYear,
+              allocated: 0.5,
+              carriedOver: 0,
+              pending: 0,
+              used: 0
+            }
+          });
+          accruedCount++;
+        }
       }
     }
 

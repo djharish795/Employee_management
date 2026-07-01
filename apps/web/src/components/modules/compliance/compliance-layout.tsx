@@ -18,7 +18,7 @@ const ALL_ROLES: ComplianceRole[] = ["CEO", "HR", "COMPLIANCE_OFFICER", "ADMIN",
 
 export default function ComplianceLayout({ children, activeRole, onRoleChange }: ComplianceLayoutProps) {
   const pathname = usePathname();
-  const currentUserRole = useAuthStore((state) => state.user?.role) || "EMPLOYEE";
+  const currentUserRole = useAuthStore((state) => state.role) || "EMPLOYEE";
   const isActualEmployee = currentUserRole === "EMPLOYEE";
 
   const navItems = React.useMemo(() => {

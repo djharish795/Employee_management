@@ -25,7 +25,7 @@ const ALL_ROLES: AssetRole[] = ["IT_ADMIN", "ADMIN", "HR", "CEO", "MANAGER", "EM
 
 export default function AssetsLayout({ children, activeRole, onRoleChange }: AssetsLayoutProps) {
   const pathname = usePathname();
-  const currentUserRole = useAuthStore((state) => state.user?.role) || "EMPLOYEE";
+  const currentUserRole = useAuthStore((state) => state.role) || "EMPLOYEE";
   const isActualEmployee = currentUserRole === "EMPLOYEE";
   const effectiveRole = isActualEmployee ? "EMPLOYEE" : activeRole;
 

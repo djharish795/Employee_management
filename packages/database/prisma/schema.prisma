@@ -109,6 +109,9 @@ model Employee {
   transferRequestsProcessed  TransferRequest[]    @relation("TransferProcessor")
   user                       User?
   workflowsInitiated         WorkflowInstance[]
+  projectAssignments         ProjectAssignment[]
+  wfhRequestsMade            WorkFromHomeRequest[] @relation("WfhRequester")
+  wfhRequestsApproved        WorkFromHomeRequest[] @relation("WfhApprover")
 
   @@map("employees")
 }
@@ -285,6 +288,7 @@ model LeaveRequest {
   endDate            DateTime           @db.Date
   halfDaySession     String?
   isHalfDay          Boolean            @default(false)
+  isEmergency        Boolean            @default(false)
   leaveTypeId        String
   reason             String
   rejectionReason    String?
@@ -901,6 +905,58 @@ model AIChat {
   employee   Employee @relation(fields: [employeeId], references: [id])
 
   @@map("ai_chats")
+}
+
+model Project {
+  id          String              @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  assignments ProjectAssignment[]
+
+  @@map("projects")
+}
+
+model ProjectAssignment {
+  id         String   @id @default(cuid())
+  projectId  String
+  employeeId String
+  assignedAt DateTime @default(now())
+  project    Project  @relation(fields: [projectId], references: [id])
+  employee   Employee @relation(fields: [employeeId], references: [id])
+
+  @@unique([projectId, employeeId])
+  @@map("project_assignments")
+}
+
+model WorkFromHomeRequest {
+  id                 String               @id @default(cuid())
+  employeeId         String
+  date               DateTime             @db.Date
+  reason             String
+  status             LeaveRequestStatus   @default(PENDING)
+  appliedAt          DateTime             @default(now())
+  approvedAt         DateTime?
+  approverId         String?
+  approvalQueue      Json?
+  currentStep        Int                  @default(0)
+  employee           Employee             @relation("WfhRequester", fields: [employeeId], references: [id])
+  approver           Employee?            @relation("WfhApprover", fields: [approverId], references: [id])
+
+  @@index([employeeId, status])
+  @@map("wfh_requests")
+}
+
+model CompanyHoliday {
+  id          String   @id @default(cuid())
+  name        String
+  date        DateTime @db.Date @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("company_holidays")
 }
 
 enum UserRole {
