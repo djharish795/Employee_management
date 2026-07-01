@@ -8,7 +8,7 @@ export class AttendanceService {
   constructor(
     private readonly redis: RedisService,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
 
   private getRedisKey(employeeId: string): string {
     return `attendance_state:${employeeId}`;
@@ -30,7 +30,7 @@ export class AttendanceService {
       state = { state: "OUT", startTime: 0, offset: 0, shiftDate: null };
       await this.redis.setJson(key, state, 60 * 60 * 24);
     }
-    
+
     if (!state) {
       const dbRecord = await this.prisma.attendanceRecord.findUnique({
         where: { employeeId_date: { employeeId, date: today } }
@@ -39,7 +39,7 @@ export class AttendanceService {
       if (dbRecord && !dbRecord.checkOutTime && dbRecord.checkInTime) {
         const now = Date.now();
         const checkInTime = dbRecord.checkInTime.getTime();
-        
+
         let currentState = "IN";
         let startTime = now;
         let offset = 0;
@@ -60,7 +60,7 @@ export class AttendanceService {
           offset: Math.max(0, offset),
           shiftDate: dbRecord.date.toISOString()
         };
-        
+
         await this.redis.setJson(key, state, 60 * 60 * 24);
       } else {
         state = { state: "OUT", startTime: 0, offset: 0, shiftDate: null };
@@ -84,7 +84,7 @@ export class AttendanceService {
 
     if (dto.action === "IN") {
       if (state.state === "IN") throw new BadRequestException("Already punched in");
-      
+
       const isFirstPunch = state.state === "OUT" && state.offset === 0;
 
       // Persist active shift date context to survive midnight crossovers
@@ -98,13 +98,33 @@ export class AttendanceService {
       if (isReturnFromBreak) {
         const breakElapsed = Math.floor((now - state.startTime) / 1000);
         state.offset += breakElapsed;
+
+        const record = await this.prisma.attendanceRecord.findUnique({
+          where: { employeeId_date: { employeeId, date: shiftDate } }
+        });
+
+        let breakHistory: any[] = [];
+        if (record && (record as any).breakHistory) {
+          try {
+            breakHistory = typeof (record as any).breakHistory === "string" ? JSON.parse((record as any).breakHistory as string) : ((record as any).breakHistory as any[]);
+          } catch (e) { }
+        }
+        if (!Array.isArray(breakHistory)) breakHistory = [];
+
+        if (breakHistory.length > 0 && breakHistory[breakHistory.length - 1].end === null) {
+          breakHistory[breakHistory.length - 1].end = new Date(now).toISOString();
+        } else {
+          breakHistory.push({ start: new Date(state.startTime).toISOString(), end: new Date(now).toISOString() });
+        }
+
         await this.prisma.attendanceRecord.update({
           where: { employeeId_date: { employeeId, date: shiftDate } },
           data: {
             totalBreakSeconds: { increment: breakElapsed },
-            currentBreakStartTime: null
+            currentBreakStartTime: null,
+            breakHistory: breakHistory as any
           } as any
-        }).catch(() => {}); // Ignore if DB record doesn't exist yet (edge case)
+        }).catch(() => { }); // Ignore if DB record doesn't exist yet (edge case)
       }
 
       state.state = "IN";
@@ -134,7 +154,7 @@ export class AttendanceService {
 
     if (dto.action === "BREAK") {
       if (state.state !== "IN") throw new BadRequestException("Must be punched in to take a break");
-      
+
       const elapsed = Math.floor((now - state.startTime) / 1000);
       state.offset += elapsed;
       state.state = "BREAK";
@@ -142,32 +162,47 @@ export class AttendanceService {
       await this.redis.setJson(key, state, 60 * 60 * 24);
 
       const shiftDate = state.shiftDate ? new Date(state.shiftDate) : today;
+
+      const record = await this.prisma.attendanceRecord.findUnique({
+        where: { employeeId_date: { employeeId, date: shiftDate } }
+      });
+
+      let breakHistory: any[] = [];
+      if (record && (record as any).breakHistory) {
+        try {
+          breakHistory = typeof (record as any).breakHistory === "string" ? JSON.parse((record as any).breakHistory as string) : ((record as any).breakHistory as any[]);
+        } catch (e) { }
+      }
+      if (!Array.isArray(breakHistory)) breakHistory = [];
+
+      breakHistory.push({ start: new Date(now).toISOString(), end: null });
+
       await this.prisma.attendanceRecord.update({
         where: { employeeId_date: { employeeId, date: shiftDate } },
-        data: { currentBreakStartTime: new Date(now) } as any
-      }).catch(() => {});
+        data: { currentBreakStartTime: new Date(now), breakHistory: breakHistory as any } as any
+      }).catch(() => { });
 
       return state;
     }
 
     if (dto.action === "OUT") {
       if (state.state === "OUT") throw new BadRequestException("Already punched out");
-      
+
       if (state.state === "IN" || state.state === "BREAK") {
         const elapsed = Math.floor((now - state.startTime) / 1000);
         state.offset += elapsed;
       }
-      
+
       const shiftDate = state.shiftDate ? new Date(state.shiftDate) : today;
 
       state.state = "OUT";
       state.startTime = now;
       await this.redis.setJson(key, state, 60 * 60 * 24);
-      
+
       const workHoursDecimal = state.offset / 3600;
       // Threshold: 9 hours = 32400 seconds for early checkout
       const finalStatus = state.offset < 32400 ? "EARLY_CHECKOUT" : "PRESENT";
-      
+
       await this.prisma.attendanceRecord.upsert({
         where: { employeeId_date: { employeeId, date: shiftDate } },
         update: {
@@ -196,7 +231,7 @@ export class AttendanceService {
 
   async getMyLogs(employeeId: string, query: any): Promise<{ data: any[]; total: number; page: number; limit: number }> {
     if (!employeeId) throw new BadRequestException("Employee ID is required");
-    
+
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 10;
     const skip = (page - 1) * limit;
@@ -219,7 +254,8 @@ export class AttendanceService {
       hoursWorked: record.workHours ? Number(record.workHours) : 0,
       status: record.status,
       remarks: record.notes || "",
-      totalBreakSeconds: record.totalBreakSeconds || 0
+      totalBreakSeconds: record.totalBreakSeconds || 0,
+      breakHistory: typeof (record as any).breakHistory === "string" ? JSON.parse((record as any).breakHistory as string) : ((record as any).breakHistory || [])
     }));
 
     return { data: mappedData, total, page, limit };
@@ -227,7 +263,7 @@ export class AttendanceService {
 
   async getMyKpis(employeeId: string) {
     if (!employeeId) throw new BadRequestException("Employee ID is required");
-    
+
     const today = this.getTodayUTC();
     const startOfMonth = new Date(today);
     startOfMonth.setUTCDate(1);
@@ -252,7 +288,7 @@ export class AttendanceService {
     let daysPresent = 0;
     let lateArrivals = 0;
     let wfhDays = 0;
-    
+
     monthlyRecords.forEach(record => {
       if (record.workHours) {
         totalHours += Number(record.workHours);
@@ -271,7 +307,7 @@ export class AttendanceService {
     let workingDaysSoFar = 0;
     for (let d = new Date(startOfMonth); d <= today; d.setUTCDate(d.getUTCDate() + 1)) {
       const dayOfWeek = d.getUTCDay();
-      if (dayOfWeek !== 0 && dayOfWeek !== 6) { 
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
         workingDaysSoFar++;
       }
     }

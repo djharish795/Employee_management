@@ -6,6 +6,7 @@ export interface AttendanceLog {
   status: "PRESENT" | "LATE" | "WFH" | "ABSENT" | "ON_LEAVE" | "EARLY_CHECKOUT" | "HALF_DAY";
   remarks: string;
   totalBreakSeconds?: number;
+  breakHistory?: Array<{ start: string; end: string | null }>;
 }
 
 export interface RegularizationRequest {

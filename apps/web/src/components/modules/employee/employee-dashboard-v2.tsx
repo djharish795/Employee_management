@@ -20,9 +20,9 @@ import {
 export default function EmployeeDashboardV2() {
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((state) => state.accessToken);
-  
+
   const [calendarDate, setCalendarDate] = useState(new Date());
-  
+
   const logsQuery = useQuery({
     queryKey: ["attendanceLogs"],
     queryFn: fetchMyLogs,
@@ -55,7 +55,7 @@ export default function EmployeeDashboardV2() {
     onSuccess: (newData) => {
       // Instantly update local state with backend response
       queryClient.setQueryData(["attendanceStatus"], newData);
-      
+
       // Refresh background data
       queryClient.invalidateQueries({ queryKey: ["attendanceKpis"] });
       queryClient.invalidateQueries({ queryKey: ["attendanceLogs"] });
@@ -85,8 +85,8 @@ export default function EmployeeDashboardV2() {
   const greetingHour = new Date().getHours();
   const greeting =
     greetingHour < 12 ? "Good morning" :
-    greetingHour < 17 ? "Good afternoon" :
-    "Good evening";
+      greetingHour < 17 ? "Good afternoon" :
+        "Good evening";
 
   let userName = "Employee";
   if (accessToken) {
@@ -111,15 +111,14 @@ export default function EmployeeDashboardV2() {
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{greeting}, {userName}</h1>
           <p className="text-sm font-medium text-slate-500 mt-1">{todayFormatted}</p>
         </div>
-        
+
         <button
           onClick={handlePunch}
           disabled={punchMutation.isPending || todayQuery.isLoading}
-          className={`px-6 py-2.5 rounded-lg font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
-            isPunchedIn
+          className={`px-6 py-2.5 rounded-lg font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${isPunchedIn
               ? "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
               : "bg-slate-900 text-white hover:bg-slate-800"
-          }`}
+            }`}
         >
           {punchMutation.isPending ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -144,10 +143,10 @@ export default function EmployeeDashboardV2() {
               </span>
             </div>
             <p className="text-xs font-medium text-slate-500 mt-1.5">
-              {isPunchedIn && checkInTimeDisplay 
-                ? `Checked in ${checkInTimeDisplay}` 
-                : (todayQuery.data?.offset && todayQuery.data.offset > 0 
-                  ? (todayQuery.data.offset < 32400 ? 'Shift ended early today' : 'Shift completed today') 
+              {isPunchedIn && checkInTimeDisplay
+                ? `Checked in ${checkInTimeDisplay}`
+                : (todayQuery.data?.offset && todayQuery.data.offset > 0
+                  ? (todayQuery.data.offset < 32400 ? 'Shift ended early today' : 'Shift completed today')
                   : 'No punch recorded today')}
             </p>
           </div>
@@ -190,7 +189,7 @@ export default function EmployeeDashboardV2() {
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-sm font-bold text-slate-900">Attendance this month</h3>
             <div className="flex items-center gap-3">
-              <button 
+              <button
                 onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1))}
                 className="text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-50 rounded transition-colors"
               >
@@ -199,7 +198,7 @@ export default function EmployeeDashboardV2() {
               <span className="text-sm font-semibold text-slate-900 w-28 text-center">
                 {calendarDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
               </span>
-              <button 
+              <button
                 onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1))}
                 className="text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-50 rounded transition-colors"
               >
@@ -207,7 +206,7 @@ export default function EmployeeDashboardV2() {
               </button>
             </div>
           </div>
-          
+
           <div className="w-full text-center">
             {/* Calendar Grid Header */}
             <div className="grid grid-cols-7 gap-2 mb-4">
@@ -224,18 +223,18 @@ export default function EmployeeDashboardV2() {
                 const firstDayOfMonth = new Date(year, month, 1).getDay();
                 // Adjust to make Monday the first day of the week (0=Mon, 6=Sun)
                 const startOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
-                
+
                 const cells = [];
                 // Empty offset items
                 for (let i = 0; i < startOffset; i++) {
                   cells.push(<div key={`empty-${i}`}></div>);
                 }
-                
+
                 // Actual days
                 for (let day = 1; day <= daysInMonth; day++) {
                   const dateStr = new Date(year, month, day).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
                   const dayLog = logs.find((l: any) => new Date(l.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) === dateStr);
-                  
+
                   let dot = null;
                   if (dayLog) {
                     if (dayLog.status === "PRESENT") dot = <span className="w-1 h-1 rounded-full bg-emerald-500 mt-0.5"></span>;
@@ -252,29 +251,28 @@ export default function EmployeeDashboardV2() {
                   const isWeekend = new Date(year, month, day).getDay() === 0 || new Date(year, month, day).getDay() === 6;
 
                   cells.push(
-                    <div 
-                      key={`day-${day}`} 
+                    <div
+                      key={`day-${day}`}
                       title={dayLog ? `${dayLog.status}: ${typeof dayLog.hoursWorked === 'number' ? dayLog.hoursWorked.toFixed(1) : dayLog.hoursWorked}h` : "No Record"}
-                      className={`flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors hover:bg-slate-50 py-1 rounded ${
-                        isToday ? "border border-slate-400 bg-slate-100 shadow-sm" : ""
-                      } ${isFuture ? "text-slate-300" : isWeekend && !dayLog ? "text-slate-400" : ""}`}
+                      className={`flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors hover:bg-slate-50 py-1 rounded ${isToday ? "border border-slate-400 bg-slate-100 shadow-sm" : ""
+                        } ${isFuture ? "text-slate-300" : isWeekend && !dayLog ? "text-slate-400" : ""}`}
                     >
                       {day}
                       {dot}
                     </div>
                   );
                 }
-                
+
                 // Fill remaining
                 const remaining = Math.ceil((startOffset + daysInMonth) / 7) * 7 - (startOffset + daysInMonth);
                 for (let i = 0; i < remaining; i++) {
                   cells.push(<div key={`end-empty-${i}`}></div>);
                 }
-                
+
                 return cells;
               })()}
             </div>
-            
+
             {/* Legend */}
             <div className="flex items-center gap-4 mt-8 pt-4 border-t border-slate-100">
               <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1 rounded-full text-[11px] font-bold text-slate-600">
@@ -312,7 +310,7 @@ export default function EmployeeDashboardV2() {
                 Sign now
               </button>
             </div>
-            
+
             {/* Task 2 */}
             <div className="border border-slate-200 rounded-xl p-4 flex items-center justify-between hover:border-slate-300 transition-colors">
               <div className="flex items-center gap-4">
