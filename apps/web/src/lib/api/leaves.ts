@@ -47,14 +47,16 @@ export interface ApiCalendarEvent {
 }
 
 // ─── Fetch my KPI (balance summary) for the logged-in employee ───────────────
+// Note: apiClient baseURL is already http://localhost:3001/api/v1
+// So paths here must NOT include /api/v1 prefix
 export const fetchMyLeaveKpi = async (employeeId: string): Promise<ApiLeaveKpi> => {
-  const { data } = await apiClient.get(`/api/v1/leaves/kpi/${employeeId}`);
+  const { data } = await apiClient.get(`/leaves/kpi`, { params: { employeeId } });
   return data;
 };
 
 // ─── Fetch approvals queue for an approver ────────────────────────────────────
 export const fetchApprovals = async (approverId: string): Promise<ApiLeaveRequest[]> => {
-  const { data } = await apiClient.get(`/api/v1/leaves/approvals/${approverId}`);
+  const { data } = await apiClient.get(`/leaves/approvals`, { params: { approverId } });
   return data;
 };
 
@@ -65,8 +67,9 @@ export const applyLeave = async (payload: {
   startDate: string;
   endDate: string;
   reason: string;
+  isHalfDay?: boolean;
 }): Promise<{ message: string; data: ApiLeaveRequest }> => {
-  const { data } = await apiClient.post("/api/v1/leaves/apply", payload);
+  const { data } = await apiClient.post("/leaves/apply", payload);
   return data;
 };
 
@@ -75,7 +78,7 @@ export const approveLeave = async (
   leaveId: string,
   approverId: string
 ): Promise<{ message: string }> => {
-  const { data } = await apiClient.post(`/api/v1/leaves/${leaveId}/approve`, { approverId });
+  const { data } = await apiClient.post(`/leaves/${leaveId}/approve`, { approverId });
   return data;
 };
 
@@ -85,12 +88,12 @@ export const rejectLeave = async (
   approverId: string,
   reason: string
 ): Promise<{ message: string }> => {
-  const { data } = await apiClient.post(`/api/v1/leaves/${leaveId}/reject`, { approverId, reason });
+  const { data } = await apiClient.post(`/leaves/${leaveId}/reject`, { approverId, reason });
   return data;
 };
 
 // ─── Get approved leaves for calendar view ────────────────────────────────────
-export const fetchLeaveCalendar = async (): Promise<ApiCalendarEvent[]> => {
-  const { data } = await apiClient.get("/api/v1/leaves/calendar");
+export const fetchLeaveCalendar = async (): Promise<ApiLeaveRequest[]> => {
+  const { data } = await apiClient.get("/leaves/calendar");
   return data;
 };

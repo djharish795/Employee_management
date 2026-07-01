@@ -147,7 +147,7 @@ async function main() {
           year: currentYear,
           allocated: b.allocated,
           used: 0,
-          pending: b.allocated
+          pending: 0
         }
       });
     }

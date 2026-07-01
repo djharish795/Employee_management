@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { ScheduleModule } from "@nestjs/schedule";
 import { AuthModule } from "./modules/auth/auth.module";
 import { DocumentsModule } from "./modules/documents/documents.module";
 import { LeavesModule } from "./modules/leaves/leaves.module";
@@ -23,6 +24,7 @@ import { AssetsModule } from "./modules/assets/assets.module";
       isGlobal: true,
       envFilePath: [".env.local", ".env"],
     }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     RedisModule,
     HealthModule,
@@ -37,6 +39,7 @@ import { AssetsModule } from "./modules/assets/assets.module";
     WfhModule,
     HolidaysModule,
     AssetsModule,
+    LeavesModule,
   ],
 })
 export class AppModule { }
