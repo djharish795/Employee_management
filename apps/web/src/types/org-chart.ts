@@ -17,7 +17,11 @@ export interface OrgEmployee {
 export interface DepartmentNode {
   id: string;
   name: string;
-  headId: string; // Refers to an OrgEmployee id
+  headId: string | null; // Refers to an OrgEmployee id
+  head?: {
+    name: string;
+    photoUrl: string | null;
+  } | null;
   headcount: number;
   openPositions: number;
   budget?: string;

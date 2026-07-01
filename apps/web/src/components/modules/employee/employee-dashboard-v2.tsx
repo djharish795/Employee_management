@@ -16,10 +16,11 @@ import {
   fetchMyLogs,
   submitPunch,
 } from "@/lib/api/attendance";
+import { fetchMyLeaveKpi } from "@/lib/api/leaves";
 
 export default function EmployeeDashboardV2() {
   const queryClient = useQueryClient();
-  const accessToken = useAuthStore((state) => state.accessToken);
+  const { accessToken, employeeId } = useAuthStore();
 
   const [calendarDate, setCalendarDate] = useState(new Date());
 
@@ -44,6 +45,12 @@ export default function EmployeeDashboardV2() {
     queryFn: fetchMyKpis,
     staleTime: 120_000,
     retry: 1,
+  });
+
+  const leaveKpiQuery = useQuery({
+    queryKey: ["leaves-kpi", employeeId],
+    queryFn: () => fetchMyLeaveKpi(employeeId!),
+    enabled: !!employeeId,
   });
 
   const todayState = todayQuery.data?.state ?? "OUT";
@@ -78,7 +85,7 @@ export default function EmployeeDashboardV2() {
     });
   })();
 
-  const leaveBalance = kpisQuery.data?.leaveDays ?? 11;
+  const leaveBalance = leaveKpiQuery.data?.availableLeaves ?? "--";
   const assetsAssigned = 3;
 
   // Header Data
@@ -102,6 +109,32 @@ export default function EmployeeDashboardV2() {
   }
   const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
   const todayFormatted = new Date().toLocaleDateString('en-US', dateOptions);
+
+  // ── Month Stats Computation ────────────────────────────────────────────────
+  const year = calendarDate.getFullYear();
+  const month = calendarDate.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  let presentCount = 0;
+  let lateCount = 0;
+  let absentCount = 0;
+  let weekendCount = 0;
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const d = new Date(year, month, day);
+    const dateStr = d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    const dayLog = logs.find((l: any) => new Date(l.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) === dateStr);
+
+    if (d.getDay() === 0 || d.getDay() === 6) {
+      weekendCount++;
+    }
+
+    if (dayLog) {
+      if (dayLog.status === "PRESENT" || dayLog.status === "EARLY_CHECKOUT") presentCount++;
+      else if (dayLog.status === "LATE") lateCount++;
+      else if (dayLog.status === "ABSENT") absentCount++;
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -276,16 +309,16 @@ export default function EmployeeDashboardV2() {
             {/* Legend */}
             <div className="flex items-center gap-4 mt-8 pt-4 border-t border-slate-100">
               <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1 rounded-full text-[11px] font-bold text-slate-600">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Present 9
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Present {presentCount}
               </div>
               <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1 rounded-full text-[11px] font-bold text-slate-600">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Late 1
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Late {lateCount}
               </div>
               <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1 rounded-full text-[11px] font-bold text-slate-600">
-                <span className="w-1.5 h-1.5 rounded-full border border-rose-500"></span> Absent 1
+                <span className="w-1.5 h-1.5 rounded-full border border-rose-500"></span> Absent {absentCount}
               </div>
               <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1 rounded-full text-[11px] font-bold text-slate-600">
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span> Weekend 4
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span> Weekend {weekendCount}
               </div>
             </div>
           </div>

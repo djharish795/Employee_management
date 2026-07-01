@@ -112,7 +112,7 @@ export class LeavesService {
 
   async applyLeave(data: ApplyLeaveDto): Promise<unknown> {
     const employee = await this.prisma.employee.findUnique({
-      where: { employeeId: data.employeeId },
+      where: { id: data.employeeId },
       include: { department: true, designation: true }
     });
 
@@ -501,7 +501,10 @@ export class LeavesService {
   async getCalendar(): Promise<unknown> {
     return this.prisma.leaveRequest.findMany({
       where: { status: 'APPROVED' },
-      include: { employee: true, leaveType: true }
+      include: { 
+        employee: { include: { department: true } }, 
+        leaveType: true 
+      }
     });
   }
 }
