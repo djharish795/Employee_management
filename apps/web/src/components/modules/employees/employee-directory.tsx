@@ -856,9 +856,9 @@ export default function EmployeeDirectory() {
                   </div>
                 </div>
 
-                <button className="w-full py-2.5 mt-5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 rounded-lg transition-colors shadow-sm">
+                <Link href="/org-chart/departments" className="w-full flex items-center justify-center py-2.5 mt-5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 rounded-lg transition-colors shadow-sm">
                   View Full Report
-                </button>
+                </Link>
               </div>
 
               {/* Top Locations Widget */}

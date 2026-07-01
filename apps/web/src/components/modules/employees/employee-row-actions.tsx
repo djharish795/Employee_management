@@ -49,7 +49,7 @@ export function EmployeeRowActions({ employeeId, employeeName, status, onAction 
           <span className="sr-only">Open menu</span>
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[200px] border-slate-200 shadow-md">
+      <DropdownMenuContent align="end" className="w-[200px] bg-white border border-slate-200 shadow-xl z-[9999] rounded-lg p-1.5">
         
         <DropdownMenuItem onClick={() => onAction("edit", employeeId)} className="cursor-pointer text-xs font-semibold text-slate-700">
           <Pencil className="mr-2 h-3.5 w-3.5 text-slate-400" />
