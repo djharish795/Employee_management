@@ -34,6 +34,7 @@ export class DepartmentsService {
         take,
         orderBy: { createdAt: "desc" },
         include: {
+          head: true,
           _count: {
             select: { employees: true, designations: true }
           }
@@ -83,6 +84,25 @@ export class DepartmentsService {
       });
       if (existingCode && existingCode.id !== id) {
         throw new ConflictException("Department code already exists.");
+      }
+    }
+
+    if (dto.headId !== undefined) {
+      if (dto.headId === "") {
+        dto.headId = null as any;
+      } else {
+        const headEmployee = await this.prisma.employee.findFirst({
+          where: {
+            OR: [
+              { id: dto.headId },
+              { employeeId: dto.headId }
+            ]
+          }
+        });
+        if (!headEmployee) {
+          throw new NotFoundException(`Employee with ID or UUID ${dto.headId} not found.`);
+        }
+        dto.headId = headEmployee.id;
       }
     }
 

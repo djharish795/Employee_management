@@ -89,7 +89,7 @@ export default function HrDashboardPage() {
                 {/* Absent (17%) */}
                 <circle cx="50" cy="50" r="40" fill="transparent" stroke="#e2e8f0" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset={251.2 - (251.2 * 17) / 100} className="transition-all duration-1000 ease-in-out" />
                 {/* WFH (9%) */}
-                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#2563eb" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset={251.2 - (251.2 * 9) / 100} strokeDasharray="251.2" style={{ strokeDashoffset: 251.2 - (251.2 * 9) / 100, strokeDasharray: "251.2 251.2", transformOrigin: "center", transform: `rotate(${(17/100) * 360}deg)` }} className="transition-all duration-1000 ease-in-out" />
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#2563eb" strokeWidth="12" strokeDashoffset={251.2 - (251.2 * 9) / 100} strokeDasharray="251.2" style={{ strokeDashoffset: 251.2 - (251.2 * 9) / 100, strokeDasharray: "251.2 251.2", transformOrigin: "center", transform: `rotate(${(17/100) * 360}deg)` }} className="transition-all duration-1000 ease-in-out" />
                 {/* Present (74%) */}
                 <circle cx="50" cy="50" r="40" fill="transparent" stroke="#16a34a" strokeWidth="12" strokeDasharray="251.2" style={{ strokeDashoffset: 251.2 - (251.2 * 74) / 100, strokeDasharray: "251.2 251.2", transformOrigin: "center", transform: `rotate(${((17+9)/100) * 360}deg)` }} className="transition-all duration-1000 ease-in-out" />
               </svg>

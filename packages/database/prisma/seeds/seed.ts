@@ -63,7 +63,7 @@ async function main() {
   console.log('Designations seeded.');
 
   // 3. Leave types
-  await prisma.leaveType.deleteMany(); // Clear old mismatched types to prevent unique constraint errors
+  // Skipped deleteMany to prevent foreign key errors with leave_balances
 
   const leaveTypesData = [
     { code: 'CL_FULL', name: 'Casual Leave (Full Day)', maxDaysPerYear: 12, isCarryForwardAllowed: true, maxCarryForwardDays: 7, isPaidLeave: true },
@@ -76,7 +76,7 @@ async function main() {
   for (const lt of leaveTypesData) {
     await prisma.leaveType.upsert({
       where: { code: lt.code },
-      update: {},
+      update: lt,
       create: lt,
     });
   }
@@ -84,11 +84,16 @@ async function main() {
 
   // 3.5. Public Holidays
   const holidaysData = [
-    { name: 'New Year', date: new Date('2026-01-01') },
+    { name: 'Makara Sankranti', date: new Date('2026-01-14') },
     { name: 'Republic Day', date: new Date('2026-01-26') },
+    { name: 'Good Friday', date: new Date('2026-04-03') },
+    { name: 'Ramzan', date: new Date('2026-03-20') },
+    { name: 'Bakrid (Eid al-Adha)', date: new Date('2026-05-27') },
     { name: 'Independence Day', date: new Date('2026-08-15') },
-    { name: 'Gandhi Jayanti', date: new Date('2026-10-02') },
-    { name: 'Diwali', date: new Date('2026-11-08') },
+    { name: 'Vinayaka Chaturthi', date: new Date('2026-09-14') },
+    { name: 'Mahatma Gandhi Jayanti', date: new Date('2026-10-02') },
+    { name: 'Dussehra', date: new Date('2026-10-20') },
+    { name: 'Deepavali', date: new Date('2026-11-08') },
     { name: 'Christmas', date: new Date('2026-12-25') },
   ];
 

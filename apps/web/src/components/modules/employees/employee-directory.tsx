@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   useReactTable,
@@ -37,15 +38,25 @@ export default function EmployeeDirectory() {
     employee: Employee | null;
   }>({ isOpen: false, type: null, employee: null });
 
+  const searchParams = useSearchParams();
+  const initialDept = searchParams.get("department") || "";
+
   // Filters State
   const [filters, setFilters] = useState<DirectoryFilters>({
     search: "",
-    department: "",
+    department: initialDept,
     designation: "",
     location: "",
     status: "",
   });
 
+  // Automatically update filter if the URL changes while component is mounted
+  useEffect(() => {
+    const dept = searchParams.get("department");
+    if (dept) {
+      setFilters(prev => ({ ...prev, department: dept }));
+    }
+  }, [searchParams]);
   const accessToken = useAuthStore((state) => state.accessToken);
 
   // Fetch from API

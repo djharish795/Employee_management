@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Req, UseGuards, Query } from '@nestjs/common';
 import { ApplyLeaveDto } from './dto/apply-leave.dto';
 import { LeavesService } from './leaves.service';
 // Add proper guards and auth when integrating fully
@@ -10,8 +10,8 @@ export class LeavesController {
 
   constructor(private readonly leaveService: LeavesService) {}
 
-  @Get('kpi/:employeeId')
-  getLeavesKPI(@Param('employeeId') employeeId: string): Promise<unknown> {
+  @Get('kpi')
+  getLeavesKPI(@Query('employeeId') employeeId: string): Promise<unknown> {
     return this.leaveService.getLeavesKPI(employeeId);
   }
 
