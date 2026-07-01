@@ -16,10 +16,11 @@ import {
   fetchMyLogs,
   submitPunch,
 } from "@/lib/api/attendance";
+import { fetchMyLeaveKpi } from "@/lib/api/leaves";
 
 export default function EmployeeDashboardV2() {
   const queryClient = useQueryClient();
-  const accessToken = useAuthStore((state) => state.accessToken);
+  const { accessToken, employeeId } = useAuthStore();
 
   const [calendarDate, setCalendarDate] = useState(new Date());
 
@@ -44,6 +45,12 @@ export default function EmployeeDashboardV2() {
     queryFn: fetchMyKpis,
     staleTime: 120_000,
     retry: 1,
+  });
+
+  const leaveKpiQuery = useQuery({
+    queryKey: ["leaves-kpi", employeeId],
+    queryFn: () => fetchMyLeaveKpi(employeeId!),
+    enabled: !!employeeId,
   });
 
   const todayState = todayQuery.data?.state ?? "OUT";
@@ -78,7 +85,7 @@ export default function EmployeeDashboardV2() {
     });
   })();
 
-  const leaveBalance = kpisQuery.data?.leaveDays ?? 11;
+  const leaveBalance = leaveKpiQuery.data?.availableLeaves ?? "--";
   const assetsAssigned = 3;
 
   // Header Data
