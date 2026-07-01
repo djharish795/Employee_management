@@ -80,7 +80,7 @@ export const LoginForm: React.FC = () => {
     try {
       // Execute authentication service login call
       const res = await AuthService.login(data.email, data.password);
-      
+
       if (res.mfaRequired && res.challengeId && res.method) {
         // Update temporary auth session in state store and redirect to MFA verification
         setTempSession({

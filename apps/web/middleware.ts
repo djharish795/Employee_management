@@ -15,6 +15,7 @@ const protectedRoutes = [
   '/employees', '/attendance', '/leaves', '/assets', '/compliance',
   '/audit', '/onboarding', '/offboarding', '/knowledge', '/workflows',
   '/recruitment', '/payroll', '/performance', '/org-chart', '/settings',
+  '/connect'
 ];
 
 // Role-specific dashboard namespaces (cross-role isolation)

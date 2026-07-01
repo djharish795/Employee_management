@@ -5,30 +5,52 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, Calendar, ShieldCheck, History,
-  Network, BarChart3, Settings, LogOut, Menu, X, ChevronLeft, Plus
+  Network, BarChart3, Settings, LogOut, Menu, X, ChevronLeft, Plus,
+  MessageSquare
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 
-const NAV_ITEMS = [
-  { title: 'Dashboard',     icon: LayoutDashboard, href: '/executive/dashboard' },
-  { title: 'Employees',     icon: Users,           href: '/employees' },
-  { title: 'Org Chart',     icon: Network,         href: '/org-chart' },
-  { title: 'Analytics',     icon: BarChart3,       href: '/analytics' },
-  { title: 'Compliance',    icon: ShieldCheck,     href: '/compliance' },
-  { title: 'Leaves',        icon: Calendar,        href: '/leaves' },
-  { title: 'Audit Log',     icon: History,         href: '/audit' },
-];
+const getDashboardPath = (role: string) => {
+  if (['SUPER_ADMIN', 'IT'].includes(role)) return '/admin/dashboard';
+  if (['CEO', 'COO'].includes(role)) return '/executive/dashboard';
+  if (role === 'CTO') return '/cto/dashboard';
+  if (['CFO', 'FINANCE'].includes(role)) return '/finance/dashboard';
+  if (['CHRO', 'HR'].includes(role)) return '/hr/dashboard';
+  return '/employee/dashboard';
+};
+
+const getNavItems = (role: string) => {
+  const items = [
+    { title: 'Dashboard', icon: LayoutDashboard, href: getDashboardPath(role) },
+    { title: 'Connect', icon: MessageSquare, href: '/connect' },
+    { title: 'Employees', icon: Users, href: '/employees' },
+    { title: 'Org Chart', icon: Network, href: '/org-chart' },
+    { title: 'Analytics', icon: BarChart3, href: '/analytics' },
+  ];
+
+  if (['SUPER_ADMIN', 'CEO', 'COO', 'HR', 'CHRO', 'COMPLIANCE_OFFICER', 'LEGAL'].includes(role)) {
+    items.push({ title: 'Compliance', icon: ShieldCheck, href: '/compliance' });
+  }
+
+  items.push({ title: 'Leaves', icon: Calendar, href: '/leaves' });
+
+  if (role === 'SUPER_ADMIN') {
+    items.push({ title: 'Audit Log', icon: History, href: '/audit' });
+  }
+
+  return items;
+};
 
 export function CeoSidebar() {
   const pathname  = usePathname();
   const router    = useRouter();
   const clearSession = useAuthStore((state) => state.clearSession);
+  const role = useAuthStore((state) => state.role) || 'EMPLOYEE';
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed]   = useState(false);
   const [mounted, setMounted]       = useState(false);
   
-  const role = useAuthStore((state) => state.role) || 'CEO';
   const displayRole = role.replace('_', ' ');
 
   React.useEffect(() => { setMounted(true); }, []);
@@ -76,7 +98,7 @@ export function CeoSidebar() {
 
       {/* Navigation */}
       <nav className={`flex-1 space-y-0.5 overflow-y-auto ${collapsed ? 'px-2' : 'px-3'}`}>
-        {NAV_ITEMS.map((item) => {
+        {getNavItems(role).map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
             <Link

@@ -5,12 +5,14 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, CalendarCheck, Calendar,
-  MonitorSmartphone, BookOpen, Network, Settings, LogOut, Menu, X, ChevronLeft, Plus
+  MonitorSmartphone, BookOpen, Network, Settings, LogOut, Menu, X, ChevronLeft, Plus,
+  MessageSquare
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 
 const NAV_ITEMS = [
   { title: 'Dashboard',     icon: LayoutDashboard, href: '/employee/dashboard' },
+  { title: 'Connect',       icon: MessageSquare,   href: '/connect' },
   { title: 'Attendance',    icon: CalendarCheck,   href: '/attendance' },
   { title: 'Leaves',        icon: Calendar,        href: '/leaves' },
   { title: 'Assets',        icon: MonitorSmartphone,href: '/assets' },
