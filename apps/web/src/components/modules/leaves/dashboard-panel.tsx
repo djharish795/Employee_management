@@ -288,30 +288,77 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
             </div>
           </div>
 
-          {/* Leave Policy Quick Summary */}
+          {/* Leave Policy Quick Summary (Segregated) */}
           {kpiQuery.data && !kpiQuery.isLoading && (
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <FileText className="w-4 h-4 text-indigo-500" />
-                Your Leave Summary
-              </h3>
-              <div className="space-y-2 text-xs font-semibold text-slate-600">
-                <div className="flex justify-between py-1.5 border-b border-slate-50">
-                  <span className="text-slate-400">Total Allocated</span>
-                  <span className="font-bold text-slate-900">{kpiQuery.data.totalLeaves} days</span>
+            <div className="space-y-4">
+              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-indigo-500" />
+                  Global Leave Summary
+                </h3>
+                <div className="space-y-2 text-xs font-semibold text-slate-600">
+                  <div className="flex justify-between py-1.5 border-b border-slate-50">
+                    <span className="text-slate-400">Total Allocated</span>
+                    <span className="font-bold text-slate-900">{kpiQuery.data.totalLeaves} days</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-slate-50">
+                    <span className="text-slate-400">Used This Year</span>
+                    <span className="font-bold text-slate-700">{kpiQuery.data.usedLeaves} days</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-slate-50">
+                    <span className="text-slate-400">Pending Approval</span>
+                    <span className="font-bold text-amber-600">{kpiQuery.data.pendingLeaves} days</span>
+                  </div>
+                  <div className="flex justify-between py-1.5">
+                    <span className="text-slate-400">Available Balance</span>
+                    <span className="font-bold text-emerald-600">{kpiQuery.data.availableLeaves} days</span>
+                  </div>
                 </div>
-                <div className="flex justify-between py-1.5 border-b border-slate-50">
-                  <span className="text-slate-400">Used This Year</span>
-                  <span className="font-bold text-slate-700">{kpiQuery.data.usedLeaves} days</span>
-                </div>
-                <div className="flex justify-between py-1.5 border-b border-slate-50">
-                  <span className="text-slate-400">Pending Approval</span>
-                  <span className="font-bold text-amber-600">{kpiQuery.data.pendingLeaves} days</span>
-                </div>
-                <div className="flex justify-between py-1.5">
-                  <span className="text-slate-400">Available Balance</span>
-                  <span className="font-bold text-emerald-600">{kpiQuery.data.availableLeaves} days</span>
-                </div>
+              </div>
+
+              {/* Segregated Policies (Half Days, Maternity, etc.) */}
+              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-2">
+                  <FileText className="w-4 h-4 text-emerald-500" />
+                  Policy Breakdown
+                </h3>
+                
+                {kpiQuery.data.details?.length > 0 ? (
+                  <div className="space-y-4">
+                    {kpiQuery.data.details.map((balance) => (
+                      <div key={balance.id} className="bg-slate-50 border border-slate-100 rounded-lg p-3">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-xs font-bold text-slate-800">
+                            {balance.leaveType.name}
+                          </span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full">
+                            {balance.leaveType.code}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 text-[10px] font-semibold text-slate-600 text-center">
+                          <div className="bg-white border border-slate-200 rounded py-1">
+                            <span className="block text-slate-400">Allocated</span>
+                            <span className="text-slate-800">{Number(balance.allocated)}</span>
+                          </div>
+                          <div className="bg-white border border-slate-200 rounded py-1">
+                            <span className="block text-slate-400">Used</span>
+                            <span className="text-rose-600">{Number(balance.used)}</span>
+                          </div>
+                          <div className="bg-white border border-slate-200 rounded py-1">
+                            <span className="block text-slate-400">Available</span>
+                            <span className="text-emerald-600">
+                              {Number(balance.allocated) - Number(balance.used) - Number(balance.pending)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-xs text-slate-400 text-center py-4">
+                    No active leave balances found.
+                  </div>
+                )}
               </div>
             </div>
           )}

@@ -68,6 +68,7 @@ export class AuthService {
       refreshToken: issued.refreshToken,
       role: issued.role,
       redirectPath: issued.redirectPath,
+      employeeId: user.employeeId ?? null,
     };
     // ---------------------------------------------
   }
@@ -105,6 +106,7 @@ export class AuthService {
       refreshToken: issued.refreshToken,
       role: issued.role,
       redirectPath: issued.redirectPath,
+      employeeId: user.employeeId ?? null,
       unknownDevice: false,
     };
   }
@@ -154,6 +156,7 @@ export class AuthService {
       refreshToken: issued.refreshToken,
       role: issued.role,
       redirectPath: issued.redirectPath,
+      employeeId: user.employeeId ?? null,
     };
   }
 }

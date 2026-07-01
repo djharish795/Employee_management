@@ -84,6 +84,7 @@ apiClient.interceptors.response.use(
             accessToken: data.token,
             refreshToken: data.refreshToken,
             role: data.role || "EMPLOYEE",
+            employeeId: data.employeeId ?? null,
           });
           document.cookie = `token=${data.token}; path=/; max-age=86400; SameSite=Strict`;
 

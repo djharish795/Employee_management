@@ -96,6 +96,7 @@ export const LoginForm: React.FC = () => {
           accessToken: res.token,
           refreshToken: res.refreshToken,
           role: role,
+          employeeId: res.employeeId ?? null,
         });
         document.cookie = `token=${res.token}; path=/; max-age=86400; SameSite=Strict`;
         document.cookie = `role=${role}; path=/; max-age=86400; SameSite=Strict`;

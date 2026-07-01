@@ -8,6 +8,7 @@ export interface LoginResponse {
   refreshToken?: string;
   role?: string;
   redirectPath?: string;
+  employeeId?: string | null;
 }
 
 export interface VerifyMFAResponse {
@@ -18,6 +19,7 @@ export interface VerifyMFAResponse {
   redirectPath?: string;
   unknownDevice?: boolean;
   deviceDetails?: DeviceDetails;
+  employeeId?: string | null;
 }
 
 export class AuthService {
