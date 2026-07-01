@@ -12,8 +12,10 @@ import { OrganizationModule } from "./modules/organization/organization.module";
 import { RbacModule } from "./modules/rbac/rbac.module";
 import { AuditModule } from "./modules/audit/audit.module";
 import { AttendanceModule } from "./modules/attendance/attendance.module";
-import { WfhModule } from './modules/wfh/wfh.module';
-import { HolidaysModule } from './modules/holidays/holidays.module';
+import { WfhModule } from "./modules/wfh/wfh.module";
+import { HolidaysModule } from "./modules/holidays/holidays.module";
+import { AssetsModule } from "./modules/assets/assets.module";
+
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { HolidaysModule } from './modules/holidays/holidays.module';
     AttendanceModule,
     WfhModule,
     HolidaysModule,
+    AssetsModule,
   ],
 })
 export class AppModule { }
+

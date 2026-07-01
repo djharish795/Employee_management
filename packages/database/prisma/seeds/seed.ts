@@ -40,6 +40,8 @@ async function main() {
     { title: 'DevOps Engineer', departmentCode: 'ENG' },
     { title: 'HR Executive', departmentCode: 'HR' },
     { title: 'Finance Executive', departmentCode: 'FIN' },
+    { title: 'Operations Head', departmentCode: 'OPS' },
+    { title: 'Operations Executive', departmentCode: 'OPS' },
   ];
 
   for (const desig of designationsData) {

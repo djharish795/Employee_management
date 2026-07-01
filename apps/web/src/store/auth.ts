@@ -19,9 +19,10 @@ interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
   role: string | null;
+  employeeId: string | null;
   setTempSession: (session: TempSession | null) => void;
   setDeviceDetails: (details: DeviceDetails | null) => void;
-  setAuthSession: (params: { accessToken: string; refreshToken: string; role: string }) => void;
+  setAuthSession: (params: { accessToken: string; refreshToken: string; role: string; employeeId: string | null }) => void;
   clearSession: () => void;
 }
 
@@ -33,10 +34,11 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       refreshToken: null,
       role: null,
+      employeeId: null,
       setTempSession: (session) => set({ tempSession: session }),
       setDeviceDetails: (details) => set({ deviceDetails: details }),
-      setAuthSession: ({ accessToken, refreshToken, role }) =>
-        set({ accessToken, refreshToken, role, tempSession: null }),
+      setAuthSession: ({ accessToken, refreshToken, role, employeeId }) =>
+        set({ accessToken, refreshToken, role, employeeId, tempSession: null }),
       clearSession: () => {
         // Also clear cookies on logout
         if (typeof document !== "undefined") {
@@ -49,6 +51,7 @@ export const useAuthStore = create<AuthState>()(
           accessToken: null,
           refreshToken: null,
           role: null,
+          employeeId: null,
         });
       },
     }),
@@ -59,6 +62,7 @@ export const useAuthStore = create<AuthState>()(
         accessToken: state.accessToken, 
         refreshToken: state.refreshToken,
         role: state.role,
+        employeeId: state.employeeId,
         deviceDetails: state.deviceDetails
       }),
     }
