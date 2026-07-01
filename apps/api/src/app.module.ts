@@ -12,6 +12,9 @@ import { OrganizationModule } from "./modules/organization/organization.module";
 import { RbacModule } from "./modules/rbac/rbac.module";
 import { AuditModule } from "./modules/audit/audit.module";
 import { AttendanceModule } from "./modules/attendance/attendance.module";
+import { WfhModule } from "./modules/wfh/wfh.module";
+import { HolidaysModule } from "./modules/holidays/holidays.module";
+import { AssetsModule } from "./modules/assets/assets.module";
 
 
 @Module({
@@ -31,12 +34,9 @@ import { AttendanceModule } from "./modules/attendance/attendance.module";
     RbacModule,
     AuditModule,
     AttendanceModule,
-<<<<<<< HEAD
     WfhModule,
     HolidaysModule,
-=======
     AssetsModule,
->>>>>>> 915c2e1 (Implemented Asset KPI endpoints and DTOs)
   ],
 })
 export class AppModule { }
