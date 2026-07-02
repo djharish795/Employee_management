@@ -56,7 +56,7 @@ export const fetchMyLeaveKpi = async (employeeId: string): Promise<ApiLeaveKpi> 
 
 // ─── Fetch approvals queue for an approver ────────────────────────────────────
 export const fetchApprovals = async (approverId: string): Promise<ApiLeaveRequest[]> => {
-  const { data } = await apiClient.get(`/leaves/approvals`, { params: { approverId } });
+  const { data } = await apiClient.get(`/leaves/approvals/${approverId}`);
   return data;
 };
 
