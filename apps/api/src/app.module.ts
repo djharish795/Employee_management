@@ -40,6 +40,8 @@ import { KnowledgeModule } from "./modules/knowledge/knowledge.module";
     WfhModule,
     HolidaysModule,
     AssetsModule,
+    LeavesModule,
+    KnowledgeModule,
   ],
 })
 export class AppModule { }
