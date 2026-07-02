@@ -156,25 +156,40 @@ export default function ApprovalsPanel({ activeRole }: ApprovalsPanelProps) {
               </div>
 
               {/* Workflow Flow */}
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100 w-fit">
-                <span className="bg-slate-200 px-2 py-1 rounded-full text-slate-700">
-                  {req.employee?.firstName}
-                </span>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-                <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full flex items-center gap-1">
-                  <Check className="w-3 h-3" /> Manager
-                </span>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-                <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
-                  HR Team
-                </span>
-              </div>
+              {req.approvalQueue && req.approvalQueue.length > 0 && (
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100 w-fit overflow-x-auto">
+                  <span className="bg-slate-200 px-2 py-1 rounded-full text-slate-700 whitespace-nowrap">
+                    {req.employee?.firstName || "Employee"}
+                  </span>
+                  {req.approvalQueue.map((step, idx) => (
+                    <React.Fragment key={idx}>
+                      <ArrowRight className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                      <span
+                        className={`px-2 py-1 rounded-full flex items-center gap-1 whitespace-nowrap ${
+                          step.status === "APPROVED"
+                            ? "bg-green-100 text-green-800"
+                            : step.status === "REJECTED"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-orange-100 text-orange-800"
+                        }`}
+                      >
+                        {step.status === "APPROVED" && <Check className="w-3 h-3" />}
+                        {step.status === "REJECTED" && <X className="w-3 h-3" />}
+                        {step.role}
+                      </span>
+                    </React.Fragment>
+                  ))}
+                </div>
+              )}
 
               {/* Footer */}
               <div className="flex items-center justify-between pt-4 border-t border-slate-100">
                 <div className="text-sm font-semibold">
                   <span className="text-slate-500">Leave balance: </span>
-                  <span className="text-slate-600 font-bold">X days remaining</span>
+                  <span className="text-slate-600 font-bold">
+                    {/* @ts-ignore - leaveBalance may be added by backend team later */}
+                    {req.employee?.leaveBalance !== undefined ? `${req.employee.leaveBalance} days remaining` : "N/A"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-3">
                   <button

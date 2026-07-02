@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, Calendar, ShieldCheck, History,
   Network, BarChart3, Settings, LogOut, Menu, X, ChevronLeft, Plus,
-  MessageSquare
+  MessageSquare, UserPlus, UserMinus, BookOpen
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 
@@ -33,6 +33,12 @@ const getNavItems = (role: string) => {
   }
 
   items.push({ title: 'Leaves', icon: Calendar, href: '/leaves' });
+
+  if (role === 'HR') {
+    items.push({ title: 'Onboarding', icon: UserPlus, href: '/onboarding' });
+    items.push({ title: 'Offboarding', icon: UserMinus, href: '/offboarding' });
+    items.push({ title: 'Knowledge Base', icon: BookOpen, href: '/knowledge-base' });
+  }
 
   if (role === 'SUPER_ADMIN') {
     items.push({ title: 'Audit Log', icon: History, href: '/audit' });

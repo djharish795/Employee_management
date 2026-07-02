@@ -94,6 +94,7 @@ export default function ApplyLeavePage() {
                     { id: "CASUAL_LEAVE", title: "Casual Leave", desc: "For personal reasons and short breaks.", bal: "8 Days Available" },
                     { id: "SICK_LEAVE", title: "Sick Leave", desc: "For medical emergencies and illness.", bal: "4 Days Available" },
                     { id: "EARNED_LEAVE", title: "Earned Leave", desc: "Long term planned vacations.", bal: "15 Days Available" },
+                    { id: "WFH", title: "Work From Home", desc: "Remote work days (subject to manager approval).", bal: "As Applicable" },
                     { id: "UNPAID_LEAVE", title: "Loss of Pay", desc: "When all other balances are exhausted.", bal: "Unlimited" },
                   ].map((type) => (
                     <label 

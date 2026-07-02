@@ -1,9 +1,24 @@
 "use client";
 
 import React from 'react';
-import { Users, FileText, RefreshCw, CheckCircle2, ChevronRight, Settings, Plus, Filter, SortDesc, Calendar, User, AlignLeft, Search, Bell, Monitor, BookOpen, MessageSquare } from 'lucide-react';
+import Link from 'next/link';
+import { Users, FileText, RefreshCw, CheckCircle2, ChevronRight, Settings, Plus, Filter, SortDesc, Calendar, User, AlignLeft, Search, Bell, Monitor, BookOpen, MessageSquare, AlertCircle } from 'lucide-react';
+import { useAuthStore } from '@/store/auth';
 
 export default function OnboardingPage() {
+  const role = useAuthStore((state) => state.role);
+  
+  // Protect route: Only HR can access
+  if (role !== "HR") {
+    return (
+      <div className="flex flex-col items-center justify-center h-full bg-slate-50 text-slate-500">
+        <AlertCircle className="w-10 h-10 text-rose-400 mb-3" />
+        <h2 className="text-xl font-bold text-slate-800">Access Restricted</h2>
+        <p className="mt-2 text-sm">Only HR personnel can view this page.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full font-sans bg-slate-50 overflow-y-auto">
       <div className="p-8 max-w-[1400px] mx-auto w-full space-y-6">
@@ -15,9 +30,9 @@ export default function OnboardingPage() {
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Employee Onboarding</h1>
             <p className="text-sm text-slate-500 font-medium mt-1">Manage new joiners and track their integration lifecycle.</p>
           </div>
-          <button className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors shadow-sm">
+          <Link href="/onboarding/new" className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors shadow-sm">
             <Plus className="w-4 h-4" /> New Onboarding
-          </button>
+          </Link>
         </div>
 
         {/* Top Stats Row */}
