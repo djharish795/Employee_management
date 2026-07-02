@@ -1,4 +1,4 @@
-export type OrgRole = "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
+export type OrgRole = "ADMIN" | "HR" | "CEO" | "CTO" | "MANAGER" | "EMPLOYEE";
 
 export interface OrgEmployee {
   id: string;

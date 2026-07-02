@@ -372,21 +372,22 @@ export default function EmployeeDirectory() {
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <button className="w-8 h-8 flex items-center justify-center rounded-md bg-slate-900 text-white font-bold text-sm">
-                  1
-                </button>
-                <button className="w-8 h-8 flex items-center justify-center rounded-md text-slate-600 hover:bg-slate-100 font-bold text-sm">
-                  2
-                </button>
-                <button className="w-8 h-8 flex items-center justify-center rounded-md text-slate-600 hover:bg-slate-100 font-bold text-sm">
-                  3
-                </button>
-                <button className="w-8 h-8 flex items-center justify-center rounded-md text-slate-600 hover:bg-slate-100 font-bold text-sm">
-                  4
-                </button>
-                <button className="w-8 h-8 flex items-center justify-center rounded-md text-slate-600 hover:bg-slate-100 font-bold text-sm">
-                  5
-                </button>
+                {table.getPageOptions().filter(pageIndex => {
+                  const current = table.getState().pagination.pageIndex;
+                  return Math.abs(current - pageIndex) <= 2;
+                }).map((pageIndex) => (
+                  <button
+                    key={pageIndex}
+                    onClick={() => table.setPageIndex(pageIndex)}
+                    className={`w-8 h-8 flex items-center justify-center rounded-md font-bold text-sm ${
+                      table.getState().pagination.pageIndex === pageIndex
+                        ? "bg-slate-900 text-white"
+                        : "text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    {pageIndex + 1}
+                  </button>
+                ))}
                 <button
                   onClick={() => table.nextPage()}
                   disabled={!table.getCanNextPage()}

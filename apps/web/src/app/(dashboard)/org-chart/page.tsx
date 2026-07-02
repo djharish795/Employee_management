@@ -8,6 +8,9 @@ import { useOrgTestStore } from "@/store/org-test";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+import { useAuthStore } from "@/store/auth";
+import { OrgRole } from "@/types/org-chart";
+
 export default function OrgChartDashboardPage() {
   const { activeRole, setActiveRole } = useOrgTestStore();
   const router = useRouter();

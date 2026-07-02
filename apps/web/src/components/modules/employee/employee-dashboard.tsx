@@ -24,6 +24,7 @@ const fmtHours = (secs: number) => {
 export default function EmployeeDashboardPanel() {
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((state) => state.accessToken);
+  const userRole = useAuthStore((state) => state.role) || "EMPLOYEE";
 
   let userName = "Employee";
   if (accessToken) {
@@ -295,6 +296,7 @@ export default function EmployeeDashboardPanel() {
                 { label: "Company Policies", href: "/compliance" },
                 { label: "Knowledge Base", href: "/knowledge" },
                 { label: "Org Chart", href: "/org-chart" },
+                ...(userRole !== "EMPLOYEE" ? [{ label: "Employees", href: "/employees" }] : []),
               ].map(({ label, href }) => (
                 <Link
                   key={href}

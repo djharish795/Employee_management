@@ -5,6 +5,8 @@ import { GitFork, ArrowUp, UserCircle, Search, HelpCircle, Loader2 } from "lucid
 import { OrgRole, OrgEmployee } from "@/types/org-chart";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api/client";
+import { useAuthStore } from "@/store/auth";
+import Link from "next/link";
 
 interface ReportingPanelProps {
   activeRole: string;
@@ -46,15 +48,22 @@ export default function ReportingPanel({ activeRole }: ReportingPanelProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
 
+  const currentUserEmployeeId = useAuthStore(state => state.employeeId);
+
   // Default to a relevant employee if none selected
   const targetId = useMemo(() => {
     if (selectedId) return selectedId;
     if (employees.length === 0) return null;
 
+    if (currentUserEmployeeId) {
+      const me = employees.find(e => e.id === currentUserEmployeeId);
+      if (me) return me.id;
+    }
+
     // Try to find an employee matching the active role, otherwise just use the first employee
     const fallback = employees.find(e => String(e.designation || "").toUpperCase().includes(activeRole)) || employees[0];
     return fallback?.id || null;
-  }, [selectedId, employees, activeRole]);
+  }, [selectedId, employees, activeRole, currentUserEmployeeId]);
 
   // Build upward chain recursively
   const upwardChain = useMemo(() => {
@@ -246,9 +255,9 @@ export default function ReportingPanel({ activeRole }: ReportingPanelProps) {
             )}
 
             {directReports.length > 0 && (
-              <button className="w-full py-2 border border-dashed border-slate-300 rounded-lg text-xs font-bold text-slate-500 hover:text-indigo-600 hover:border-indigo-300 transition-colors mt-2">
+              <Link href="/org-chart/hierarchy" className="w-full flex justify-center py-2 border border-dashed border-slate-300 rounded-lg text-xs font-bold text-slate-500 hover:text-indigo-600 hover:border-indigo-300 transition-colors mt-2">
                 View Entire Sub-tree
-              </button>
+              </Link>
             )}
           </div>
         </div>

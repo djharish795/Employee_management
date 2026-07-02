@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, Users, Briefcase, Plus, MoreHorizontal, Edit2, Trash2, UserCheck, X } from "lucide-react";
+import { Building2, Users, Briefcase, Plus, MoreHorizontal, Edit2, Trash2, UserCheck, UserX, X } from "lucide-react";
 import { OrgRole, DepartmentNode } from "@/types/org-chart";
 
 interface DepartmentsPanelProps {
@@ -105,12 +105,31 @@ export default function DepartmentsPanel({ activeRole }: DepartmentsPanelProps) 
                       >
                         <Edit2 className="w-3.5 h-3.5" /> Edit Department
                       </button>
-                      <button 
-                        onClick={() => { setMenuOpenId(null); setSelectedDept(dept); setEditHeadId(dept.headId || ""); setActiveModal("assign"); }}
-                        className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                      >
-                        <UserCheck className="w-3.5 h-3.5" /> Assign Head
-                      </button>
+                      
+                      {dept.headId ? (
+                        <>
+                          <button 
+                            onClick={() => { setMenuOpenId(null); setSelectedDept(dept); setEditHeadId(dept.headId || ""); setActiveModal("assign"); }}
+                            className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                          >
+                            <UserCheck className="w-3.5 h-3.5" /> Change Head
+                          </button>
+                          <button 
+                            onClick={() => { setMenuOpenId(null); updateMutation.mutate({ id: dept.id, data: { headId: "" } }); }}
+                            className="w-full text-left px-4 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2"
+                          >
+                            <UserX className="w-3.5 h-3.5" /> Unassign Head
+                          </button>
+                        </>
+                      ) : (
+                        <button 
+                          onClick={() => { setMenuOpenId(null); setSelectedDept(dept); setEditHeadId(""); setActiveModal("assign"); }}
+                          className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                        >
+                          <UserCheck className="w-3.5 h-3.5" /> Assign Head
+                        </button>
+                      )}
+                      
                       <div className="border-t border-slate-100 my-1"></div>
                       <button 
                         onClick={() => { setMenuOpenId(null); setSelectedDept(dept); setActiveModal("delete"); }}

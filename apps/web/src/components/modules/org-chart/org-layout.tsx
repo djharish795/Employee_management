@@ -13,9 +13,7 @@ interface OrgLayoutProps {
   activeRole: OrgRole;
   onRoleChange: (role: OrgRole) => void;
 }
-
-const ALL_ROLES: OrgRole[] = ["ADMIN", "HR", "CEO", "MANAGER", "EMPLOYEE"];
-
+const ALL_ROLES: OrgRole[] = ["ADMIN", "HR", "CEO", "CTO", "MANAGER", "EMPLOYEE"];
 export default function OrgLayout({ children, activeRole, onRoleChange }: OrgLayoutProps) {
   const pathname = usePathname();
   const currentUserRole = useAuthStore((state) => state.role) || "EMPLOYEE";
@@ -46,6 +44,7 @@ export default function OrgLayout({ children, activeRole, onRoleChange }: OrgLay
       case "HR":
         return "Manage departments, structure, and succession plans.";
       case "CEO":
+      case "CTO":
         return "Executive overview of spans of control and headcount.";
       default:
         return "Organizational directory and structural management.";

@@ -45,13 +45,13 @@ export class EmployeesController {
   }
 
   @Get("org-stats")
-  @Permissions(Permission.READ_EMPLOYEES)
+  @Permissions(Permission.READ_EMPLOYEES, Permission.READ_TEAM_PROFILES)
   getOrgStats() {
     return this.employeesService.getOrgStats();
   }
 
   @Get()
-  @Permissions(Permission.READ_EMPLOYEES)
+  @Permissions(Permission.READ_EMPLOYEES, Permission.READ_TEAM_PROFILES)
   getEmployees(@Query() params: PaginationParams): Promise<PaginatedResult<Employee>> {
     return this.employeesService.getEmployees(params);
   }

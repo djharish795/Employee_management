@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/auth";
 import { Users, CalendarCheck, TrendingUp, Clock, ArrowRight, CheckCircle2, Code2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import { PersonalAttendanceWidget } from "@/components/shared/personal-attendance-widget";
 
 export default function CtoDashboardPage() {
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -56,7 +57,7 @@ export default function CtoDashboardPage() {
   return (
     <div className="flex-1 w-full p-6 md:p-8 bg-slate-50 min-h-screen font-sans">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-8">
         <div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Technology Operations</h1>
           <p className="text-sm font-medium text-slate-500 mt-1">CTO Dashboard — Engineering & Product Overview</p>
@@ -65,6 +66,8 @@ export default function CtoDashboardPage() {
           Review Team Leave Queue
         </Link>
       </div>
+
+      <PersonalAttendanceWidget />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, Calendar, ShieldCheck, History,
   Network, BarChart3, Settings, LogOut, Menu, X, ChevronLeft, Plus,
-  MessageSquare, UserPlus, UserMinus, BookOpen
+  MessageSquare, CalendarCheck, UserPlus, UserMinus, BookOpen
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 
@@ -23,6 +23,7 @@ const getNavItems = (role: string) => {
   const items = [
     { title: 'Dashboard', icon: LayoutDashboard, href: getDashboardPath(role) },
     { title: 'Connect', icon: MessageSquare, href: '/connect' },
+    { title: 'Attendance', icon: CalendarCheck, href: '/attendance' },
     { title: 'Employees', icon: Users, href: '/employees' },
     { title: 'Org Chart', icon: Network, href: '/org-chart' },
     { title: 'Analytics', icon: BarChart3, href: '/analytics' },

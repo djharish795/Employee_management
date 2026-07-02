@@ -61,4 +61,111 @@ export class DashboardService {
       ],
     };
   }
+
+  async getHrOverview() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const totalHeadcount = await this.prisma.employee.count({ where: { status: 'ACTIVE' } });
+    const newJoins = await this.prisma.employee.count({
+      where: {
+        status: 'ACTIVE',
+        joiningDate: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) },
+      },
+    });
+
+    const todayRecords = await this.prisma.attendanceRecord.findMany({
+      where: { date: today },
+    });
+    let presentCount = 0;
+    let wfhCount = 0;
+    let absentCount = 0;
+    let onLeaveCount = 0;
+
+    for (const record of todayRecords) {
+      if (['PRESENT', 'EARLY_CHECKOUT', 'HALF_DAY'].includes(record.status)) {
+        presentCount++;
+      } else if (record.status === 'WFH') {
+        wfhCount++;
+      } else if (record.status === 'ABSENT') {
+        absentCount++;
+      } else if (record.status === 'ON_LEAVE') {
+        onLeaveCount++;
+      }
+    }
+
+    // Include employees with no record as absent
+    const totalAccounted = presentCount + wfhCount + onLeaveCount + absentCount;
+    absentCount += Math.max(0, totalHeadcount - totalAccounted);
+
+    const pendingRequests = await this.prisma.leaveRequest.findMany({
+      where: { status: 'PENDING' },
+      include: {
+        employee: { select: { firstName: true, lastName: true, photoUrl: true } },
+        leaveType: { select: { name: true } },
+      },
+      orderBy: { appliedAt: 'desc' },
+      take: 4,
+    });
+    const pendingLeaveCount = await this.prisma.leaveRequest.count({ where: { status: 'PENDING' } });
+
+    const openJobs = await this.prisma.job.findMany({ where: { status: 'OPEN' } });
+    const openPositions = openJobs.reduce((acc, job) => acc + (job.openPositions - job.filledPositions), 0);
+
+    const recentActivity = await this.prisma.auditLog.findMany({
+      orderBy: { performedAt: 'desc' },
+      take: 5,
+      include: { actor: { select: { firstName: true, lastName: true } } },
+    });
+
+    const upcomingEventsEmployees = await this.prisma.employee.findMany({
+      where: { status: 'ACTIVE' },
+      take: 4,
+    });
+
+    const newJoiners = await this.prisma.employee.findMany({
+      where: { status: 'ACTIVE' },
+      orderBy: { joiningDate: 'desc' },
+      take: 3,
+      select: { id: true, firstName: true, lastName: true },
+    });
+
+    return {
+      headcount: { total: totalHeadcount, newJoins: newJoins },
+      attendance: { present: presentCount, wfh: wfhCount, absent: absentCount, onLeave: onLeaveCount, total: totalHeadcount },
+      leaves: {
+        pendingCount: pendingLeaveCount,
+        requests: pendingRequests.map(r => ({
+          id: r.id,
+          employeeName: `${r.employee.firstName} ${r.employee.lastName}`,
+          initials: `${r.employee.firstName.charAt(0)}${r.employee.lastName.charAt(0)}`,
+          leaveType: r.leaveType.name,
+          days: Number(r.totalDays),
+        })),
+      },
+      recruitment: { openPositions: openPositions },
+      activity: recentActivity.map((a, i) => {
+        const types = ['success', 'info', 'warning', 'error', 'default'];
+        return {
+          id: a.id,
+          text: `${a.actor ? `${a.actor.firstName} ${a.actor.lastName}` : 'System'} performed ${a.action} on ${a.resource}`,
+          time: a.performedAt,
+          type: types[i % types.length],
+        };
+      }),
+      events: upcomingEventsEmployees.map(e => ({
+        id: e.id,
+        title: `${e.firstName}'s Birthday`,
+        subtext: 'Office Celebration',
+        date: e.dateOfBirth || new Date(),
+        type: 'birthday',
+      })),
+      newJoiners: newJoiners.map((nj, i) => ({
+        id: nj.id,
+        name: `${nj.firstName} ${nj.lastName}`,
+        progress: [60, 40, 20][i % 3],
+        pendingTask: ['IT Asset Allocation', 'Bank Account Verification', 'ID Card Printing'][i % 3],
+      }))
+    };
+  }
 }

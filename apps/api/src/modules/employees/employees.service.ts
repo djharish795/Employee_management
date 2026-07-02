@@ -274,8 +274,8 @@ export class EmployeesService {
       if (!hasGlobal) {
         if (hasOwn && currentUser.employeeId === id) {
           // OK
-        } else if (hasTeam && employee.reportingManagerId === currentUser.employeeId) {
-          // OK
+        } else if (hasTeam) {
+          // OK - Manager can view any profile from the directory
         } else {
           throw new ForbiddenException("You do not have permission to view this employee profile.");
         }
