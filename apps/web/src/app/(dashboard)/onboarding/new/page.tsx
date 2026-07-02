@@ -2,8 +2,10 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, User, Briefcase, ShieldCheck, Monitor, CheckCircle2, ChevronRight, AlertCircle, Save } from 'lucide-react';
+import { ArrowLeft, User, Briefcase, ShieldCheck, Monitor, CheckCircle2, ChevronRight, AlertCircle, Save, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
+import { apiClient } from '@/lib/api/client';
+import { useRouter } from 'next/navigation';
 
 const STEPS = [
   { id: 1, title: 'Personal Info', icon: User },
@@ -15,7 +17,9 @@ const STEPS = [
 
 export default function NewOnboardingPage() {
   const role = useAuthStore((state) => state.role);
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '', lastName: '', preferredName: '', email: '', phone: '', dob: '', gender: '',
     emergencyName: '', emergencyRelation: '', emergencyPhone: '',
@@ -53,6 +57,20 @@ export default function NewOnboardingPage() {
 
   const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, 5));
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
+
+  const handleInitiateOnboarding = async () => {
+    try {
+      setIsSubmitting(true);
+      await apiClient.post('/onboarding/initiate', formData);
+      alert('Onboarding initiated successfully!');
+      router.push('/onboarding');
+    } catch (error) {
+      console.error(error);
+      alert('Failed to initiate onboarding');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full font-sans bg-slate-50 overflow-y-auto">
@@ -319,7 +337,8 @@ export default function NewOnboardingPage() {
                         { id: 'MacBook Pro 14"', desc: 'Apple M2 Pro, 16GB RAM, 512GB SSD' },
                         { id: 'MacBook Air 15"', desc: 'Apple M2, 16GB RAM, 512GB SSD' },
                         { id: 'Dell XPS 15', desc: 'Intel i7, 16GB RAM, 512GB SSD (Windows)' },
-                        { id: 'ThinkPad T14', desc: 'AMD Ryzen 7, 16GB RAM, 512GB SSD (Windows)' }
+                        { id: 'ThinkPad T14', desc: 'AMD Ryzen 7, 16GB RAM, 512GB SSD (Windows)' },
+                        { id: 'None', desc: 'Employee does not require a company laptop' }
                       ].map((laptop) => (
                         <label key={laptop.id} className={`border rounded-xl p-4 cursor-pointer transition-colors ${formData.laptopType === laptop.id ? 'border-slate-900 bg-slate-50' : 'border-slate-200 hover:border-slate-300'}`}>
                           <div className="flex items-center gap-3 mb-1">
@@ -424,8 +443,13 @@ export default function NewOnboardingPage() {
                   Continue to next step <ChevronRight className="w-4 h-4" />
                 </button>
               ) : (
-                <button onClick={() => alert('Onboarding initiated successfully!')} className="flex items-center gap-2 px-8 py-2.5 text-sm font-bold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors shadow-sm">
-                  <CheckCircle2 className="w-4 h-4" /> Initiate Onboarding
+                <button 
+                  onClick={handleInitiateOnboarding} 
+                  disabled={isSubmitting}
+                  className="flex items-center gap-2 px-8 py-2.5 text-sm font-bold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
+                >
+                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} 
+                  {isSubmitting ? 'Initiating...' : 'Initiate Onboarding'}
                 </button>
               )}
             </div>

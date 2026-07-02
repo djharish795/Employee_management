@@ -1,12 +1,24 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Users, FileText, RefreshCw, CheckCircle2, ChevronRight, Settings, Plus, Filter, SortDesc, Calendar, User, AlignLeft, Search, Bell, Monitor, BookOpen, MessageSquare, AlertCircle } from 'lucide-react';
+import { Users, FileText, RefreshCw, CheckCircle2, ChevronRight, Settings, Plus, Filter, SortDesc, Calendar, User, AlignLeft, Search, Bell, Monitor, BookOpen, MessageSquare, AlertCircle, Info } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 
 export default function OnboardingPage() {
   const role = useAuthStore((state) => state.role);
+  const [toast, setToast] = useState<{show: boolean, message: string}>({show: false, message: ''});
+  
+  useEffect(() => {
+    if (toast.show) {
+      const timer = setTimeout(() => setToast({show: false, message: ''}), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast.show]);
+
+  const showToast = (message: string) => {
+    setToast({ show: true, message });
+  };
   
   // Protect route: Only HR can access
   if (role !== "HR") {
@@ -142,8 +154,8 @@ export default function OnboardingPage() {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-bold text-slate-900">Active Onboarding <span className="text-slate-500 font-medium">(45 total)</span></h3>
                 <div className="flex items-center gap-2">
-                  <button className="p-2 bg-white border border-slate-200 rounded hover:bg-slate-50 text-slate-600"><Filter className="w-4 h-4" /></button>
-                  <button className="p-2 bg-white border border-slate-200 rounded hover:bg-slate-50 text-slate-600"><SortDesc className="w-4 h-4" /></button>
+                  <button onClick={() => showToast("Filter functionality coming soon!")} className="p-2 bg-white border border-slate-200 rounded hover:bg-slate-50 text-slate-600"><Filter className="w-4 h-4" /></button>
+                  <button onClick={() => showToast("Sorting functionality coming soon!")} className="p-2 bg-white border border-slate-200 rounded hover:bg-slate-50 text-slate-600"><SortDesc className="w-4 h-4" /></button>
                 </div>
               </div>
 
@@ -174,7 +186,7 @@ export default function OnboardingPage() {
                     <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-4">
                       <div className="h-full bg-slate-900 w-[60%]"></div>
                     </div>
-                    <button className="w-full text-right text-xs font-bold text-slate-900 hover:text-slate-900 flex justify-end items-center">
+                    <button onClick={() => showToast("Employee details view coming soon!")} className="w-full text-right text-xs font-bold text-slate-900 hover:text-slate-900 flex justify-end items-center">
                       View Details <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -205,7 +217,7 @@ export default function OnboardingPage() {
                     <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-4">
                       <div className="h-full bg-slate-900 w-[80%]"></div>
                     </div>
-                    <button className="w-full text-right text-xs font-bold text-slate-900 hover:text-slate-900 flex justify-end items-center">
+                    <button onClick={() => showToast("Employee details view coming soon!")} className="w-full text-right text-xs font-bold text-slate-900 hover:text-slate-900 flex justify-end items-center">
                       View Details <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -236,7 +248,7 @@ export default function OnboardingPage() {
                     <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-4">
                       <div className="h-full bg-slate-900 w-[40%]"></div>
                     </div>
-                    <button className="w-full text-right text-xs font-bold text-slate-900 hover:text-slate-900 flex justify-end items-center">
+                    <button onClick={() => showToast("Employee details view coming soon!")} className="w-full text-right text-xs font-bold text-slate-900 hover:text-slate-900 flex justify-end items-center">
                       View Details <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -267,7 +279,7 @@ export default function OnboardingPage() {
                     <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-4">
                       <div className="h-full bg-slate-900 w-[20%]"></div>
                     </div>
-                    <button className="w-full text-right text-xs font-bold text-slate-900 hover:text-slate-900 flex justify-end items-center">
+                    <button onClick={() => showToast("Employee details view coming soon!")} className="w-full text-right text-xs font-bold text-slate-900 hover:text-slate-900 flex justify-end items-center">
                       View Details <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -310,7 +322,7 @@ export default function OnboardingPage() {
                   </div>
                 </div>
               </div>
-              <button className="w-full text-center text-xs font-bold text-slate-900 hover:text-slate-900 uppercase tracking-wider pt-2 border-t border-slate-100">
+              <button onClick={() => showToast("Full task view coming soon!")} className="w-full text-center text-xs font-bold text-slate-900 hover:text-slate-900 uppercase tracking-wider pt-2 border-t border-slate-100">
                 View All Tasks
               </button>
             </div>
@@ -381,8 +393,15 @@ export default function OnboardingPage() {
 
           </div>
         </div>
-
       </div>
+
+      {/* Custom Toast Notification */}
+      {toast.show && (
+        <div className="fixed bottom-8 right-8 bg-slate-900 text-white px-5 py-3 rounded-lg shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5 duration-300 z-50">
+          <Info className="w-4 h-4 text-blue-400" />
+          <span className="text-sm font-medium">{toast.message}</span>
+        </div>
+      )}
     </div>
   );
 }
