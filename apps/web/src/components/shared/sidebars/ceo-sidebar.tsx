@@ -50,14 +50,29 @@ const getNavGroups = (role: string) => {
     ];
   }
 
-  const mainItems = [
+  const mainItems: any[] = [
     { title: 'Dashboard', icon: LayoutDashboard, href: getDashboardPath(role) },
     { title: 'Connect', icon: MessageSquare, href: '/connect' },
-    { title: 'Attendance', icon: CalendarCheck, href: '/attendance' },
+  ];
+
+  if (role === 'HR') {
+    mainItems.push({ 
+      title: 'Attendance', 
+      icon: CalendarCheck, 
+      subItems: [
+        { title: 'Attendance Summary', href: '/attendance/summary' },
+        { title: 'My Attendance', href: '/attendance' }
+      ]
+    });
+  } else {
+    mainItems.push({ title: 'Attendance', icon: CalendarCheck, href: '/attendance' });
+  }
+
+  mainItems.push(
     { title: 'Employees', icon: Users, href: '/employees' },
     { title: 'Org Chart', icon: Network, href: '/org-chart' },
-    { title: 'Analytics', icon: BarChart3, href: '/analytics' },
-  ];
+    { title: 'Analytics', icon: BarChart3, href: '/analytics' }
+  );
 
   if (['SUPER_ADMIN', 'CEO', 'COO', 'HR', 'CHRO', 'COMPLIANCE_OFFICER', 'LEGAL'].includes(role)) {
     mainItems.push({ title: 'Compliance', icon: ShieldCheck, href: '/compliance' });
@@ -159,31 +174,63 @@ export function CeoSidebar() {
                   </div>
                 );
               }
-              const isActive = item.href ? (pathname === item.href || pathname.startsWith(item.href + '/')) : false;
+              const isActive = item.href ? (pathname === item.href || pathname.startsWith(item.href + '/')) : (item.subItems?.some(s => pathname === s.href) || false);
               return (
-                <Link
-                  key={item.title}
-                  href={item.href || '#'}
-                  onClick={onNavigate}
-                  title={collapsed ? item.title : undefined}
-                  className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    collapsed ? 'justify-center' : ''
-                  } ${
-                    isActive
-                      ? 'bg-slate-100 text-slate-900 font-semibold'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <item.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-slate-900' : 'text-slate-400'}`} />
-                    {!collapsed && item.title}
-                  </div>
-                  {!collapsed && item.badge && (
-                    <span className="w-5 h-5 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">
-                      {item.badge}
-                    </span>
+                <div key={item.title} className="space-y-1">
+                  {item.href ? (
+                    <Link
+                      href={item.href}
+                      onClick={onNavigate}
+                      title={collapsed ? item.title : undefined}
+                      className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                        collapsed ? 'justify-center' : ''
+                      } ${
+                        isActive
+                          ? 'bg-slate-100 text-slate-900 font-semibold'
+                          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <item.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-slate-900' : 'text-slate-400'}`} />
+                        {!collapsed && item.title}
+                      </div>
+                      {!collapsed && item.badge && (
+                        <span className="w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] font-bold">
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  ) : (
+                    <div className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium ${collapsed ? 'justify-center' : ''} ${isActive ? 'text-slate-900 font-semibold' : 'text-slate-700'}`}>
+                      <div className="flex items-center gap-3">
+                        <item.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-slate-900' : 'text-slate-400'}`} />
+                        {!collapsed && item.title}
+                      </div>
+                    </div>
                   )}
-                </Link>
+
+                  {!collapsed && item.subItems && (
+                    <div className="flex flex-col gap-1 pl-10 mt-1">
+                      {item.subItems.map((sub: any) => {
+                        const isSubActive = pathname === sub.href;
+                        return (
+                          <Link 
+                            key={sub.title} 
+                            href={sub.href} 
+                            onClick={onNavigate}
+                            className={`block px-3 py-2 text-[13px] rounded-lg transition-colors ${
+                              isSubActive 
+                              ? 'bg-slate-100 text-slate-900 font-semibold' 
+                              : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                            }`}
+                          >
+                            {sub.title}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
