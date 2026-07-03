@@ -10,46 +10,48 @@ export class KnowledgeRepository {
   async create(data: CreateKnowledgeDocDto & { authorId: string }) {
     const slug = data.slug || this.generateSlug(data.title);
 
-    // Check if slug already exists
-    const existing = await this.prisma.knowledgeDoc.findUnique({
-      where: { slug },
-    });
-    if (existing) {
-      throw new ConflictException(`A document with slug "${slug}" already exists`);
-    }
+    return this.prisma.$transaction(async (tx) => {
+      // Check if slug already exists
+      const existing = await tx.knowledgeDoc.findUnique({
+        where: { slug },
+      });
+      if (existing) {
+        throw new ConflictException(`A document with slug "${slug}" already exists`);
+      }
 
-    const doc = await this.prisma.knowledgeDoc.create({
-      data: {
-        title: data.title,
-        content: data.content,
-        category: data.category,
-        isPublished: data.isPublished ?? false,
-        publishedAt: data.isPublished ? new Date() : null,
-        slug,
-        version: data.version || "1.0",
-        authorId: data.authorId,
-      },
-    });
+      const doc = await tx.knowledgeDoc.create({
+        data: {
+          title: data.title,
+          content: data.content,
+          category: data.category,
+          isPublished: data.isPublished ?? false,
+          publishedAt: data.isPublished ? new Date() : null,
+          slug,
+          version: data.version || "1.0",
+          authorId: data.authorId,
+        },
+      });
 
-    // Update searchVector using execution raw query
-    await this.prisma.$executeRaw`
-      UPDATE knowledge_docs
-      SET "searchVector" = to_tsvector('english', coalesce(title, '') || ' ' || coalesce(content, ''))
-      WHERE id = ${doc.id}
-    `;
+      // Update searchVector using execution raw query
+      await tx.$executeRaw`
+        UPDATE knowledge_docs
+        SET "searchVector" = to_tsvector('english', coalesce(title, '') || ' ' || coalesce(content, ''))
+        WHERE id = ${doc.id}
+      `;
 
-    return this.prisma.knowledgeDoc.findUnique({
-      where: { id: doc.id },
-      include: {
-        author: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            officialEmail: true,
+      return tx.knowledgeDoc.findUnique({
+        where: { id: doc.id },
+        include: {
+          author: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              officialEmail: true,
+            },
           },
         },
-      },
+      });
     });
   }
 
@@ -86,65 +88,70 @@ export class KnowledgeRepository {
   }
 
   async update(id: string, data: UpdateKnowledgeDocDto) {
-    const existing = await this.findById(id);
-    if (!existing) {
-      throw new NotFoundException("Knowledge document not found");
-    }
-
-    let slug = data.slug;
-    if (data.title && !slug && data.title !== existing.title) {
-      slug = this.generateSlug(data.title);
-    }
-
-    if (slug && slug !== existing.slug) {
-      const slugExists = await this.prisma.knowledgeDoc.findUnique({
-        where: { slug },
+    return this.prisma.$transaction(async (tx) => {
+      // Find document using transaction client to ensure consistency
+      const existing = await tx.knowledgeDoc.findUnique({
+        where: { id },
       });
-      if (slugExists) {
-        throw new ConflictException(`A document with slug "${slug}" already exists`);
+      if (!existing) {
+        throw new NotFoundException("Knowledge document not found");
       }
-    }
 
-    const publishedAt = data.isPublished === true && !existing.isPublished 
-      ? new Date() 
-      : data.isPublished === false 
-        ? null 
-        : existing.publishedAt;
+      let slug = data.slug;
+      if (data.title && !slug && data.title !== existing.title) {
+        slug = this.generateSlug(data.title);
+      }
 
-    const doc = await this.prisma.knowledgeDoc.update({
-      where: { id },
-      data: {
-        title: data.title ?? existing.title,
-        content: data.content ?? existing.content,
-        category: data.category ?? existing.category,
-        isPublished: data.isPublished ?? existing.isPublished,
-        version: data.version ?? existing.version,
-        slug: slug ?? existing.slug,
-        publishedAt,
-      },
-    });
+      if (slug && slug !== existing.slug) {
+        const slugExists = await tx.knowledgeDoc.findUnique({
+          where: { slug },
+        });
+        if (slugExists) {
+          throw new ConflictException(`A document with slug "${slug}" already exists`);
+        }
+      }
 
-    // Update searchVector if title or content changed
-    if (data.title || data.content) {
-      await this.prisma.$executeRaw`
-        UPDATE knowledge_docs
-        SET "searchVector" = to_tsvector('english', coalesce(title, '') || ' ' || coalesce(content, ''))
-        WHERE id = ${id}
-      `;
-    }
+      const publishedAt = data.isPublished === true && !existing.isPublished 
+        ? new Date() 
+        : data.isPublished === false 
+          ? null 
+          : existing.publishedAt;
 
-    return this.prisma.knowledgeDoc.findUnique({
-      where: { id },
-      include: {
-        author: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            officialEmail: true,
+      const doc = await tx.knowledgeDoc.update({
+        where: { id },
+        data: {
+          title: data.title ?? existing.title,
+          content: data.content ?? existing.content,
+          category: data.category ?? existing.category,
+          isPublished: data.isPublished ?? existing.isPublished,
+          version: data.version ?? existing.version,
+          slug: slug ?? existing.slug,
+          publishedAt,
+        },
+      });
+
+      // Update searchVector if title or content changed
+      if (data.title || data.content) {
+        await tx.$executeRaw`
+          UPDATE knowledge_docs
+          SET "searchVector" = to_tsvector('english', coalesce(title, '') || ' ' || coalesce(content, ''))
+          WHERE id = ${id}
+        `;
+      }
+
+      return tx.knowledgeDoc.findUnique({
+        where: { id },
+        include: {
+          author: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              officialEmail: true,
+            },
           },
         },
-      },
+      });
     });
   }
 
