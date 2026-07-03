@@ -19,9 +19,11 @@ export class CreateKnowledgeDocDto {
 
   @IsString()
   @IsOptional()
-  version?: string;
+  slug?: string;
 
   @IsString()
   @IsOptional()
-  slug?: string;
+  version?: string;
+
+
 }

@@ -25,7 +25,7 @@ import { AuditInterceptor } from "../../common/interceptors/audit.interceptor";
 @UseGuards(JwtAuthGuard, RbacGuard)
 @UseInterceptors(AuditInterceptor)
 export class KnowledgeController {
-  constructor(private readonly knowledgeService: KnowledgeService) {}
+  constructor(private readonly knowledgeService: KnowledgeService) { }
 
   @Post()
   @Permissions(Permission.READ_OWN_PROFILE)
