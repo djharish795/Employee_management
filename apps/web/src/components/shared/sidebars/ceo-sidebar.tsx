@@ -176,7 +176,7 @@ export function CeoSidebar() {
                   </div>
                 );
               }
-              const isActive = item.href ? (pathname === item.href || pathname.startsWith(item.href + '/')) : (item.subItems?.some(s => pathname === s.href) || false);
+              const isActive = item.href ? (pathname === item.href || pathname.startsWith(item.href + '/')) : (item.subItems?.some((s: any) => pathname === s.href) || false);
               return (
                 <div key={item.title} className="space-y-1">
                   {item.href ? (
