@@ -17,6 +17,7 @@
     "db:seed": "pnpm --filter @naprocs/database seed"
   },
   "devDependencies": {
+    "cross-env": "^10.1.0",
     "turbo": "^2.3.3",
     "typescript": "^5.4.5"
   }

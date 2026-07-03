@@ -3,51 +3,28 @@ import { User, Building2, Users, HeartPulse, Clock } from "lucide-react";
 
 interface QuickContactProps {
   onSelectContact: (id: string) => void;
+  employees: any[];
 }
 
-export function QuickContacts({ onSelectContact }: QuickContactProps) {
-  const contacts = [
-    {
-      id: "1",
-      role: "My manager",
-      name: "Anita Menon",
-      icon: Building2,
-      iconColor: "text-blue-600",
-      iconBg: "bg-blue-100",
-      status: "available",
-      nextAvailable: "Now",
-    },
-    {
-      id: "2",
-      role: "Department head",
-      name: "Lokesh, CTO",
-      icon: User,
-      iconColor: "text-indigo-600",
-      iconBg: "bg-indigo-100",
-      status: "busy",
-      nextAvailable: "2:00 PM",
-    },
-    {
-      id: "3",
-      role: "My team lead",
-      name: "Arjun Thomas",
-      icon: Users,
-      iconColor: "text-teal-600",
-      iconBg: "bg-teal-100",
-      status: "available",
-      nextAvailable: "Now",
-    },
-    {
-      id: "4",
-      role: "HR",
-      name: "Tejesh Kumar",
-      icon: HeartPulse,
-      iconColor: "text-rose-600",
-      iconBg: "bg-rose-100",
-      status: "away",
-      nextAvailable: "Tomorrow",
-    },
-  ];
+export function QuickContacts({ onSelectContact, employees }: QuickContactProps) {
+  // If no employees loaded yet, show a skeleton or nothing
+  if (!employees || employees.length === 0) return null;
+
+  // Use the first 4 employees, mapping them to the UI icons
+  const icons = [Building2, User, Users, HeartPulse];
+  const iconColors = ["text-blue-600", "text-indigo-600", "text-teal-600", "text-rose-600"];
+  const iconBgs = ["bg-blue-100", "bg-indigo-100", "bg-teal-100", "bg-rose-100"];
+
+  const contacts = employees.slice(0, 4).map((emp, idx) => ({
+    id: emp.id,
+    role: emp.designation?.title || "Employee",
+    name: `${emp.firstName || ""} ${emp.lastName || ""}`.trim() || "Colleague",
+    icon: icons[idx % icons.length],
+    iconColor: iconColors[idx % iconColors.length],
+    iconBg: iconBgs[idx % iconBgs.length],
+    status: "available", // Mocking availability for now since there's no backend for this yet
+    nextAvailable: "Now",
+  }));
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
@@ -63,8 +40,8 @@ export function QuickContacts({ onSelectContact }: QuickContactProps) {
               <Icon className="w-5 h-5" />
             </div>
             
-            <h3 className="text-sm font-bold text-slate-900">{contact.role}</h3>
-            <p className="text-xs font-medium text-slate-500 mt-1">{contact.name}</p>
+            <h3 className="text-sm font-bold text-slate-900 line-clamp-1">{contact.role}</h3>
+            <p className="text-xs font-medium text-slate-500 mt-1 line-clamp-1">{contact.name}</p>
 
             {/* Availability Indicator */}
             <div className="absolute top-4 right-4 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">

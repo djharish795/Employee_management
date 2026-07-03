@@ -112,6 +112,10 @@ model Employee {
   projectAssignments         ProjectAssignment[]
   wfhRequestsMade            WorkFromHomeRequest[] @relation("WfhRequester")
   wfhRequestsApproved        WorkFromHomeRequest[] @relation("WfhApprover")
+  meetRequestsMade           MeetRequest[]         @relation("MeetRequester")
+  meetRequestsAssigned       MeetRequest[]         @relation("MeetAssignee")
+  meetParticipations         MeetParticipant[]
+  connectSettings            ConnectSettings?
 
   @@map("employees")
 }
@@ -167,6 +171,7 @@ model Department {
   jobs               Job[]
   transfersFrom      TransferRequest[] @relation("TransferFrom")
   transfersTo        TransferRequest[] @relation("TransferTo")
+  meetRequests       MeetRequest[]     @relation("DepartmentMeetRequests")
 
   @@map("departments")
 }
@@ -371,6 +376,58 @@ model Workflow {
   instances WorkflowInstance[]
 
   @@map("workflows")
+}
+
+enum MeetStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  RESCHEDULED
+  CANCELLED
+}
+
+enum MeetType {
+  ONE_ON_ONE
+  DEPARTMENT
+}
+
+model MeetRequest {
+  id              String         @id @default(cuid())
+  title           String
+  description     String?
+  startTime       DateTime
+  endTime         DateTime
+  status          MeetStatus     @default(PENDING)
+  meetLink        String?
+  eventId         String?
+  type            MeetType       @default(ONE_ON_ONE)
+  requesterId     String
+  assigneeId      String?
+  departmentId    String?
+  agenda          Json?
+  actionItems     Json?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  requester       Employee       @relation("MeetRequester", fields: [requesterId], references: [id])
+  assignee        Employee?      @relation("MeetAssignee", fields: [assigneeId], references: [id])
+  department      Department?    @relation("DepartmentMeetRequests", fields: [departmentId], references: [id])
+  participants    MeetParticipant[]
+
+  @@map("meet_requests")
+}
+
+model MeetParticipant {
+  id              String         @id @default(cuid())
+  meetRequestId   String
+  employeeId      String
+  hasAccepted     Boolean        @default(false)
+  
+  meetRequest     MeetRequest    @relation(fields: [meetRequestId], references: [id], onDelete: Cascade)
+  employee        Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([meetRequestId, employeeId])
+  @@map("meet_participants")
 }
 
 model WorkflowInstance {
@@ -958,6 +1015,25 @@ model CompanyHoliday {
   updatedAt   DateTime @updatedAt
 
   @@map("company_holidays")
+}
+
+model ConnectSettings {
+  id                      String    @id @default(cuid())
+  employeeId              String    @unique
+  googleCalendarConnected Boolean   @default(false)
+  workingHoursStart       String    @default("09:00")
+  workingHoursEnd         String    @default("18:00")
+  timezone                String    @default("Asia/Kolkata")
+  bufferMinutes           Int       @default(15)
+  minNoticeHours          Int       @default(2)
+  emailNotifications      Boolean   @default(true)
+  systemNotifications     Boolean   @default(true)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  employee                Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("connect_settings")
 }
 
 enum UserRole {

@@ -18,6 +18,7 @@ import { HolidaysModule } from "./modules/holidays/holidays.module";
 import { AssetsModule } from "./modules/assets/assets.module";
 import { KnowledgeModule } from "./modules/knowledge/knowledge.module";
 import { OnboardingModule } from "./modules/onboarding/onboarding.module";
+import { ConnectModule } from "./modules/connect/connect.module";
 
 
 @Module({
@@ -44,6 +45,7 @@ import { OnboardingModule } from "./modules/onboarding/onboarding.module";
     LeavesModule,
     KnowledgeModule,
     OnboardingModule,
+    ConnectModule,
   ],
 })
 export class AppModule { }

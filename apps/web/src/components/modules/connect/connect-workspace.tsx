@@ -57,6 +57,8 @@ export function ConnectWorkspace() {
                   const role = e.designation?.title?.toLowerCase() || "";
                   const dept = e.department?.name?.toLowerCase() || "";
                   const query = searchQuery.toLowerCase();
+                  const isCurrentUser = typeof window !== 'undefined' && localStorage.getItem('employeeId') === e.id;
+                  if (isCurrentUser) return false;
                   return fullName.includes(query) || role.includes(query) || dept.includes(query);
                 })
                 .map((emp) => (
@@ -75,6 +77,8 @@ export function ConnectWorkspace() {
                   const role = e.designation?.title?.toLowerCase() || "";
                   const dept = e.department?.name?.toLowerCase() || "";
                   const query = searchQuery.toLowerCase();
+                  const isCurrentUser = typeof window !== 'undefined' && localStorage.getItem('employeeId') === e.id;
+                  if (isCurrentUser) return false;
                   return fullName.includes(query) || role.includes(query) || dept.includes(query);
                 }).length === 0 && (
                 <div className="px-4 py-4 text-center text-sm font-medium text-slate-500">
@@ -88,7 +92,7 @@ export function ConnectWorkspace() {
 
       {/* Quick Access Contacts */}
       <div className="w-full">
-        <QuickContacts onSelectContact={(id) => router.push(`/connect/${id}`)} />
+        <QuickContacts onSelectContact={(id) => router.push(`/connect/${id}`)} employees={employees} />
       </div>
 
       {/* Lower Content Area */}
