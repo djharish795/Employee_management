@@ -104,7 +104,12 @@ export function CeoSidebar() {
   const pathname  = usePathname();
   const router    = useRouter();
   const clearSession = useAuthStore((state) => state.clearSession);
-  const role = useAuthStore((state) => state.role) || 'EMPLOYEE';
+  const storeRole = useAuthStore((state) => state.role);
+  const [role, setRole] = useState(storeRole || 'EMPLOYEE');
+
+  React.useEffect(() => {
+    if (storeRole) setRole(storeRole);
+  }, [storeRole]);
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed]   = useState(false);

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Download, MoreVertical, Check, X as CloseIcon, Lock } from "lucide-react";
 import Link from "next/link";
 import {
@@ -15,6 +15,7 @@ import { Loader2 } from "lucide-react";
 import { PersonalAttendanceWidget } from "@/components/shared/personal-attendance-widget";
 
 export default function HrDashboardPage() {
+  const [refreshKey, setRefreshKey] = useState(0);
   const queryClient = useQueryClient();
   const today = new Date();
   const dateString = today.toLocaleDateString("en-US", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -41,6 +42,38 @@ export default function HrDashboardPage() {
     } catch (e) { console.error(e); }
   };
 
+  // TEMPORARY MOCK DATA TO TEST WFH CHART SECTION
+  if (data && data.attendance) {
+    data.attendance.wfh = 3;
+    data.attendance.absent = data.attendance.total - data.attendance.present - 3;
+  }
+
+  const attendanceTotal = data?.attendance?.total || 1;
+  const presentPct = data ? Math.round((data.attendance.present / attendanceTotal) * 100) || 0 : 0;
+  const wfhPct = data ? Math.round((data.attendance.wfh / attendanceTotal) * 100) || 0 : 0;
+  const absentPct = data ? Math.round((data.attendance.absent / attendanceTotal) * 100) || 0 : 0;
+
+  const [animPresent, setAnimPresent] = useState(0);
+  const [animWfh, setAnimWfh] = useState(0);
+  const [animAbsent, setAnimAbsent] = useState(0);
+  const [isResetting, setIsResetting] = useState(false);
+
+  useEffect(() => {
+    if (!data) return;
+    setIsResetting(true);
+    setAnimPresent(0);
+    setAnimWfh(0);
+    setAnimAbsent(0);
+    
+    const timer = setTimeout(() => {
+      setIsResetting(false);
+      setAnimPresent(presentPct);
+      setAnimWfh(wfhPct);
+      setAnimAbsent(absentPct);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [refreshKey, data, presentPct, wfhPct, absentPct]);
+
   if (isLoading || !data) {
     return (
       <div className="flex-1 w-full p-6 md:p-8 bg-slate-50 min-h-screen flex items-center justify-center">
@@ -49,10 +82,7 @@ export default function HrDashboardPage() {
     );
   }
 
-  const attendanceTotal = data.attendance.total || 1;
-  const presentPct = Math.round((data.attendance.present / attendanceTotal) * 100) || 0;
-  const wfhPct = Math.round((data.attendance.wfh / attendanceTotal) * 100) || 0;
-  const absentPct = Math.round((data.attendance.absent / attendanceTotal) * 100) || 0;
+
 
   return (
     <div className="flex-1 w-full p-6 md:p-8 bg-slate-50 min-h-screen font-sans">
@@ -144,21 +174,24 @@ export default function HrDashboardPage() {
                   a.click();
                 }}>Export Data</DropdownMenuItem>
                 <DropdownMenuItem asChild><Link href="/attendance">View Details</Link></DropdownMenuItem>
-                <DropdownMenuItem onClick={() => queryClient.invalidateQueries({ queryKey: ['hr-overview'] })}>Refresh</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  setRefreshKey(prev => prev + 1);
+                  queryClient.invalidateQueries({ queryKey: ['hr-overview'] });
+                }}>Refresh</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
           <div className="flex-1 flex flex-col items-center justify-center">
             {/* SVG Donut Chart */}
             <div className="relative w-40 h-40 flex items-center justify-center mb-6">
-              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                 <circle cx="50" cy="50" r="40" fill="transparent" stroke="#f1f5f9" strokeWidth="12" />
                 {/* Absent */}
-                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#e2e8f0" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset={251.2 - (251.2 * absentPct) / 100} className="transition-all duration-1000 ease-in-out" />
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#e2e8f0" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset={251.2 - (251.2 * animAbsent) / 100} className={`${isResetting ? 'transition-none' : 'transition-all duration-[2500ms] ease-out'}`} />
                 {/* WFH */}
-                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#2563eb" strokeWidth="12" strokeDashoffset={251.2 - (251.2 * wfhPct) / 100} strokeDasharray="251.2" style={{ strokeDashoffset: 251.2 - (251.2 * wfhPct) / 100, strokeDasharray: "251.2 251.2", transformOrigin: "center", transform: `rotate(${(absentPct/100) * 360}deg)` }} className="transition-all duration-1000 ease-in-out" />
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#2563eb" strokeWidth="12" strokeDashoffset={251.2 - (251.2 * animWfh) / 100} strokeDasharray="251.2" style={{ strokeDashoffset: 251.2 - (251.2 * animWfh) / 100, strokeDasharray: "251.2 251.2", transformOrigin: "center", transform: `rotate(${(absentPct/100) * 360}deg)` }} className={`${isResetting ? 'transition-none' : 'transition-all duration-[2500ms] ease-out'}`} />
                 {/* Present */}
-                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#16a34a" strokeWidth="12" strokeDasharray="251.2" style={{ strokeDashoffset: 251.2 - (251.2 * presentPct) / 100, strokeDasharray: "251.2 251.2", transformOrigin: "center", transform: `rotate(${((absentPct+wfhPct)/100) * 360}deg)` }} className="transition-all duration-1000 ease-in-out" />
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#16a34a" strokeWidth="12" strokeDasharray="251.2" style={{ strokeDashoffset: 251.2 - (251.2 * animPresent) / 100, strokeDasharray: "251.2 251.2", transformOrigin: "center", transform: `rotate(${((absentPct+wfhPct)/100) * 360}deg)` }} className={`${isResetting ? 'transition-none' : 'transition-all duration-[2500ms] ease-out'}`} />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-3xl font-extrabold text-slate-900">{data.attendance.total}</span>

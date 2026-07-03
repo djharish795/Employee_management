@@ -42,4 +42,15 @@ export class AttendanceController {
   async getMyKpis(@CurrentUser() user: any) {
     return this.attendanceService.getMyKpis(user.employeeId);
   }
+
+  @Get("org-reports")
+  @Permissions(Permission.READ_EMPLOYEES)
+  async getOrgReports() {
+    try {
+      return await this.attendanceService.getOrgReports();
+    } catch (e: any) {
+      const { BadRequestException } = require('@nestjs/common');
+      throw new BadRequestException(e.message + "\n" + e.stack);
+    }
+  }
 }

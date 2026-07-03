@@ -2,6 +2,7 @@ import { Injectable, BadRequestException } from "@nestjs/common";
 import { RedisService } from "../../redis/redis.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import { PunchDto } from "./dto/punch.dto";
+import { AttendanceStatus } from "@naprocs/database";
 
 @Injectable()
 export class AttendanceService {
@@ -360,6 +361,131 @@ export class AttendanceService {
       thisWeekHours: Number(thisWeekHours.toFixed(1)),
       thisMonthDays: daysPresent,
       weeklyTrends
+    };
+  }
+
+  async getOrgReports() {
+    const today = this.getTodayUTC();
+    const startOfMonth = new Date(today);
+    startOfMonth.setUTCDate(1);
+
+    // Get all records for this month
+    const monthlyRecords = await this.prisma.attendanceRecord.findMany({
+      where: {
+        date: { gte: startOfMonth, lte: today },
+      },
+      include: {
+        employee: {
+          include: { department: true }
+        }
+      }
+    });
+
+    let totalHours = 0;
+    let lateCount = 0;
+    let presentCount = 0;
+    const activeEmployees = new Set<string>();
+    
+    // Department stats
+    const deptStats: Record<string, { present: number, total: number, fte: Set<string> }> = {};
+
+    monthlyRecords.forEach(record => {
+      activeEmployees.add(record.employeeId);
+      
+      const deptName = record.employee?.department?.name || "Others";
+      if (!deptStats[deptName]) {
+        deptStats[deptName] = { present: 0, total: 0, fte: new Set() };
+      }
+      deptStats[deptName].fte.add(record.employeeId);
+      deptStats[deptName].total++;
+
+      if (record.workHours) {
+        totalHours += Number(record.workHours);
+      }
+      const statusStr = record.status as string;
+      const checkInTime = record.checkInTime;
+      let isLate = false;
+      if (checkInTime) {
+        const h = checkInTime.getUTCHours();
+        const m = checkInTime.getUTCMinutes();
+        // Assuming standard Indian shift 10:00 AM IST (04:30 UTC). Grace till 10:15 AM.
+        if (h > 4 || (h === 4 && m > 45)) isLate = true;
+      }
+
+      if (isLate) {
+        lateCount++;
+        presentCount++;
+        deptStats[deptName].present++;
+      } else if (["PRESENT", "WFH", "HALF_DAY", "EARLY_CHECKOUT"].includes(statusStr)) {
+        presentCount += (statusStr === "HALF_DAY" || statusStr === "EARLY_CHECKOUT") ? 0.5 : 1;
+        deptStats[deptName].present += (statusStr === "HALF_DAY" || statusStr === "EARLY_CHECKOUT") ? 0.5 : 1;
+      }
+    });
+
+    const totalRecords = monthlyRecords.length || 1;
+    const avgAttendance = Number(((presentCount / totalRecords) * 100).toFixed(1));
+    const lateRate = Number(((lateCount / totalRecords) * 100).toFixed(1));
+    const avgHours = presentCount > 0 ? Number((totalHours / presentCount).toFixed(1)) : 0;
+    const activeFTE = activeEmployees.size;
+
+    const departmentRates = Object.entries(deptStats).map(([name, stats]) => ({
+      name,
+      percent: stats.total > 0 ? Number(((stats.present / stats.total) * 100).toFixed(1)) : 0,
+      count: stats.fte.size
+    })).sort((a, b) => b.percent - a.percent);
+
+    // Late Trends (last 6 months)
+    const sixMonthsAgo = new Date(today);
+    sixMonthsAgo.setUTCMonth(sixMonthsAgo.getUTCMonth() - 5);
+    sixMonthsAgo.setUTCDate(1);
+
+    const sixMonthRecords = await this.prisma.attendanceRecord.findMany({
+      where: {
+        date: { gte: sixMonthsAgo, lte: today },
+      },
+      select: { date: true, checkInTime: true }
+    });
+
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const lateTrendsMap: Record<string, number> = {};
+    
+    // Initialize last 6 months with 0
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(sixMonthsAgo);
+      d.setUTCMonth(d.getUTCMonth() + i);
+      lateTrendsMap[monthNames[d.getUTCMonth()]] = 0;
+    }
+
+    sixMonthRecords.forEach(record => {
+      let isLate = false;
+      if (record.checkInTime) {
+        const h = record.checkInTime.getUTCHours();
+        const m = record.checkInTime.getUTCMinutes();
+        if (h > 4 || (h === 4 && m > 45)) isLate = true;
+      }
+
+      if (isLate) {
+        const month = monthNames[record.date.getUTCMonth()];
+        if (lateTrendsMap[month] !== undefined) {
+          lateTrendsMap[month]++;
+        }
+      }
+    });
+
+    const maxLates = Math.max(...Object.values(lateTrendsMap), 1);
+    const lateTrends = Object.entries(lateTrendsMap).map(([label, count]) => ({
+      label,
+      count,
+      percent: Math.round((count / maxLates) * 100)
+    }));
+
+    return {
+      avgAttendance,
+      lateRate,
+      avgHours: `${avgHours}h`,
+      activeFTE,
+      departmentRates,
+      lateTrends
     };
   }
 }

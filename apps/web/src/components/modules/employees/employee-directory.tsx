@@ -37,6 +37,7 @@ export default function EmployeeDirectory() {
     type: EmployeeActionType | null;
     employee: Employee | null;
   }>({ isOpen: false, type: null, employee: null });
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const searchParams = useSearchParams();
   const initialDept = searchParams.get("department") || "";
@@ -286,10 +287,52 @@ export default function EmployeeDirectory() {
               />
             </div>
             {/* Filter Button */}
-            <button className="flex items-center justify-center h-10 px-4 gap-2 bg-white border border-slate-300 text-slate-700 font-bold text-sm rounded-lg hover:bg-slate-50 shadow-sm transition-colors">
-              <SlidersHorizontal className="w-4 h-4" />
-              Filter
-            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                className="flex items-center justify-center h-10 px-4 gap-2 bg-white border border-slate-300 text-slate-700 font-bold text-sm rounded-lg hover:bg-slate-50 shadow-sm transition-colors"
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+                Filter
+              </button>
+
+              {isFilterOpen && (
+                <div className="absolute right-0 top-12 w-64 bg-white border border-slate-200 rounded-xl shadow-lg p-4 z-50 flex flex-col gap-4">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-bold text-slate-800 text-sm">Filters</span>
+                    <button onClick={() => setIsFilterOpen(false)} className="text-slate-400 hover:text-slate-600"><X className="w-4 h-4"/></button>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-500 uppercase">Department</label>
+                    <select 
+                      value={filters.department}
+                      onChange={(e) => setFilters(prev => ({ ...prev, department: e.target.value }))}
+                      className="w-full h-9 rounded-md border border-slate-300 text-sm px-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-900/20"
+                    >
+                      <option value="">All Departments</option>
+                      <option value="Engineering">Engineering</option>
+                      <option value="Human Resources">Human Resources</option>
+                      <option value="Operations">Operations</option>
+                      <option value="Finance">Finance</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-500 uppercase">Status</label>
+                    <select 
+                      value={filters.status}
+                      onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                      className="w-full h-9 rounded-md border border-slate-300 text-sm px-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-900/20"
+                    >
+                      <option value="">All Statuses</option>
+                      <option value="ACTIVE">Active</option>
+                      <option value="PROBATION">Probation</option>
+                      <option value="NOTICE_PERIOD">Notice Period</option>
+                      <option value="EXITED">Exited</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
             {/* Add Employee */}
             <Link href="/employees/add" className="flex items-center justify-center h-10 px-4 gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-lg shadow-sm transition-colors whitespace-nowrap">
               <Plus className="w-4 h-4" />
@@ -298,20 +341,26 @@ export default function EmployeeDirectory() {
           </div>
         </div>
 
-        {/* Active Filters Row (Hardcoded mock values as per screenshot for demonstration, or dynamic) */}
-        <div className="flex items-center gap-3 mt-[-10px]">
-          <div className="flex items-center bg-white border border-slate-200 rounded-full px-3 py-1 text-xs font-bold text-slate-700 shadow-sm">
-            Department: Engineering
-            <button className="ml-2 text-slate-400 hover:text-slate-600"><X className="w-3 h-3" /></button>
+        {/* Active Filters Row */}
+        {hasActiveFilters && (
+          <div className="flex items-center gap-3 mt-[-10px]">
+            {filters.department && (
+              <div className="flex items-center bg-white border border-slate-200 rounded-full px-3 py-1 text-xs font-bold text-slate-700 shadow-sm">
+                Department: {filters.department}
+                <button onClick={() => setFilters(prev => ({ ...prev, department: "" }))} className="ml-2 text-slate-400 hover:text-slate-600"><X className="w-3 h-3" /></button>
+              </div>
+            )}
+            {filters.status && (
+              <div className="flex items-center bg-white border border-slate-200 rounded-full px-3 py-1 text-xs font-bold text-slate-700 shadow-sm">
+                Status: {filters.status.charAt(0).toUpperCase() + filters.status.slice(1).toLowerCase().replace('_', ' ')}
+                <button onClick={() => setFilters(prev => ({ ...prev, status: "" }))} className="ml-2 text-slate-400 hover:text-slate-600"><X className="w-3 h-3" /></button>
+              </div>
+            )}
+            <button onClick={handleClearFilters} className="text-blue-600 text-xs font-bold hover:underline ml-2">
+              Clear all
+            </button>
           </div>
-          <div className="flex items-center bg-white border border-slate-200 rounded-full px-3 py-1 text-xs font-bold text-slate-700 shadow-sm">
-            Status: Active
-            <button className="ml-2 text-slate-400 hover:text-slate-600"><X className="w-3 h-3" /></button>
-          </div>
-          <button onClick={handleClearFilters} className="text-blue-600 text-xs font-bold hover:underline ml-2">
-            Clear all
-          </button>
-        </div>
+        )}
 
         {/* Table Container */}
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">

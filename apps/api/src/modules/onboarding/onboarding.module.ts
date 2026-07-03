@@ -7,4 +7,4 @@ import { OnboardingService } from './onboarding.service';
   providers: [OnboardingService],
   exports: [OnboardingService],
 })
-export class OnboardingModule {}
+export class OnboardingModule { }

@@ -32,3 +32,20 @@ export interface AttendanceKPIs {
   thisMonthDays?: number;
   weeklyTrends?: Array<{ date: string; hours: number }>;
 }
+
+export interface OrgReportsResponse {
+  avgAttendance: number;
+  lateRate: number;
+  avgHours: string;
+  activeFTE: number;
+  departmentRates: Array<{
+    name: string;
+    percent: number;
+    count: number;
+  }>;
+  lateTrends: Array<{
+    label: string;
+    count: number;
+    percent: number;
+  }>;
+}
