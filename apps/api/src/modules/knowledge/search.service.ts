@@ -4,7 +4,7 @@ import { KnowledgeCategory, Prisma } from "@naprocs/database";
 
 @Injectable()
 export class SearchService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async search(q?: string, category?: KnowledgeCategory, isPublished?: boolean) {
     if (!q) {
@@ -35,7 +35,9 @@ export class SearchService {
     }
 
     const queryTerm = `%${q}%`;
-    
+    const dbCategory = category ?? null;
+    const dbIsPublished = isPublished ?? null;
+
     // We use safe binding for categories and publication state checking in raw postgres query.
     // If the category is not specified, it binds to null, and the condition evaluates to true.
     const results: any[] = await this.prisma.$queryRaw`
@@ -49,8 +51,8 @@ export class SearchService {
         OR d.title ILIKE ${queryTerm}
         OR d.content ILIKE ${queryTerm}
       )
-      AND (${category || null}::text IS NULL OR d.category::text = ${category})
-      AND (${isPublished === undefined ? null : isPublished}::boolean IS NULL OR d."isPublished" = ${isPublished})
+      AND (${dbCategory}::text IS NULL OR d.category::text = ${dbCategory})
+      AND (${dbIsPublished}::boolean IS NULL OR d."isPublished" = ${dbIsPublished})
       ORDER BY rank DESC, d."updatedAt" DESC
     `;
 
