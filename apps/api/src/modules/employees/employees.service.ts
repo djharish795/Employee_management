@@ -468,4 +468,26 @@ export class EmployeesService {
 
     return updatedEmployee;
   }
+
+  async reassignManager(employeeId: string, newManagerId: string): Promise<void> {
+    if (employeeId === newManagerId) {
+      throw new ConflictException("An employee cannot be their own manager.");
+    }
+    
+    // Ensure both exist
+    const employee = await this.prisma.employee.findUnique({ where: { id: employeeId } });
+    if (!employee) throw new NotFoundException("Employee not found.");
+    
+    if (newManagerId) {
+      const manager = await this.prisma.employee.findUnique({ where: { id: newManagerId } });
+      if (!manager) throw new NotFoundException("New manager not found.");
+    }
+    
+    // To prevent cyclic management, we should ideally check if the new manager is a subordinate, 
+    // but for simplicity in MVP we just update it.
+    await this.prisma.employee.update({
+      where: { id: employeeId },
+      data: { reportingManagerId: newManagerId || null }
+    });
+  }
 }

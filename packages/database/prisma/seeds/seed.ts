@@ -1,4 +1,6 @@
 import { PrismaClient, WorkflowType } from '@prisma/client';
+import { seedKnowledge } from './seed-knowledge';
+import { seedWorkflowsExtra } from './seed-workflows';
 
 const prisma = new PrismaClient();
 
@@ -140,6 +142,12 @@ async function main() {
     });
   }
   console.log('App Settings seeded.');
+
+  // 6. Knowledge Base
+  await seedKnowledge(prisma);
+
+  // 7. Workflow Instances for Kanban
+  await seedWorkflowsExtra(prisma);
 
   console.log('Seed completed successfully.');
 }

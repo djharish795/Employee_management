@@ -4,8 +4,9 @@ import { ZoomService } from "./zoom.service";
 import { EmailService } from "../notifications/email.service";
 import { CreateMeetRequestDto } from "./dto/create-meet-request.dto";
 import { RescheduleMeetDto } from "./dto/reschedule-meet.dto";
-import { MeetStatus, MeetType } from "@naprocs/database";
+import { MeetStatus, MeetType, TaskStatus } from "@naprocs/database";
 import { PrismaService } from "../../prisma/prisma.service";
+import { TasksService } from "../tasks/tasks.service";
 
 @Injectable()
 export class ConnectService {
@@ -14,11 +15,12 @@ export class ConnectService {
     private readonly zoomService: ZoomService,
     private readonly emailService: EmailService,
     private readonly prisma: PrismaService,
-  ) {}
+    private readonly tasksService: TasksService,
+  ) { }
 
   async createMeetRequest(requesterId: string, dto: CreateMeetRequestDto): Promise<any> {
     let participantIds: string[] = [];
-    
+
     // Fetch requester for email
     const requester = await this.prisma.employee.findUnique({ where: { id: requesterId } });
     if (!requester) throw new NotFoundException("Requester not found");
@@ -42,6 +44,7 @@ export class ConnectService {
       assigneeId: dto.assigneeId,
       departmentId: dto.departmentId,
       status: MeetStatus.PENDING,
+      linkedGoalId: dto.linkedGoalId,
     }, participantIds);
 
     // Send emails and system notifications to participants/assignee
@@ -118,8 +121,8 @@ export class ConnectService {
     }
 
     // Send reschedule emails and system notifications to the other party
-    const notifyEmployees = isRequester 
-      ? meet.participants.map(p => p.employee) 
+    const notifyEmployees = isRequester
+      ? meet.participants.map(p => p.employee)
       : [meet.requester];
 
     for (const p of notifyEmployees) {
@@ -173,6 +176,10 @@ export class ConnectService {
     return this.repository.getMyMeetings(employeeId);
   }
 
+  async getMyGoals(employeeId: string): Promise<any> {
+    return this.repository.getMyGoals(employeeId);
+  }
+
   async getAvailability(employeeId: string, dateStr: string) {
     const targetDate = new Date(dateStr);
     const busySlots = await this.repository.getBusySlots(employeeId, targetDate);
@@ -180,14 +187,33 @@ export class ConnectService {
     return { busySlots, settings };
   }
 
-  async updateWorkspace(id: string, employeeId: string, agenda: any, actionItems: any) {
+  async updateWorkspace(id: string, employeeId: string, agenda: any, actionItems: any): Promise<any> {
     const meet = await this.repository.getMeetRequestById(id);
     if (!meet) throw new NotFoundException("Meet not found");
-    
+
     // Check if user is allowed to update (requester or participant)
     const isParticipant = meet.requesterId === employeeId || meet.participants.some(p => p.employeeId === employeeId);
     if (!isParticipant) {
       throw new ForbiddenException("You are not authorized to update this workspace");
+    }
+
+    // Sync action items to tasks
+    if (Array.isArray(actionItems)) {
+      for (const item of actionItems) {
+        if (!item.taskId) {
+          // It's a new action item, create it in Tasks table
+          const task = await this.tasksService.createTask(employeeId, {
+            title: item.text,
+            description: `From meeting: ${meet.title}`,
+            status: item.completed ? TaskStatus.DONE : TaskStatus.TODO,
+            assigneeId: employeeId, // Assigning to self by default for 1-on-1s
+          });
+          item.taskId = task.id; // Save reference back to the JSON
+        } else {
+          // Update existing task status
+          await this.tasksService.updateTaskStatus(item.taskId, item.completed ? TaskStatus.DONE : TaskStatus.TODO);
+        }
+      }
     }
 
     return this.repository.updateWorkspace(id, agenda, actionItems);
@@ -206,7 +232,7 @@ export class ConnectService {
     if (email) {
       await this.emailService.sendEmail(email, title, template, context).catch(e => console.error("Email error:", e));
     }
-    
+
     // 2. Send System Notification
     try {
       const settings = await this.repository.getSettings(employeeId);

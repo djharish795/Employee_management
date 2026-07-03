@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, Calendar, ShieldCheck, History,
   Network, BarChart3, Settings, LogOut, Menu, X, ChevronLeft, Plus,
-  MessageSquare, CalendarCheck, UserPlus, UserMinus, BookOpen
+  MessageSquare, CalendarCheck, UserPlus, UserMinus, BookOpen, CheckSquare
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 
@@ -22,11 +22,13 @@ const getDashboardPath = (role: string) => {
 const getNavItems = (role: string) => {
   const items = [
     { title: 'Dashboard', icon: LayoutDashboard, href: getDashboardPath(role) },
+    { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
     { title: 'Connect', icon: MessageSquare, href: '/connect' },
     { title: 'Attendance', icon: CalendarCheck, href: '/attendance' },
     { title: 'Employees', icon: Users, href: '/employees' },
     { title: 'Org Chart', icon: Network, href: '/org-chart' },
     { title: 'Analytics', icon: BarChart3, href: '/analytics' },
+    { title: 'Knowledge Base', icon: BookOpen, href: '/knowledge' },
   ];
 
   if (['SUPER_ADMIN', 'CEO', 'COO', 'HR', 'CHRO', 'COMPLIANCE_OFFICER', 'LEGAL'].includes(role)) {
@@ -38,7 +40,7 @@ const getNavItems = (role: string) => {
   if (role === 'HR') {
     items.push({ title: 'Onboarding', icon: UserPlus, href: '/onboarding' });
     items.push({ title: 'Offboarding', icon: UserMinus, href: '/offboarding' });
-    items.push({ title: 'Knowledge Base', icon: BookOpen, href: '/knowledge-base' });
+    items.push({ title: 'Workflows', icon: BookOpen, href: '/hr/workflows' });
   }
 
   if (role === 'SUPER_ADMIN') {

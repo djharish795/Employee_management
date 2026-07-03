@@ -27,6 +27,7 @@ export class KnowledgeRepository {
         publishedAt: data.isPublished ? new Date() : null,
         slug,
         version: data.version || "1.0",
+        requiresSignature: data.requiresSignature ?? false,
         authorId: data.authorId,
       },
     });
@@ -119,6 +120,7 @@ export class KnowledgeRepository {
         category: data.category ?? existing.category,
         isPublished: data.isPublished ?? existing.isPublished,
         version: data.version ?? existing.version,
+        requiresSignature: data.requiresSignature ?? existing.requiresSignature,
         slug: slug ?? existing.slug,
         publishedAt,
       },
@@ -157,6 +159,30 @@ export class KnowledgeRepository {
       where: { id },
     });
     return { success: true, message: "Document deleted successfully" };
+  }
+
+  async acknowledge(documentId: string, employeeId: string, signatureName: string) {
+    const doc = await this.findById(documentId);
+    if (!doc) throw new NotFoundException("Knowledge document not found");
+    
+    // UPSERT basically, or if unique fails then it exists
+    return this.prisma.knowledgeAcknowledgement.upsert({
+      where: {
+        employeeId_documentId: {
+          employeeId,
+          documentId
+        }
+      },
+      update: {
+        signatureName,
+        acknowledgedAt: new Date()
+      },
+      create: {
+        employeeId,
+        documentId,
+        signatureName,
+      }
+    });
   }
 
   private generateSlug(title: string): string {

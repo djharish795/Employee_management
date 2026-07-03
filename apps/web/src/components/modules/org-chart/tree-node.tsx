@@ -7,13 +7,33 @@ interface TreeNodeProps {
   isExpanded: boolean;
   onToggle: (id: string) => void;
   onSelect: (node: OrgTreeNode) => void;
+  canManageHierarchy?: boolean;
+  onDropEmployee?: (draggedId: string, targetManagerId: string) => void;
 }
 
-export function EmployeeCard({ node, onSelect }: { node: OrgTreeNode, onSelect?: (node: OrgTreeNode) => void }) {
+export function EmployeeCard({ 
+  node, 
+  onSelect,
+  canManageHierarchy,
+  onDragStart,
+  onDragOver,
+  onDrop
+}: { 
+  node: OrgTreeNode; 
+  onSelect?: (node: OrgTreeNode) => void;
+  canManageHierarchy?: boolean;
+  onDragStart?: (e: React.DragEvent, id: string) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent, targetId: string) => void;
+}) {
   return (
     <div 
-      className="w-64 bg-white border border-slate-200 shadow-sm rounded-xl p-4 flex flex-col items-center relative group hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer"
+      className={`w-64 bg-white border border-slate-200 shadow-sm rounded-xl p-4 flex flex-col items-center relative group hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer ${canManageHierarchy ? 'cursor-grab active:cursor-grabbing' : ''}`}
       onClick={() => onSelect?.(node)}
+      draggable={canManageHierarchy}
+      onDragStart={(e) => onDragStart?.(e, node.id)}
+      onDragOver={(e) => onDragOver?.(e)}
+      onDrop={(e) => onDrop?.(e, node.id)}
     >
       <button 
         className="absolute top-3 right-3 text-slate-300 hover:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -55,13 +75,38 @@ export function EmployeeCard({ node, onSelect }: { node: OrgTreeNode, onSelect?:
   );
 }
 
-export function TreeNode({ node, isExpanded, onToggle, onSelect }: TreeNodeProps) {
+export function TreeNode({ node, isExpanded, onToggle, onSelect, canManageHierarchy, onDropEmployee }: TreeNodeProps) {
   const hasChildren = node.children && node.children.length > 0;
+
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    e.dataTransfer.setData("employeeId", id);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    const draggedId = e.dataTransfer.getData("employeeId");
+    if (draggedId && draggedId !== targetId && onDropEmployee) {
+      onDropEmployee(draggedId, targetId);
+    }
+  };
 
   return (
     <div className="flex flex-col items-center">
       {/* Node Card */}
-      <EmployeeCard node={node} onSelect={onSelect} />
+      <EmployeeCard 
+        node={node} 
+        onSelect={onSelect} 
+        canManageHierarchy={canManageHierarchy}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      />
 
       {/* Connection Line Down & Toggle Button */}
       {hasChildren && (
@@ -96,6 +141,8 @@ export function TreeNode({ node, isExpanded, onToggle, onSelect }: TreeNodeProps
                 isExpanded={isExpanded} 
                 onToggle={onToggle} 
                 onSelect={onSelect}
+                canManageHierarchy={canManageHierarchy}
+                onDropEmployee={onDropEmployee}
               />
             </div>
           ))}

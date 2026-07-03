@@ -3,11 +3,13 @@
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Search, ZoomIn, ZoomOut, Maximize, Navigation, X, Mail, Phone, Calendar, LayoutGrid
+  Search, ZoomIn, ZoomOut, Maximize, Navigation, X, Mail, Phone, Calendar, LayoutGrid, Download
 } from "lucide-react";
 import { OrgRole, OrgEmployee, OrgTreeNode } from "@/types/org-chart";
 import { TreeNode, EmployeeCard } from "./tree-node";
 import { apiClient } from "@/lib/api/client";
+import html2canvas from "html2canvas";
+import toast from "react-hot-toast";
 
 interface HierarchyPanelProps {
   activeRole: OrgRole;
@@ -72,6 +74,45 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
     },
   });
 
+  const handleExport = async () => {
+    const canvasEl = document.getElementById("org-chart-canvas");
+    if (!canvasEl) return;
+    
+    try {
+      toast.loading("Exporting chart...", { id: "export" });
+      const canvas = await html2canvas(canvasEl, {
+        scale: 2, // high res
+        backgroundColor: "#f8fafc"
+      });
+      const dataUrl = canvas.toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `Org-Chart-${new Date().toISOString().split('T')[0]}.png`;
+      a.click();
+      toast.success("Exported successfully!", { id: "export" });
+    } catch (e) {
+      toast.error("Failed to export chart", { id: "export" });
+    }
+  };
+
+  const handleDropEmployee = async (draggedId: string, targetManagerId: string) => {
+    try {
+      toast.loading("Reassigning manager...", { id: "reassign" });
+      await apiClient.patch(`/employees/${draggedId}`, {
+        reportingManagerId: targetManagerId
+      });
+      // trigger refetch
+      refetch();
+      toast.success("Manager reassigned successfully!", { id: "reassign" });
+    } catch (e) {
+      toast.error("Failed to reassign manager", { id: "reassign" });
+    }
+  };
+
+  const { refetch } = useQuery({ queryKey: ["orgTree"] });
+
+  const canManageHierarchy = activeRole === "HR" || activeRole === "CEO" || activeRole === "ADMIN";
+
   const toggleNode = (id: string) => {
     setExpandedNodes(prev => ({ ...prev, [id]: !prev[id] }));
   };
@@ -131,12 +172,17 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
           <button className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded transition-colors" title="Mini Map">
             <Navigation className="w-4 h-4" />
           </button>
+          <div className="w-px h-4 bg-slate-300 mx-1" />
+          <button onClick={handleExport} className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Export to PNG">
+            <Download className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
       {/* ── Canvas Area ──────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-auto bg-slate-50/50 cursor-grab active:cursor-grabbing relative">
+      <div className="flex-1 overflow-auto bg-slate-50/50 relative">
         <div
+          id="org-chart-canvas"
           className="min-w-max min-h-max p-16 flex justify-center transition-transform duration-200 origin-top"
           style={{ transform: `scale(${zoom})` }}
         >
@@ -145,7 +191,17 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
               {/* TIER 1: CEO */}
               {ceoNode && (
                 <div className="flex flex-col items-center">
-                  <EmployeeCard node={ceoNode} onSelect={setSelectedNode} />
+                  <EmployeeCard 
+                    node={ceoNode} 
+                    onSelect={setSelectedNode}
+                    canManageHierarchy={canManageHierarchy}
+                    onDrop={(e, id) => {
+                      e.preventDefault();
+                      const draggedId = e.dataTransfer.getData("employeeId");
+                      if (draggedId && draggedId !== id) handleDropEmployee(draggedId, id);
+                    }}
+                    onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect="move"; }}
+                  />
                   <div className="w-px h-6 bg-slate-300" />
                 </div>
               )}
@@ -158,7 +214,17 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
                 {ctoNode && (
                   <div className="flex flex-col items-center relative px-8">
                     <div className="absolute top-0 w-px h-4 bg-slate-300" />
-                    <EmployeeCard node={ctoNode} onSelect={setSelectedNode} />
+                    <EmployeeCard 
+                      node={ctoNode} 
+                      onSelect={setSelectedNode} 
+                      canManageHierarchy={canManageHierarchy}
+                      onDrop={(e, id) => {
+                        e.preventDefault();
+                        const draggedId = e.dataTransfer.getData("employeeId");
+                        if (draggedId && draggedId !== id) handleDropEmployee(draggedId, id);
+                      }}
+                      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect="move"; }}
+                    />
                   </div>
                 )}
 
@@ -166,7 +232,17 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
                 {cooNode && (
                   <div className="flex flex-col items-center relative px-8">
                     <div className="absolute top-0 w-px h-4 bg-slate-300" />
-                    <EmployeeCard node={cooNode} onSelect={setSelectedNode} />
+                    <EmployeeCard 
+                      node={cooNode} 
+                      onSelect={setSelectedNode} 
+                      canManageHierarchy={canManageHierarchy}
+                      onDrop={(e, id) => {
+                        e.preventDefault();
+                        const draggedId = e.dataTransfer.getData("employeeId");
+                        if (draggedId && draggedId !== id) handleDropEmployee(draggedId, id);
+                      }}
+                      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect="move"; }}
+                    />
                   </div>
                 )}
               </div>
@@ -192,6 +268,8 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
                     isExpanded={expandedNodes[opsHeadNode.id] ?? true}
                     onToggle={toggleNode}
                     onSelect={setSelectedNode}
+                    canManageHierarchy={canManageHierarchy}
+                    onDropEmployee={handleDropEmployee}
                   />
                 </div>
               )}

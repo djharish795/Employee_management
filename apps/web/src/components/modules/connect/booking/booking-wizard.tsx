@@ -24,6 +24,7 @@ export interface BookingState {
   notifyAttendees: boolean;
   attachInvite: boolean;
   recordMeeting: boolean;
+  linkedGoalId?: string;
 }
 
 export function BookingWizard({ employeeId }: BookingWizardProps) {

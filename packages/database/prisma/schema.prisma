@@ -86,6 +86,7 @@ model Employee {
   interviewsConducted        Interview[]
   jobsAsHiringManager        Job[]
   knowledgeDocsAuthored      KnowledgeDoc[]
+  knowledgeAcknowledgements  KnowledgeAcknowledgement[]
   leaveBalances              LeaveBalance[]
   leaveRequestsToApprove     LeaveRequest[]       @relation("LeaveApprover")
   leaveRequestsMade          LeaveRequest[]       @relation("LeaveRequester")
@@ -116,6 +117,8 @@ model Employee {
   meetRequestsAssigned       MeetRequest[]         @relation("MeetAssignee")
   meetParticipations         MeetParticipant[]
   connectSettings            ConnectSettings?
+  assignedTasks              Task[]               @relation("TaskAssignee")
+  createdTasks               Task[]               @relation("TaskCreator")
 
   @@map("employees")
 }
@@ -408,11 +411,14 @@ model MeetRequest {
   actionItems     Json?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
+  linkedGoalId    String?
   
   requester       Employee       @relation("MeetRequester", fields: [requesterId], references: [id])
   assignee        Employee?      @relation("MeetAssignee", fields: [assigneeId], references: [id])
   department      Department?    @relation("DepartmentMeetRequests", fields: [departmentId], references: [id])
+  linkedGoal      Goal?          @relation(fields: [linkedGoalId], references: [id], onDelete: SetNull)
   participants    MeetParticipant[]
+  tasks           Task[]
 
   @@map("meet_requests")
 }
@@ -460,9 +466,25 @@ model KnowledgeDoc {
   title        String
   updatedAt    DateTime                 @updatedAt
   version      String                   @default("1.0")
+  requiresSignature Boolean             @default(false)
   author       Employee                 @relation(fields: [authorId], references: [id])
+  acknowledgements KnowledgeAcknowledgement[]
 
   @@map("knowledge_docs")
+}
+
+model KnowledgeAcknowledgement {
+  id             String       @id @default(cuid())
+  employeeId     String
+  documentId     String
+  signatureName  String       // The full name typed by the employee as signature
+  acknowledgedAt DateTime     @default(now())
+  
+  employee       Employee     @relation(fields: [employeeId], references: [id])
+  document       KnowledgeDoc @relation(fields: [documentId], references: [id])
+
+  @@unique([employeeId, documentId])
+  @@map("knowledge_acknowledgements")
 }
 
 model AuditLog {
@@ -479,7 +501,7 @@ model AuditLog {
   resourceId  String
   userAgent   String?
   actor       Employee? @relation(fields: [actorId], references: [id])
-
+  
   @@index([resource, resourceId])
   @@index([actorId])
   @@index([performedAt])
@@ -723,6 +745,7 @@ model Goal {
   weight        Decimal?     @db.Decimal(5, 2)
   employee      Employee     @relation(fields: [employeeId], references: [id])
   reviewCycle   ReviewCycle? @relation(fields: [reviewCycleId], references: [id])
+  meetRequests  MeetRequest[]
 
   @@map("goals")
 }
@@ -964,6 +987,8 @@ model AIChat {
 
   @@map("ai_chats")
 }
+
+
 
 model Project {
   id          String              @id @default(cuid())
@@ -1378,4 +1403,38 @@ enum AITargetType {
   EMPLOYEE
   DEPARTMENT
   ORGANIZATION
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Task {
+  id            String       @id @default(cuid())
+  title         String
+  description   String?
+  status        TaskStatus   @default(TODO)
+  priority      TaskPriority @default(MEDIUM)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  dueDate       DateTime?
+  
+  assigneeId    String?
+  creatorId     String
+  meetRequestId String?
+
+  assignee      Employee?    @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  creator       Employee     @relation("TaskCreator", fields: [creatorId], references: [id])
+  meetRequest   MeetRequest? @relation(fields: [meetRequestId], references: [id], onDelete: SetNull)
+
+  @@index([assigneeId, status])
+  @@map("tasks")
 }

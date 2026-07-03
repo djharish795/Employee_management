@@ -120,8 +120,8 @@ export default function ApprovalsPanel({ activeRole }: ApprovalsPanelProps) {
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-sm text-slate-900 border border-slate-200 overflow-hidden">
-                    {req.employee?.photoUrl ? (
-                      <img src={req.employee.photoUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    {(req.employee as any)?.photoUrl ? (
+                      <img src={(req.employee as any).photoUrl} alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
                       `${req.employee?.firstName?.[0] ?? ""}${req.employee?.lastName?.[0] ?? ""}`
                     )}
@@ -131,7 +131,7 @@ export default function ApprovalsPanel({ activeRole }: ApprovalsPanelProps) {
                       {req.employee ? `${req.employee.firstName} ${req.employee.lastName}` : "Unknown"}
                     </div>
                     <div className="text-xs text-slate-500 font-medium">
-                      {req.employee?.designation?.title ?? "Employee"}
+                      {(req.employee as any)?.designation?.title ?? "Employee"}
                     </div>
                   </div>
                 </div>

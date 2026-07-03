@@ -19,7 +19,8 @@ import { AssetsModule } from "./modules/assets/assets.module";
 import { KnowledgeModule } from "./modules/knowledge/knowledge.module";
 import { OnboardingModule } from "./modules/onboarding/onboarding.module";
 import { ConnectModule } from "./modules/connect/connect.module";
-
+import { TasksModule } from "./modules/tasks/tasks.module";
+import { WorkflowsModule } from "./modules/workflows/workflows.module";
 
 @Module({
   imports: [
@@ -46,6 +47,8 @@ import { ConnectModule } from "./modules/connect/connect.module";
     KnowledgeModule,
     OnboardingModule,
     ConnectModule,
+    TasksModule,
+    WorkflowsModule,
   ],
 })
 export class AppModule { }

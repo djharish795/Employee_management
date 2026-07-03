@@ -96,6 +96,13 @@ export class ConnectRepository {
     });
   }
 
+  async getMyGoals(employeeId: string): Promise<any> {
+    return (this.prisma as any).goal?.findMany({
+      where: { employeeId },
+      orderBy: { createdAt: 'desc' }
+    }) || [];
+  }
+
   async getBusySlots(employeeId: string, date: Date) {
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);

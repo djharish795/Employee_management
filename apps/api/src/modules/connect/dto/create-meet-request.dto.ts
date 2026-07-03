@@ -26,4 +26,8 @@ export class CreateMeetRequestDto {
   @IsString()
   @IsOptional()
   departmentId?: string;
+
+  @IsString()
+  @IsOptional()
+  linkedGoalId?: string;
 }

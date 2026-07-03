@@ -91,4 +91,14 @@ export class KnowledgeController {
   ) {
     return this.knowledgeService.publish(id, user.role as UserRole, isPublished);
   }
+
+  @Post(":id/acknowledge")
+  @Permissions(Permission.READ_OWN_PROFILE)
+  async acknowledge(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body("signatureName") signatureName: string,
+  ) {
+    return this.knowledgeService.acknowledge(id, user.employeeId, signatureName);
+  }
 }

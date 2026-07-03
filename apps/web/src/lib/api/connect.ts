@@ -8,6 +8,8 @@ export interface CreateMeetDto {
   type: "ONE_ON_ONE" | "DEPARTMENT";
   assigneeId?: string;
   departmentId?: string;
+  linkedGoalId?: string;
+  agenda?: string;
 }
 
 export interface RescheduleMeetDto {
@@ -41,5 +43,8 @@ export const connectApi = {
     api.get("/connect/settings"),
 
   updateSettings: (data: any) => 
-    api.post("/connect/settings", data),
+    api.put("/connect/settings", data),
+
+  getGoals: () => 
+    api.get("/connect/goals"),
 };

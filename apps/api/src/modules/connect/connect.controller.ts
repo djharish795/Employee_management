@@ -44,7 +44,7 @@ export class ConnectController {
 
   @Patch(":id/workspace")
   @Permissions(Permission.WRITE_OWN_PROFILE)
-  async updateWorkspace(@Req() req: Request, @Param("id") id: string, @Body() dto: { agenda?: any; actionItems?: any }) {
+  async updateWorkspace(@Req() req: Request, @Param("id") id: string, @Body() dto: { agenda?: any; actionItems?: any }): Promise<any> {
     const employeeId = (req.user as any).employeeId;
     return this.connectService.updateWorkspace(id, employeeId, dto.agenda, dto.actionItems);
   }
@@ -54,6 +54,13 @@ export class ConnectController {
   async getMyMeetings(@Req() req: Request) {
     const employeeId = (req.user as any).employeeId;
     return this.connectService.getMyMeetings(employeeId);
+  }
+
+  @Get("goals")
+  @Permissions(Permission.READ_OWN_PROFILE)
+  async getMyGoals(@Req() req: Request) {
+    const employeeId = (req.user as any).employeeId;
+    return this.connectService.getMyGoals(employeeId);
   }
 
   @Get("availability/:employeeId")

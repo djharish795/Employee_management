@@ -17,21 +17,27 @@ export function ReviewRequestStep({ data, onNext, onPrev }: ReviewRequestStepPro
   const [error, setError] = useState<string | null>(null);
   const [employeeName, setEmployeeName] = useState("Colleague");
   const [isFetchingName, setIsFetchingName] = useState(true);
+  const [goals, setGoals] = useState<any[]>([]);
+  const [selectedGoalId, setSelectedGoalId] = useState<string>("");
 
   useEffect(() => {
-    const fetchEmployee = async () => {
+    const fetchEmployeeAndGoals = async () => {
       try {
         setIsFetchingName(true);
-        const res = await apiClient.get(`/employees/${data.employeeId}`);
-        setEmployeeName(`${res.data.firstName || ''} ${res.data.lastName || ''}`.trim() || "Colleague");
+        const [empRes, goalsRes] = await Promise.all([
+          apiClient.get(`/employees/${data.employeeId}`),
+          connectApi.getGoals()
+        ]);
+        setEmployeeName(`${empRes.data.firstName || ''} ${empRes.data.lastName || ''}`.trim() || "Colleague");
+        setGoals(goalsRes.data);
       } catch (err) {
-        console.error("Failed to fetch employee", err);
+        console.error("Failed to fetch data", err);
       } finally {
         setIsFetchingName(false);
       }
     };
     if (data.employeeId) {
-      fetchEmployee();
+      fetchEmployeeAndGoals();
     }
   }, [data.employeeId]);
   
@@ -70,7 +76,8 @@ export function ReviewRequestStep({ data, onNext, onPrev }: ReviewRequestStepPro
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
         type: "ONE_ON_ONE",
-        assigneeId: data.employeeId
+        assigneeId: data.employeeId,
+        linkedGoalId: selectedGoalId || undefined
       });
 
       onNext();
@@ -175,6 +182,20 @@ export function ReviewRequestStep({ data, onNext, onPrev }: ReviewRequestStepPro
           )}
 
           <div className="pt-4 border-t border-slate-200 flex flex-col gap-2">
+            <div className="flex flex-col gap-2 mb-4">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Link to OKR / Goal</label>
+              <select 
+                value={selectedGoalId} 
+                onChange={(e) => setSelectedGoalId(e.target.value)}
+                className="w-full text-sm font-medium text-slate-900 border border-slate-200 rounded-lg p-2.5 outline-none focus:border-slate-400 bg-white"
+              >
+                <option value="">No linked goal</option>
+                {goals.map(g => (
+                  <option key={g.id} value={g.id}>{g.title}</option>
+                ))}
+              </select>
+            </div>
+            
             <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
               <Check className="w-3.5 h-3.5 text-emerald-500" /> Notifications enabled
             </div>

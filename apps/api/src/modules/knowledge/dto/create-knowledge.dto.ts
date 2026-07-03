@@ -25,5 +25,7 @@ export class CreateKnowledgeDocDto {
   @IsOptional()
   version?: string;
 
-
+  @IsBoolean()
+  @IsOptional()
+  requiresSignature?: boolean;
 }

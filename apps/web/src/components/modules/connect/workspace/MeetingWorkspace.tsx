@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Save, CheckSquare, AlignLeft, Users, Calendar, Plus, Trash2 } from "lucide-react";
+import { X, Save, CheckSquare, AlignLeft, Users, Calendar, Plus, Trash2, Target } from "lucide-react";
 import { connectApi } from "@/lib/api/connect";
 
 interface MeetingWorkspaceProps {
@@ -71,6 +71,12 @@ export function MeetingWorkspace({ isOpen, onClose, meeting }: MeetingWorkspaceP
             <p className="text-sm text-slate-500 font-medium flex items-center gap-1">
               <Calendar className="w-3.5 h-3.5" /> {dateStr}
             </p>
+            {meeting.linkedGoal && (
+              <div className="mt-1 flex items-center gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md max-w-max">
+                <Target className="w-3.5 h-3.5" />
+                OKR: {meeting.linkedGoal.title}
+              </div>
+            )}
           </div>
         </div>
 

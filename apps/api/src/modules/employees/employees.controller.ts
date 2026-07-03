@@ -44,6 +44,13 @@ export class EmployeesController {
     return this.employeesService.getOrgChart();
   }
 
+  @Post("org-chart/reassign")
+  @Permissions(Permission.WRITE_EMPLOYEES) // Requires HR/CEO permission to update structure
+  async reassignManager(@Body() body: { employeeId: string; newManagerId: string }) {
+    await this.employeesService.reassignManager(body.employeeId, body.newManagerId);
+    return { success: true };
+  }
+
   @Get("org-stats")
   @Permissions(Permission.READ_EMPLOYEES, Permission.READ_TEAM_PROFILES)
   getOrgStats() {

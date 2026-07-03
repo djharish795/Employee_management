@@ -3,8 +3,8 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "nest start --watch",
-    "build": "nest build",
+    "dev": "cross-env NODE_OPTIONS=--max_old_space_size=4096 nest start --watch",
+    "build": "cross-env NODE_OPTIONS=--max_old_space_size=4096 nest build",
     "start": "node dist/main.js",
     "start:prod": "node dist/main.js",
     "lint": "tsc -p tsconfig.build.json --noEmit"
@@ -49,6 +49,7 @@
     "@types/node": "^20.11.30",
     "@types/passport-jwt": "^4.0.1",
     "@types/uuid": "^10.0.0",
+    "cross-env": "^10.1.0",
     "jest": "^30.4.2",
     "ts-jest": "^29.4.11",
     "typescript": "^5.4.5"

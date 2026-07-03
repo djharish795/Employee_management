@@ -99,4 +99,14 @@ export class KnowledgeService {
     this.validateWriteAccess(role);
     return this.knowledgeRepository.update(id, { isPublished });
   }
+
+  async acknowledge(id: string, employeeId: string, signatureName: string) {
+    if (!employeeId) {
+      throw new BadRequestException("User profile is not associated with an employee record");
+    }
+    if (!signatureName || signatureName.trim().length < 2) {
+      throw new BadRequestException("A valid full name signature is required");
+    }
+    return this.knowledgeRepository.acknowledge(id, employeeId, signatureName);
+  }
 }
