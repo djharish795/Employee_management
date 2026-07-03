@@ -1,141 +1,266 @@
 "use client";
 
-import React from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useAuthStore } from "@/store/auth";
-import { Users, CalendarCheck, TrendingUp, Clock, ArrowRight, CheckCircle2, Code2, ShieldCheck } from "lucide-react";
-import Link from "next/link";
-import { PersonalAttendanceWidget } from "@/components/shared/personal-attendance-widget";
+import React, { useState } from 'react';
+import { Search, Bell, Download, Lock, MoreHorizontal } from 'lucide-react';
+import { useAuthStore } from '@/store/auth';
+
+// ─── Interfaces (No Hardcoded Mock Data) ─────────────────────────────────────────
+interface MetricData {
+  headcount: number;
+  headcountGrowth: number;
+  assetsAllocated: number;
+  openPositions: number;
+  avgTenure: number;
+  industryAvgTenure: number;
+}
+
+interface OrgDiscipline {
+  name: string;
+  count: number;
+  total: number;
+}
+
+interface AssetAllocation {
+  id: string;
+  employeeName: string;
+  assetName: string;
+  status: 'ALLOCATED' | 'LICENSED';
+}
+
+interface TechTeam {
+  id: string;
+  name: string;
+  leadName: string;
+  leadInitials: string;
+  members: number;
+  avgExperience: number;
+  openRoles: number;
+}
 
 export default function CtoDashboardPage() {
-  const accessToken = useAuthStore((state) => state.accessToken);
+  const role = useAuthStore((state) => state.role);
 
-  const { data: metrics, isLoading } = useQuery({
-    queryKey: ["cto-dashboard-metrics"],
-    queryFn: async () => {
-      const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
-      const res = await fetch(`${url}/dashboard/metrics`, {
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-      });
-      if (!res.ok) throw new Error("Failed");
-      return res.json();
-    },
-    retry: false,
-  });
+  // States waiting for backend population
+  const [metrics, setMetrics] = useState<MetricData | null>(null);
+  const [orgBreakdown, setOrgBreakdown] = useState<OrgDiscipline[]>([]);
+  const [recentAssets, setRecentAssets] = useState<AssetAllocation[]>([]);
+  const [techTeams, setTechTeams] = useState<TechTeam[]>([]);
 
-  const kpiCards = [
-    {
-      label: "Tech Team Headcount",
-      icon: Users,
-      value: isLoading ? "..." : (metrics?.kpiData?.find((k: any) => k.title === "Total Employees")?.value ?? "--"),
-      sub: "Engineering & Product",
-      color: "text-slate-900",
-    },
-    {
-      label: "Team Attendance Today",
-      icon: CalendarCheck,
-      value: isLoading ? "..." : (metrics?.kpiData?.find((k: any) => k.title === "Attendance Rate")?.value ?? "--%"),
-      sub: "Present today",
-      color: "text-emerald-600",
-    },
-    {
-      label: "Pending Leave Approvals",
-      icon: Clock,
-      value: isLoading ? "..." : (metrics?.kpiData?.find((k: any) => k.title === "Pending Leaves")?.value ?? "--"),
-      sub: "Requires your action",
-      color: "text-amber-600",
-    },
-    {
-      label: "Performance Reviews",
-      icon: TrendingUp,
-      value: "--",
-      sub: "Q2 2026 in progress",
-      color: "text-indigo-600",
-    },
-  ];
+  // Protect route: Only CTO can access
+  if (role !== "CTO") {
+    return (
+      <div className="flex flex-col items-center justify-center h-full bg-slate-50 text-slate-500">
+        <Lock className="w-10 h-10 text-slate-300 mb-3" />
+        <h2 className="text-xl font-bold text-slate-800">Access Restricted</h2>
+        <p className="mt-2 text-sm">Only the Chief Technology Officer can view this dashboard.</p>
+      </div>
+    );
+  }
+
+  // Get current date formatted like "Thursday, 15 January 2025"
+  const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
-    <div className="flex-1 w-full p-6 md:p-8 bg-slate-50 min-h-screen font-sans">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-8">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Technology Operations</h1>
-          <p className="text-sm font-medium text-slate-500 mt-1">CTO Dashboard — Engineering & Product Overview</p>
-        </div>
-        <Link href="/leaves/approvals" className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg shadow-sm transition-colors">
-          Review Team Leave Queue
-        </Link>
-      </div>
-
-      <PersonalAttendanceWidget />
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {kpiCards.map((card, idx) => {
-          const Icon = card.icon;
-          return (
-            <div key={idx} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{card.label}</p>
-                  <p className={`text-2xl font-extrabold mt-1 ${card.color}`}>{card.value}</p>
-                  <p className="text-[10px] font-semibold text-slate-500 mt-1">{card.sub}</p>
-                </div>
-                <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-4 h-4 text-slate-600" />
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Main Content */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-
-        {/* Attendance Summary */}
-        <div className="xl:col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <CalendarCheck className="w-4 h-4 text-slate-600" />
-              Team Attendance Summary
-            </h3>
-            <Link href="/attendance" className="text-xs font-bold text-slate-600 hover:text-slate-900 flex items-center gap-1">
-              Full Report <ArrowRight className="w-3 h-3" />
-            </Link>
+    <div className="flex flex-col h-full font-sans bg-slate-50 overflow-y-auto">
+      
+      {/* Top Header */}
+      <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between shadow-sm">
+        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Engineering Overview</h1>
+        
+        <div className="flex items-center gap-4">
+          <div className="relative w-64 hidden md:block">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input 
+              type="text" 
+              placeholder="Search team or assets..." 
+              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-900 focus:bg-white transition-colors"
+            />
           </div>
-          <div className="p-8 text-center">
-            <CalendarCheck className="w-10 h-10 text-slate-200 mx-auto mb-3" />
-            <p className="text-sm font-bold text-slate-500">Attendance data loads from the backend.</p>
-            <p className="text-xs text-slate-400 mt-1">View the full Attendance module for detailed reports.</p>
-            <Link href="/attendance" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors">
-              Go to Attendance <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+          <button className="text-slate-400 hover:text-slate-900 transition-colors">
+            <Bell className="w-5 h-5" />
+          </button>
+          <div className="flex items-center gap-2 cursor-pointer group">
+            <div className="w-8 h-8 bg-slate-900 text-white rounded-full flex items-center justify-center font-bold text-xs shadow-sm">LK</div>
+            <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900 transition-colors hidden md:block">LK</span>
           </div>
         </div>
+      </div>
 
-        {/* Quick Actions */}
-        <div className="space-y-4">
+      <div className="p-8 max-w-[1400px] mx-auto w-full space-y-6">
+        
+        {/* Page Header */}
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-2">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Engineering overview</h1>
+            <p className="text-sm text-slate-500 font-medium mt-1">{currentDate}</p>
+          </div>
+          <button className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
+            <Download className="w-4 h-4" /> Export team report
+          </button>
+        </div>
+
+        {/* Top Metrics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-900 mb-4">CTO Quick Actions</h3>
-            <div className="flex flex-col gap-2">
-              {[
-                { label: "View Team Members", href: "/employees", icon: Users },
-                { label: "Leave Approvals", href: "/leaves/approvals", icon: CheckCircle2 },
-                { label: "Team Attendance", href: "/attendance", icon: CalendarCheck },
-                { label: "Performance Reviews", href: "/performance", icon: TrendingUp },
-                { label: "Org Chart", href: "/org-chart", icon: Code2 },
-              ].map((link) => {
-                const Icon = link.icon;
-                return (
-                  <Link key={link.href} href={link.href} className="flex items-center gap-3 p-3 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-lg text-xs font-semibold text-slate-700 transition-colors">
-                    <Icon className="w-3.5 h-3.5 text-slate-500" />
-                    {link.label}
-                    <ArrowRight className="w-3 h-3 ml-auto text-slate-400" />
-                  </Link>
-                );
-              })}
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Engineering Headcount</div>
+            <div className="flex items-end justify-between">
+              <span className="text-4xl font-extrabold text-slate-900">{metrics?.headcount || '--'}</span>
+              <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[11px] font-bold rounded border border-emerald-100 flex items-center gap-1 mb-1">
+                ↗ {metrics?.headcountGrowth || '--'}%
+              </span>
             </div>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Assets Allocated</div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-extrabold text-slate-900">{metrics?.assetsAllocated || '--'}</span>
+              <span className="text-sm font-semibold text-slate-500">devices</span>
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Open Tech Positions</div>
+            <div className="flex items-center gap-3">
+              <span className="w-2.5 h-2.5 rounded-full bg-orange-400"></span>
+              <span className="text-4xl font-extrabold text-slate-900">{metrics?.openPositions || '--'}</span>
+            </div>
+            <div className="mt-2 flex items-center gap-1.5 px-2 py-1 bg-slate-50 text-slate-500 text-[10px] font-bold rounded border border-slate-200 w-fit">
+              <Lock className="w-3 h-3" /> Locked - Phase 2
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Avg Tenure</div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-4xl font-extrabold text-slate-900">{metrics?.avgTenure || '--'}</span>
+              <span className="text-sm font-semibold text-slate-500">yrs</span>
+            </div>
+            <div className="text-[10px] font-bold text-slate-400 mt-2">
+              Industry avg: {metrics?.industryAvgTenure || '--'}
+            </div>
+          </div>
+        </div>
+
+        {/* Middle Layout (2 Columns) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Engineering Org Breakdown */}
+          <div className="lg:col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm p-6">
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-base font-bold text-slate-900">Engineering org breakdown</h3>
+              <button className="text-slate-400 hover:text-slate-600 transition-colors">
+                <MoreHorizontal className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              {orgBreakdown.length === 0 ? (
+                <div className="py-12 text-center text-sm font-medium text-slate-400">Waiting for backend org data...</div>
+              ) : (
+                orgBreakdown.map(org => {
+                  const percentage = (org.count / org.total) * 100;
+                  return (
+                    <div key={org.name}>
+                      <div className="flex justify-between items-end mb-2">
+                        <span className="text-sm font-bold text-slate-700">{org.name}</span>
+                        <span className="text-xs font-semibold text-slate-500">{org.count} Engineers</span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-blue-600 rounded-full" style={{ width: `${percentage}%` }}></div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* Recent Asset Allocations */}
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 flex flex-col">
+            <h3 className="text-base font-bold text-slate-900 mb-6">Recent asset allocations</h3>
+            
+            <div className="flex-1 space-y-5 overflow-y-auto">
+              {recentAssets.length === 0 ? (
+                <div className="py-12 text-center text-sm font-medium text-slate-400">Waiting for backend asset data...</div>
+              ) : (
+                recentAssets.map(asset => (
+                  <div key={asset.id} className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-bold text-slate-900">{asset.employeeName}</div>
+                      <div className="text-[11px] font-medium text-slate-500">{asset.assetName}</div>
+                    </div>
+                    <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[9px] font-bold uppercase tracking-wider rounded border border-slate-200">
+                      {asset.status}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <button className="w-full mt-6 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-lg transition-colors border border-slate-200">
+              View All Assets
+            </button>
+          </div>
+        </div>
+
+        {/* Bottom Layout (Technology Teams) */}
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+            <h3 className="text-base font-bold text-slate-900">Technology teams</h3>
+            <button className="text-slate-400 hover:text-slate-600 transition-colors">
+              <Search className="w-4 h-4" /> {/* Or filter icon */}
+            </button>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-100">
+                  <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Team</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lead</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Members</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Avg Experience</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Open Roles</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {techTeams.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-sm font-medium text-slate-400">
+                      Waiting for backend team data...
+                    </td>
+                  </tr>
+                ) : (
+                  techTeams.map(team => (
+                    <tr key={team.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-4 text-sm font-bold text-slate-900">{team.name}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[9px] font-bold text-slate-600">
+                            {team.leadInitials}
+                          </div>
+                          <span className="text-xs font-semibold text-slate-700">{team.leadName}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm font-bold text-slate-900">{team.members}</td>
+                      <td className="px-6 py-4 text-xs font-medium text-slate-500">{team.avgExperience} yrs</td>
+                      <td className="px-6 py-4">
+                        {team.openRoles > 0 ? (
+                          <span className="px-2.5 py-1 bg-amber-50 text-amber-700 text-[10px] font-bold rounded-full border border-amber-100">
+                            {team.openRoles} Open
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 bg-slate-100 text-slate-500 text-[10px] font-bold rounded-full border border-slate-200">
+                            0 Roles
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 

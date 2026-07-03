@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, Calendar, ShieldCheck, History,
   Network, BarChart3, Settings, LogOut, Menu, X, ChevronLeft, Plus,
-  MessageSquare, CalendarCheck, UserPlus, UserMinus, BookOpen
+  MessageSquare, CalendarCheck, UserPlus, UserMinus, BookOpen, Monitor, Lock, Bell
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 
@@ -19,8 +19,38 @@ const getDashboardPath = (role: string) => {
   return '/employee/dashboard';
 };
 
-const getNavItems = (role: string) => {
-  const items = [
+const getNavGroups = (role: string) => {
+  if (role === 'CTO') {
+    return [
+      {
+        label: 'MAIN',
+        items: [
+          { title: 'Dashboard', icon: LayoutDashboard, href: '/cto/dashboard' },
+          { title: 'Engineering Team', icon: Users, href: '/cto/team' },
+          { title: 'Skill Matrix', icon: Network, href: '/cto/skills' },
+          { title: 'Assets', icon: Monitor, href: '/cto/assets' },
+          { title: 'Team Leave', icon: Calendar, href: '/cto/leaves' },
+          { title: 'Org Chart', icon: Network, href: '/org-chart' },
+        ]
+      },
+      {
+        label: 'PHASE 2 MANAGEMENT',
+        items: [
+          { title: 'Recruitment', icon: UserPlus, locked: true },
+          { title: 'Performance', icon: BarChart3, locked: true },
+          { title: 'Analytics', icon: BarChart3, locked: true },
+        ]
+      },
+      {
+        label: 'SYSTEM',
+        items: [
+          { title: 'Notifications', icon: Bell, badge: 4, href: '/notifications' },
+        ]
+      }
+    ];
+  }
+
+  const mainItems = [
     { title: 'Dashboard', icon: LayoutDashboard, href: getDashboardPath(role) },
     { title: 'Connect', icon: MessageSquare, href: '/connect' },
     { title: 'Attendance', icon: CalendarCheck, href: '/attendance' },
@@ -30,22 +60,27 @@ const getNavItems = (role: string) => {
   ];
 
   if (['SUPER_ADMIN', 'CEO', 'COO', 'HR', 'CHRO', 'COMPLIANCE_OFFICER', 'LEGAL'].includes(role)) {
-    items.push({ title: 'Compliance', icon: ShieldCheck, href: '/compliance' });
+    mainItems.push({ title: 'Compliance', icon: ShieldCheck, href: '/compliance' });
   }
 
-  items.push({ title: 'Leaves', icon: Calendar, href: '/leaves' });
+  mainItems.push({ title: 'Leaves', icon: Calendar, href: '/leaves' });
 
   if (role === 'HR') {
-    items.push({ title: 'Onboarding', icon: UserPlus, href: '/onboarding' });
-    items.push({ title: 'Offboarding', icon: UserMinus, href: '/offboarding' });
-    items.push({ title: 'Knowledge Base', icon: BookOpen, href: '/knowledge-base' });
+    mainItems.push({ title: 'Onboarding', icon: UserPlus, href: '/onboarding' });
+    mainItems.push({ title: 'Offboarding', icon: UserMinus, href: '/offboarding' });
+    mainItems.push({ title: 'Knowledge Base', icon: BookOpen, href: '/knowledge-base' });
   }
 
   if (role === 'SUPER_ADMIN') {
-    items.push({ title: 'Audit Log', icon: History, href: '/audit' });
+    mainItems.push({ title: 'Audit Log', icon: History, href: '/audit' });
   }
 
-  return items;
+  return [
+    {
+      label: 'MAIN',
+      items: mainItems
+    }
+  ];
 };
 
 export function CeoSidebar() {
@@ -104,28 +139,55 @@ export function CeoSidebar() {
       )}
 
       {/* Navigation */}
-      <nav className={`flex-1 space-y-0.5 overflow-y-auto ${collapsed ? 'px-2' : 'px-3'}`}>
-        {getNavItems(role).map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-          return (
-            <Link
-              key={item.title}
-              href={item.href}
-              onClick={onNavigate}
-              title={collapsed ? item.title : undefined}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                collapsed ? 'justify-center' : ''
-              } ${
-                isActive
-                  ? 'bg-slate-100 text-slate-900 font-semibold'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              }`}
-            >
-              <item.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-slate-900' : 'text-slate-400'}`} />
-              {!collapsed && item.title}
-            </Link>
-          );
-        })}
+      <nav className={`flex-1 space-y-6 overflow-y-auto ${collapsed ? 'px-2 py-4' : 'px-3 py-2'}`}>
+        {getNavGroups(role).map((group, gIndex) => (
+          <div key={group.label || gIndex} className="space-y-1.5">
+            {!collapsed && group.label && (
+              <div className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 mt-2">
+                {group.label}
+              </div>
+            )}
+            {group.items.map((item) => {
+              if (item.locked) {
+                return (
+                  <div key={item.title} className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 cursor-not-allowed ${collapsed ? 'justify-center' : ''}`}>
+                    <div className="flex items-center gap-3">
+                      <item.icon className="w-4 h-4 flex-shrink-0" />
+                      {!collapsed && item.title}
+                    </div>
+                    {!collapsed && <Lock className="w-3.5 h-3.5" />}
+                  </div>
+                );
+              }
+              const isActive = item.href ? (pathname === item.href || pathname.startsWith(item.href + '/')) : false;
+              return (
+                <Link
+                  key={item.title}
+                  href={item.href || '#'}
+                  onClick={onNavigate}
+                  title={collapsed ? item.title : undefined}
+                  className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    collapsed ? 'justify-center' : ''
+                  } ${
+                    isActive
+                      ? 'bg-slate-100 text-slate-900 font-semibold'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <item.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-slate-900' : 'text-slate-400'}`} />
+                    {!collapsed && item.title}
+                  </div>
+                  {!collapsed && item.badge && (
+                    <span className="w-5 h-5 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* Logout Footer */}
