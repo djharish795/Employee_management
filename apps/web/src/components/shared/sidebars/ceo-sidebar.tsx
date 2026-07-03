@@ -99,7 +99,7 @@ export function CeoSidebar() {
 
   const handleLogout = () => {
     clearSession();
-    router.push('/login');
+    window.location.href = '/login';
   };
 
   const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => (

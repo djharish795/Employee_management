@@ -30,7 +30,7 @@ export function Topbar() {
   const handleLogout = () => {
     setIsDropdownOpen(false);
     clearSession();
-    router.push('/login');
+    window.location.href = '/login';
   };
 
   useEffect(() => {
