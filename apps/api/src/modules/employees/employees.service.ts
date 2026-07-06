@@ -490,4 +490,56 @@ export class EmployeesService {
       data: { reportingManagerId: newManagerId || null }
     });
   }
+
+  async getCtoTeam(): Promise<any> {
+    const employees = await this.prisma.employee.findMany({
+      where: { 
+        status: 'ACTIVE',
+      },
+      include: {
+        department: true,
+        designation: true
+      },
+      orderBy: { firstName: 'asc' }
+    });
+
+    const engineers = employees.map(e => {
+      // Calculate real experience (tenure in years)
+      let experience = 0;
+      if (e.joiningDate) {
+        const now = new Date();
+        const years = (now.getTime() - e.joiningDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+        experience = Math.max(0, Number(years.toFixed(1)));
+      }
+      
+      // Determine subteam based on designation or default
+      const title = (e.designation?.title || '').toLowerCase();
+      const deptName = e.department?.name || 'Unassigned';
+      
+      let subTeam = deptName;
+      if (deptName.toLowerCase().includes('eng')) {
+        if (title.includes('front')) subTeam = 'Frontend';
+        else if (title.includes('devops')) subTeam = 'DevOps';
+        else if (title.includes('qa') || title.includes('test')) subTeam = 'QA';
+        else if (title.includes('mobile') || title.includes('ios') || title.includes('android')) subTeam = 'Mobile';
+        else if (title.includes('architect')) subTeam = 'Architecture';
+        else subTeam = 'Backend';
+      }
+
+      return {
+        id: e.id,
+        name: `${e.firstName} ${e.lastName}`,
+        initials: `${e.firstName.charAt(0)}${e.lastName.charAt(0)}`,
+        subTeam,
+        designation: e.designation?.title || 'Software Engineer',
+        experience,
+        status: 'Active'
+      };
+    });
+
+    return {
+      engineers,
+      totalCount: engineers.length
+    };
+  }
 }

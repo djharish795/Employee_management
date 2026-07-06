@@ -31,6 +31,14 @@ const getNavGroups = (role: string) => {
           { title: 'Assets', icon: Monitor, href: '/cto/assets' },
           { title: 'Team Leave', icon: Calendar, href: '/cto/leaves' },
           { title: 'Org Chart', icon: Network, href: '/org-chart' },
+          { 
+            title: 'Attendance', 
+            icon: CalendarCheck, 
+            subItems: [
+              { title: 'Attendance Summary', href: '/attendance/summary' },
+              { title: 'My Attendance', href: '/attendance' }
+            ]
+          },
         ]
       },
       {
@@ -51,7 +59,7 @@ const getNavGroups = (role: string) => {
     { title: 'Connect', icon: MessageSquare, href: '/connect' },
   ];
 
-  if (role === 'HR') {
+  if (['HR', 'CEO'].includes(role)) {
     mainItems.push({ 
       title: 'Attendance', 
       icon: CalendarCheck, 
@@ -125,13 +133,13 @@ export function CeoSidebar() {
       <div className={`p-5 pb-4 flex items-center ${collapsed ? 'justify-center px-3' : 'justify-between'}`}>
         {!collapsed && (
           <div>
-            <h2 className="text-base font-bold text-slate-900 tracking-tight leading-snug">Naprocs EMS</h2>
-            <p className="text-[11px] text-slate-500 font-medium tracking-wide mt-0.5 capitalize">{displayRole} Dashboard</p>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight leading-snug">Naprocs EMS</h2>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-wide mt-0.5 capitalize">{displayRole} Dashboard</p>
           </div>
         )}
         <button
           onClick={() => setCollapsed(c => !c)}
-          className="hidden lg:flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors flex-shrink-0"
+          className="hidden lg:flex items-center justify-center w-7 h-7 rounded-md text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300 transition-colors flex-shrink-0"
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           <ChevronLeft className={`w-4 h-4 transition-transform duration-200 ${collapsed ? 'rotate-180' : ''}`} />
@@ -141,7 +149,7 @@ export function CeoSidebar() {
       {/* Quick Action */}
       {!collapsed && (
         <div className="px-4 pb-5">
-          <button className="w-full bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm">
+          <button className="w-full bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm">
             <Plus className="w-4 h-4" />
             <span>New Request</span>
           </button>
@@ -149,7 +157,7 @@ export function CeoSidebar() {
       )}
       {collapsed && (
         <div className="px-3 pb-5">
-          <button className="w-full bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center py-2.5 rounded-lg transition-colors shadow-sm" title="New Request">
+          <button className="w-full bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white flex items-center justify-center py-2.5 rounded-lg transition-colors shadow-sm" title="New Request">
             <Plus className="w-4 h-4" />
           </button>
         </div>
@@ -160,14 +168,14 @@ export function CeoSidebar() {
         {getNavGroups(role).map((group, gIndex) => (
           <div key={group.label || gIndex} className="space-y-1.5">
             {!collapsed && group.label && (
-              <div className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 mt-2">
+              <div className="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 mt-2">
                 {group.label}
               </div>
             )}
             {group.items.map((item) => {
               if (item.locked && !item.href) {
                 return (
-                  <div key={item.title} className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 cursor-not-allowed ${collapsed ? 'justify-center' : ''}`}>
+                  <div key={item.title} className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 dark:text-slate-600 cursor-not-allowed ${collapsed ? 'justify-center' : ''}`}>
                     <div className="flex items-center gap-3">
                       <item.icon className="w-4 h-4 flex-shrink-0" />
                       {!collapsed && item.title}
@@ -188,12 +196,12 @@ export function CeoSidebar() {
                         collapsed ? 'justify-center' : ''
                       } ${
                         isActive
-                          ? 'bg-slate-100 text-slate-900 font-semibold'
-                          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                          ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-900 dark:text-white font-semibold'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <item.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-slate-900' : 'text-slate-400'}`} />
+                        <item.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`} />
                         {!collapsed && item.title}
                       </div>
                       {!collapsed && item.locked && (
@@ -206,9 +214,9 @@ export function CeoSidebar() {
                       )}
                     </Link>
                   ) : (
-                    <div className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium ${collapsed ? 'justify-center' : ''} ${isActive ? 'text-slate-900 font-semibold' : 'text-slate-700'}`}>
+                    <div className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium ${collapsed ? 'justify-center' : ''} ${isActive ? 'text-slate-900 dark:text-white font-semibold' : 'text-slate-700 dark:text-slate-300'}`}>
                       <div className="flex items-center gap-3">
-                        <item.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-slate-900' : 'text-slate-400'}`} />
+                        <item.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`} />
                         {!collapsed && item.title}
                       </div>
                     </div>
@@ -225,8 +233,8 @@ export function CeoSidebar() {
                             onClick={onNavigate}
                             className={`block px-3 py-2 text-[13px] rounded-lg transition-colors ${
                               isSubActive 
-                              ? 'bg-slate-100 text-slate-900 font-semibold' 
-                              : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                              ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-900 dark:text-white font-semibold' 
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-900/50'
                             }`}
                           >
                             {sub.title}
@@ -243,13 +251,13 @@ export function CeoSidebar() {
       </nav>
 
       {/* Logout Footer */}
-      <div className={`p-4 mt-auto border-t border-slate-100 ${collapsed ? 'px-2' : ''}`}>
+      <div className={`p-4 mt-auto border-t border-slate-100 dark:border-slate-800 ${collapsed ? 'px-2' : ''}`}>
         <button
           onClick={handleLogout}
           title={collapsed ? 'Logout' : undefined}
-          className={`flex items-center gap-3 px-3 py-2.5 w-full text-left rounded-lg text-sm font-medium text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors ${collapsed ? 'justify-center' : ''}`}
+          className={`flex items-center gap-3 px-3 py-2.5 w-full text-left rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-600 dark:hover:text-red-400 transition-colors ${collapsed ? 'justify-center' : ''}`}
         >
-          <LogOut className="w-4 h-4 text-slate-400 flex-shrink-0" />
+          <LogOut className="w-4 h-4 text-slate-400 dark:text-slate-500 flex-shrink-0" />
           {!collapsed && 'Logout'}
         </button>
       </div>
@@ -258,7 +266,7 @@ export function CeoSidebar() {
 
   if (!mounted) {
     return (
-      <aside className="hidden lg:flex flex-col flex-shrink-0 bg-white h-screen border-r border-slate-200 overflow-hidden w-[240px]" />
+      <aside className="hidden lg:flex flex-col flex-shrink-0 bg-white dark:bg-slate-950 h-screen border-r border-slate-200 dark:border-slate-800 overflow-hidden w-[240px] transition-colors" />
     );
   }
 
@@ -267,7 +275,7 @@ export function CeoSidebar() {
       {/* Mobile Toggle */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="lg:hidden fixed top-3.5 left-4 z-50 p-2 bg-white border border-slate-200 rounded-lg shadow-sm text-slate-700 hover:bg-slate-50 transition-colors"
+        className="lg:hidden fixed top-3.5 left-4 z-50 p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
         aria-label="Open menu"
       >
         <Menu className="w-5 h-5" />
@@ -283,13 +291,13 @@ export function CeoSidebar() {
 
       {/* Mobile Drawer */}
       <aside
-        className={`lg:hidden fixed top-0 left-0 h-full w-72 bg-white z-50 flex flex-col border-r border-slate-200 shadow-xl transition-transform duration-300 ease-in-out ${
+        className={`lg:hidden fixed top-0 left-0 h-full w-72 bg-white dark:bg-slate-950 z-50 flex flex-col border-r border-slate-200 dark:border-slate-800 shadow-xl transition-transform duration-300 ease-in-out ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between p-4 border-b border-slate-100">
-          <h2 className="text-base font-bold text-slate-900 capitalize">Naprocs {displayRole}</h2>
-          <button onClick={() => setMobileOpen(false)} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
+        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white capitalize">Naprocs {displayRole}</h2>
+          <button onClick={() => setMobileOpen(false)} className="p-1.5 rounded-md text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -300,7 +308,7 @@ export function CeoSidebar() {
 
       {/* Desktop Sidebar */}
       <aside
-        className={`hidden lg:flex flex-col flex-shrink-0 bg-white h-screen border-r border-slate-200 overflow-hidden transition-all duration-300 ease-in-out ${
+        className={`hidden lg:flex flex-col flex-shrink-0 bg-white dark:bg-slate-950 h-screen border-r border-slate-200 dark:border-slate-800 overflow-hidden transition-all duration-300 ease-in-out ${
           collapsed ? 'w-[64px]' : 'w-[240px]'
         }`}
       >

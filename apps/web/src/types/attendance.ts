@@ -11,6 +11,8 @@ export interface AttendanceLog {
 
 export interface RegularizationRequest {
   id: string;
+  employeeId: string;
+  employeeName?: string;
   attendanceDate: string;
   reason: string;
   correctionType: "MISSING_PUNCH" | "INCORRECT_TIME" | "WFH_MARKING";

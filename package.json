@@ -20,5 +20,8 @@
     "cross-env": "^10.1.0",
     "turbo": "^2.3.3",
     "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "jsonwebtoken": "^9.0.3"
   }
 }

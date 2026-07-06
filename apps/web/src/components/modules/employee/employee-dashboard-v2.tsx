@@ -119,6 +119,7 @@ export default function EmployeeDashboardV2() {
   let lateCount = 0;
   let absentCount = 0;
   let weekendCount = 0;
+  let onLeaveCount = 0;
 
   for (let day = 1; day <= daysInMonth; day++) {
     const d = new Date(year, month, day);
@@ -133,6 +134,7 @@ export default function EmployeeDashboardV2() {
       if (dayLog.status === "PRESENT" || dayLog.status === "EARLY_CHECKOUT") presentCount++;
       else if (dayLog.status === "LATE") lateCount++;
       else if (dayLog.status === "ABSENT") absentCount++;
+      else if (dayLog.status === "ON_LEAVE") onLeaveCount++;
     }
   }
 
@@ -268,30 +270,37 @@ export default function EmployeeDashboardV2() {
                   const dateStr = new Date(year, month, day).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
                   const dayLog = logs.find((l: any) => new Date(l.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) === dateStr);
 
-                  let dot = null;
+                  let bgClass = "bg-transparent text-slate-700 hover:bg-slate-100";
                   if (dayLog) {
-                    if (dayLog.status === "PRESENT") dot = <span className="w-1 h-1 rounded-full bg-emerald-500 mt-0.5"></span>;
-                    else if (dayLog.status === "LATE") dot = <span className="w-1 h-1 rounded-full bg-amber-500 mt-0.5"></span>;
-                    else if (dayLog.status === "EARLY_CHECKOUT") dot = <span className="w-1 h-1 rounded-full bg-orange-500 mt-0.5"></span>;
-                    else if (dayLog.status === "ABSENT") dot = <span className="w-1.5 h-1.5 rounded-full border border-rose-500 bg-white mt-0.5"></span>;
-                    else if (dayLog.status === "WFH") dot = <span className="w-1 h-1 rounded-full bg-slate-700 mt-0.5"></span>;
-                  } else {
-                    dot = <span className="w-1 h-1 rounded-full bg-transparent mt-0.5"></span>; // Placeholder to maintain height
+                    if (dayLog.status === "PRESENT") bgClass = "bg-emerald-100 text-emerald-700 font-bold hover:bg-emerald-200";
+                    else if (dayLog.status === "LATE") bgClass = "bg-amber-100 text-amber-700 font-bold hover:bg-amber-200";
+                    else if (dayLog.status === "EARLY_CHECKOUT") bgClass = "bg-orange-100 text-orange-500 font-bold hover:bg-orange-200";
+                    else if (dayLog.status === "ABSENT") bgClass = "border border-rose-300 text-rose-600 font-bold hover:bg-rose-50";
+                    else if (dayLog.status === "ON_LEAVE") bgClass = "bg-purple-100 text-purple-700 font-bold hover:bg-purple-200";
+                    else if (dayLog.status === "WFH") bgClass = "bg-slate-200 text-slate-700 font-bold hover:bg-slate-300";
                   }
 
                   const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
                   const isFuture = new Date(year, month, day) > new Date();
                   const isWeekend = new Date(year, month, day).getDay() === 0 || new Date(year, month, day).getDay() === 6;
 
+                  if (isToday) {
+                    bgClass = "bg-slate-900 text-white font-bold shadow-sm ring-2 ring-slate-200 ring-offset-2 hover:bg-slate-800";
+                  } else if (isFuture) {
+                    bgClass = "bg-transparent text-slate-300";
+                  } else if (isWeekend && !dayLog) {
+                    bgClass = "bg-transparent text-slate-400 hover:bg-slate-50";
+                  }
+
                   cells.push(
                     <div
                       key={`day-${day}`}
                       title={dayLog ? `${dayLog.status}: ${typeof dayLog.hoursWorked === 'number' ? dayLog.hoursWorked.toFixed(1) : dayLog.hoursWorked}h` : "No Record"}
-                      className={`flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors hover:bg-slate-50 py-1 rounded ${isToday ? "border border-slate-400 bg-slate-100 shadow-sm" : ""
-                        } ${isFuture ? "text-slate-300" : isWeekend && !dayLog ? "text-slate-400" : ""}`}
+                      className="flex items-center justify-center py-1 cursor-pointer"
                     >
-                      {day}
-                      {dot}
+                      <div className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${bgClass}`}>
+                        {day}
+                      </div>
                     </div>
                   );
                 }
@@ -307,7 +316,7 @@ export default function EmployeeDashboardV2() {
             </div>
 
             {/* Legend */}
-            <div className="flex items-center gap-4 mt-8 pt-4 border-t border-slate-100">
+            <div className="flex flex-wrap items-center gap-4 mt-8 pt-4 border-t border-slate-100">
               <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1 rounded-full text-[11px] font-bold text-slate-600">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Present {presentCount}
               </div>
@@ -316,6 +325,9 @@ export default function EmployeeDashboardV2() {
               </div>
               <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1 rounded-full text-[11px] font-bold text-slate-600">
                 <span className="w-1.5 h-1.5 rounded-full border border-rose-500"></span> Absent {absentCount}
+              </div>
+              <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1 rounded-full text-[11px] font-bold text-slate-600">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span> On Leave {onLeaveCount}
               </div>
               <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1 rounded-full text-[11px] font-bold text-slate-600">
                 <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span> Weekend {weekendCount}

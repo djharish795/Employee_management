@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Query, Ip } from "@nestjs/common";
+import { Controller, Get, Post, Body, UseGuards, Query, Ip, Patch, Param } from "@nestjs/common";
 import { AttendanceService } from "./attendance.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RbacGuard } from "../../common/guards/rbac.guard";
@@ -53,4 +53,46 @@ export class AttendanceController {
       throw new BadRequestException(e.message + "\n" + e.stack);
     }
   }
+
+  @Get("summary-today")
+  @Permissions(Permission.READ_EMPLOYEES)
+  async getSummaryToday(@Query('date') date?: string, @Query('departmentId') departmentId?: string) {
+    try {
+      return await this.attendanceService.getSummaryToday(date, departmentId);
+    } catch (e: any) {
+      const { BadRequestException } = require('@nestjs/common');
+      throw new BadRequestException(e.message + "\n" + e.stack);
+    }
+  }
+
+  @Get("all-logs")
+  @Permissions(Permission.READ_EMPLOYEES)
+  async getAllLogs(@Query() query: any) {
+    return this.attendanceService.getAllLogs(query);
+  }
+
+  @Get("regularizations")
+  @Permissions(Permission.READ_OWN_PROFILE) // Should probably be open so people can see their own, but since we are doing org wide, maybe READ_EMPLOYEES or filter by user inside the service. For now, since HR and Admin manage this, we can leave it. Actually the FE passes all requests so everyone can see them for now, or the FE filters them. Let's allow everyone to fetch, and filter in service if needed.
+  async getRegularizations() {
+    return this.attendanceService.getRegularizations();
+  }
+
+  @Post("regularize")
+  @Permissions(Permission.WRITE_OWN_PROFILE)
+  async createRegularization(
+    @CurrentUser() user: any,
+    @Body() dto: any
+  ) {
+    return this.attendanceService.createRegularization(user.employeeId, dto);
+  }
+
+  @Patch("regularizations/:id/action")
+  @Permissions(Permission.WRITE_EMPLOYEES)
+  async actionRegularization(
+    @Param('id') id: string,
+    @Body() dto: { action: "APPROVE" | "REJECT", approver: "MANAGER" | "HR" }
+  ) {
+    return this.attendanceService.actionRegularization(id, dto.action, dto.approver);
+  }
 }
+

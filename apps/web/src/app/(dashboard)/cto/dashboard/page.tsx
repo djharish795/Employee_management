@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Search, Bell, Download, Lock, MoreHorizontal } from 'lucide-react';
+import { Search, Bell, Download, Lock, MoreHorizontal, Loader2, X, FileText, Network } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
+import { fetchCtoDashboard } from '@/lib/api/cto';
+import Link from 'next/link';
 
 // ─── Interfaces (No Hardcoded Mock Data) ─────────────────────────────────────────
 interface MetricData {
@@ -45,6 +47,33 @@ export default function CtoDashboardPage() {
   const [orgBreakdown, setOrgBreakdown] = useState<OrgDiscipline[]>([]);
   const [recentAssets, setRecentAssets] = useState<AssetAllocation[]>([]);
   const [techTeams, setTechTeams] = useState<TechTeam[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // New UI states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [showOrgMenu, setShowOrgMenu] = useState(false);
+
+  // Filtered tech teams
+  const filteredTeams = techTeams.filter(t => 
+    t.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    t.leadName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  React.useEffect(() => {
+    if (role === 'CTO') {
+      setIsLoading(true);
+      fetchCtoDashboard()
+        .then((data) => {
+          setMetrics(data.metrics);
+          setOrgBreakdown(data.orgBreakdown || []);
+          setRecentAssets(data.recentAssets || []);
+          setTechTeams(data.techTeams || []);
+        })
+        .catch((err) => console.error("Failed to fetch CTO dashboard", err))
+        .finally(() => setIsLoading(false));
+    }
+  }, [role]);
 
   // Protect route: Only CTO can access
   if (role !== "CTO") {
@@ -122,17 +151,36 @@ export default function CtoDashboardPage() {
         {/* Middle Layout (2 Columns) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          {/* Engineering Org Breakdown */}
-          <div className="lg:col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm p-6">
+          {/* Org Breakdown */}
+          <div className="lg:col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm p-6 relative">
             <div className="flex items-center justify-between mb-8">
-              <h3 className="text-base font-bold text-slate-900">Engineering org breakdown</h3>
-              <button className="text-slate-400 hover:text-slate-600 transition-colors">
-                <MoreHorizontal className="w-5 h-5" />
-              </button>
+              <h3 className="text-base font-bold text-slate-900">Org breakdown</h3>
+              <div className="relative">
+                <button 
+                  onClick={() => setShowOrgMenu(!showOrgMenu)}
+                  className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-md hover:bg-slate-100"
+                >
+                  <MoreHorizontal className="w-5 h-5" />
+                </button>
+                {showOrgMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-10">
+                    <Link href="/org-chart" className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                      <Network className="w-4 h-4" /> View full Org Chart
+                    </Link>
+                    <button className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors w-full text-left">
+                      <FileText className="w-4 h-4" /> Export data
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
             
             <div className="space-y-6">
-              {orgBreakdown.length === 0 ? (
+              {isLoading ? (
+                <div className="py-12 flex items-center justify-center text-sm font-medium text-slate-400">
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading org data...
+                </div>
+              ) : orgBreakdown.length === 0 ? (
                 <div className="py-12 text-center text-sm font-medium text-slate-400">Waiting for backend org data...</div>
               ) : (
                 orgBreakdown.map(org => {
@@ -158,7 +206,11 @@ export default function CtoDashboardPage() {
             <h3 className="text-base font-bold text-slate-900 mb-6">Recent asset allocations</h3>
             
             <div className="flex-1 space-y-5 overflow-y-auto">
-              {recentAssets.length === 0 ? (
+              {isLoading ? (
+                <div className="py-12 flex items-center justify-center text-sm font-medium text-slate-400">
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading assets...
+                </div>
+              ) : recentAssets.length === 0 ? (
                 <div className="py-12 text-center text-sm font-medium text-slate-400">Waiting for backend asset data...</div>
               ) : (
                 recentAssets.map(asset => (
@@ -175,19 +227,35 @@ export default function CtoDashboardPage() {
               )}
             </div>
 
-            <button className="w-full mt-6 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-lg transition-colors border border-slate-200">
+            <Link href="/cto/assets" className="w-full mt-6 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-lg transition-colors border border-slate-200 text-center block">
               View All Assets
-            </button>
+            </Link>
           </div>
         </div>
 
-        {/* Bottom Layout (Technology Teams) */}
+        {/* Bottom Layout (All Teams) */}
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
           <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-            <h3 className="text-base font-bold text-slate-900">Technology teams</h3>
-            <button className="text-slate-400 hover:text-slate-600 transition-colors">
-              <Search className="w-4 h-4" /> {/* Or filter icon */}
-            </button>
+            <h3 className="text-base font-bold text-slate-900">All teams</h3>
+            {showSearch ? (
+              <div className="flex items-center gap-2">
+                <input 
+                  autoFocus
+                  type="text" 
+                  placeholder="Search teams or leads..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="px-3 py-1.5 text-sm border border-slate-200 rounded-md focus:outline-none focus:border-slate-900 transition-colors w-64"
+                />
+                <button onClick={() => { setShowSearch(false); setSearchQuery(''); }} className="text-slate-400 hover:text-slate-600 transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => setShowSearch(true)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <Search className="w-4 h-4" />
+              </button>
+            )}
           </div>
           
           <div className="overflow-x-auto">
@@ -202,14 +270,22 @@ export default function CtoDashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {techTeams.length === 0 ? (
+                {isLoading ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-sm font-medium text-slate-400">
-                      Waiting for backend team data...
+                      <div className="flex items-center justify-center">
+                        <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading team data...
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredTeams.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-sm font-medium text-slate-400">
+                      No teams matched your search...
                     </td>
                   </tr>
                 ) : (
-                  techTeams.map(team => (
+                  filteredTeams.map(team => (
                     <tr key={team.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-6 py-4 text-sm font-bold text-slate-900">{team.name}</td>
                       <td className="px-6 py-4">

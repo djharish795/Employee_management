@@ -12,6 +12,7 @@ export function Topbar() {
   const clearSession = useAuthStore((state) => state.clearSession);
   const accessToken = useAuthStore((state) => state.accessToken);
   const role = useAuthStore((state) => state.role);
+  const photoUrl = useAuthStore((state) => state.photoUrl);
 
   let userEmail = "User";
   if (accessToken) {
@@ -75,10 +76,10 @@ export function Topbar() {
 
   return (
     // pl-14 on mobile to leave room for the fixed hamburger button (lg:pl-8 resets it)
-    <header className="h-14 sm:h-[72px] pl-14 lg:pl-8 pr-4 sm:pr-8 flex items-center justify-between border-b border-slate-200 bg-white sticky top-0 z-10">
+    <header className="h-14 sm:h-[72px] pl-14 lg:pl-8 pr-4 sm:pr-8 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 sticky top-0 z-40 transition-colors">
       {/* Search Bar — hidden on very small screens, visible from sm: */}
       <div className="hidden sm:flex flex-1 max-w-2xl">
-        <div className="relative flex items-center w-full h-10 rounded-lg bg-slate-100/80 px-3 text-slate-500 focus-within:ring-2 focus-within:ring-slate-900/20 focus-within:bg-white transition-all">
+        <div className="relative flex items-center w-full h-10 rounded-lg bg-slate-100/80 dark:bg-slate-900/80 px-3 text-slate-500 dark:text-slate-400 focus-within:ring-2 focus-within:ring-slate-900/20 dark:focus-within:ring-slate-100/20 focus-within:bg-white dark:focus-within:bg-slate-900 transition-all">
           <Search className="w-4 h-4 mr-2.5 flex-shrink-0" />
           <input
             type="text"
@@ -86,31 +87,31 @@ export function Topbar() {
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleSearch}
             placeholder="Search employees, reports, or modules..."
-            className="w-full h-full bg-transparent border-none text-sm font-medium placeholder:text-slate-400 focus:outline-none"
+            className="w-full h-full bg-transparent border-none text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none"
           />
         </div>
       </div>
 
       {/* Mobile: show only icon search button */}
       <div className="flex sm:hidden items-center">
-        <button className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors">
+        <button className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
           <Search className="w-5 h-5" />
         </button>
       </div>
 
       {/* Right Actions */}
       <div className="flex items-center gap-3 sm:gap-6 ml-auto">
-        <div className="flex items-center gap-2 sm:gap-4 text-slate-600">
-          <button onClick={() => {}} className="hover:text-slate-900 transition-colors focus:outline-none">
+        <div className="flex items-center gap-2 sm:gap-4 text-slate-600 dark:text-slate-400">
+          <button onClick={() => {}} className="hover:text-slate-900 dark:hover:text-white transition-colors focus:outline-none">
             <Bell className="w-5 h-5" />
           </button>
-          <button onClick={() => {}} className="hidden sm:block hover:text-slate-900 transition-colors focus:outline-none">
+          <button onClick={() => {}} className="hidden sm:block hover:text-slate-900 dark:hover:text-white transition-colors focus:outline-none">
             <HelpCircle className="w-5 h-5" />
           </button>
         </div>
 
         {/* Divider */}
-        <div className="w-px h-8 bg-slate-200" />
+        <div className="w-px h-8 bg-slate-200 dark:bg-slate-800 transition-colors" />
 
         {/* Profile with Dropdown */}
         <div className="relative" ref={dropdownRef}>
@@ -120,30 +121,37 @@ export function Topbar() {
           >
             {/* Hide text name on mobile, show only avatar */}
             <div className="hidden sm:flex text-right flex-col">
-              <span className="text-sm font-bold text-slate-900 leading-tight">{userEmail}</span>
-              <span className="text-[11px] font-semibold tracking-wide text-slate-500">{role || 'Employee'}</span>
+              <span className="text-sm font-bold text-slate-900 dark:text-white leading-tight">{userEmail}</span>
+              <span className="text-[11px] font-semibold tracking-wide text-slate-500 dark:text-slate-400">{role || 'Employee'}</span>
             </div>
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-200 overflow-hidden flex-shrink-0 border border-slate-200 shadow-sm flex items-center justify-center text-slate-700 font-bold text-sm uppercase">
-              {userEmail.charAt(0)}
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-700 dark:text-slate-300 font-bold text-sm uppercase transition-colors">
+              {photoUrl ? (
+                <img src={photoUrl} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                userEmail.charAt(0)
+              )}
             </div>
           </div>
 
           {/* Dropdown Menu */}
           {isDropdownOpen && (
-            <div className="absolute right-0 mt-3 w-48 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="absolute right-0 mt-3 w-48 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
               <button 
-                onClick={() => setIsDropdownOpen(false)} 
-                className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-2 transition-colors"
+                onClick={() => {
+                  setIsDropdownOpen(false);
+                  router.push('/profile/settings');
+                }} 
+                className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-white flex items-center gap-2 transition-colors"
               >
-                <User className="w-4 h-4 text-slate-400" />
+                <User className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                 Profile Settings
               </button>
-              <div className="h-px bg-slate-100 my-1" />
+              <div className="h-px bg-slate-100 dark:bg-slate-800 my-1 transition-colors" />
               <button 
                 onClick={handleLogout} 
-                className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center gap-2 transition-colors"
               >
-                <LogOut className="w-4 h-4 text-red-500" />
+                <LogOut className="w-4 h-4 text-red-500 dark:text-red-400" />
                 Logout
               </button>
             </div>
@@ -153,4 +161,3 @@ export function Topbar() {
     </header>
   );
 }
-

@@ -49,7 +49,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isPrivileged = ['CEO', 'COO', 'CTO', 'CFO', 'HR', 'SUPER_ADMIN', 'FINANCE', 'MANAGER', 'IT'].includes(activeRole);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 font-sans">
+    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-900 font-sans transition-colors">
       {isPrivileged ? <CeoSidebar /> : <EmployeeSidebar />}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <Topbar />

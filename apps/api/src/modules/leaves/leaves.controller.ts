@@ -44,4 +44,9 @@ export class LeavesController {
   getCalendar(): Promise<unknown> {
     return this.leaveService.getCalendar();
   }
+
+  @Get('cto')
+  getCtoLeaves(): Promise<unknown> {
+    return this.leaveService.getCtoLeaves();
+  }
 }
