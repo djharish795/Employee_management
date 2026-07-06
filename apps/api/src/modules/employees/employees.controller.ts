@@ -63,6 +63,11 @@ export class EmployeesController {
     return this.employeesService.getEmployees(params);
   }
 
+  @Get("cto-team")
+  getCtoTeam(): Promise<any> {
+    return this.employeesService.getCtoTeam();
+  }
+
   @Get(":id")
   @Permissions(Permission.READ_EMPLOYEES, Permission.READ_TEAM_PROFILES, Permission.READ_OWN_PROFILE)
   getEmployeeById(@Param("id") id: string, @CurrentUser() user: any): Promise<Employee> {

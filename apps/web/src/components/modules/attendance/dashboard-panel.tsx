@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Play, Square, Coffee, ShieldAlert, CheckCircle2, Clock, Calendar, ArrowRight, UserCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { AttendanceLog, AttendanceKPIs } from "@/types/attendance";
-import { fetchTodayStatus, fetchMyLogs, fetchMyKpis, submitPunch } from "@/lib/api/attendance";
+import { fetchTodayStatus, fetchMyLogs, fetchMyKpis, submitPunch, fetchRegularizations, actionRegularization } from "@/lib/api/attendance";
 
 interface DashboardPanelProps {
   activeRole: "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
@@ -24,6 +24,25 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
   const { data: kpis } = useQuery<AttendanceKPIs>({
     queryKey: ["attendanceKpis"],
     queryFn: fetchMyKpis,
+  });
+
+  // Fetch Regularization Requests for Team Approvals
+  const { data: regularizations = [], refetch: refetchRegs } = useQuery({
+    queryKey: ["attendanceRegularizations"],
+    queryFn: fetchRegularizations,
+  });
+
+  const pendingRequests = regularizations.filter(req => 
+    (activeRole === "MANAGER" && req.managerStatus === "PENDING") ||
+    ((activeRole === "HR" || activeRole === "ADMIN") && req.hrStatus === "PENDING")
+  );
+
+  const actionMutation = useMutation({
+    mutationFn: (args: { id: string, action: "APPROVE" | "REJECT", approver: "MANAGER" | "HR" }) => 
+      actionRegularization(args.id, args.action, args.approver),
+    onSuccess: () => {
+      refetchRegs();
+    },
   });
 
   // Fetch Today's Shift Status from Redis Backend
@@ -550,10 +569,12 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
               </thead>
               <tbody className="text-xs font-medium text-slate-600 divide-y divide-slate-100">
                 {logs.slice(0, 4).map((log, idx) => {
-                  let badge = "text-slate-600 bg-slate-100";
+                  let badge = "text-slate-600 bg-slate-100 border border-slate-200";
                   if (log.status === "PRESENT") badge = "text-emerald-700 bg-emerald-50 border border-emerald-100";
                   else if (log.status === "LATE") badge = "text-amber-700 bg-amber-50 border border-amber-100";
-                  else if (log.status === "EARLY_CHECKOUT") badge = "text-orange-700 bg-orange-50 border border-orange-100";
+                  else if (log.status === "EARLY_CHECKOUT") badge = "text-orange-500 bg-orange-50 border border-orange-100";
+                  else if (log.status === "ABSENT") badge = "text-rose-700 bg-rose-50 border border-rose-100";
+                  else if (log.status === "ON_LEAVE") badge = "text-purple-700 bg-purple-50 border border-purple-100";
                   else if (log.status === "WFH") badge = "text-slate-900 bg-slate-100 border border-slate-200";
 
                   const formattedDate = new Date(log.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
@@ -647,27 +668,30 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                   const dateStr = new Date(year, month, day).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
                   const dayLog = logs.find((l: any) => new Date(l.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) === dateStr);
                   
-                  let dot = null;
+                  let bgClass = "bg-transparent text-slate-700 hover:bg-slate-100";
                   if (dayLog) {
-                    if (dayLog.status === "PRESENT") dot = <div className="w-1 h-1 bg-emerald-500 rounded-full mx-auto mt-0.5" />;
-                    else if (dayLog.status === "LATE") dot = <div className="w-1 h-1 bg-amber-500 rounded-full mx-auto mt-0.5" />;
-                    else if (dayLog.status === "EARLY_CHECKOUT") dot = <div className="w-1 h-1 bg-orange-500 rounded-full mx-auto mt-0.5" />;
-                    else if (dayLog.status === "ABSENT") dot = <div className="w-1 h-1 bg-rose-500 rounded-full mx-auto mt-0.5" />;
-                    else if (dayLog.status === "WFH") dot = <div className="w-1 h-1 bg-slate-700 rounded-full mx-auto mt-0.5" />;
+                    if (dayLog.status === "PRESENT") bgClass = "bg-emerald-100 text-emerald-700 font-bold hover:bg-emerald-200";
+                    else if (dayLog.status === "LATE") bgClass = "bg-amber-100 text-amber-700 font-bold hover:bg-amber-200";
+                    else if (dayLog.status === "EARLY_CHECKOUT") bgClass = "bg-orange-100 text-orange-500 font-bold hover:bg-orange-200";
+                    else if (dayLog.status === "ABSENT") bgClass = "border border-rose-300 text-rose-600 font-bold hover:bg-rose-50";
+                    else if (dayLog.status === "ON_LEAVE") bgClass = "bg-purple-100 text-purple-700 font-bold hover:bg-purple-200";
+                    else if (dayLog.status === "WFH") bgClass = "bg-slate-200 text-slate-700 font-bold hover:bg-slate-300";
                   }
 
                   const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
+                  if (isToday) {
+                    bgClass = "bg-slate-900 text-white font-bold shadow-sm ring-2 ring-slate-200 ring-offset-1 hover:bg-slate-800";
+                  }
 
                   cells.push(
                     <div
                       key={`day-${day}`}
                       title={dayLog ? `${dayLog.status}: ${typeof dayLog.hoursWorked === 'number' ? dayLog.hoursWorked.toFixed(1) : dayLog.hoursWorked}h` : "No Record"}
-                      className={`p-1.5 rounded relative hover:bg-slate-50 cursor-pointer ${
-                        isToday ? "bg-slate-900 text-white hover:bg-slate-900" : ""
-                      }`}
+                      className="flex items-center justify-center p-1 cursor-pointer"
                     >
-                      {day}
-                      {!isToday && dot}
+                      <div className={`w-6 h-6 flex items-center justify-center rounded-full transition-colors ${bgClass}`}>
+                        {day}
+                      </div>
                     </div>
                   );
                 }
@@ -688,30 +712,44 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-sm">
               <div className="flex justify-between items-center mb-3">
                 <h3 className="text-sm font-bold text-slate-900">Team Approvals</h3>
-                <span className="px-2 py-0.5 bg-slate-900 text-white text-[9px] font-bold rounded">2 Pending</span>
+                <span className="px-2 py-0.5 bg-slate-900 text-white text-[9px] font-bold rounded">{pendingRequests.length} Pending</span>
               </div>
               <p className="text-xs font-semibold text-slate-400 mb-4">Awaiting manager authorizations</p>
 
               <div className="space-y-3">
-                <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm flex flex-col gap-2.5">
-                  <div className="flex gap-2.5 items-start">
-                    <div className="w-8 h-8 rounded-full bg-slate-200 overflow-hidden flex-shrink-0">
-                      <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Linda" alt="Linda" className="w-full h-full object-cover" />
+                {pendingRequests.length === 0 ? (
+                  <div className="text-center text-xs font-semibold text-slate-400 py-4">No pending approvals</div>
+                ) : (
+                  pendingRequests.slice(0, 3).map((req) => (
+                    <div key={req.id} className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm flex flex-col gap-2.5">
+                      <div className="flex gap-2.5 items-start">
+                        <div className="w-8 h-8 rounded-full bg-slate-200 overflow-hidden flex-shrink-0">
+                          <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${req.employeeName || req.id}`} alt="Avatar" className="w-full h-full object-cover" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-slate-900">{req.employeeName || "Unknown"}</div>
+                          <div className="text-[10px] font-semibold text-slate-400 mt-0.5">{req.attendanceDate} • {req.correctionType.replace("_", " ")}</div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => actionMutation.mutate({ id: req.id, action: "REJECT", approver: activeRole === "MANAGER" ? "MANAGER" : "HR" })}
+                          disabled={actionMutation.isPending}
+                          className="flex-1 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-600 text-[10px] font-bold rounded-md transition-colors"
+                        >
+                          Reject
+                        </button>
+                        <button 
+                          onClick={() => actionMutation.mutate({ id: req.id, action: "APPROVE", approver: activeRole === "MANAGER" ? "MANAGER" : "HR" })}
+                          disabled={actionMutation.isPending}
+                          className="flex-1 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-bold rounded-md transition-colors"
+                        >
+                          Approve
+                        </button>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-xs font-bold text-slate-900">Linda Chen</div>
-                      <div className="text-[10px] font-semibold text-slate-400 mt-0.5">14 Jun • Missing Out Punch</div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button className="flex-1 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-600 text-[10px] font-bold rounded-md transition-colors">
-                      Reject
-                    </button>
-                    <button className="flex-1 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-bold rounded-md transition-colors">
-                      Approve
-                    </button>
-                  </div>
-                </div>
+                  ))
+                )}
               </div>
             </div>
           )}

@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import { AttendanceLog, AttendanceKPIs, OrgReportsResponse } from "@/types/attendance";
+import { AttendanceLog, AttendanceKPIs, OrgReportsResponse, RegularizationRequest } from "@/types/attendance";
 
 export const fetchTodayStatus = async (): Promise<{ state: "IN" | "BREAK" | "OUT", startTime: number, offset: number }> => {
   const { data } = await apiClient.get("/attendance/today");
@@ -24,5 +24,33 @@ export const submitPunch = async (action: "IN" | "BREAK" | "OUT"): Promise<{ sta
 
 export const fetchOrgReports = async (): Promise<OrgReportsResponse> => {
   const { data } = await apiClient.get("/attendance/org-reports");
+  return data;
+};
+
+export const fetchSummaryToday = async (date?: string, departmentId?: string): Promise<any> => {
+  const params = new URLSearchParams();
+  if (date) params.append("date", date);
+  if (departmentId && departmentId !== 'all') params.append("departmentId", departmentId);
+  const { data } = await apiClient.get(`/attendance/summary-today?${params.toString()}`);
+  return data;
+};
+
+export const fetchAllLogs = async (page = 1, limit = 500): Promise<AttendanceLog[]> => {
+  const { data } = await apiClient.get(`/attendance/all-logs?page=${page}&limit=${limit}`);
+  return data.data;
+};
+
+export const fetchRegularizations = async (): Promise<RegularizationRequest[]> => {
+  const { data } = await apiClient.get("/attendance/regularizations");
+  return data;
+};
+
+export const submitRegularization = async (payload: Partial<RegularizationRequest>): Promise<RegularizationRequest> => {
+  const { data } = await apiClient.post("/attendance/regularize", payload);
+  return data;
+};
+
+export const actionRegularization = async (id: string, action: "APPROVE" | "REJECT", approver: "MANAGER" | "HR"): Promise<RegularizationRequest> => {
+  const { data } = await apiClient.patch(`/attendance/regularizations/${id}/action`, { action, approver });
   return data;
 };

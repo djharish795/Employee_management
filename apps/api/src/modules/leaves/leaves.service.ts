@@ -507,4 +507,28 @@ export class LeavesService {
       }
     });
   }
+
+  async getCtoLeaves(): Promise<unknown> {
+    const leaveRequests = await this.prisma.leaveRequest.findMany({
+      include: {
+        employee: { include: { department: true, designation: true } },
+        leaveType: true
+      },
+      orderBy: { appliedAt: 'desc' }
+    });
+
+    return leaveRequests.map(r => ({
+      id: r.id,
+      employeeName: `${r.employee.firstName} ${r.employee.lastName}`,
+      employeeInitials: `${r.employee.firstName.charAt(0)}${r.employee.lastName.charAt(0)}`,
+      employeeRole: r.employee.designation?.title || 'Engineer',
+      department: r.employee.department?.name || 'Engineering',
+      type: r.leaveType.name,
+      dateRange: `${r.startDate.toISOString().split('T')[0]} - ${r.endDate.toISOString().split('T')[0]}`,
+      days: Number(r.totalDays),
+      reason: r.reason,
+      status: r.status,
+      balanceAfterApproval: 12 // mock balance
+    }));
+  }
 }

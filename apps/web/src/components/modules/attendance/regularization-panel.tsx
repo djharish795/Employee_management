@@ -9,31 +9,7 @@ interface RegularizationPanelProps {
   activeRole: "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
 }
 
-const INITIAL_REQUESTS: RegularizationRequest[] = [
-  {
-    id: "REG-101",
-    attendanceDate: "14 Jun 2026",
-    reason: "Forgot to punch out when leaving for off-site customer deployment.",
-    correctionType: "MISSING_PUNCH",
-    attachmentName: "deployment_log.pdf",
-    managerStatus: "PENDING",
-    hrStatus: "PENDING",
-    submittedDate: "14 Jun 2026",
-    comments: "Direct manager review required",
-  },
-  {
-    id: "REG-102",
-    attendanceDate: "10 Jun 2026",
-    reason: "Late check-in due to office client VPN connectivity issues.",
-    correctionType: "INCORRECT_TIME",
-    managerStatus: "APPROVED",
-    hrStatus: "APPROVED",
-    submittedDate: "10 Jun 2026",
-    comments: "Approved by Pradeep Chandra (CEO)",
-  },
-];
-
-const LOCAL_REGS_KEY = "naprocs_attendance_regularizations";
+import { fetchRegularizations, submitRegularization, actionRegularization } from "@/lib/api/attendance";
 
 export default function RegularizationPanel({ activeRole }: RegularizationPanelProps) {
   const queryClient = useQueryClient();
@@ -48,18 +24,9 @@ export default function RegularizationPanel({ activeRole }: RegularizationPanelP
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const fetchRequests = async (): Promise<RegularizationRequest[]> => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(LOCAL_REGS_KEY);
-      if (saved) return JSON.parse(saved);
-      localStorage.setItem(LOCAL_REGS_KEY, JSON.stringify(INITIAL_REQUESTS));
-    }
-    return INITIAL_REQUESTS;
-  };
-
   const { data: requests = [], refetch } = useQuery<RegularizationRequest[]>({
     queryKey: ["attendanceRegularizations"],
-    queryFn: fetchRequests,
+    queryFn: fetchRegularizations,
   });
 
   // Calculate requests based on role scope
@@ -69,15 +36,17 @@ export default function RegularizationPanel({ activeRole }: RegularizationPanelP
   }, [requests]);
 
   // Mutations
-  const updateRequestsMutation = useMutation({
-    mutationFn: async (updatedList: RegularizationRequest[]) => {
-      if (typeof window !== "undefined") {
-        localStorage.setItem(LOCAL_REGS_KEY, JSON.stringify(updatedList));
-      }
-      return updatedList;
+  const submitMutation = useMutation({
+    mutationFn: submitRegularization,
+    onSuccess: () => {
+      refetch();
     },
-    onSuccess: (data) => {
-      queryClient.setQueryData(["attendanceRegularizations"], data);
+  });
+
+  const actionMutation = useMutation({
+    mutationFn: (args: { id: string, action: "APPROVE" | "REJECT", approver: "MANAGER" | "HR" }) => 
+      actionRegularization(args.id, args.action, args.approver),
+    onSuccess: () => {
       refetch();
     },
   });
@@ -86,18 +55,12 @@ export default function RegularizationPanel({ activeRole }: RegularizationPanelP
     e.preventDefault();
     if (!reqDate || !reqReason) return;
 
-    const newReq: RegularizationRequest = {
-      id: `REG-${Math.floor(100 + Math.random() * 900)}`,
-      attendanceDate: new Date(reqDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+    submitMutation.mutate({
+      attendanceDate: reqDate, // API will parse this
       reason: reqReason,
       correctionType: reqType,
       attachmentName: fileName || undefined,
-      managerStatus: "PENDING",
-      hrStatus: "PENDING",
-      submittedDate: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
-    };
-
-    updateRequestsMutation.mutate([newReq, ...requests]);
+    });
 
     // Reset Form
     setReqDate("");
@@ -108,23 +71,12 @@ export default function RegularizationPanel({ activeRole }: RegularizationPanelP
   };
 
   const handleActionRequest = (id: string, action: "APPROVE" | "REJECT", approver: "MANAGER" | "HR") => {
-    const updated = requests.map((req) => {
-      if (req.id === id) {
-        const statusVal = action === "APPROVE" ? ("APPROVED" as const) : ("REJECTED" as const);
-        if (approver === "MANAGER") {
-          return { ...req, managerStatus: statusVal, comments: `Actioned by Manager (${action})` };
-        } else {
-          return { ...req, hrStatus: statusVal, comments: `Actioned by HR (${action})` };
-        }
-      }
-      return req;
-    });
-    updateRequestsMutation.mutate(updated);
+    actionMutation.mutate({ id, action, approver });
   };
 
   const handleDeleteRequest = (id: string) => {
-    const updated = requests.filter((req) => req.id !== id);
-    updateRequestsMutation.mutate(updated);
+    // No delete implemented in backend for now, you can just ignore or add if needed
+    console.warn("Delete not supported yet", id);
   };
 
   return (
@@ -163,11 +115,16 @@ export default function RegularizationPanel({ activeRole }: RegularizationPanelP
                     <div key={req.id} className="p-5 flex flex-col sm:flex-row justify-between items-start gap-4 hover:bg-slate-50/20 transition-colors">
                       <div className="space-y-1.5 flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[10px] font-mono font-bold text-slate-400">{req.id}</span>
+                          <span className="text-[10px] font-mono font-bold text-slate-400">
+                            {req.id.slice(-6).toUpperCase()}
+                          </span>
                           <span className="text-[10px] font-bold text-slate-900 uppercase bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
                             {req.correctionType.replace("_", " ")}
                           </span>
-                          <span className="text-xs font-bold text-slate-900">For Date: {req.attendanceDate}</span>
+                          <span className="text-xs font-bold text-slate-900">
+                            {req.employeeName ? `${req.employeeName} • ` : ""}
+                            Date: {req.attendanceDate}
+                          </span>
                         </div>
                         <p className="text-xs text-slate-600 leading-normal font-semibold max-w-xl pr-4">
                           {req.reason}

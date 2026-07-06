@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, Filter, Download, ArrowUpDown, Calendar, RefreshCcw } from "lucide-react";
 import { AttendanceLog } from "@/types/attendance";
 
-import { fetchMyLogs } from "@/lib/api/attendance";
+import { fetchMyLogs, fetchAllLogs } from "@/lib/api/attendance";
 
 interface HistoryPanelProps {
   activeRole: "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
@@ -16,9 +16,11 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
   const [filterStatus, setFilterStatus] = useState("");
   const [filterSearch, setFilterSearch] = useState("");
 
+  const isAdminOrHR = activeRole === "ADMIN" || activeRole === "HR";
+  
   const { data: rawLogs = [], isLoading } = useQuery<AttendanceLog[]>({
-    queryKey: ["attendanceLogs"],
-    queryFn: fetchMyLogs,
+    queryKey: ["attendanceLogs", isAdminOrHR ? "all" : "my"],
+    queryFn: () => isAdminOrHR ? fetchAllLogs(1, 500) : fetchMyLogs(),
   });
 
   const logs = useMemo(() => {
@@ -68,15 +70,24 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
     if (filteredLogs.length === 0) return;
     
     // Header
-    const headers = ["Date", "Check In", "Check Out", "Hours Worked", "Status", "Remarks"];
-    const rows = filteredLogs.map((log) => [
-      log.displayDate,
-      log.displayCheckIn,
-      log.displayCheckOut,
-      log.displayHours,
-      log.status,
-      `"${log.remarks}"`,
-    ]);
+    const headers = isAdminOrHR 
+      ? ["Employee", "Date", "Check In", "Check Out", "Hours Worked", "Status", "Remarks"]
+      : ["Date", "Check In", "Check Out", "Hours Worked", "Status", "Remarks"];
+      
+    const rows = filteredLogs.map((log) => {
+      const row = [
+        log.displayDate,
+        log.displayCheckIn,
+        log.displayCheckOut,
+        log.displayHours,
+        log.status,
+        `"${log.remarks}"`,
+      ];
+      if (isAdminOrHR) {
+        row.unshift(`"${(log as any).employeeName || 'Unknown'}"`);
+      }
+      return row;
+    });
 
     const csvContent =
       "data:text/csv;charset=utf-8," +
@@ -183,7 +194,8 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200">
+                <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider text-left">
+                  {isAdminOrHR && <th className="px-6 py-4">Employee</th>}
                   <th className="px-6 py-4">Date</th>
                   <th className="px-6 py-4">Check In</th>
                   <th className="px-6 py-4">Check Out</th>
@@ -193,17 +205,24 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
                 </tr>
               </thead>
               <tbody className="text-xs font-semibold text-slate-700 divide-y divide-slate-100">
-                {paginatedLogs.map((log, index) => {
+                {paginatedLogs.map((log, idx) => {
                   let badge = "text-slate-600 bg-slate-100";
                   if (log.status === "PRESENT") badge = "text-emerald-700 bg-emerald-50 border border-emerald-200/50";
                   else if (log.status === "LATE") badge = "text-amber-700 bg-amber-50 border border-amber-200/50";
-                  else if (log.status === "EARLY_CHECKOUT") badge = "text-orange-700 bg-orange-50 border border-orange-200/50";
+                  else if (log.status === "EARLY_CHECKOUT") badge = "text-orange-500 bg-orange-50 border border-orange-200/50";
                   else if (log.status === "WFH") badge = "text-slate-900 bg-slate-100 border border-slate-300/50";
                   else if (log.status === "ABSENT") badge = "text-rose-700 bg-rose-50 border border-rose-200/50";
 
                   return (
-                    <tr key={index} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-6 py-4 font-bold text-slate-900">{log.displayDate}</td>
+                    <tr key={(log as any).id || idx} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                      {isAdminOrHR && (
+                        <td className="px-6 py-4 font-bold text-slate-900">
+                          {(log as any).employeeName || "Unknown"}
+                        </td>
+                      )}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="font-bold text-slate-900">{log.displayDate}</div>
+                      </td>
                       <td className="px-6 py-4 font-mono text-slate-500">{log.displayCheckIn}</td>
                       <td className="px-6 py-4 font-mono text-slate-500">{log.displayCheckOut}</td>
                       <td className="px-6 py-4 font-bold text-slate-900">{log.displayHours}</td>

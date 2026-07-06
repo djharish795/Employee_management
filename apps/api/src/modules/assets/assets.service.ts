@@ -83,4 +83,9 @@ export class AssetsService {
 
     return this.assetsRepository.getLifecycleTrends(startDate, endDate, interval);
   }
+
+  async getCtoAssets(role: UserRole): Promise<any> {
+    this.validateKPIRole(role); // Using KPIRole validation for CTO
+    return this.assetsRepository.getCtoAssets();
+  }
 }

@@ -64,7 +64,7 @@ export class DashboardService {
 
   async getHrOverview() {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setUTCHours(0, 0, 0, 0);
 
     const totalHeadcount = await this.prisma.employee.count({ where: { status: 'ACTIVE' } });
     const newJoins = await this.prisma.employee.count({
@@ -166,6 +166,105 @@ export class DashboardService {
         progress: [60, 40, 20][i % 3],
         pendingTask: ['IT Asset Allocation', 'Bank Account Verification', 'ID Card Printing'][i % 3],
       }))
+    };
+  }
+
+  async getCtoOverview() {
+    const allDepts = await this.prisma.department.findMany({
+      include: { head: true }
+    });
+
+    const activeEmployees = await this.prisma.employee.findMany({
+      where: { status: 'ACTIVE' },
+      include: { department: true }
+    });
+    const headcount = activeEmployees.length;
+
+    let companyTotalTenure = 0;
+    const now = new Date();
+    let newJoinsThisMonth = 0;
+    activeEmployees.forEach(e => {
+      if (e.joiningDate) {
+        const years = (now.getTime() - e.joiningDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+        companyTotalTenure += Math.max(0, years);
+        if (e.joiningDate >= new Date(now.getFullYear(), now.getMonth(), 1)) {
+          newJoinsThisMonth++;
+        }
+      }
+    });
+    const avgTenure = headcount > 0 ? Number((companyTotalTenure / headcount).toFixed(1)) : 0;
+    const headcountGrowth = headcount > 0 ? Math.round((newJoinsThisMonth / headcount) * 100) : 0;
+
+    const assetsAllocated = await this.prisma.assetAssignment.count();
+
+    const openJobs = await this.prisma.job.findMany({
+      where: { status: 'OPEN' }
+    });
+    const openPositions = openJobs.reduce((acc, job) => acc + (job.openPositions - job.filledPositions), 0);
+
+    const deptCounts: Record<string, number> = {};
+    activeEmployees.forEach(e => {
+      const deptName = e.department?.name || 'Unassigned';
+      deptCounts[deptName] = (deptCounts[deptName] || 0) + 1;
+    });
+
+    const orgBreakdown = Object.keys(deptCounts).map(name => ({
+      name,
+      count: deptCounts[name],
+      total: headcount || 1
+    })).sort((a, b) => b.count - a.count);
+
+    const recentAssetsRaw = await this.prisma.assetAssignment.findMany({
+      orderBy: { assignedAt: 'desc' },
+      take: 5,
+      include: { employee: true, asset: true }
+    });
+    const recentAssets = recentAssetsRaw.map(a => ({
+      id: a.id,
+      employeeName: `${a.employee.firstName} ${a.employee.lastName}`,
+      assetName: a.asset.brand || 'Asset',
+      status: 'ALLOCATED'
+    }));
+
+    const techTeams = allDepts.map(d => {
+      const deptEmployees = activeEmployees.filter(e => e.departmentId === d.id);
+      const members = deptEmployees.length;
+
+      let totalTenure = 0;
+      deptEmployees.forEach(e => {
+        if (e.joiningDate) {
+          const years = (now.getTime() - e.joiningDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+          totalTenure += Math.max(0, years);
+        }
+      });
+      const avgExperience = members > 0 ? Number((totalTenure / members).toFixed(1)) : 0;
+
+      const deptJobs = openJobs.filter(j => j.departmentId === d.id);
+      const openRoles = deptJobs.reduce((acc, job) => acc + (job.openPositions - job.filledPositions), 0);
+
+      return {
+        id: d.id,
+        name: d.name,
+        leadName: d.head ? `${d.head.firstName} ${d.head.lastName}` : 'TBD',
+        leadInitials: d.head ? `${d.head.firstName.charAt(0)}${d.head.lastName.charAt(0)}` : '?',
+        members,
+        avgExperience,
+        openRoles
+      };
+    });
+
+    return {
+      metrics: {
+        headcount,
+        headcountGrowth,
+        assetsAllocated,
+        openPositions,
+        avgTenure,
+        industryAvgTenure: 1.8
+      },
+      orgBreakdown,
+      recentAssets,
+      techTeams
     };
   }
 }

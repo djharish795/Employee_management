@@ -14,4 +14,9 @@ export class DashboardController {
   getHrOverview() {
     return this.dashboardService.getHrOverview();
   }
+
+  @Get("cto-overview")
+  getCtoOverview() {
+    return this.dashboardService.getCtoOverview();
+  }
 }

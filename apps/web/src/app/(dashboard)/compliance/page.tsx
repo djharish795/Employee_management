@@ -35,10 +35,10 @@ export default function ComplianceDashboardPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   return (
-    <div className="flex flex-col h-full font-sans bg-slate-50 overflow-y-auto">
+    <div className="flex flex-col min-h-full font-sans bg-slate-50">
       
       {/* Header section */}
-      <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between shadow-sm">
+      <div className="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-slate-900 font-bold text-lg tracking-tight">
             Compliance
@@ -56,13 +56,6 @@ export default function ComplianceDashboardPage() {
               placeholder="Search data records..." 
               className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-900 focus:bg-white transition-colors"
             />
-          </div>
-          <button className="text-slate-400 hover:text-slate-900 transition-colors">
-            <Bell className="w-5 h-5" />
-          </button>
-          <div className="flex items-center gap-2 cursor-pointer group">
-            <div className="w-8 h-8 bg-slate-900 text-white rounded-full flex items-center justify-center font-bold text-xs shadow-sm">TK</div>
-            <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900 transition-colors hidden md:block">TK</span>
           </div>
         </div>
       </div>

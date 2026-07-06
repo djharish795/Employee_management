@@ -21,6 +21,7 @@ import { OnboardingModule } from "./modules/onboarding/onboarding.module";
 import { ConnectModule } from "./modules/connect/connect.module";
 import { TasksModule } from "./modules/tasks/tasks.module";
 import { WorkflowsModule } from "./modules/workflows/workflows.module";
+import { ProfileModule } from "./modules/profile/profile.module";
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { WorkflowsModule } from "./modules/workflows/workflows.module";
     ConnectModule,
     TasksModule,
     WorkflowsModule,
+    ProfileModule,
   ],
 })
 export class AppModule { }

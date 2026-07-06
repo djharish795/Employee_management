@@ -44,13 +44,13 @@ export function EmployeeSidebar() {
       <div className={`p-5 pb-4 flex items-center ${collapsed ? 'justify-center px-3' : 'justify-between'}`}>
         {!collapsed && (
           <div>
-            <h2 className="text-base font-bold text-slate-900 tracking-tight leading-snug">Naprocs EMS</h2>
-            <p className="text-[11px] text-slate-500 font-medium tracking-wide mt-0.5">Employee Dashboard</p>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight leading-snug">Naprocs EMS</h2>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-wide mt-0.5">Employee Dashboard</p>
           </div>
         )}
         <button
           onClick={() => setCollapsed(c => !c)}
-          className="hidden lg:flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors flex-shrink-0"
+          className="hidden lg:flex items-center justify-center w-7 h-7 rounded-md text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300 transition-colors flex-shrink-0"
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           <ChevronLeft className={`w-4 h-4 transition-transform duration-200 ${collapsed ? 'rotate-180' : ''}`} />
@@ -60,7 +60,7 @@ export function EmployeeSidebar() {
       {/* Quick Action */}
       {!collapsed && (
         <div className="px-4 pb-5">
-          <button className="w-full bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm">
+          <button className="w-full bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm">
             <Plus className="w-4 h-4" />
             <span>New Request</span>
           </button>
@@ -68,7 +68,7 @@ export function EmployeeSidebar() {
       )}
       {collapsed && (
         <div className="px-3 pb-5">
-          <button className="w-full bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center py-2.5 rounded-lg transition-colors shadow-sm" title="New Request">
+          <button className="w-full bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white flex items-center justify-center py-2.5 rounded-lg transition-colors shadow-sm" title="New Request">
             <Plus className="w-4 h-4" />
           </button>
         </div>
@@ -88,11 +88,11 @@ export function EmployeeSidebar() {
                 collapsed ? 'justify-center' : ''
               } ${
                 isActive
-                  ? 'bg-slate-100 text-slate-900 font-semibold'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-900 dark:text-white font-semibold'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <item.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-slate-900' : 'text-slate-400'}`} />
+              <item.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`} />
               {!collapsed && item.title}
             </Link>
           );
@@ -100,13 +100,13 @@ export function EmployeeSidebar() {
       </nav>
 
       {/* Logout Footer */}
-      <div className={`p-4 mt-auto border-t border-slate-100 ${collapsed ? 'px-2' : ''}`}>
+      <div className={`p-4 mt-auto border-t border-slate-100 dark:border-slate-800 ${collapsed ? 'px-2' : ''}`}>
         <button
           onClick={handleLogout}
           title={collapsed ? 'Logout' : undefined}
-          className={`flex items-center gap-3 px-3 py-2.5 w-full text-left rounded-lg text-sm font-medium text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors ${collapsed ? 'justify-center' : ''}`}
+          className={`flex items-center gap-3 px-3 py-2.5 w-full text-left rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-600 dark:hover:text-red-400 transition-colors ${collapsed ? 'justify-center' : ''}`}
         >
-          <LogOut className="w-4 h-4 text-slate-400 flex-shrink-0" />
+          <LogOut className="w-4 h-4 text-slate-400 dark:text-slate-500 flex-shrink-0" />
           {!collapsed && 'Logout'}
         </button>
       </div>
@@ -115,7 +115,7 @@ export function EmployeeSidebar() {
 
   if (!mounted) {
     return (
-      <aside className="hidden lg:flex flex-col flex-shrink-0 bg-white h-screen border-r border-slate-200 overflow-hidden w-[240px]" />
+      <aside className="hidden lg:flex flex-col flex-shrink-0 bg-white dark:bg-slate-950 h-screen border-r border-slate-200 dark:border-slate-800 overflow-hidden w-[240px] transition-colors" />
     );
   }
 
@@ -124,7 +124,7 @@ export function EmployeeSidebar() {
       {/* Mobile Toggle */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="lg:hidden fixed top-3.5 left-4 z-50 p-2 bg-white border border-slate-200 rounded-lg shadow-sm text-slate-700 hover:bg-slate-50 transition-colors"
+        className="lg:hidden fixed top-3.5 left-4 z-50 p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
         aria-label="Open menu"
       >
         <Menu className="w-5 h-5" />
@@ -140,13 +140,13 @@ export function EmployeeSidebar() {
 
       {/* Mobile Drawer */}
       <aside
-        className={`lg:hidden fixed top-0 left-0 h-full w-72 bg-white z-50 flex flex-col border-r border-slate-200 shadow-xl transition-transform duration-300 ease-in-out ${
+        className={`lg:hidden fixed top-0 left-0 h-full w-72 bg-white dark:bg-slate-950 z-50 flex flex-col border-r border-slate-200 dark:border-slate-800 shadow-xl transition-transform duration-300 ease-in-out ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between p-4 border-b border-slate-100">
-          <h2 className="text-base font-bold text-slate-900">Naprocs Employee</h2>
-          <button onClick={() => setMobileOpen(false)} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
+        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white">Naprocs Employee</h2>
+          <button onClick={() => setMobileOpen(false)} className="p-1.5 rounded-md text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -157,7 +157,7 @@ export function EmployeeSidebar() {
 
       {/* Desktop Sidebar */}
       <aside
-        className={`hidden lg:flex flex-col flex-shrink-0 bg-white h-screen border-r border-slate-200 overflow-hidden transition-all duration-300 ease-in-out ${
+        className={`hidden lg:flex flex-col flex-shrink-0 bg-white dark:bg-slate-950 h-screen border-r border-slate-200 dark:border-slate-800 overflow-hidden transition-all duration-300 ease-in-out ${
           collapsed ? 'w-[64px]' : 'w-[240px]'
         }`}
       >

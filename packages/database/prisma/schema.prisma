@@ -63,6 +63,7 @@ model Employee {
   assetsHeld                 Asset[]              @relation("CurrentAssetHolder")
   attendanceRecords          AttendanceRecord[]
   regularizedAttendances     AttendanceRecord[]   @relation("AttendanceRegularizer")
+  regularizationRequests     RegularizationRequest[]
   attritionRiskScores        AttritionRiskScore[]
   auditLogEntries            AuditLog[]
   consentLogsCollected       ConsentLog[]         @relation("ConsentCollector")
@@ -1437,4 +1438,34 @@ model Task {
 
   @@index([assigneeId, status])
   @@map("tasks")
+}
+
+enum RegularizationCorrectionType {
+  MISSING_PUNCH
+  INCORRECT_TIME
+  WFH_MARKING
+}
+
+enum RegularizationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model RegularizationRequest {
+  id              String                       @id @default(cuid())
+  employeeId      String
+  attendanceDate  DateTime                     @db.Date
+  reason          String
+  correctionType  RegularizationCorrectionType
+  attachmentName  String?
+  managerStatus   RegularizationStatus         @default(PENDING)
+  hrStatus        RegularizationStatus         @default(PENDING)
+  submittedDate   DateTime                     @default(now())
+  comments        String?
+  
+  employee        Employee                     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  @@index([employeeId])
+  @@map("regularization_requests")
 }

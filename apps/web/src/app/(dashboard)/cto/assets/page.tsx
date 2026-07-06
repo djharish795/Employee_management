@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Search, Filter, Monitor, FileCode2, RefreshCw, ChevronLeft, ChevronRight, Lock } from 'lucide-react';
+import { Search, Filter, Monitor, FileCode2, RefreshCw, ChevronLeft, ChevronRight, Lock, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
+import { fetchCtoAssets } from '@/lib/api/cto';
 
 // ─── Interfaces (No Hardcoded Mock Data) ─────────────────────────────────────────
 interface AssetMetrics {
@@ -28,6 +29,21 @@ export default function CTOAssetsPage() {
   const [metrics, setMetrics] = useState<AssetMetrics | null>(null);
   const [assets, setAssets] = useState<AssetRecord[]>([]);
   const [totalCount, setTotalCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  React.useEffect(() => {
+    if (role === 'CTO') {
+      setIsLoading(true);
+      fetchCtoAssets()
+        .then((data) => {
+          setMetrics(data.metrics);
+          setAssets(data.assets || []);
+          setTotalCount(data.totalCount || 0);
+        })
+        .catch((err) => console.error("Failed to fetch CTO assets", err))
+        .finally(() => setIsLoading(false));
+    }
+  }, [role]);
 
   // Protect route
   if (role !== "CTO") {
@@ -97,7 +113,15 @@ export default function CTOAssetsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {assets.length === 0 ? (
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-20 text-center text-sm font-medium text-slate-400">
+                      <div className="flex items-center justify-center">
+                        <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading asset inventory data...
+                      </div>
+                    </td>
+                  </tr>
+                ) : assets.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-20 text-center text-sm font-medium text-slate-400">
                       Waiting for backend asset inventory data...

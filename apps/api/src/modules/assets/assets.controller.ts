@@ -40,3 +40,14 @@ export class AssetsController {
         );
     }
 }
+
+@Controller("assets")
+@UseGuards(JwtAuthGuard, RbacGuard)
+export class CtoAssetsController {
+    constructor(private readonly assetsService: AssetsService) { }
+
+    @Get("cto")
+    async getCtoAssets(@CurrentUser() user: any) {
+        return this.assetsService.getCtoAssets(user.role as UserRole);
+    }
+}
