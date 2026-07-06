@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   UseInterceptors,
+  ForbiddenException,
 } from "@nestjs/common";
 import { KnowledgeService } from "./knowledge.service";
 import { CreateKnowledgeDocDto } from "./dto/create-knowledge.dto";

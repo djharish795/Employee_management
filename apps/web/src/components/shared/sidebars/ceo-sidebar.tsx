@@ -81,6 +81,7 @@ const getNavGroups = (role: string) => {
     mainItems.push({ title: 'Offboarding', icon: UserMinus, href: '/offboarding' });
     mainItems.push({ title: 'Workflows', icon: BookOpen, href: '/hr/workflows' });
     mainItems.push({ title: 'Knowledge Base', icon: BookOpen, href: '/knowledge-base' });
+    mainItems.push({ title: 'Asset Management', icon: Monitor, href: '/hr/assets' });
   }
 
   if (role === 'SUPER_ADMIN') {
