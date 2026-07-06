@@ -20,6 +20,36 @@ const getDashboardPath = (role: string) => {
 };
 
 const getNavGroups = (role: string) => {
+  if (role === 'CEO') {
+    return [
+      {
+        label: 'MAIN',
+        items: [
+          { title: 'Dashboard', icon: LayoutDashboard, href: '/executive/dashboard' },
+          { title: 'Organisation', icon: Network, href: '/organisation' },
+          { title: 'Org Chart', icon: Network, href: '/org-chart' },
+          { title: 'Succession Planning', icon: Users, href: '/ceo/succession-planning' },
+          { title: 'Reports', icon: BarChart3, href: '/ceo/reports' },
+        ]
+      },
+      {
+        label: 'PHASE 2',
+        items: [
+          { title: 'Payroll', icon: Calendar, locked: true },
+          { title: 'Recruitment', icon: UserPlus, locked: true },
+          { title: 'Performance', icon: BarChart3, locked: true },
+          { title: 'Workforce Analytics', icon: BarChart3, locked: true },
+        ]
+      },
+      {
+        label: 'OTHER',
+        items: [
+          { title: 'Notifications', icon: Bell, badge: 4, href: '/notifications' },
+        ]
+      }
+    ];
+  }
+
   if (role === 'CTO') {
     return [
       {
