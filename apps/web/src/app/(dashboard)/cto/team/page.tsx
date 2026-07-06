@@ -35,21 +35,6 @@ export default function EngineeringTeamPage() {
 
   return (
     <div className="flex flex-col h-full font-sans bg-slate-50 overflow-y-auto">
-      
-      {/* Top Header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between shadow-sm">
-        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Engineering Team</h1>
-        <div className="flex items-center gap-4">
-          <Search className="w-5 h-5 text-slate-400 cursor-pointer hover:text-slate-900" />
-          <Bell className="w-5 h-5 text-slate-400 cursor-pointer hover:text-slate-900" />
-          <HelpCircle className="w-5 h-5 text-slate-400 cursor-pointer hover:text-slate-900" />
-          <div className="w-px h-6 bg-slate-200 mx-1"></div>
-          <div className="flex items-center gap-2 cursor-pointer group">
-            <div className="w-8 h-8 bg-slate-200 text-slate-700 rounded-full flex items-center justify-center font-bold text-xs shadow-sm">LK</div>
-          </div>
-        </div>
-      </div>
-
       <div className="p-8 max-w-[1400px] mx-auto w-full space-y-6">
         
         {/* Filters & Tabs */}

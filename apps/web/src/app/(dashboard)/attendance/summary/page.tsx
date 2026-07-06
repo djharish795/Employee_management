@@ -58,32 +58,8 @@ export default function AttendanceSummaryPage() {
 
   return (
     <div className="flex flex-col h-full font-sans bg-slate-50 overflow-y-auto">
-      
-      {/* Top Header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between shadow-sm">
-        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Attendance</h1>
-        
-        <div className="flex items-center gap-4">
-          <div className="relative w-64 hidden md:block">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input 
-              type="text" 
-              placeholder="Search data..." 
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-900 focus:bg-white transition-colors"
-            />
-          </div>
-          <button className="text-slate-400 hover:text-slate-900 transition-colors">
-            <Bell className="w-5 h-5" />
-          </button>
-          <div className="w-px h-6 bg-slate-200 mx-1"></div>
-          <div className="flex items-center gap-2 cursor-pointer group">
-            <div className="w-8 h-8 bg-slate-900 text-white rounded-full flex items-center justify-center font-bold text-xs shadow-sm">TK</div>
-          </div>
-        </div>
-      </div>
-
       <div className="p-8 max-w-[1400px] mx-auto w-full space-y-6">
-        
+
         {/* Controls Row */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center gap-4">
@@ -138,11 +114,11 @@ export default function AttendanceSummaryPage() {
 
         {/* Middle Layout (2 Columns) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
+
           {/* Department-wise attendance */}
           <div className="lg:col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm p-6">
             <h3 className="text-lg font-bold text-slate-900 mb-8">Department-wise attendance today</h3>
-            
+
             <div className="space-y-6">
               {departmentStats.length === 0 ? (
                 <div className="py-12 text-center text-sm font-medium text-slate-400">Waiting for backend department data...</div>
@@ -173,7 +149,7 @@ export default function AttendanceSummaryPage() {
                 {exceptions.length}
               </div>
             </div>
-            
+
             <div className="flex-1 space-y-4 overflow-y-auto">
               {exceptions.length === 0 ? (
                 <div className="py-12 text-center text-sm font-medium text-slate-400">Waiting for backend exception data...</div>
@@ -182,7 +158,7 @@ export default function AttendanceSummaryPage() {
                   <div key={record.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-700">
-                        {record.initials || record.name.substring(0,2).toUpperCase()}
+                        {record.initials || record.name.substring(0, 2).toUpperCase()}
                       </div>
                       <div>
                         <div className="text-sm font-bold text-slate-900">{record.name}</div>
@@ -208,7 +184,7 @@ export default function AttendanceSummaryPage() {
         {/* Bottom Chart Layout */}
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
           <h3 className="text-base font-bold text-slate-900 mb-6">Monthly attendance trend</h3>
-          
+
           <div className="relative w-full h-[250px]">
             {trendData.length === 0 ? (
               <div className="absolute inset-0 flex items-center justify-center text-sm font-medium text-slate-400 border border-dashed border-slate-200 rounded-lg">
@@ -219,7 +195,7 @@ export default function AttendanceSummaryPage() {
                 Chart Component Here
               </div>
             )}
-            
+
             {/* Y-axis placeholders for structure (if we were rendering static SVG) */}
             <div className="absolute left-0 top-0 bottom-8 w-8 flex flex-col justify-between text-[10px] font-medium text-slate-400">
               <span>100%</span>
@@ -227,7 +203,7 @@ export default function AttendanceSummaryPage() {
               <span>50%</span>
               <span>25%</span>
             </div>
-            
+
             {/* X-axis placeholders */}
             <div className="absolute left-8 right-0 bottom-0 h-8 flex justify-between items-end text-[10px] font-medium text-slate-400">
               <span>Aug</span>
@@ -237,7 +213,7 @@ export default function AttendanceSummaryPage() {
               <span>Dec</span>
               <span>Jan</span>
             </div>
-            
+
             {/* Grid lines */}
             <div className="absolute left-8 right-0 top-2 bottom-8 flex flex-col justify-between pointer-events-none">
               <div className="w-full border-t border-slate-100"></div>

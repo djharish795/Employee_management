@@ -34,16 +34,11 @@ const getNavGroups = (role: string) => {
         ]
       },
       {
-        label: 'PHASE 2 MANAGEMENT',
+        label: 'PHASE 2 (LOCKED)',
         items: [
-          { title: 'Recruitment', icon: UserPlus, locked: true },
+          { title: 'Recruitment', icon: UserPlus, href: '/cto/recruitment', locked: true },
           { title: 'Performance', icon: BarChart3, locked: true },
           { title: 'Analytics', icon: BarChart3, locked: true },
-        ]
-      },
-      {
-        label: 'SYSTEM',
-        items: [
           { title: 'Notifications', icon: Bell, badge: 4, href: '/notifications' },
         ]
       }
@@ -170,7 +165,7 @@ export function CeoSidebar() {
               </div>
             )}
             {group.items.map((item) => {
-              if (item.locked) {
+              if (item.locked && !item.href) {
                 return (
                   <div key={item.title} className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 cursor-not-allowed ${collapsed ? 'justify-center' : ''}`}>
                     <div className="flex items-center gap-3">
@@ -201,7 +196,10 @@ export function CeoSidebar() {
                         <item.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-slate-900' : 'text-slate-400'}`} />
                         {!collapsed && item.title}
                       </div>
-                      {!collapsed && item.badge && (
+                      {!collapsed && item.locked && (
+                        <Lock className={`w-3.5 h-3.5 ${isActive ? 'text-slate-900' : 'text-slate-400'}`} />
+                      )}
+                      {!collapsed && item.badge && !item.locked && (
                         <span className="w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] font-bold">
                           {item.badge}
                         </span>

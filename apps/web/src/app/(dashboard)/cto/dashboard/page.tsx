@@ -63,29 +63,6 @@ export default function CtoDashboardPage() {
   return (
     <div className="flex flex-col h-full font-sans bg-slate-50 overflow-y-auto">
       
-      {/* Top Header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between shadow-sm">
-        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Engineering Overview</h1>
-        
-        <div className="flex items-center gap-4">
-          <div className="relative w-64 hidden md:block">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input 
-              type="text" 
-              placeholder="Search team or assets..." 
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-900 focus:bg-white transition-colors"
-            />
-          </div>
-          <button className="text-slate-400 hover:text-slate-900 transition-colors">
-            <Bell className="w-5 h-5" />
-          </button>
-          <div className="flex items-center gap-2 cursor-pointer group">
-            <div className="w-8 h-8 bg-slate-900 text-white rounded-full flex items-center justify-center font-bold text-xs shadow-sm">LK</div>
-            <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900 transition-colors hidden md:block">LK</span>
-          </div>
-        </div>
-      </div>
-
       <div className="p-8 max-w-[1400px] mx-auto w-full space-y-6">
         
         {/* Page Header */}
