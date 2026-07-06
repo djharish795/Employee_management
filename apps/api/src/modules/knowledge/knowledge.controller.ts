@@ -70,6 +70,7 @@ export class KnowledgeController {
     @CurrentUser() user: any,
     @Body() dto: UpdateKnowledgeDocDto,
   ) {
+    throw new ForbiddenException(`DEBUG USER: ${JSON.stringify(user)}`);
     return this.knowledgeService.update(id, user.role as UserRole, dto);
   }
 

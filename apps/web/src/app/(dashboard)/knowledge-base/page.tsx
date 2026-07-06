@@ -1,10 +1,20 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Plus, BookOpen, MoreHorizontal, Edit, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
+import { knowledgeApi, KnowledgeDoc } from '@/lib/api/knowledge';
+import { format } from 'date-fns';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
 
-// Interface for KB Data. Real data will be fetched by the backend team.
+// Interface for KB Data.
 interface KnowledgeDocument {
   id: string;
   title: string;
@@ -19,10 +29,105 @@ const CATEGORIES = ['All', 'HR Policies', 'SOPs', 'Compliance', 'Training'];
 export default function KnowledgeBasePage() {
   const role = useAuthStore((state) => state.role);
   const [activeCategory, setActiveCategory] = useState('All');
+  const [search, setSearch] = useState("");
   
-  // This will be replaced with real backend API hooks (e.g. useQuery)
+  // Loaded documents state
   const [documents, setDocuments] = useState<KnowledgeDocument[]>([]); 
-  const [isLoading, setIsLoading] = useState(false); // Simulated loading state
+  const [rawDocs, setRawDocs] = useState<KnowledgeDoc[]>([]); 
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Modal form states
+  const [isOpen, setIsOpen] = useState(false);
+  const [editingDocId, setEditingDocId] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
+  const [category, setCategory] = useState<"POLICY" | "SOP" | "COMPLIANCE" | "TRAINING_MATERIAL" | "HR_GUIDELINES" | "ARCHITECTURE" | "TECHNICAL_DOC">("POLICY");
+  const [content, setContent] = useState("");
+  const [isPublished, setIsPublished] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  const resetForm = () => {
+    setEditingDocId(null);
+    setTitle("");
+    setCategory("POLICY");
+    setContent("");
+    setIsPublished(false);
+    setErrorMsg("");
+  };
+
+  const fetchDocs = async () => {
+    setIsLoading(true);
+    try {
+      const docs = await knowledgeApi.list();
+      setRawDocs(docs);
+      const mapped = docs.map(doc => {
+        let displayCategory: 'HR Policy' | 'SOP' | 'Compliance' | 'Training' = 'HR Policy';
+        if (doc.category === 'SOP') displayCategory = 'SOP';
+        else if (doc.category === 'COMPLIANCE') displayCategory = 'Compliance';
+        else if (doc.category === 'TRAINING_MATERIAL' || doc.category === 'HR_GUIDELINES') displayCategory = 'Training';
+
+        return {
+          id: doc.id,
+          title: doc.title,
+          category: displayCategory,
+          status: (doc.isPublished ? 'Published' : 'Draft') as 'Published' | 'Draft',
+          author: doc.author ? `${doc.author.firstName} ${doc.author.lastName}` : 'System',
+          lastUpdated: doc.publishedAt ? format(new Date(doc.publishedAt), 'MMM d, yyyy') : 'Draft'
+        };
+      });
+      setDocuments(mapped);
+    } catch (e) {
+      console.error("Failed to load documents", e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDocs();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setIsSaving(true);
+    try {
+      if (editingDocId) {
+        await knowledgeApi.update(editingDocId, {
+          title,
+          content,
+          category,
+          isPublished
+        });
+      } else {
+        await knowledgeApi.create({
+          title,
+          content,
+          category,
+          isPublished
+        });
+      }
+      setIsOpen(false);
+      resetForm();
+      fetchDocs(); // Refresh the list
+    } catch (err: any) {
+      setErrorMsg(err?.response?.data?.message || err.message || "Failed to save document");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this document?")) {
+      return;
+    }
+    try {
+      await knowledgeApi.delete(id);
+      fetchDocs(); // Refresh the list
+    } catch (e: any) {
+      alert(e?.response?.data?.message || e.message || "Failed to delete document");
+    }
+  };
 
   // Protect route: Only HR can access (Knowledge base management is HR-only per rules)
   if (role !== "HR" && role !== "ADMIN") {
@@ -35,8 +140,15 @@ export default function KnowledgeBasePage() {
     );
   }
 
-  // Derived state
+  // Derived state (exactly matching the original layout logic + case-insensitive search check)
   const filteredDocs = documents.filter(doc => {
+    const matchesSearch = 
+      doc.title.toLowerCase().includes(search.toLowerCase()) || 
+      doc.author.toLowerCase().includes(search.toLowerCase()) ||
+      doc.category.toLowerCase().includes(search.toLowerCase());
+
+    if (!matchesSearch) return false;
+
     if (activeCategory === 'All') return true;
     if (activeCategory === 'HR Policies' && doc.category === 'HR Policy') return true;
     if (activeCategory === 'SOPs' && doc.category === 'SOP') return true;
@@ -66,11 +178,19 @@ export default function KnowledgeBasePage() {
               <input 
                 type="text" 
                 placeholder="Search documents..." 
+                value={search}
+                onChange={e => setSearch(e.target.value)}
                 className="w-full pl-9 pr-4 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-colors"
               />
             </div>
           </div>
-          <button className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors shadow-sm">
+          <button 
+            onClick={() => {
+              resetForm();
+              setIsOpen(true);
+            }}
+            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors shadow-sm"
+          >
             <Plus className="w-4 h-4" /> New document
           </button>
         </div>
@@ -117,7 +237,7 @@ export default function KnowledgeBasePage() {
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-slate-500 font-medium bg-slate-50/50">
                       <BookOpen className="w-8 h-8 text-slate-300 mx-auto mb-3" />
-                      No documents found. Waiting for backend data.
+                      No documents found.
                     </td>
                   </tr>
                 ) : (
@@ -144,7 +264,28 @@ export default function KnowledgeBasePage() {
                       <td className="px-6 py-4 text-slate-500">{doc.lastUpdated}</td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button className="text-blue-600 hover:text-blue-800 font-semibold text-xs">Edit</button>
+                          <button 
+                            onClick={() => {
+                              const rawDoc = rawDocs.find(d => d.id === doc.id);
+                              if (rawDoc) {
+                                setEditingDocId(rawDoc.id);
+                                setTitle(rawDoc.title);
+                                setCategory(rawDoc.category as any);
+                                setContent(rawDoc.content);
+                                setIsPublished(rawDoc.isPublished);
+                                setIsOpen(true);
+                              }
+                            }}
+                            className="text-blue-600 hover:text-blue-800 font-semibold text-xs"
+                          >
+                            Edit
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(doc.id)}
+                            className="text-rose-600 hover:text-rose-800 font-semibold text-xs"
+                          >
+                            Delete
+                          </button>
                           <button className="text-slate-400 hover:text-slate-700"><MoreHorizontal className="w-4 h-4" /></button>
                         </div>
                       </td>
@@ -156,17 +297,111 @@ export default function KnowledgeBasePage() {
           </div>
           
           <div className="p-4 border-t border-slate-200 flex items-center justify-between text-xs font-semibold text-slate-500 bg-slate-50/50">
-            <span>Showing 1-{Math.min(8, filteredDocs.length)} of {documents.length}</span>
-            <div className="flex gap-2">
-              <button className="px-2 py-1.5 border border-slate-200 rounded bg-white hover:bg-slate-50 text-slate-400">&lt;</button>
-              <button className="px-3 py-1.5 border border-slate-900 rounded bg-slate-900 text-white">1</button>
-              <button className="px-3 py-1.5 border border-slate-200 rounded bg-white hover:bg-slate-50 text-slate-700">2</button>
-              <button className="px-2 py-1.5 border border-slate-200 rounded bg-white hover:bg-slate-50 text-slate-700">&gt;</button>
-            </div>
+            <span>Showing 1-{filteredDocs.length} of {documents.length}</span>
           </div>
         </div>
 
       </div>
+
+      <Dialog open={isOpen} onOpenChange={(open) => !open && setIsOpen(false)}>
+        <DialogContent className="sm:max-w-[550px] p-0 border-slate-200 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-100 bg-slate-50/50">
+            <DialogTitle className="text-lg font-bold text-slate-900">
+              {editingDocId ? "Edit Document" : "New Document"}
+            </DialogTitle>
+            <DialogDescription className="text-xs font-medium text-slate-500">
+              {editingDocId 
+                ? "Update this policy, SOP, training material, or compliance doc."
+                : "Create a new policy, SOP, training material, or compliance doc."}
+            </DialogDescription>
+          </DialogHeader>
+          <form 
+            onSubmit={handleSubmit}
+            className="p-6 space-y-4"
+          >
+            {errorMsg && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Title</label>
+              <input 
+                type="text" 
+                required
+                placeholder="e.g. Leave Policy 2026"
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-colors h-9"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Category</label>
+              <select 
+                value={category}
+                onChange={e => setCategory(e.target.value as any)}
+                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-colors h-9"
+              >
+                <option value="POLICY">HR Policy</option>
+                <option value="SOP">SOP</option>
+                <option value="COMPLIANCE">Compliance</option>
+                <option value="TRAINING_MATERIAL">Training</option>
+                <option value="HR_GUIDELINES">HR Guidelines</option>
+                <option value="ARCHITECTURE">Architecture</option>
+                <option value="TECHNICAL_DOC">Technical Doc</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Content</label>
+              <textarea 
+                rows={5}
+                required
+                placeholder="Write the document content here..."
+                value={content}
+                onChange={e => setContent(e.target.value)}
+                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-colors"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 pt-2">
+              <input 
+                id="isPublished"
+                type="checkbox"
+                checked={isPublished}
+                onChange={e => setIsPublished(e.target.checked)}
+                className="w-4 h-4 border-slate-300 rounded text-slate-900 focus:ring-slate-900 cursor-pointer"
+              />
+              <label htmlFor="isPublished" className="text-xs font-bold text-slate-700 cursor-pointer select-none">
+                Publish immediately (make visible to all employees)
+              </label>
+            </div>
+
+            <DialogFooter className="pt-4 flex gap-2 sm:justify-end border-t border-slate-100">
+              <button 
+                type="button" 
+                onClick={() => {
+                  setIsOpen(false);
+                  setErrorMsg("");
+                }} 
+                className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                disabled={isSaving}
+                className="px-4 py-2 rounded-lg bg-slate-900 text-sm font-bold text-white hover:bg-slate-800 transition-colors disabled:bg-slate-400"
+              >
+                {isSaving ? "Saving..." : editingDocId ? "Save Changes" : "Create Document"}
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
