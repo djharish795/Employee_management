@@ -34,9 +34,9 @@ async function main() {
       empId: 'EMP-0003',
       firstName: 'Tejesh',
       lastName: 'Kumar',
-      email: 'tejesh@naprocs.com',
+      email: 'tejesh@naprocs.in',
       dept: deptHr?.id,
-      role: UserRole.CHRO,
+      role: UserRole.TEAM_LEAD,
     }
   ];
 
