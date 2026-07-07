@@ -13,7 +13,6 @@ import { HeadcountChart } from '@/components/executive-dashboard/HeadcountChart'
 import { HighlightsPanel } from '@/components/executive-dashboard/HighlightsPanel';
 import { QuickLinks } from '@/components/executive-dashboard/QuickLinks';
 import { LeavesSummaryWidget } from '@/components/executive-dashboard/LeavesSummaryWidget';
-import { PersonalAttendanceWidget } from "@/components/shared/personal-attendance-widget";
 
 // Types
 import { QuickLinkType } from '@/types/executive-dashboard';
@@ -49,23 +48,33 @@ export function DashboardClient() {
     );
   }
 
-  if (error || !data) {
-    return (
-      <div className="flex-1 w-full p-6 md:p-8 bg-slate-50 min-h-screen font-sans">
-        <div className="text-red-500 bg-red-50 p-4 rounded-md">Error loading dashboard metrics.</div>
-      </div>
-    );
-  }
-
-  const { kpiData, headcountData, highlightsData } = data;
+  const kpiData = data?.kpiData || [
+    { id: "1", title: "Total Employees", value: "0", subtext: "Based on DB records", iconType: "users" },
+    { id: "2", title: "Active Employees", value: "0", subtext: "Currently active", iconType: "userCheck" },
+    { id: "3", title: "On Leave", value: "0", subtext: "Pending approvals: 0", iconType: "umbrella" },
+    { id: "4", title: "New This Month", value: "0", subtext: "Joined recently", iconType: "userPlus" },
+    { id: "5", title: "Resigned This Month", value: "0", subtext: "Turnover rate: 0%", iconType: "logOut" },
+    { id: "6", title: "Open Roles", value: "0", subtext: "0 Active interviews", iconType: "briefcase" },
+    { id: "7", title: "Employees on Probation", value: "0", subtext: "Under review", iconType: "user" },
+    { id: "8", title: "Exited Employees", value: "0", subtext: "Former employees", iconType: "userMinus" },
+  ];
+  const headcountData = data?.headcountData || [];
+  const highlightsData = data?.highlightsData || [];
   
   // Try to find the total headcount from KPI data or sum up the headcount chart
-  const totalEmployeesItem = kpiData?.find((k: any) => k.title === 'Total Employees');
+  const totalEmployeesItem = kpiData.find((k: any) => k.title === 'Total Employees');
   const totalEmployees = totalEmployeesItem ? parseInt(totalEmployeesItem.value, 10) : 
-    (headcountData?.reduce((acc: number, curr: any) => acc + curr.count, 0) || 0);
+    (headcountData.reduce((acc: number, curr: any) => acc + curr.count, 0) || 0);
 
   return (
     <div className="flex-1 w-full p-4 sm:p-6 md:p-8 bg-slate-50 min-h-screen font-sans">
+      
+      {error && (
+        <div className="mb-6 text-red-600 bg-red-50 p-4 rounded-xl border border-red-100 text-sm font-semibold shadow-sm flex items-center gap-2">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          Warning: Cannot connect to metrics API. Showing cached or empty data.
+        </div>
+      )}
       
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-8">
@@ -78,8 +87,6 @@ export function DashboardClient() {
           Export report
         </Button>
       </div>
-
-      <PersonalAttendanceWidget />
 
       {/* KPI Grid (Top Row) — 1 col mobile, 2 tablet, 4 desktop */}
       <div className="mb-6">

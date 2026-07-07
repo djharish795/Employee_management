@@ -26,10 +26,29 @@ const getNavGroups = (role: string) => {
         label: 'MAIN',
         items: [
           { title: 'Dashboard', icon: LayoutDashboard, href: '/executive/dashboard' },
-          { title: 'Organisation', icon: Network, href: '/organisation' },
+          { title: 'Organisation', icon: Network, href: '/ceo/organisation' },
           { title: 'Org Chart', icon: Network, href: '/org-chart' },
           { title: 'Succession Planning', icon: Users, href: '/ceo/succession-planning' },
           { title: 'Reports', icon: BarChart3, href: '/ceo/reports' },
+        ]
+      },
+      {
+        label: 'OPERATIONS',
+        items: [
+          { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
+          { title: 'Connect', icon: MessageSquare, href: '/connect' },
+          { 
+            title: 'Attendance', 
+            icon: CalendarCheck, 
+            subItems: [
+              { title: 'Attendance Summary', href: '/attendance/summary' },
+              { title: 'My Attendance', href: '/attendance' }
+            ]
+          },
+          { title: 'Employees', icon: Users, href: '/employees' },
+          { title: 'Analytics', icon: BarChart3, href: '/analytics' },
+          { title: 'Compliance', icon: ShieldCheck, href: '/compliance' },
+          { title: 'Leaves', icon: Calendar, href: '/leaves' },
         ]
       },
       {
