@@ -17,8 +17,7 @@ const ALL_ROLES: OrgRole[] = ["ADMIN", "HR", "CEO", "CTO", "MANAGER", "EMPLOYEE"
 export default function OrgLayout({ children, activeRole, onRoleChange }: OrgLayoutProps) {
   const pathname = usePathname();
   const currentUserRole = useAuthStore((state) => state.role) || "EMPLOYEE";
-  const isActualEmployee = currentUserRole === "EMPLOYEE";
-  const effectiveRole = isActualEmployee ? "EMPLOYEE" : activeRole;
+  const effectiveRole = currentUserRole;
 
   const navItems = React.useMemo(() => {
     const items = [
@@ -62,38 +61,7 @@ export default function OrgLayout({ children, activeRole, onRoleChange }: OrgLay
                 Organization Management
               </h1>
 
-              {/* Dev Role Switcher */}
-              {!isActualEmployee && (
-                <div className="relative inline-block text-left group">
-                  <button className="flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-full transition-all shadow-sm">
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                    View Config:{" "}
-                    <span className="text-indigo-600 font-bold">{effectiveRole}</span>
-                    <ChevronDown className="w-3 h-3 text-slate-400" />
-                  </button>
-                  <div className="absolute left-0 mt-1.5 w-44 bg-white border border-slate-200 rounded-lg shadow-lg py-1 hidden group-hover:block z-50">
-                    <div className="px-3 py-1 text-[9px] font-bold text-slate-400 uppercase border-b border-slate-100">
-                      Toggle Role View
-                    </div>
-                    {ALL_ROLES.map((role) => (
-                      <button
-                        key={role}
-                        onClick={() => onRoleChange(role)}
-                        className={`w-full text-left px-3.5 py-2 text-xs font-medium hover:bg-slate-50 flex items-center justify-between ${
-                          effectiveRole === role
-                            ? "text-indigo-600 bg-indigo-50/50 font-bold"
-                            : "text-slate-600"
-                        }`}
-                      >
-                        {role}
-                        {effectiveRole === role && (
-                          <Check className="w-3.5 h-3.5 text-indigo-600" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Removed Dev Role Switcher */}
             </div>
             <p className="text-sm font-medium text-slate-500 mt-1">{subtitle}</p>
           </div>

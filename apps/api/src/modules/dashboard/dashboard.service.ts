@@ -25,6 +25,43 @@ export class DashboardService {
       },
     });
 
+    // Leaves
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const employeesOnLeave = await this.prisma.leaveRequest.count({
+      where: {
+        status: "APPROVED",
+        startDate: { lte: today },
+        endDate: { gte: today }
+      }
+    });
+
+    const pendingLeaves = await this.prisma.leaveRequest.count({
+      where: { status: "PENDING" }
+    });
+
+    // Exits
+    const resignedThisMonth = await this.prisma.employee.count({
+      where: {
+        status: "EXITED",
+        exitDate: {
+          gte: new Date(today.getFullYear(), today.getMonth(), 1)
+        }
+      }
+    });
+    const turnoverRate = totalEmployees > 0 ? ((resignedThisMonth / totalEmployees) * 100).toFixed(1) : "0";
+
+    // Recruitment
+    const openJobs = await this.prisma.job.count({
+      where: { status: "OPEN" }
+    });
+    const activeInterviews = await this.prisma.candidate.count({
+      where: { currentStage: "INTERVIEW" }
+    });
+
     const departmentsGroup = await this.prisma.employee.groupBy({
       by: ["departmentId"],
       _count: { id: true },
@@ -44,21 +81,49 @@ export class DashboardService {
       };
     });
 
+    // Highlights
+    const activeEmps = await this.prisma.employee.findMany({
+      where: { status: "ACTIVE" },
+      select: { id: true, firstName: true, lastName: true, dateOfBirth: true, joiningDate: true }
+    });
+
+    const currentMonth = today.getMonth();
+    let birthdaysThisMonth = 0;
+    let anniversariesThisMonth = 0;
+
+    activeEmps.forEach(emp => {
+      if (emp.dateOfBirth && emp.dateOfBirth.getMonth() === currentMonth) {
+        birthdaysThisMonth++;
+      }
+      if (emp.joiningDate && emp.joiningDate.getMonth() === currentMonth && emp.joiningDate.getFullYear() < today.getFullYear()) {
+        anniversariesThisMonth++;
+      }
+    });
+
+    const highlightsData = [
+      { id: "1", title: `${newThisMonth} new employees joined`, description: "This month", type: "success" }
+    ];
+    
+    if (birthdaysThisMonth > 0) {
+      highlightsData.push({ id: "2", title: `${birthdaysThisMonth} birthdays`, description: "This month", type: "info" });
+    }
+    if (anniversariesThisMonth > 0) {
+      highlightsData.push({ id: "3", title: `${anniversariesThisMonth} work anniversaries`, description: "This month", type: "warning" });
+    }
+
     return {
       kpiData: [
         { id: "1", title: "Total Employees", value: totalEmployees.toString(), subtext: "Based on DB records", iconType: "users" },
         { id: "2", title: "Active Employees", value: activeEmployees.toString(), subtext: "Currently active", iconType: "userCheck" },
-        { id: "3", title: "On Leave", value: "0", subtext: "Pending approvals: 0", iconType: "umbrella" },
+        { id: "3", title: "On Leave", value: employeesOnLeave.toString(), subtext: `Pending approvals: ${pendingLeaves}`, iconType: "umbrella" },
         { id: "4", title: "New This Month", value: newThisMonth.toString(), subtext: "Joined recently", iconType: "userPlus" },
-        { id: "5", title: "Resigned This Month", value: "1", subtext: "Turnover rate: 1.1%", iconType: "logOut" },
-        { id: "6", title: "Open Roles", value: "5", subtext: "12 Active interviews", iconType: "briefcase" },
+        { id: "5", title: "Resigned This Month", value: resignedThisMonth.toString(), subtext: `Turnover rate: ${turnoverRate}%`, iconType: "logOut" },
+        { id: "6", title: "Open Roles", value: openJobs.toString(), subtext: `${activeInterviews} Active interviews`, iconType: "briefcase" },
         { id: "7", title: "Employees on Probation", value: probationEmployees.toString(), subtext: "Under review", iconType: "user" },
         { id: "8", title: "Exited Employees", value: exitedEmployees.toString(), subtext: "Former employees", iconType: "userMinus" },
       ],
       headcountData,
-      highlightsData: [
-        { id: "1", title: `${newThisMonth} new employees joined`, description: "This month", type: "success" },
-      ],
+      highlightsData,
     };
   }
 
@@ -266,5 +331,18 @@ export class DashboardService {
       recentAssets,
       techTeams
     };
+  }
+
+  async generateExportReport(): Promise<string> {
+    const metrics = await this.getMetrics();
+    let csv = "Metric,Value,Subtext\n";
+    for (const kpi of metrics.kpiData) {
+      csv += `"${kpi.title}","${kpi.value}","${kpi.subtext}"\n`;
+    }
+    csv += "\nDepartment,Headcount\n";
+    for (const dept of metrics.headcountData) {
+      csv += `"${dept.department}","${dept.count}"\n`;
+    }
+    return csv;
   }
 }

@@ -3,16 +3,12 @@
 import React from "react";
 import OrgLayout from "@/components/modules/org-chart/org-layout";
 import OrgDashboardPanel from "@/components/modules/org-chart/dashboard-panel";
-import { useOrgTestStore } from "@/store/org-test";
-
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-
 import { useAuthStore } from "@/store/auth";
-import { OrgRole } from "@/types/org-chart";
 
 export default function OrgChartDashboardPage() {
-  const { activeRole, setActiveRole } = useOrgTestStore();
+  const activeRole = useAuthStore((state) => state.role) || "EMPLOYEE";
   const router = useRouter();
 
   useEffect(() => {
@@ -24,8 +20,8 @@ export default function OrgChartDashboardPage() {
   if (activeRole === "EMPLOYEE") return null;
 
   return (
-    <OrgLayout activeRole={activeRole} onRoleChange={setActiveRole}>
-      <OrgDashboardPanel activeRole={activeRole} />
+    <OrgLayout activeRole={activeRole as any} onRoleChange={() => {}}>
+      <OrgDashboardPanel activeRole={activeRole as any} />
     </OrgLayout>
   );
 }

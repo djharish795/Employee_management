@@ -67,6 +67,30 @@ export function DashboardClient() {
   const totalEmployees = totalEmployeesItem ? parseInt(totalEmployeesItem.value, 10) : 
     (headcountData.reduce((acc: number, curr: any) => acc + curr.count, 0) || 0);
 
+  const handleExport = async () => {
+    try {
+      const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const res = await fetch(`${url}/dashboard/export-report`, {
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      });
+      if (!res.ok) throw new Error("Failed to export report");
+      
+      const blob = await res.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = downloadUrl;
+      a.download = `organisation-report-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(downloadUrl);
+      document.body.removeChild(a);
+    } catch (e) {
+      console.error("Export failed:", e);
+      alert("Failed to export report. Please try again later.");
+    }
+  };
+
   return (
     <div className="flex-1 w-full p-4 sm:p-6 md:p-8 bg-slate-50 min-h-screen font-sans">
       
@@ -81,9 +105,13 @@ export function DashboardClient() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-8">
         <div>
           <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Organisation overview</h1>
-          <p className="text-xs sm:text-sm font-medium text-slate-500 mt-1">Reporting period: December 2024</p>
+          <p className="text-xs sm:text-sm font-medium text-slate-500 mt-1">Reporting period: {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</p>
         </div>
-        <Button variant="outline" className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white text-slate-700 border-slate-200 hover:bg-slate-100 font-semibold shadow-sm">
+        <Button 
+          onClick={handleExport}
+          variant="outline" 
+          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white text-slate-700 border-slate-200 hover:bg-slate-100 font-semibold shadow-sm"
+        >
           <Download className="w-4 h-4" />
           Export report
         </Button>

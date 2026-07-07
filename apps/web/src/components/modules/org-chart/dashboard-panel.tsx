@@ -197,18 +197,27 @@ export default function OrgDashboardPanel({ activeRole }: OrgDashboardPanelProps
                 Recent changes requiring attention
               </p>
               <div className="space-y-3">
-                <div className="bg-white border border-amber-200 p-3 rounded-lg shadow-sm border-l-4 border-l-amber-500">
-                  <div className="text-xs font-bold text-amber-900">Manager Vacancy</div>
-                  <div className="text-[10px] font-medium text-amber-700 mt-1">
-                    Design Team (UX) currently has no manager assigned.
-                  </div>
-                </div>
-                <div className="bg-white border border-slate-200 p-3 rounded-lg shadow-sm border-l-4 border-l-blue-500">
-                  <div className="text-xs font-bold text-slate-900">New Department Created</div>
-                  <div className="text-[10px] font-medium text-slate-500 mt-1">
-                    "AI Innovations" was added by HR. Needs 3 headcounts.
-                  </div>
-                </div>
+                {stats.notifications && stats.notifications.length > 0 ? (
+                  stats.notifications.map((notif: any, idx: number) => (
+                    <div 
+                      key={idx} 
+                      className={`bg-white border p-3 rounded-lg shadow-sm border-l-4 ${
+                        notif.type === 'warning' 
+                          ? 'border-amber-200 border-l-amber-500' 
+                          : 'border-slate-200 border-l-blue-500'
+                      }`}
+                    >
+                      <div className={`text-xs font-bold ${notif.type === 'warning' ? 'text-amber-900' : 'text-slate-900'}`}>
+                        {notif.title}
+                      </div>
+                      <div className={`text-[10px] font-medium mt-1 ${notif.type === 'warning' ? 'text-amber-700' : 'text-slate-500'}`}>
+                        {notif.message}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-xs text-slate-400 font-medium italic">No structure notifications at this time.</div>
+                )}
               </div>
             </div>
           )}

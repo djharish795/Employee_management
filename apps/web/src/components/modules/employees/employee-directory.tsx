@@ -65,10 +65,20 @@ export default function EmployeeDirectory() {
     const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
     const res = await fetch(`${url}/employees?page=1&limit=100`, {
       headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      cache: "no-store",
     });
 
-    if (!res.ok) throw new Error("Failed to fetch employees");
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("Failed to fetch employees:", res.status, errText);
+      throw new Error("Failed to fetch employees");
+    }
+    
     const responseData = await res.json();
+    if (!responseData || !responseData.data || !Array.isArray(responseData.data)) {
+      console.error("Invalid response format:", responseData);
+      return [];
+    }
 
     return responseData.data.map((emp: any) => ({
       id: emp.id,
@@ -91,10 +101,15 @@ export default function EmployeeDirectory() {
     }));
   };
 
-  const { data: rawEmployees = [], isLoading } = useQuery<Employee[]>({
-    queryKey: ["employees"],
+  const { data: rawEmployees = [], isLoading, isError, error } = useQuery<Employee[]>({
+    queryKey: ["employees", accessToken],
     queryFn: fetchEmployees,
+    enabled: !!accessToken,
   });
+
+  if (isError) {
+    console.error("Employee fetch error:", error);
+  }
 
   const filteredEmployees = useMemo(() => {
     let result = [...rawEmployees];

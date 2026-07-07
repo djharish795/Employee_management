@@ -119,13 +119,12 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
 
   const flatEmployees = treeData || [];
 
-  // Find top level nodes
-  const ceo = flatEmployees.find(e => e.designation?.includes('Chief Executive') || e.designation === 'CEO');
-  const cto = flatEmployees.find(e => e.designation?.includes('Chief Technology') || e.designation === 'CTO');
-  const coo = flatEmployees.find(e => e.designation?.includes('Chief Operating') || e.designation === 'COO');
-  const opsHead = flatEmployees.find(e => e.designation?.includes('Operations Head'));
+  // Find top level nodes (Custom Pyramid as per user request)
+  const ceo = flatEmployees.find(e => e.designation?.toUpperCase().includes('CEO') || e.designation?.toUpperCase().includes('CHIEF EXECUTIVE'));
+  const cto = flatEmployees.find(e => e.designation?.toUpperCase().includes('CTO') || e.designation?.toUpperCase().includes('CHIEF TECHNOLOGY'));
+  const coo = flatEmployees.find(e => e.designation?.toUpperCase().includes('COO') || e.designation?.toUpperCase().includes('CHIEF OPERATING'));
+  const opsHead = flatEmployees.find(e => e.designation?.toUpperCase().includes('OPERATIONS HEAD') || e.name.toLowerCase().includes('junaid'));
 
-  // Convert raw to OrgTreeNode for EmployeeCard
   const toOrgTreeNode = (emp: OrgEmployee | undefined): OrgTreeNode | null => {
     if (!emp) return null;
     return { ...emp, children: [], directReportsCount: 0, totalReportsCount: 0 };
@@ -134,8 +133,10 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
   const ceoNode = toOrgTreeNode(ceo);
   const ctoNode = toOrgTreeNode(cto);
   const cooNode = toOrgTreeNode(coo);
-
   const opsHeadNode = toOrgTreeNode(opsHead);
+
+  // Build the tree dynamically starting from Ops Head (Junaid)
+  // Junaid's direct report is Prince Alpha (HR), and all employees report to Prince.
   if (opsHeadNode) {
     opsHeadNode.children = buildTree(flatEmployees, opsHeadNode.id);
   }
@@ -188,6 +189,7 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
         >
           {flatEmployees.length > 0 ? (
             <div className="flex flex-col items-center">
+              
               {/* TIER 1: CEO */}
               {ceoNode && (
                 <div className="flex flex-col items-center">
@@ -247,30 +249,30 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
                 )}
               </div>
 
-              {/* TIER 3: The Merged Line to Ops Head */}
+              {/* TIER 3 & 4: Ops Head -> HR -> Employees */}
               {(ctoNode && cooNode && opsHeadNode) && (
                 <div className="flex flex-col items-center mt-6 w-full">
-                  {/* The U-shape merging from bottoms of CTO and COO */}
+                  {/* U-shape bridging CTO and COO bottoms */}
                   <div className="relative w-full flex justify-center">
                     <div className="absolute bottom-full flex justify-between w-[calc(100%-8rem)] max-w-[20rem]">
                       <div className="w-px h-6 bg-slate-300" />
                       <div className="w-px h-6 bg-slate-300" />
                     </div>
-                    {/* Horizontal bridge */}
                     <div className="absolute bottom-full w-[calc(100%-8rem)] max-w-[20rem] h-px bg-slate-300" />
-                    {/* Vertical drop to Ops Head */}
                     <div className="w-px h-6 bg-slate-300" />
                   </div>
 
-                  {/* Ops Head and below rendered standardly */}
-                  <TreeNode
-                    node={opsHeadNode}
-                    isExpanded={expandedNodes[opsHeadNode.id] ?? true}
-                    onToggle={toggleNode}
-                    onSelect={setSelectedNode}
-                    canManageHierarchy={canManageHierarchy}
-                    onDropEmployee={handleDropEmployee}
-                  />
+                  {/* Ops Head */}
+                  <div className="flex flex-col items-center">
+                    <TreeNode
+                      node={opsHeadNode}
+                      isExpanded={expandedNodes[opsHeadNode.id] ?? true}
+                      onToggle={toggleNode}
+                      onSelect={setSelectedNode}
+                      canManageHierarchy={canManageHierarchy}
+                      onDropEmployee={handleDropEmployee}
+                    />
+                  </div>
                 </div>
               )}
             </div>

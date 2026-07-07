@@ -379,6 +379,31 @@ export class EmployeesService {
     const managers = await this.prisma.user.count({ where: { role: { in: ["HR", "MANAGER"] } } });
     const individualContributors = await this.prisma.user.count({ where: { role: "EMPLOYEE" } });
 
+    // Dynamic Notifications
+    const notifications: Array<{ title: string; message: string; type: string }> = [];
+    
+    // Check for manager vacancies (departments without a head)
+    const departmentsWithoutHead = deps.filter(d => !d.headId);
+    departmentsWithoutHead.forEach(d => {
+      notifications.push({
+        title: "Manager Vacancy",
+        message: `${d.name} currently has no manager assigned.`,
+        type: "warning"
+      });
+    });
+
+    // Check for newly created departments (last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const newDepartments = deps.filter(d => d.createdAt && d.createdAt >= sevenDaysAgo);
+    newDepartments.forEach(d => {
+      notifications.push({
+        title: "New Department Created",
+        message: `"${d.name}" was recently added to the organization structure.`,
+        type: "info"
+      });
+    });
+
     return {
       totalEmployees,
       departments: departmentsCount,
@@ -391,7 +416,8 @@ export class EmployeesService {
         directors,
         managers,
         individualContributors
-      }
+      },
+      notifications
     };
   }
 
@@ -481,10 +507,27 @@ export class EmployeesService {
     if (newManagerId) {
       const manager = await this.prisma.employee.findUnique({ where: { id: newManagerId } });
       if (!manager) throw new NotFoundException("New manager not found.");
+
+      // Prevent cyclic management: Check if the new manager already reports to this employee (directly or indirectly)
+      let currentManagerId: string | null = manager.reportingManagerId;
+      const visited = new Set<string>();
+      visited.add(newManagerId);
+
+      while (currentManagerId) {
+        if (currentManagerId === employeeId) {
+          throw new ConflictException("Cannot assign a subordinate as a manager. This would create a circular reporting line.");
+        }
+        if (visited.has(currentManagerId)) {
+          break; // Break on existing cycle just in case
+        }
+        visited.add(currentManagerId);
+        
+        const currentManager = await this.prisma.employee.findUnique({ where: { id: currentManagerId } });
+        if (!currentManager) break;
+        currentManagerId = currentManager.reportingManagerId;
+      }
     }
     
-    // To prevent cyclic management, we should ideally check if the new manager is a subordinate, 
-    // but for simplicity in MVP we just update it.
     await this.prisma.employee.update({
       where: { id: employeeId },
       data: { reportingManagerId: newManagerId || null }
