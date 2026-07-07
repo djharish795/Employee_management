@@ -1,11 +1,13 @@
 "use client";
 
 import React from 'react';
-import { Lock, Search, Bell } from 'lucide-react';
+import { Lock, Search, Bell, Loader2, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
+import { useQuery } from '@tanstack/react-query';
 
 export default function CEOOrganisationPage() {
   const role = useAuthStore((state) => state.role);
+  const accessToken = useAuthStore((state) => state.accessToken);
 
   // Protect route
   if (role !== "CEO") {
@@ -18,14 +20,39 @@ export default function CEOOrganisationPage() {
     );
   }
 
-  const departments = [
-    { name: 'Engineering', headInitials: 'LK', headName: 'Lokesh', headColor: 'bg-blue-100 text-blue-700', count: 34, growth: '+6', growthType: 'growing' },
-    { name: 'Sales', headInitials: 'RP', headName: 'Ramesh P.', headColor: 'bg-orange-100 text-orange-700', count: 18, growth: '+2', growthType: 'growing' },
-    { name: 'Human Resources', headInitials: 'TK', headName: 'Tejesh Kumar', headColor: 'bg-purple-100 text-purple-700', count: 12, growth: '+0', growthType: 'stable' },
-    { name: 'Operations', headInitials: 'VR', headName: 'Vikram Rao', headColor: 'bg-emerald-100 text-emerald-700', count: 15, growth: '+3', growthType: 'growing' },
-    { name: 'Finance', headInitials: 'SK', headName: 'Suresh Kumar', headColor: 'bg-teal-100 text-teal-700', count: 8, growth: '+0', growthType: 'stable' },
-    { name: 'Executive', headInitials: 'PC', headName: 'Pradeep Chandra', headColor: 'bg-indigo-100 text-indigo-700', count: 2, growth: '+0', growthType: 'stable' },
-  ];
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['organisation-dashboard-stats'],
+    queryFn: async () => {
+      const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const res = await fetch(`${url}/departments/dashboard`, {
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      });
+      if (!res.ok) throw new Error('Failed to fetch organisation stats');
+      return res.json();
+    },
+    retry: false
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center bg-slate-50">
+        <Loader2 className="w-8 h-8 animate-spin text-slate-900" />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center bg-slate-50">
+        <div className="text-red-500 flex items-center gap-2">
+          <AlertCircle className="w-6 h-6" />
+          <span className="font-semibold">Failed to load organisation data.</span>
+        </div>
+      </div>
+    );
+  }
+
+  const { summary, departments, chartData } = data;
 
   return (
     <div className="flex flex-col h-full font-sans bg-slate-50 overflow-y-auto">
@@ -43,20 +70,20 @@ export default function CEOOrganisationPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
             <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">DEPARTMENTS</h4>
-            <div className="text-4xl font-extrabold text-slate-900">6</div>
+            <div className="text-4xl font-extrabold text-slate-900">{summary.totalDepartments}</div>
           </div>
           <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
             <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">TOTAL HEADCOUNT</h4>
-            <div className="text-4xl font-extrabold text-slate-900">87</div>
+            <div className="text-4xl font-extrabold text-slate-900">{summary.totalHeadcount}</div>
           </div>
           <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
             <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">LARGEST DEPARTMENT</h4>
-            <div className="text-xl font-bold text-slate-800">Engineering</div>
-            <div className="text-xs font-medium text-slate-400 mt-1">34 people</div>
+            <div className="text-xl font-bold text-slate-800">{summary.largestDepartment || 'N/A'}</div>
+            <div className="text-xs font-medium text-slate-400 mt-1">{summary.largestDepartmentCount} people</div>
           </div>
           <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
             <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">AVG DEPARTMENT SIZE</h4>
-            <div className="text-4xl font-extrabold text-slate-900">14.5</div>
+            <div className="text-4xl font-extrabold text-slate-900">{summary.avgDepartmentSize}</div>
           </div>
         </div>
 
@@ -76,7 +103,7 @@ export default function CEOOrganisationPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {departments.map((dept, index) => (
+                {departments.map((dept: any, index: number) => (
                   <tr key={index} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-5 text-sm font-bold text-slate-700">{dept.name}</td>
                     <td className="px-6 py-5">
@@ -123,40 +150,19 @@ export default function CEOOrganisationPage() {
           
           {/* Stacked Bar */}
           <div className="w-full h-8 flex rounded-md overflow-hidden mb-6">
-            <div className="bg-[#0f2c4a] h-full" style={{ width: '39%' }}></div>
-            <div className="bg-[#1f73d6] h-full" style={{ width: '21%' }}></div>
-            <div className="bg-[#3b93f0] h-full" style={{ width: '17%' }}></div>
-            <div className="bg-[#78baf8] h-full" style={{ width: '14%' }}></div>
-            <div className="bg-[#b3daf9] h-full" style={{ width: '7%' }}></div>
-            <div className="bg-[#def0fc] h-full" style={{ width: '2%' }}></div>
+            {chartData.map((item: any) => (
+              <div key={item.name} className="h-full" style={{ width: `${item.percentage}%`, backgroundColor: item.color }}></div>
+            ))}
           </div>
           
           {/* Legend */}
           <div className="flex flex-wrap items-center gap-6 text-xs font-medium text-slate-500">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-sm bg-[#0f2c4a]"></div>
-              <span className="font-bold text-slate-700">Engineering</span> <span className="text-slate-400">39%</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-sm bg-[#1f73d6]"></div>
-              <span className="font-bold text-slate-700">Sales</span> <span className="text-slate-400">21%</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-sm bg-[#3b93f0]"></div>
-              <span className="font-bold text-slate-700">Operations</span> <span className="text-slate-400">17%</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-sm bg-[#78baf8]"></div>
-              <span className="font-bold text-slate-700">HR</span> <span className="text-slate-400">14%</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-sm bg-[#b3daf9]"></div>
-              <span className="font-bold text-slate-700">Finance</span> <span className="text-slate-400">7%</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-sm bg-[#def0fc]"></div>
-              <span className="font-bold text-slate-700">Executive</span> <span className="text-slate-400">2%</span>
-            </div>
+            {chartData.map((item: any) => (
+              <div key={item.name} className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: item.color }}></div>
+                <span className="font-bold text-slate-700">{item.name}</span> <span className="text-slate-400">{item.percentage}%</span>
+              </div>
+            ))}
           </div>
 
         </div>

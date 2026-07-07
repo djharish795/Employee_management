@@ -4,6 +4,11 @@ import { CreateDepartmentDto } from "./dto/create-department.dto";
 import { UpdateDepartmentDto } from "./dto/update-department.dto";
 import { PaginationParams, PaginatedResult } from "../../common/utils/pagination.util";
 import { Department } from "@naprocs/database";
+import { UseGuards } from "@nestjs/common";
+import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
+import { RbacGuard } from "../../common/guards/rbac.guard";
+import { Permissions } from "../../common/decorators/permissions.decorator";
+import { Permission } from "@naprocs/types";
 
 @Controller("departments")
 export class DepartmentsController {
@@ -17,6 +22,13 @@ export class DepartmentsController {
   @Get()
   getDepartments(@Query() params: PaginationParams): Promise<PaginatedResult<Department>> {
     return this.departmentsService.getDepartments(params);
+  }
+
+  @Get("dashboard")
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions(Permission.READ_EMPLOYEES)
+  getDashboardStats() {
+    return this.departmentsService.getOrganisationDashboardStats();
   }
 
   @Get(":id")

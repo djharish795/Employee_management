@@ -13,6 +13,7 @@ import { HeadcountChart } from '@/components/executive-dashboard/HeadcountChart'
 import { HighlightsPanel } from '@/components/executive-dashboard/HighlightsPanel';
 import { QuickLinks } from '@/components/executive-dashboard/QuickLinks';
 import { LeavesSummaryWidget } from '@/components/executive-dashboard/LeavesSummaryWidget';
+import { PersonalAttendanceWidget } from '@/components/shared/personal-attendance-widget';
 
 // Types
 import { QuickLinkType } from '@/types/executive-dashboard';
@@ -87,6 +88,9 @@ export function DashboardClient() {
           Export report
         </Button>
       </div>
+
+      {/* Personal Attendance Check-in/Check-out */}
+      <PersonalAttendanceWidget />
 
       {/* KPI Grid (Top Row) — 1 col mobile, 2 tablet, 4 desktop */}
       <div className="mb-6">

@@ -22,7 +22,7 @@ import { ConnectModule } from "./modules/connect/connect.module";
 import { TasksModule } from "./modules/tasks/tasks.module";
 import { WorkflowsModule } from "./modules/workflows/workflows.module";
 import { ProfileModule } from "./modules/profile/profile.module";
-
+import { SuccessionModule } from "./modules/succession/succession.module";
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -51,6 +51,7 @@ import { ProfileModule } from "./modules/profile/profile.module";
     TasksModule,
     WorkflowsModule,
     ProfileModule,
+    SuccessionModule,
   ],
 })
 export class AppModule { }
