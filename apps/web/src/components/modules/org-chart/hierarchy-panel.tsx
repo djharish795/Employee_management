@@ -77,7 +77,7 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
   const handleExport = async () => {
     const canvasEl = document.getElementById("org-chart-canvas");
     if (!canvasEl) return;
-    
+
     try {
       toast.loading("Exporting chart...", { id: "export" });
       const canvas = await html2canvas(canvasEl, {
@@ -119,27 +119,21 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
 
   const flatEmployees = treeData || [];
 
-  // Find top level nodes (Custom Pyramid as per user request)
-  const ceo = flatEmployees.find(e => e.designation?.toUpperCase().includes('CEO') || e.designation?.toUpperCase().includes('CHIEF EXECUTIVE'));
-  const cto = flatEmployees.find(e => e.designation?.toUpperCase().includes('CTO') || e.designation?.toUpperCase().includes('CHIEF TECHNOLOGY'));
-  const coo = flatEmployees.find(e => e.designation?.toUpperCase().includes('COO') || e.designation?.toUpperCase().includes('CHIEF OPERATING'));
-  const opsHead = flatEmployees.find(e => e.designation?.toUpperCase().includes('OPERATIONS HEAD') || e.name.toLowerCase().includes('junaid'));
-
   const toOrgTreeNode = (emp: OrgEmployee | undefined): OrgTreeNode | null => {
     if (!emp) return null;
     return { ...emp, children: [], directReportsCount: 0, totalReportsCount: 0 };
   };
 
-  const ceoNode = toOrgTreeNode(ceo);
-  const ctoNode = toOrgTreeNode(cto);
-  const cooNode = toOrgTreeNode(coo);
-  const opsHeadNode = toOrgTreeNode(opsHead);
-
-  // Build the tree dynamically starting from Ops Head (Junaid)
-  // Junaid's direct report is Prince Alpha (HR), and all employees report to Prince.
-  if (opsHeadNode) {
-    opsHeadNode.children = buildTree(flatEmployees, opsHeadNode.id);
-  }
+  // Find root node (The CEO - explicitly filters out any old/legacy disconnected charts)
+  const rootNodes = flatEmployees.filter((e: OrgEmployee) =>
+    !e.managerId &&
+    (e.designation?.toUpperCase().includes('CEO') || e.designation?.toUpperCase().includes('CHIEF EXECUTIVE'))
+  );
+  const rootTreeNodes = rootNodes.map((root: OrgEmployee) => {
+    const node = toOrgTreeNode(root);
+    if (node) node.children = buildTree(flatEmployees, node.id);
+    return node;
+  }).filter(Boolean) as OrgTreeNode[];
 
   return (
     <div className="flex flex-col h-[700px] bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden relative">
@@ -188,93 +182,18 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
           style={{ transform: `scale(${zoom})` }}
         >
           {flatEmployees.length > 0 ? (
-            <div className="flex flex-col items-center">
-              
-              {/* TIER 1: CEO */}
-              {ceoNode && (
-                <div className="flex flex-col items-center">
-                  <EmployeeCard 
-                    node={ceoNode} 
-                    onSelect={setSelectedNode}
-                    canManageHierarchy={canManageHierarchy}
-                    onDrop={(e, id) => {
-                      e.preventDefault();
-                      const draggedId = e.dataTransfer.getData("employeeId");
-                      if (draggedId && draggedId !== id) handleDropEmployee(draggedId, id);
-                    }}
-                    onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect="move"; }}
-                  />
-                  <div className="w-px h-6 bg-slate-300" />
-                </div>
-              )}
-
-              {/* TIER 2: CTO and COO */}
-              <div className="flex items-start relative pt-4">
-                <div className="absolute top-0 left-[25%] right-[25%] h-px bg-slate-300" />
-
-                {/* CTO Branch */}
-                {ctoNode && (
-                  <div className="flex flex-col items-center relative px-8">
-                    <div className="absolute top-0 w-px h-4 bg-slate-300" />
-                    <EmployeeCard 
-                      node={ctoNode} 
-                      onSelect={setSelectedNode} 
-                      canManageHierarchy={canManageHierarchy}
-                      onDrop={(e, id) => {
-                        e.preventDefault();
-                        const draggedId = e.dataTransfer.getData("employeeId");
-                        if (draggedId && draggedId !== id) handleDropEmployee(draggedId, id);
-                      }}
-                      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect="move"; }}
-                    />
-                  </div>
-                )}
-
-                {/* COO Branch */}
-                {cooNode && (
-                  <div className="flex flex-col items-center relative px-8">
-                    <div className="absolute top-0 w-px h-4 bg-slate-300" />
-                    <EmployeeCard 
-                      node={cooNode} 
-                      onSelect={setSelectedNode} 
-                      canManageHierarchy={canManageHierarchy}
-                      onDrop={(e, id) => {
-                        e.preventDefault();
-                        const draggedId = e.dataTransfer.getData("employeeId");
-                        if (draggedId && draggedId !== id) handleDropEmployee(draggedId, id);
-                      }}
-                      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect="move"; }}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* TIER 3 & 4: Ops Head -> HR -> Employees */}
-              {(ctoNode && cooNode && opsHeadNode) && (
-                <div className="flex flex-col items-center mt-6 w-full">
-                  {/* U-shape bridging CTO and COO bottoms */}
-                  <div className="relative w-full flex justify-center">
-                    <div className="absolute bottom-full flex justify-between w-[calc(100%-8rem)] max-w-[20rem]">
-                      <div className="w-px h-6 bg-slate-300" />
-                      <div className="w-px h-6 bg-slate-300" />
-                    </div>
-                    <div className="absolute bottom-full w-[calc(100%-8rem)] max-w-[20rem] h-px bg-slate-300" />
-                    <div className="w-px h-6 bg-slate-300" />
-                  </div>
-
-                  {/* Ops Head */}
-                  <div className="flex flex-col items-center">
-                    <TreeNode
-                      node={opsHeadNode}
-                      isExpanded={expandedNodes[opsHeadNode.id] ?? true}
-                      onToggle={toggleNode}
-                      onSelect={setSelectedNode}
-                      canManageHierarchy={canManageHierarchy}
-                      onDropEmployee={handleDropEmployee}
-                    />
-                  </div>
-                </div>
-              )}
+            <div className="flex flex-col items-center gap-12">
+              {rootTreeNodes.map(rootNode => (
+                <TreeNode
+                  key={rootNode.id}
+                  node={rootNode}
+                  isExpanded={expandedNodes[rootNode.id] ?? true}
+                  onToggle={toggleNode}
+                  onSelect={setSelectedNode}
+                  canManageHierarchy={canManageHierarchy}
+                  onDropEmployee={handleDropEmployee}
+                />
+              ))}
             </div>
           ) : (
             <div className="text-sm font-bold text-slate-400">Loading organization tree...</div>
