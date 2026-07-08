@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, BookOpen, MoreHorizontal, Edit, AlertCircle } from 'lucide-react';
+import { Search, Plus, BookOpen, MoreHorizontal, Edit, AlertCircle, FileText } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { knowledgeApi, KnowledgeDoc } from '@/lib/api/knowledge';
+import { apiClient } from '@/lib/api/client';
 import { format } from 'date-fns';
 import {
   Dialog,
@@ -52,6 +53,12 @@ export default function KnowledgeBasePage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [viewingDoc, setViewingDoc] = useState<KnowledgeDoc | null>(null);
+  
+  // Upload and view URL states
+  const [isUploading, setIsUploading] = useState(false);
+  const [fileName, setFileName] = useState("");
+  const [viewUrl, setViewUrl] = useState("");
+  const [viewUrlLoading, setViewUrlLoading] = useState(false);
 
   const resetForm = () => {
     setEditingDocId(null);
@@ -60,6 +67,7 @@ export default function KnowledgeBasePage() {
     setContent("");
     setIsPublished(false);
     setErrorMsg("");
+    setFileName("");
   };
 
   const fetchDocs = async () => {
@@ -93,6 +101,29 @@ export default function KnowledgeBasePage() {
   useEffect(() => {
     fetchDocs();
   }, []);
+
+  useEffect(() => {
+    if (!viewingDoc) {
+      setViewUrl("");
+      return;
+    }
+    
+    const getUrl = async () => {
+      setViewUrlLoading(true);
+      try {
+        const res = await apiClient.get("/documents/view-url", {
+          params: { objectKey: viewingDoc.content }
+        });
+        setViewUrl(res.data.data.url);
+      } catch (err) {
+        console.error("Failed to generate download URL", err);
+      } finally {
+        setViewUrlLoading(false);
+      }
+    };
+    
+    getUrl();
+  }, [viewingDoc]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -410,15 +441,68 @@ export default function KnowledgeBasePage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Content</label>
-              <textarea
-                rows={5}
-                required
-                placeholder="Write the document content here..."
-                value={content}
-                onChange={e => setContent(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-colors"
-              />
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Document File (PDF/DOCX)</label>
+              {content ? (
+                <div className="text-xs text-slate-500 mb-2 p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between">
+                  <div className="flex items-center gap-2 truncate">
+                    <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                    <span className="truncate font-medium">{fileName || content}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setContent("");
+                      setFileName("");
+                    }}
+                    className="text-rose-600 hover:text-rose-800 font-bold text-xs"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept=".pdf,.docx"
+                    required={!editingDocId}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setIsUploading(true);
+                      setErrorMsg("");
+                      try {
+                        const res = await apiClient.post("/documents/upload-url", {
+                          fileName: file.name,
+                          contentType: file.type || "application/octet-stream"
+                        });
+                        const { uploadUrl, objectKey } = res.data.data;
+                        
+                        await fetch(uploadUrl, {
+                          method: "PUT",
+                          headers: {
+                            "Content-Type": file.type || "application/octet-stream"
+                          },
+                          body: file
+                        });
+                        
+                        setContent(objectKey);
+                        setFileName(file.name);
+                      } catch (err: any) {
+                        console.error(err);
+                        setErrorMsg(err.message || "Failed to upload file");
+                      } finally {
+                        setIsUploading(false);
+                      }
+                    }}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-colors file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
+                  />
+                  {isUploading && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 flex items-center gap-1">
+                      Uploading...
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-2 pt-2">
@@ -447,10 +531,10 @@ export default function KnowledgeBasePage() {
               </button>
               <button
                 type="submit"
-                disabled={isSaving}
+                disabled={isSaving || isUploading}
                 className="px-4 py-2 rounded-lg bg-slate-900 text-sm font-bold text-white hover:bg-slate-800 transition-colors disabled:bg-slate-400"
               >
-                {isSaving ? "Saving..." : editingDocId ? "Save Changes" : "Create Document"}
+                {isSaving ? "Saving..." : isUploading ? "Uploading file..." : editingDocId ? "Save Changes" : "Create Document"}
               </button>
             </DialogFooter>
           </form>
@@ -471,10 +555,41 @@ export default function KnowledgeBasePage() {
               </div>
             </div>
           </DialogHeader>
-          <div className="p-6 max-h-[60vh] overflow-y-auto">
-            <div className="prose prose-sm max-w-none text-slate-700 whitespace-pre-wrap">
-              {viewingDoc?.content}
-            </div>
+          <div className="p-6 max-h-[60vh] overflow-y-auto flex flex-col items-center justify-center">
+            {viewUrlLoading ? (
+              <div className="flex flex-col items-center justify-center py-10 text-slate-500">
+                <span className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900 mb-2"></span>
+                <span>Generating secure view URL...</span>
+              </div>
+            ) : viewUrl ? (
+              <div className="w-full h-[400px] border border-slate-200 rounded-lg overflow-hidden">
+                {viewingDoc?.content.toLowerCase().endsWith(".pdf") ? (
+                  <iframe
+                    src={viewUrl}
+                    className="w-full h-full border-0"
+                    title={viewingDoc?.title}
+                  />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-slate-50">
+                    <FileText className="w-16 h-16 text-slate-400" />
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-slate-800">Word Document (DOCX)</p>
+                      <p className="text-xs text-slate-500 mt-1">This format cannot be previewed directly in the browser.</p>
+                    </div>
+                    <a
+                      href={viewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold text-sm shadow transition-colors flex items-center gap-2"
+                    >
+                      Download & View Document
+                    </a>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-sm text-slate-500">Unable to generate view URL.</div>
+            )}
           </div>
           <DialogFooter className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end">
             <button
