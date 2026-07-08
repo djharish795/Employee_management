@@ -120,6 +120,7 @@ model Employee {
   connectSettings            ConnectSettings?
   assignedTasks              Task[]               @relation("TaskAssignee")
   createdTasks               Task[]               @relation("TaskCreator")
+  generatedReports           ReportHistory[]      @relation("ReportGenerator")
 
   @@map("employees")
 }
@@ -1468,4 +1469,31 @@ model RegularizationRequest {
   
   @@index([employeeId])
   @@map("regularization_requests")
+}
+
+enum ReportType {
+  HEADCOUNT
+  ATTENDANCE
+  ORG_STRUCTURE
+}
+
+enum ReportFormat {
+  PDF
+  XLSX
+}
+
+model ReportHistory {
+  id            String       @id @default(cuid())
+  name          String
+  type          ReportType
+  format        ReportFormat
+  s3Key         String
+  sizeBytes     Int
+  generatedById String?
+  generatedAt   DateTime     @default(now())
+
+  generator     Employee?    @relation("ReportGenerator", fields: [generatedById], references: [id])
+  
+  @@index([generatedById])
+  @@map("report_history")
 }

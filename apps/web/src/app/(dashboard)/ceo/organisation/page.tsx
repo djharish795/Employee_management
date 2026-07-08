@@ -10,12 +10,13 @@ export default function CEOOrganisationPage() {
   const accessToken = useAuthStore((state) => state.accessToken);
 
   // Protect route
-  if (role !== "CEO") {
+  const allowedRoles = ["CEO", "COO", "CTO", "CHRO", "OPERATIONS_HEAD", "CFO", "SUPER_ADMIN"];
+  if (!allowedRoles.includes(role || "")) {
     return (
       <div className="flex flex-col items-center justify-center h-full bg-slate-50 text-slate-500">
         <Lock className="w-10 h-10 text-slate-300 mb-3" />
         <h2 className="text-xl font-bold text-slate-800">Access Restricted</h2>
-        <p className="mt-2 text-sm font-medium">Only the CEO can access this section.</p>
+        <p className="mt-2 text-sm font-medium">Only executives can access this section.</p>
       </div>
     );
   }

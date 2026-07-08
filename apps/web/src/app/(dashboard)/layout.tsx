@@ -60,7 +60,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {renderSidebar()}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <Topbar />
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto focus:outline-none">
           {children}
         </main>
       </div>

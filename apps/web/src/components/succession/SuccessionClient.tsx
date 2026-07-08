@@ -187,47 +187,7 @@ export function SuccessionClient() {
 
   const apiRoleList = Object.values(apiRoles);
 
-  const mockRoleList = [
-    {
-      roleTitle: "Chief Technology Officer",
-      incumbent: { firstName: "Lokesh", lastName: "" },
-      successors: [
-        {
-          id: "m1",
-          successor: { firstName: "Ravi", lastName: "", designation: { title: "VP Engineering" } },
-          readinessLevel: "READY_NOW",
-          gapAnalysis: "None. Ready to take over.",
-          developmentPlan: "Shadow CTO for 1 month.",
-          kpis: ["System Uptime > 99.99%", "Team Velocity +20%", "Tech Debt < 5%"]
-        },
-        {
-          id: "m2",
-          successor: { firstName: "Karthik", lastName: "S.", designation: { title: "Director Engineering" } },
-          readinessLevel: "DEVELOPING",
-          gapAnalysis: "Needs more executive presence.",
-          developmentPlan: "Leadership coaching in Q3.",
-          kpis: ["Delivery Timeline Met", "Architecture Scalability"]
-        }
-      ]
-    },
-    {
-      roleTitle: "Chief Revenue Officer",
-      incumbent: { firstName: "Ramesh", lastName: "P." },
-      successors: [
-        {
-          id: "m3",
-          successor: { firstName: "Suresh", lastName: "Kumar", designation: { title: "VP Sales" } },
-          readinessLevel: "READY_1_YEAR",
-          gapAnalysis: "Needs international market exposure.",
-          developmentPlan: "Lead APAC expansion project.",
-          kpis: ["ARR Growth +40%", "CAC Decrease -10%"]
-        }
-      ]
-    }
-  ];
-
-  // Merge mock data with real data to prevent empty screens
-  const roleList = apiRoleList.length > 0 ? [...apiRoleList, ...mockRoleList.filter(m => !apiRoles[(m as any).roleTitle])] : mockRoleList;
+  const roleList = apiRoleList;
 
   const getInitials = (firstName?: string, lastName?: string) => {
     return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
