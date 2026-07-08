@@ -26,6 +26,7 @@ import { SuccessionModule } from "./modules/succession/succession.module";
 import { ComplianceModule } from "./modules/compliance/compliance.module";
 import { ReportsModule } from "./modules/reports/reports.module";
 import { DepartmentsModule } from './modules/departments/departments.module';
+import { NotificationsModule } from "./modules/notifications/notifications.module";
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -58,6 +59,7 @@ import { DepartmentsModule } from './modules/departments/departments.module';
     ComplianceModule,
     ReportsModule,
     DepartmentsModule,
+    NotificationsModule,
   ],
 })
 export class AppModule { }

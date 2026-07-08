@@ -9,6 +9,11 @@ import {
   MessageSquare, CalendarCheck, UserPlus, UserMinus, BookOpen, Monitor, Lock, Bell, CheckSquare
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
+import { useNotifications } from '@/hooks/use-notifications';
+
+interface SidebarProps {
+  activeModule?: string;
+}
 
 const getDashboardPath = (role: string) => {
   if (['SUPER_ADMIN', 'IT'].includes(role)) return '/admin/dashboard';
@@ -19,7 +24,7 @@ const getDashboardPath = (role: string) => {
   return '/employee/dashboard';
 };
 
-const getNavGroups = (role: string) => {
+const getNavGroups = (role: string, unreadCount: number) => {
   if (role === 'CEO') {
     return [
       {
@@ -63,7 +68,7 @@ const getNavGroups = (role: string) => {
       {
         label: 'OTHER',
         items: [
-          { title: 'Notifications', icon: Bell, badge: 4, href: '/notifications' },
+          { title: 'Notifications', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined, href: '/notifications' },
         ]
       }
     ];
@@ -96,7 +101,7 @@ const getNavGroups = (role: string) => {
           { title: 'Recruitment', icon: UserPlus, href: '/cto/recruitment', locked: true },
           { title: 'Performance', icon: BarChart3, locked: true },
           { title: 'Analytics', icon: BarChart3, locked: true },
-          { title: 'Notifications', icon: Bell, badge: 4, href: '/notifications' },
+          { title: 'Notifications', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined, href: '/notifications' },
         ]
       }
     ];
@@ -153,10 +158,11 @@ const getNavGroups = (role: string) => {
   ];
 };
 
-export function CeoSidebar() {
+export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
   const pathname  = usePathname();
   const router    = useRouter();
   const clearSession = useAuthStore((state) => state.clearSession);
+  const { unreadCount } = useNotifications();
   const storeRole = useAuthStore((state) => state.role);
   const [role, setRole] = useState(storeRole || 'EMPLOYEE');
 
@@ -215,7 +221,7 @@ export function CeoSidebar() {
 
       {/* Navigation */}
       <nav className={`flex-1 space-y-6 overflow-y-auto ${collapsed ? 'px-2 py-4' : 'px-3 py-2'}`}>
-        {getNavGroups(role).map((group, gIndex) => (
+        {getNavGroups(role, unreadCount).map((group, gIndex) => (
           <div key={group.label || gIndex} className="space-y-1.5">
             {!collapsed && group.label && (
               <div className="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 mt-2">

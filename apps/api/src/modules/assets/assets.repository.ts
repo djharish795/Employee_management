@@ -280,20 +280,29 @@ export class AssetsRepository {
     const totalDevices = assetAssignments.filter(a => ['LAPTOP', 'DESKTOP', 'MONITOR', 'MOBILE_DEVICE'].includes(a.asset.category)).length;
     const softwareLicenses = assetAssignments.filter(a => ['SOFTWARE_LICENCE', 'CLOUD_ACCOUNT'].includes(a.asset.category)).length;
     
-    // For demo purposes, just mock dueForRefresh as 5% of devices
-    const dueForRefresh = Math.max(1, Math.floor(totalDevices * 0.05));
-
-    const assets = assetAssignments.map(a => ({
-      id: a.id,
-      assetName: a.asset.brand || 'Asset',
-      category: ['LAPTOP', 'DESKTOP'].includes(a.asset.category) ? 'Laptop' : 
-                a.asset.category === 'MONITOR' ? 'Monitor' :
-                ['SOFTWARE_LICENCE', 'CLOUD_ACCOUNT'].includes(a.asset.category) ? 'Software' : 'Accessory',
-      assignedToName: `${a.employee.firstName} ${a.employee.lastName}`,
-      assignedToInitials: `${a.employee.firstName.charAt(0)}${a.employee.lastName.charAt(0)}`,
-      assignedDate: a.assignedAt.toISOString().split('T')[0],
-      status: 'Active'
-    }));
+    // Calculate real dueForRefresh: Devices older than 3 years
+    const threeYearsAgo = new Date();
+    threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
+    
+    let dueForRefresh = 0;
+    const assets = assetAssignments.map(a => {
+      const isRefreshDue = a.asset.createdAt < threeYearsAgo && ['LAPTOP', 'DESKTOP', 'MONITOR', 'MOBILE_DEVICE'].includes(a.asset.category);
+      if (isRefreshDue) {
+        dueForRefresh++;
+      }
+      
+      return {
+        id: a.id,
+        assetName: a.asset.brand || 'Asset',
+        category: ['LAPTOP', 'DESKTOP'].includes(a.asset.category) ? 'Laptop' : 
+                  a.asset.category === 'MONITOR' ? 'Monitor' :
+                  ['SOFTWARE_LICENCE', 'CLOUD_ACCOUNT'].includes(a.asset.category) ? 'Software' : 'Accessory',
+        assignedToName: `${a.employee.firstName} ${a.employee.lastName}`,
+        assignedToInitials: `${a.employee.firstName.charAt(0)}${a.employee.lastName.charAt(0)}`,
+        assignedDate: a.assignedAt.toISOString().split('T')[0],
+        status: isRefreshDue ? 'Due for refresh' : 'Active'
+      };
+    });
 
     return {
       metrics: {

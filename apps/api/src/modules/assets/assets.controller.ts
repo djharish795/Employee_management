@@ -3,7 +3,8 @@ import { AssetsService } from "./assets.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RbacGuard } from "../../common/guards/rbac.guard";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
-import { UserRole } from "@naprocs/types";
+import { UserRole, Permission } from "@naprocs/types";
+import { Permissions } from "../../common/decorators/permissions.decorator";
 
 @Controller("assets/kpis")
 @UseGuards(JwtAuthGuard, RbacGuard)
@@ -47,6 +48,7 @@ export class CtoAssetsController {
     constructor(private readonly assetsService: AssetsService) { }
 
     @Get("cto")
+    @Permissions(Permission.READ_EMPLOYEES)
     async getCtoAssets(@CurrentUser() user: any) {
         return this.assetsService.getCtoAssets(user.role as UserRole);
     }

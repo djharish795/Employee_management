@@ -75,6 +75,32 @@ export default function CtoDashboardPage() {
     }
   }, [role]);
 
+  const handleExport = async () => {
+    try {
+      const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const token = useAuthStore.getState().accessToken;
+      const res = await fetch(`${url}/dashboard/cto-export`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error("Failed to export report");
+      
+      const blob = await res.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = downloadUrl;
+      a.download = `engineering-report-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(downloadUrl);
+      document.body.removeChild(a);
+      setShowOrgMenu(false);
+    } catch (e) {
+      console.error("Export failed:", e);
+      alert("Failed to export report. Please try again later.");
+    }
+  };
+
   // Protect route: Only CTO can access
   if (role !== "CTO") {
     return (
@@ -100,7 +126,7 @@ export default function CtoDashboardPage() {
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Engineering overview</h1>
             <p className="text-sm text-slate-500 font-medium mt-1">{currentDate}</p>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
+          <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
             <Download className="w-4 h-4" /> Export team report
           </button>
         </div>
@@ -167,7 +193,7 @@ export default function CtoDashboardPage() {
                     <Link href="/org-chart" className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
                       <Network className="w-4 h-4" /> View full Org Chart
                     </Link>
-                    <button className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors w-full text-left">
+                    <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors w-full text-left">
                       <FileText className="w-4 h-4" /> Export data
                     </button>
                   </div>

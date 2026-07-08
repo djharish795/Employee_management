@@ -1,8 +1,14 @@
-import { Controller, Get, Res } from "@nestjs/common";
+import { Controller, Get, Res, UseGuards } from "@nestjs/common";
 import { Response } from "express";
 import { DashboardService } from "./dashboard.service";
+import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
+import { RbacGuard } from "../../common/guards/rbac.guard";
+import { Permissions } from "../../common/decorators/permissions.decorator";
+import { Permission } from "@naprocs/types";
 
 @Controller("dashboard")
+@UseGuards(JwtAuthGuard, RbacGuard)
+@Permissions(Permission.READ_EMPLOYEES)
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
@@ -26,6 +32,14 @@ export class DashboardController {
     const csvContent = await this.dashboardService.generateExportReport();
     res.header('Content-Type', 'text/csv');
     res.attachment(`organisation-report-${new Date().toISOString().split('T')[0]}.csv`);
+    return res.send(csvContent);
+  }
+
+  @Get("cto-export")
+  async ctoExport(@Res() res: Response) {
+    const csvContent = await this.dashboardService.generateCtoExportReport();
+    res.header('Content-Type', 'text/csv');
+    res.attachment(`engineering-report-${new Date().toISOString().split('T')[0]}.csv`);
     return res.send(csvContent);
   }
 }

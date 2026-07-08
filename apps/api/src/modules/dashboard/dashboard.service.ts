@@ -345,4 +345,19 @@ export class DashboardService {
     }
     return csv;
   }
+
+  async generateCtoExportReport(): Promise<string> {
+    const data = await this.getCtoOverview();
+    let csv = "Engineering Metric,Value\n";
+    csv += `"Headcount","${data.metrics.headcount}"\n`;
+    csv += `"Assets Allocated","${data.metrics.assetsAllocated}"\n`;
+    csv += `"Open Positions","${data.metrics.openPositions}"\n`;
+    csv += `"Avg Tenure","${data.metrics.avgTenure} years"\n`;
+    
+    csv += "\nTeam Name,Lead Name,Members,Avg Experience,Open Roles\n";
+    for (const team of data.techTeams) {
+      csv += `"${team.name}","${team.leadName}","${team.members}","${team.avgExperience}","${team.openRoles}"\n`;
+    }
+    return csv;
+  }
 }
