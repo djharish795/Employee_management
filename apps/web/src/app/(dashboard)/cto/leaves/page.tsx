@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Search, Info, ChevronLeft, ChevronRight, Plus, Lock, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
-import { fetchCtoLeaves } from '@/lib/api/cto';
+import { fetchCtoLeaves, approveLeave, rejectLeave } from '@/lib/api/cto';
 
 // ─── Interfaces (No Hardcoded Mock Data) ─────────────────────────────────────────
 interface LeaveRequest {
@@ -27,6 +27,53 @@ export default function CTOLeavesPage() {
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected' | 'calendar'>('pending');
   const [isLoading, setIsLoading] = useState(true);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+
+  const handleApprove = async (id: string) => {
+    setProcessingId(id);
+    try {
+      await approveLeave(id);
+      setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'APPROVED' } : r));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to approve leave");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    const reason = window.prompt("Please enter a rejection reason:");
+    if (!reason) return;
+    
+    setProcessingId(id);
+    try {
+      await rejectLeave(id, reason);
+      setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'REJECTED' } : r));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to reject leave");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  // Calendar State
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  const handlePrevMonth = () => {
+    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  };
+  const handleNextMonth = () => {
+    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  };
+
+  const getDaysInMonth = (year: number, month: number) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  const daysInMonth = getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth());
+  const daysArray = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
   React.useEffect(() => {
     if (role === 'CTO') {
@@ -56,6 +103,21 @@ export default function CTOLeavesPage() {
   const rejectedCount = requests.filter(r => r.status === 'REJECTED').length;
 
   const filteredRequests = requests.filter(r => r.status.toLowerCase() === activeTab);
+
+  // Group leaves for calendar view
+  const calendarLeaves = requests.filter(r => r.status === 'APPROVED' || r.status === 'PENDING');
+  
+  const groupedLeaves = calendarLeaves.reduce((acc, req) => {
+    if (!acc[req.employeeName]) {
+      acc[req.employeeName] = [];
+    }
+    // Parse dateRange: "YYYY-MM-DD - YYYY-MM-DD"
+    const [startStr, endStr] = req.dateRange.split(' - ');
+    const startDate = new Date(startStr);
+    const endDate = new Date(endStr);
+    acc[req.employeeName].push({ ...req, startDate, endDate });
+    return acc;
+  }, {} as Record<string, any[]>);
 
   return (
     <div className="flex flex-col h-full font-sans bg-slate-50 overflow-y-auto">
@@ -166,6 +228,24 @@ export default function CTOLeavesPage() {
                         {req.status}
                       </span>
                     </div>
+                    {req.status === 'PENDING' && (
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => handleApprove(req.id)}
+                          disabled={processingId === req.id}
+                          className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          {processingId === req.id ? '...' : 'Approve'}
+                        </button>
+                        <button 
+                          onClick={() => handleReject(req.id)}
+                          disabled={processingId === req.id}
+                          className="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))
@@ -177,12 +257,12 @@ export default function CTOLeavesPage() {
         {activeTab === 'calendar' && (
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mt-8">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-base font-bold text-slate-900">Team leave calendar - {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
+              <h3 className="text-base font-bold text-slate-900">Team leave calendar - {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
               <div className="flex items-center gap-2">
-                <button className="w-8 h-8 rounded border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50">
+                <button onClick={handlePrevMonth} className="w-8 h-8 rounded border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50">
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <button className="w-8 h-8 rounded border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50">
+                <button onClick={handleNextMonth} className="w-8 h-8 rounded border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50">
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
@@ -193,9 +273,9 @@ export default function CTOLeavesPage() {
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-200">
                     <th className="py-3 px-4 font-bold text-slate-500 text-left w-40 border-r border-slate-200 shrink-0 sticky left-0 bg-slate-50/80 z-10">Team Member</th>
-                    {Array.from({ length: 31 }, (_, i) => (
-                      <th key={i} className="py-2 min-w-[30px] font-medium text-slate-400 text-center border-r border-slate-200 last:border-r-0">
-                        {i + 1}
+                    {daysArray.map((day) => (
+                      <th key={day} className="py-2 min-w-[30px] font-medium text-slate-400 text-center border-r border-slate-200 last:border-r-0">
+                        {day}
                       </th>
                     ))}
                   </tr>
@@ -203,26 +283,62 @@ export default function CTOLeavesPage() {
                 <tbody>
                   {isLoading ? (
                     <tr>
-                      <td colSpan={32} className="py-12 text-center text-slate-400 font-medium">
+                      <td colSpan={daysInMonth + 1} className="py-12 text-center text-slate-400 font-medium">
                         <div className="flex items-center justify-center">
                           <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading calendar data...
                         </div>
                       </td>
                     </tr>
-                  ) : (
+                  ) : Object.keys(groupedLeaves).length === 0 ? (
                     <tr>
-                      <td colSpan={32} className="py-12 text-center text-slate-400 font-medium">
-                        Calendar view building blocks...
+                      <td colSpan={daysInMonth + 1} className="py-12 text-center text-slate-400 font-medium">
+                        No approved or pending leaves for this team.
                       </td>
                     </tr>
+                  ) : (
+                    Object.entries(groupedLeaves).map(([empName, leaves]) => (
+                      <tr key={empName} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/50">
+                        <td className="py-3 px-4 font-bold text-slate-700 text-left w-40 border-r border-slate-200 shrink-0 sticky left-0 bg-white z-10">
+                          {empName}
+                        </td>
+                        {daysArray.map(day => {
+                          // Check if this specific day in the current month is covered by any leave
+                          const currentCellDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+                          currentCellDate.setHours(0, 0, 0, 0); // Normalize time
+
+                          // Find if any leave covers this day
+                          const activeLeave = leaves.find(l => {
+                            const lStart = new Date(l.startDate);
+                            lStart.setHours(0, 0, 0, 0);
+                            const lEnd = new Date(l.endDate);
+                            lEnd.setHours(0, 0, 0, 0);
+                            return currentCellDate >= lStart && currentCellDate <= lEnd;
+                          });
+
+                          return (
+                            <td key={day} className="p-1 min-w-[30px] border-r border-slate-100 last:border-r-0 text-center h-[52px]">
+                              {activeLeave && (
+                                <div 
+                                  title={`${activeLeave.type} (${activeLeave.status})`}
+                                  className={`w-full h-full rounded flex items-center justify-center cursor-pointer ${
+                                    activeLeave.status === 'APPROVED' 
+                                      ? 'bg-emerald-100 border border-emerald-200' 
+                                      : 'bg-amber-100 border border-amber-200'
+                                  }`}
+                                >
+                                  <div className={`w-1.5 h-1.5 rounded-full ${
+                                    activeLeave.status === 'APPROVED' ? 'bg-emerald-500' : 'bg-amber-500'
+                                  }`}></div>
+                                </div>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))
                   )}
                 </tbody>
               </table>
-              
-              {/* Floating Add Button */}
-              <button className="absolute -bottom-4 -right-4 w-12 h-12 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-slate-800 transition-colors z-20">
-                <Plus className="w-5 h-5" />
-              </button>
             </div>
           </div>
         )}

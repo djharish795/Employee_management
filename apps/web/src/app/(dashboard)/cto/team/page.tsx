@@ -92,9 +92,6 @@ export default function EngineeringTeamPage() {
                 className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-900 transition-colors"
               />
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
-              <Filter className="w-4 h-4" /> Filter by sub-team
-            </button>
           </div>
         </div>
 
@@ -213,46 +210,6 @@ export default function EngineeringTeamPage() {
               </div>
             </div>
           )}
-        </div>
-
-        {/* Bottom Widgets */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
-          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-            <div className="flex justify-between items-center mb-4">
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Uptime Avg.</div>
-              <Activity className="w-4 h-4 text-emerald-500" />
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-slate-900">99.98%</span>
-              <span className="text-xs font-bold text-emerald-600">+0.02%</span>
-            </div>
-          </div>
-
-          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-            <div className="flex justify-between items-center mb-4">
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sprint Velocity</div>
-              <TrendingUp className="w-4 h-4 text-blue-500" />
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-slate-900">124</span>
-              <span className="text-sm font-semibold text-slate-500">pts avg.</span>
-            </div>
-          </div>
-
-          <div className="bg-slate-900 rounded-xl p-6 shadow-sm text-white relative overflow-hidden flex flex-col justify-center">
-            {/* Dark background pattern mimicking the screenshot */}
-            <div className="absolute right-0 top-0 bottom-0 w-1/2 flex">
-               <div className="w-1/4 h-full border-r border-slate-800/50"></div>
-               <div className="w-1/4 h-full border-r border-slate-800/50"></div>
-               <div className="w-1/4 h-full border-r border-slate-800/50"></div>
-            </div>
-            <div className="relative z-10">
-              <h3 className="text-base font-bold mb-2">Architecture Review</h3>
-              <p className="text-sm text-slate-300 font-medium leading-relaxed">
-                The quarterly engineering architecture review is scheduled for Friday at 10:00 AM.
-              </p>
-            </div>
-          </div>
         </div>
 
       </div>

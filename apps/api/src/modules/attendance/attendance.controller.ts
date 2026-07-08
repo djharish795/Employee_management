@@ -87,12 +87,14 @@ export class AttendanceController {
   }
 
   @Patch("regularizations/:id/action")
-  @Permissions(Permission.WRITE_EMPLOYEES)
+  // We remove the strict @Permissions(Permission.WRITE_EMPLOYEES) because managers need to approve their team's requests without needing global WRITE_EMPLOYEES permission.
+  // The attendance.service.ts internally verifies if the CurrentUser is the employee's manager or an HR admin.
   async actionRegularization(
+    @CurrentUser() user: any,
     @Param('id') id: string,
-    @Body() dto: { action: "APPROVE" | "REJECT", approver: "MANAGER" | "HR" }
+    @Body() dto: { action: "APPROVE" | "REJECT" }
   ) {
-    return this.attendanceService.actionRegularization(id, dto.action, dto.approver);
+    return this.attendanceService.actionRegularization(id, dto.action, user);
   }
 }
 

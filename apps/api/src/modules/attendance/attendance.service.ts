@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from "@nestjs/common";
+import { Injectable, BadRequestException, ForbiddenException } from "@nestjs/common";
 import { RedisService } from "../../redis/redis.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import { PunchDto } from "./dto/punch.dto";
@@ -746,9 +746,31 @@ export class AttendanceService {
     });
   }
 
-  async actionRegularization(id: string, action: "APPROVE" | "REJECT", approver: "MANAGER" | "HR") {
+  async actionRegularization(id: string, action: "APPROVE" | "REJECT", currentUser: any) {
     const statusVal = action === "APPROVE" ? "APPROVED" : "REJECTED";
-    if (approver === "MANAGER") {
+    
+    const request = await this.prisma.regularizationRequest.findUnique({
+      where: { id },
+      include: { employee: true }
+    });
+
+    if (!request) {
+      throw new BadRequestException("Regularization request not found");
+    }
+
+    let approverRole: "MANAGER" | "HR" | null = null;
+
+    if (["HR", "CHRO", "CEO", "SUPER_ADMIN", "IT", "FINANCE"].includes(currentUser.role)) {
+      approverRole = "HR";
+    } else if (request.employee.reportingManagerId === currentUser.employeeId) {
+      approverRole = "MANAGER";
+    }
+
+    if (!approverRole) {
+      throw new ForbiddenException("You do not have permission to action this request.");
+    }
+
+    if (approverRole === "MANAGER") {
       return this.prisma.regularizationRequest.update({
         where: { id },
         data: { managerStatus: statusVal, comments: `Actioned by Manager (${action})` }
@@ -756,7 +778,7 @@ export class AttendanceService {
     } else {
       return this.prisma.regularizationRequest.update({
         where: { id },
-        data: { hrStatus: statusVal, comments: `Actioned by HR (${action})` }
+        data: { hrStatus: statusVal, comments: `Actioned by HR/Admin (${action})` }
       });
     }
   }

@@ -31,6 +31,10 @@ export default function CTOAssetsPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+
   React.useEffect(() => {
     if (role === 'CTO') {
       setIsLoading(true);
@@ -44,6 +48,20 @@ export default function CTOAssetsPage() {
         .finally(() => setIsLoading(false));
     }
   }, [role]);
+
+  // Filter & Pagination Logic
+  const filteredAssets = assets.filter(a => 
+    a.assetName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    a.assignedToName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  
+  const totalPages = Math.ceil(filteredAssets.length / itemsPerPage);
+  const paginatedAssets = filteredAssets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  // Reset page when search changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   // Protect route
   if (role !== "CTO") {
@@ -66,7 +84,7 @@ export default function CTOAssetsPage() {
               <div className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Total Devices</div>
               <Monitor className="w-5 h-5 text-slate-300" />
             </div>
-            <div className="text-5xl font-extrabold text-slate-900">{metrics?.totalDevices || '--'}</div>
+            <div className="text-5xl font-extrabold text-slate-900">{metrics?.totalDevices ?? '--'}</div>
           </div>
 
           <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col justify-between">
@@ -74,7 +92,7 @@ export default function CTOAssetsPage() {
               <div className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Software Licences</div>
               <FileCode2 className="w-5 h-5 text-slate-300" />
             </div>
-            <div className="text-5xl font-extrabold text-slate-900">{metrics?.softwareLicenses || '--'}</div>
+            <div className="text-5xl font-extrabold text-slate-900">{metrics?.softwareLicenses ?? '--'}</div>
           </div>
 
           <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col justify-between relative overflow-hidden">
@@ -86,7 +104,7 @@ export default function CTOAssetsPage() {
               <RefreshCw className="w-5 h-5 text-orange-400" />
             </div>
             <div className="pl-2 flex flex-col gap-1">
-              <div className="text-5xl font-extrabold text-orange-600">{metrics?.dueForRefresh || '--'}</div>
+              <div className="text-5xl font-extrabold text-orange-600">{metrics?.dueForRefresh ?? '--'}</div>
               <div className="text-sm font-medium text-slate-500">next 6 months</div>
             </div>
           </div>
@@ -94,11 +112,18 @@ export default function CTOAssetsPage() {
 
         {/* Inventory Section */}
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
-          <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+          <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <h3 className="text-lg font-bold text-slate-900">Asset Inventory</h3>
-            <button className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
-              <Filter className="w-4 h-4" /> Filter
-            </button>
+            <div className="relative w-full md:w-64">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input 
+                type="text" 
+                placeholder="Search assets or assignees..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-900 transition-colors"
+              />
+            </div>
           </div>
           
           <div className="overflow-x-auto">
@@ -121,14 +146,14 @@ export default function CTOAssetsPage() {
                       </div>
                     </td>
                   </tr>
-                ) : assets.length === 0 ? (
+                ) : paginatedAssets.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-20 text-center text-sm font-medium text-slate-400">
-                      Waiting for backend asset inventory data...
+                      {searchQuery ? "No assets matched your search." : "No assets currently assigned."}
                     </td>
                   </tr>
                 ) : (
-                  assets.map(asset => (
+                  paginatedAssets.map(asset => (
                     <tr key={asset.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4 text-sm font-bold text-slate-900">{asset.assetName}</td>
                       <td className="px-6 py-4 text-sm font-medium text-slate-600">{asset.category}</td>
@@ -167,31 +192,42 @@ export default function CTOAssetsPage() {
           </div>
           
           {/* Pagination */}
-          <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
-            <div className="text-sm font-medium text-slate-500">
-              Showing 1-8 of {totalCount}
+          {totalPages > 1 && (
+            <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="text-sm font-medium text-slate-500">
+                Showing {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, filteredAssets.length)} of {filteredAssets.length}
+              </div>
+              <div className="flex items-center gap-1">
+                <button 
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 bg-white text-slate-400 hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button 
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-8 h-8 flex items-center justify-center rounded font-bold text-sm transition-colors ${
+                      currentPage === page 
+                        ? 'bg-slate-900 text-white shadow-sm' 
+                        : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button 
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              <button className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 bg-white text-slate-400 hover:bg-slate-50 transition-colors">
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button className="w-8 h-8 flex items-center justify-center rounded bg-slate-900 text-white font-bold text-sm shadow-sm">
-                1
-              </button>
-              <button className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors">
-                2
-              </button>
-              <button className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors">
-                3
-              </button>
-              <button className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors">
-                8
-              </button>
-              <button className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors">
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
+          )}
         </div>
 
       </div>
