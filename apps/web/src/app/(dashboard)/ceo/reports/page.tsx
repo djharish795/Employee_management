@@ -1,28 +1,84 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Search, Lock, Users, Calendar, Network, FileText, Download, Banknote, UserMinus, BarChart3 } from 'lucide-react';
+import { Search, Lock, Users, Calendar, Network, FileText, Download, Banknote, UserMinus, BarChart3, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-// ─── Interfaces ─────────────────────────────────────────────────────────────
 interface ReportHistory {
   id: string;
   name: string;
-  date: string;
+  generatedAt: string;
   format: 'PDF' | 'XLSX';
-  size: string;
+  sizeBytes: number;
 }
 
 export default function CEOReportsPage() {
   const role = useAuthStore((state) => state.role);
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const queryClient = useQueryClient();
 
-  // Static mock data to perfectly match the requested visual state
-  const [recentReports] = useState<ReportHistory[]>([
-    { id: '1', name: 'Headcount Dec 2024', date: 'Dec 15, 2024', format: 'PDF', size: '2.4 MB' },
-    { id: '2', name: 'Attendance Q4', date: 'Dec 10, 2024', format: 'XLSX', size: '1.8 MB' },
-    { id: '3', name: 'Org Structure 2024', date: 'Dec 01, 2024', format: 'PDF', size: '5.1 MB' },
-    { id: '4', name: 'Headcount Nov 2024', date: 'Nov 15, 2024', format: 'PDF', size: '2.3 MB' },
-  ]);
+  const [formats, setFormats] = useState<{ [key: string]: string }>({
+    HEADCOUNT: 'PDF',
+    ATTENDANCE: 'XLSX',
+    ORG_STRUCTURE: 'PDF',
+  });
+
+  const handleFormatChange = (type: string, format: string) => {
+    setFormats(prev => ({ ...prev, [type]: format }));
+  };
+
+  const { data: recentReports, isLoading: isFetchingReports } = useQuery<ReportHistory[]>({
+    queryKey: ['recent-reports'],
+    queryFn: async () => {
+      const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const res = await fetch(`${url}/reports`, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch reports');
+      return res.json();
+    }
+  });
+
+  const generateReport = useMutation({
+    mutationFn: async ({ type, format }: { type: string, format: string }) => {
+      const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const res = await fetch(`${url}/reports/generate`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ type, format })
+      });
+      if (!res.ok) throw new Error('Failed to generate report');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recent-reports'] });
+    }
+  });
+
+  const handleDownload = async (id: string, name: string, format: string) => {
+    try {
+      const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const res = await fetch(`${url}/reports/${id}/download`, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      if (!res.ok) throw new Error('Failed to get download URL');
+      const data = await res.json();
+      
+      const a = document.createElement('a');
+      a.href = data.url;
+      a.download = `${name.replace(/\s+/g, '_')}_${new Date().getTime()}.${format.toLowerCase()}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error(error);
+      alert('Failed to download report.');
+    }
+  };
 
   // Protect route
   if (role !== "CEO") {
@@ -33,6 +89,15 @@ export default function CEOReportsPage() {
         <p className="mt-2 text-sm font-medium">Only the CEO can access Executive Reporting.</p>
       </div>
     );
+  }
+
+  const formatBytes = (bytes: number, decimals = 2) => {
+    if (!+bytes) return '0 Bytes'
+    const k = 1024
+    const dm = decimals < 0 ? 0 : decimals
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
   }
 
   return (
@@ -56,10 +121,25 @@ export default function CEOReportsPage() {
               <Users className="w-6 h-6" />
             </div>
             <h3 className="text-base font-bold text-slate-900 mb-3">Headcount summary</h3>
-            <p className="text-xs font-medium text-slate-500 mb-8 flex-1 px-4 leading-relaxed">
+            <p className="text-xs font-medium text-slate-500 mb-4 flex-1 px-4 leading-relaxed">
               Detailed breakdown of total employee count by department, location, and seniority level.
             </p>
-            <button className="w-full py-2.5 rounded-lg border border-slate-300 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors">
+            <div className="w-full flex gap-2 mb-4">
+              <select 
+                value={formats['HEADCOUNT']}
+                onChange={(e) => handleFormatChange('HEADCOUNT', e.target.value)}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white font-medium text-slate-600 shadow-sm"
+              >
+                <option value="PDF">Format: PDF</option>
+                <option value="XLSX">Format: XLSX</option>
+              </select>
+            </div>
+            <button 
+              onClick={() => generateReport.mutate({ type: 'HEADCOUNT', format: formats['HEADCOUNT'] })}
+              disabled={generateReport.isPending}
+              className="w-full py-2.5 rounded-lg border border-slate-300 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
+            >
+              {generateReport.isPending && generateReport.variables?.type === 'HEADCOUNT' && <Loader2 className="w-4 h-4 animate-spin" />}
               Generate report
             </button>
           </div>
@@ -70,10 +150,25 @@ export default function CEOReportsPage() {
               <Calendar className="w-6 h-6" />
             </div>
             <h3 className="text-base font-bold text-slate-900 mb-3">Attendance summary</h3>
-            <p className="text-xs font-medium text-slate-500 mb-8 flex-1 px-4 leading-relaxed">
+            <p className="text-xs font-medium text-slate-500 mb-4 flex-1 px-4 leading-relaxed">
               Quarterly analysis of organizational attendance, leave patterns, and productivity hours.
             </p>
-            <button className="w-full py-2.5 rounded-lg border border-slate-300 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors">
+            <div className="w-full flex gap-2 mb-4">
+              <select 
+                value={formats['ATTENDANCE']}
+                onChange={(e) => handleFormatChange('ATTENDANCE', e.target.value)}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white font-medium text-slate-600 shadow-sm"
+              >
+                <option value="PDF">Format: PDF</option>
+                <option value="XLSX">Format: XLSX</option>
+              </select>
+            </div>
+            <button 
+              onClick={() => generateReport.mutate({ type: 'ATTENDANCE', format: formats['ATTENDANCE'] })}
+              disabled={generateReport.isPending}
+              className="w-full py-2.5 rounded-lg border border-slate-300 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
+            >
+              {generateReport.isPending && generateReport.variables?.type === 'ATTENDANCE' && <Loader2 className="w-4 h-4 animate-spin" />}
               Generate report
             </button>
           </div>
@@ -84,10 +179,25 @@ export default function CEOReportsPage() {
               <Network className="w-6 h-6" />
             </div>
             <h3 className="text-base font-bold text-slate-900 mb-3">Organisation structure</h3>
-            <p className="text-xs font-medium text-slate-500 mb-8 flex-1 px-4 leading-relaxed">
+            <p className="text-xs font-medium text-slate-500 mb-4 flex-1 px-4 leading-relaxed">
               Visual and data-driven report of the current hierarchical structure and reporting lines.
             </p>
-            <button className="w-full py-2.5 rounded-lg border border-slate-300 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors">
+            <div className="w-full flex gap-2 mb-4">
+              <select 
+                value={formats['ORG_STRUCTURE']}
+                onChange={(e) => handleFormatChange('ORG_STRUCTURE', e.target.value)}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white font-medium text-slate-600 shadow-sm"
+              >
+                <option value="PDF">Format: PDF</option>
+                <option value="XLSX">Format: XLSX</option>
+              </select>
+            </div>
+            <button 
+              onClick={() => generateReport.mutate({ type: 'ORG_STRUCTURE', format: formats['ORG_STRUCTURE'] })}
+              disabled={generateReport.isPending}
+              className="w-full py-2.5 rounded-lg border border-slate-300 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
+            >
+              {generateReport.isPending && generateReport.variables?.type === 'ORG_STRUCTURE' && <Loader2 className="w-4 h-4 animate-spin" />}
               Generate report
             </button>
           </div>
@@ -140,9 +250,6 @@ export default function CEOReportsPage() {
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mt-8">
           <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
             <h2 className="text-base font-bold text-slate-900">Recent reports</h2>
-            <button className="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors">
-              View all history
-            </button>
           </div>
           
           <div className="overflow-x-auto">
@@ -157,13 +264,26 @@ export default function CEOReportsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {recentReports.map(report => (
+                {isFetchingReports ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-8 text-center text-sm font-medium text-slate-500">
+                      <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
+                      Loading reports...
+                    </td>
+                  </tr>
+                ) : !recentReports || recentReports.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-8 text-center text-sm font-medium text-slate-500">
+                      No reports generated yet.
+                    </td>
+                  </tr>
+                ) : recentReports.map(report => (
                   <tr key={report.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4">
                       <span className="text-sm font-bold text-slate-700">{report.name}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-sm font-medium text-slate-500">{report.date}</span>
+                      <span className="text-sm font-medium text-slate-500">{new Date(report.generatedAt).toLocaleDateString()} {new Date(report.generatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                     </td>
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center px-2 py-1 bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-extrabold uppercase rounded shadow-sm">
@@ -171,10 +291,13 @@ export default function CEOReportsPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-sm font-medium text-slate-500">{report.size}</span>
+                      <span className="text-sm font-medium text-slate-500">{formatBytes(report.sizeBytes)}</span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button className="inline-flex items-center gap-1.5 text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors">
+                      <button 
+                        onClick={() => handleDownload(report.id, report.name, report.format)}
+                        className="inline-flex items-center gap-1.5 text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
+                      >
                         <Download className="w-4 h-4" /> Download
                       </button>
                     </td>

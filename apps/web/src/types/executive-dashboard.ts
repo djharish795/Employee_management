@@ -23,5 +23,5 @@ export type QuickLinkType = {
   id: string;
   title: string;
   href: string;
-  iconType: 'userPlus' | 'orgChart' | 'audit' | 'export';
+  iconType: 'userPlus' | 'orgChart' | 'audit' | 'export' | 'users';
 };

@@ -19,10 +19,10 @@ import { PersonalAttendanceWidget } from '@/components/shared/personal-attendanc
 import { QuickLinkType } from '@/types/executive-dashboard';
 
 const quickLinksData: QuickLinkType[] = [
-  { id: '1', title: 'Add employee', href: '/employees/add', iconType: 'userPlus' },
-  { id: '2', title: 'View org chart', href: '/org-chart', iconType: 'orgChart' },
-  { id: '3', title: 'Audit logs', href: '/audit', iconType: 'audit' },
-  { id: '4', title: 'Export report', href: '#', iconType: 'export' },
+  { id: '1', title: 'Executive Reports', href: '/ceo/reports', iconType: 'export' },
+  { id: '2', title: 'Organisation Chart', href: '/ceo/organisation', iconType: 'orgChart' },
+  { id: '3', title: 'Succession Planning', href: '/ceo/succession-planning', iconType: 'users' },
+  { id: '4', title: 'Audit logs', href: '/admin/audit', iconType: 'audit' },
 ];
 
 export function DashboardClient() {

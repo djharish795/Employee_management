@@ -1,13 +1,14 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { QuickLinkType } from '../../types/executive-dashboard';
-import { UserPlus, Network, ShieldCheck, Download } from 'lucide-react';
+import { UserPlus, Network, ShieldCheck, Download, Users } from 'lucide-react';
 
 const icons = {
   userPlus: UserPlus,
   orgChart: Network,
   audit: ShieldCheck,
   export: Download,
+  users: Users,
 };
 
 export function QuickLinks({ links }: { links: QuickLinkType[] }) {
