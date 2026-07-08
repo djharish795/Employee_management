@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { KnowledgeDoc, knowledgeApi } from "@/lib/api/knowledge";
+import { apiClient } from "@/lib/api/client";
 import { Loader2, ArrowLeft, CheckCircle, AlertTriangle, FileText } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -24,6 +25,32 @@ export function KnowledgeDetailClient({ slug }: { slug: string }) {
       })
       .finally(() => setLoading(false));
   }, [slug, router]);
+
+  const [viewUrl, setViewUrl] = useState("");
+  const [viewUrlLoading, setViewUrlLoading] = useState(false);
+
+  useEffect(() => {
+    if (!doc) {
+      setViewUrl("");
+      return;
+    }
+
+    const getUrl = async () => {
+      setViewUrlLoading(true);
+      try {
+        const res = await apiClient.get("/documents/view-url", {
+          params: { objectKey: doc.content }
+        });
+        setViewUrl(res.data.data.url);
+      } catch (err) {
+        console.error("Failed to generate download URL", err);
+      } finally {
+        setViewUrlLoading(false);
+      }
+    };
+
+    getUrl();
+  }, [doc]);
 
   const handleSign = async () => {
     if (!doc) return;
@@ -82,11 +109,43 @@ export function KnowledgeDetailClient({ slug }: { slug: string }) {
         </div>
 
         {/* Content */}
-        <div className="p-8 prose prose-slate max-w-none text-slate-700">
-          {/* Simple render since we don't have a markdown parser installed yet. In production use react-markdown */}
-          {doc.content.split('\n').map((paragraph, idx) => (
-            <p key={idx} className="mb-4">{paragraph}</p>
-          ))}
+        <div className="p-8 border-b border-slate-100">
+          {viewUrlLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-2" />
+              <span>Loading document...</span>
+            </div>
+          ) : viewUrl ? (
+            <div className="w-full h-[600px] border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+              {doc.content.toLowerCase().endsWith(".pdf") ? (
+                <iframe
+                  src={viewUrl}
+                  className="w-full h-full border-0"
+                  title={doc.title}
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-slate-50">
+                  <FileText className="w-16 h-16 text-slate-400" />
+                  <div className="text-center">
+                    <p className="text-sm font-bold text-slate-800">Word Document (DOCX)</p>
+                    <p className="text-xs text-slate-500 mt-1">This format cannot be previewed directly in the browser.</p>
+                  </div>
+                  <a
+                    href={viewUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold text-sm shadow transition-colors flex items-center gap-2"
+                  >
+                    Download & View Document
+                  </a>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-10 text-rose-500">
+              Failed to load document view URL.
+            </div>
+          )}
         </div>
 
         {/* E-Signature Box */}
