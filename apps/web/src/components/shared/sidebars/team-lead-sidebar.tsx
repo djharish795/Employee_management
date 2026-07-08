@@ -23,7 +23,7 @@ export function TeamLeadSidebar() {
   const clearSession = useAuthStore((state) => state.clearSession);
 
   const navItems = [
-    { title: 'Dashboard', icon: LayoutDashboard, href: '/employee/dashboard' },
+    { title: 'Dashboard', icon: LayoutDashboard, href: '/team-lead/dashboard' },
     { title: 'My Team', icon: Users, href: '/team-lead/team' },
     { title: 'Attendance', icon: CalendarCheck, href: '/attendance' },
     { title: 'Leave', icon: Calendar, href: '/leaves' },
