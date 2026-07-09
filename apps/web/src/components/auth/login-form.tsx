@@ -98,6 +98,9 @@ export const LoginForm: React.FC = () => {
         });
         document.cookie = `token=${res.token}; path=/; max-age=86400; SameSite=Strict`;
         document.cookie = `role=${role}; path=/; max-age=86400; SameSite=Strict`;
+        if (res.employeeStatus) {
+          document.cookie = `employeeStatus=${res.employeeStatus}; path=/; max-age=86400; SameSite=Strict`;
+        }
         router.push(res.redirectPath ?? "/employee/dashboard");
       } else {
         router.push("/employee/dashboard");

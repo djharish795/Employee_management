@@ -50,6 +50,7 @@ export default function KnowledgeBasePage() {
   const [category, setCategory] = useState<"POLICY" | "SOP" | "COMPLIANCE" | "TRAINING_MATERIAL" | "HR_GUIDELINES" | "ARCHITECTURE" | "TECHNICAL_DOC">("POLICY");
   const [content, setContent] = useState("");
   const [isPublished, setIsPublished] = useState(false);
+  const [requiresSignature, setRequiresSignature] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [viewingDoc, setViewingDoc] = useState<KnowledgeDoc | null>(null);
@@ -66,6 +67,7 @@ export default function KnowledgeBasePage() {
     setCategory("POLICY");
     setContent("");
     setIsPublished(false);
+    setRequiresSignature(false);
     setErrorMsg("");
     setFileName("");
   };
@@ -135,14 +137,16 @@ export default function KnowledgeBasePage() {
           title,
           content,
           category,
-          isPublished
+          isPublished,
+          requiresSignature
         });
       } else {
         await knowledgeApi.create({
           title,
           content,
           category,
-          isPublished
+          isPublished,
+          requiresSignature
         });
       }
       setIsOpen(false);
@@ -322,6 +326,7 @@ export default function KnowledgeBasePage() {
                                   setTitle(rawDoc.title);
                                   setCategory(rawDoc.category as any);
                                   setContent(rawDoc.content);
+                                  setRequiresSignature(rawDoc.requiresSignature ?? false);
                                   setIsPublished(rawDoc.isPublished);
                                   setIsOpen(true);
                                 }
@@ -353,18 +358,40 @@ export default function KnowledgeBasePage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-40 rounded-lg shadow-lg border-slate-200">
                               <DropdownMenuItem
-                                onClick={(e) => {
+                                onClick={async (e) => {
                                   e.stopPropagation();
-                                  alert("Downloading PDF...");
+                                  const rawDoc = rawDocs.find(d => d.id === doc.id);
+                                  if (!rawDoc) return;
+                                  try {
+                                    const res = await apiClient.get("/documents/view-url", {
+                                      params: { objectKey: rawDoc.content }
+                                    });
+                                    window.open(res.data.data.url, "_blank");
+                                  } catch (err) {
+                                    alert("Failed to generate download URL");
+                                  }
                                 }}
                                 className="text-xs font-medium text-slate-700 cursor-pointer"
                               >
-                                Download PDF
+                                Download
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={(e) => {
+                                onClick={async (e) => {
                                   e.stopPropagation();
-                                  alert("Duplicating document...");
+                                  const rawDoc = rawDocs.find(d => d.id === doc.id);
+                                  if (!rawDoc) return;
+                                  try {
+                                    await knowledgeApi.create({
+                                      title: `${rawDoc.title} (Copy)`,
+                                      content: rawDoc.content,
+                                      category: rawDoc.category,
+                                      isPublished: false,
+                                      requiresSignature: rawDoc.requiresSignature
+                                    });
+                                    fetchDocs();
+                                  } catch (err) {
+                                    alert("Failed to duplicate document");
+                                  }
                                 }}
                                 className="text-xs font-medium text-slate-700 cursor-pointer"
                               >
@@ -505,17 +532,31 @@ export default function KnowledgeBasePage() {
               )}
             </div>
 
-            <div className="flex items-center gap-2 pt-2">
-              <input
-                id="isPublished"
-                type="checkbox"
-                checked={isPublished}
-                onChange={e => setIsPublished(e.target.checked)}
-                className="w-4 h-4 border-slate-300 rounded text-slate-900 focus:ring-slate-900 cursor-pointer"
-              />
-              <label htmlFor="isPublished" className="text-xs font-bold text-slate-700 cursor-pointer select-none">
-                Publish immediately (make visible to all employees)
-              </label>
+            <div className="flex flex-col gap-3 pt-2">
+              <div className="flex items-center gap-2">
+                <input
+                  id="isPublished"
+                  type="checkbox"
+                  checked={isPublished}
+                  onChange={e => setIsPublished(e.target.checked)}
+                  className="w-4 h-4 border-slate-300 rounded text-slate-900 focus:ring-slate-900 cursor-pointer"
+                />
+                <label htmlFor="isPublished" className="text-xs font-bold text-slate-700 cursor-pointer select-none">
+                  Publish immediately (make visible to all employees)
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  id="requiresSignature"
+                  type="checkbox"
+                  checked={requiresSignature}
+                  onChange={e => setRequiresSignature(e.target.checked)}
+                  className="w-4 h-4 border-slate-300 rounded text-slate-900 focus:ring-slate-900 cursor-pointer"
+                />
+                <label htmlFor="requiresSignature" className="text-xs font-bold text-slate-700 cursor-pointer select-none">
+                  Require employee e-signature acknowledgement
+                </label>
+              </div>
             </div>
 
             <DialogFooter className="pt-4 flex gap-2 sm:justify-end border-t border-slate-100">

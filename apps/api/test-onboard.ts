@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@naprocs/database';
 const db = new PrismaClient();
 
 async function test() {
@@ -11,8 +11,8 @@ async function test() {
       department: 'Engineering',
       employmentType: 'Full-time'
     };
-    
-    const DEPT_MAP = {
+
+    const DEPT_MAP: Record<string, string> = {
       "Engineering": "TR",
       "Product": "PR",
       "Design": "DS",
@@ -21,7 +21,7 @@ async function test() {
     };
     const deptCode = DEPT_MAP[data.department] || "XX";
     const prefix = `NAP/${deptCode}/`;
-    
+
     const latestEmployee = await db.employee.findFirst({
       where: { employeeId: { startsWith: prefix } },
       orderBy: { employeeId: 'desc' }
@@ -36,12 +36,12 @@ async function test() {
       }
     }
     const generatedEmployeeId = `${prefix}${nextNumber.toString().padStart(3, '0')}`;
-    
+
     console.log("Generated ID:", generatedEmployeeId);
 
     const dept = data.department ? await db.department.findUnique({ where: { name: data.department } }) : null;
     const departmentId = dept?.id || null;
-    
+
     const result = await db.$transaction(async (tx) => {
       const employee = await tx.employee.create({
         data: {
@@ -86,7 +86,7 @@ async function test() {
     });
 
     console.log("SUCCESS!", result);
-  } catch(e) {
+  } catch (e) {
     console.error("PRISMA ERROR:", e);
   } finally {
     await db.$disconnect();

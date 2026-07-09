@@ -59,6 +59,25 @@ export class ComplianceController {
     return this.consentService.getAllConsentLogs();
   }
 
+  @Get("consents/me/status")
+  @Permissions(Permission.READ_OWN_PROFILE)
+  async getMyConsentStatus(@CurrentUser() user: any) {
+    const logs = await this.prisma.consentLog.findMany({
+      where: { 
+        employeeId: user.employeeId, 
+        revokedAt: null,
+        purpose: "ONBOARDING_PII_DATA_PROCESSING"
+      }
+    });
+    return { hasConsented: logs.length > 0 };
+  }
+
+  @Post("consents/me")
+  @Permissions(Permission.WRITE_OWN_PROFILE)
+  async addMyConsent(@Body() body: { purpose: string }, @CurrentUser() user: any) {
+    return this.consentService.addConsentLog(user.employeeId, body.purpose, user.employeeId, "127.0.0.1");
+  }
+
   @Post("consents")
   @Permissions(Permission.WRITE_EMPLOYEES)
   addConsent(@Body() body: { employeeId: string; purpose: string }, @CurrentUser() user: any) {

@@ -62,13 +62,19 @@ export class AuthService {
       employeeId: user.employeeId ?? undefined,
     });
 
+    let finalRedirectPath = issued.redirectPath;
+    if (user.employee?.status === "ONBOARDING") {
+      finalRedirectPath = "/employee/onboarding";
+    }
+
     return {
       mfaRequired: false,
       token: issued.accessToken,
       refreshToken: issued.refreshToken,
       role: issued.role,
-      redirectPath: issued.redirectPath,
+      redirectPath: finalRedirectPath,
       employeeId: user.employeeId ?? null,
+      employeeStatus: user.employee?.status ?? null,
     };
     // ---------------------------------------------
   }
@@ -150,13 +156,19 @@ export class AuthService {
       employeeId: user.employeeId ?? undefined,
     });
 
+    let finalRedirectPath = issued.redirectPath;
+    if (user.employee?.status === "ONBOARDING") {
+      finalRedirectPath = "/employee/onboarding";
+    }
+
     return {
       success: true,
       token: issued.accessToken,
       refreshToken: issued.refreshToken,
       role: issued.role,
-      redirectPath: issued.redirectPath,
+      redirectPath: finalRedirectPath,
       employeeId: user.employeeId ?? null,
+      employeeStatus: user.employee?.status ?? null,
     };
   }
 }

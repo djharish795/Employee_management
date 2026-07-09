@@ -9,7 +9,6 @@ import {
   Query,
   UseGuards,
   UseInterceptors,
-  ForbiddenException,
 } from "@nestjs/common";
 import { KnowledgeService } from "./knowledge.service";
 import { CreateKnowledgeDocDto } from "./dto/create-knowledge.dto";
@@ -71,7 +70,6 @@ export class KnowledgeController {
     @CurrentUser() user: any,
     @Body() dto: UpdateKnowledgeDocDto,
   ) {
-    throw new ForbiddenException(`DEBUG USER: ${JSON.stringify(user)}`);
     return this.knowledgeService.update(id, user.role as UserRole, dto);
   }
 

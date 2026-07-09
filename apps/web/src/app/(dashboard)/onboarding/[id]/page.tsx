@@ -214,7 +214,17 @@ export default function OnboardingDetailsPage() {
                                 <p className={`text-sm font-semibold transition-colors ${task.isCompleted ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
                                   {task.title}
                                 </p>
-                                {task.description && <p className="text-xs text-slate-500 mt-1">{task.description}</p>}
+                                {task.description && !task.description.startsWith('Document uploaded') && (
+                                  <p className="text-xs text-slate-500 mt-1">{task.description}</p>
+                                )}
+                                
+                                {!task.isCompleted && task.assignedTo === 'Employee' && task.description?.startsWith('Document uploaded') && (
+                                  <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
+                                    <span className="font-bold">Needs Review:</span> The employee has submitted this document.
+                                    <div className="mt-1 text-slate-500 truncate">{task.description}</div>
+                                  </div>
+                                )}
+
                                 {task.completedAt && (
                                   <p className="text-[10px] font-medium text-emerald-600 mt-2">
                                     Completed on {new Date(task.completedAt).toLocaleDateString()}

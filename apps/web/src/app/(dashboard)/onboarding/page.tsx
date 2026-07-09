@@ -10,6 +10,9 @@ import { apiClient } from '@/lib/api/client';
 export default function OnboardingPage() {
   const role = useAuthStore((state) => state.role);
   const [toast, setToast] = useState<{show: boolean, message: string}>({show: false, message: ''});
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [filterStage, setFilterStage] = useState<string | null>(null);
+  const [showFilter, setShowFilter] = useState(false);
   
   const { data: metrics, isLoading } = useQuery({
     queryKey: ['onboarding-metrics'],
@@ -41,6 +44,23 @@ export default function OnboardingPage() {
       </div>
     );
   }
+
+  const filteredAndSortedOnboarding = React.useMemo(() => {
+    if (!metrics?.activeOnboarding) return [];
+    let result = [...metrics.activeOnboarding];
+    
+    if (filterStage) {
+      result = result.filter(s => s.stage === filterStage);
+    }
+    
+    result.sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+    });
+    
+    return result;
+  }, [metrics?.activeOnboarding, filterStage, sortOrder]);
 
   return (
     <div className="flex flex-col h-full font-sans bg-slate-50 overflow-y-auto">
@@ -127,18 +147,18 @@ export default function OnboardingPage() {
 
                       {/* Steps */}
                       {pipelineStages.map((stage, idx) => {
-                        const hasPeople = stage.value > 0;
+                        const isCompletedOrActive = stage.value > 0 || idx <= furthestActiveIndex;
                         const StageIcon = stage.icon;
 
                         return (
-                          <div key={stage.id} className={`flex flex-col items-center gap-2 relative z-10 w-20 ${!hasPeople ? 'opacity-70' : ''}`}>
-                            <div className={`w-12 h-12 rounded-full flex items-center justify-center border-4 border-white shadow-sm transition-colors duration-500 ${hasPeople ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                          <div key={stage.id} className={`flex flex-col items-center gap-2 relative z-10 w-20 ${!isCompletedOrActive ? 'opacity-70' : ''}`}>
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center border-4 border-white shadow-sm transition-colors duration-500 ${isCompletedOrActive ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-400'}`}>
                               <StageIcon className="w-5 h-5" />
                             </div>
-                            <div className={`text-xs font-bold text-center leading-tight ${hasPeople ? 'text-slate-900' : 'text-slate-500'}`}>
+                            <div className={`text-xs font-bold text-center leading-tight ${isCompletedOrActive ? 'text-slate-900' : 'text-slate-500'}`}>
                               {stage.label}
                             </div>
-                            <div className={`text-sm font-bold mt-1 ${hasPeople ? 'text-slate-900' : 'text-slate-500'}`}>
+                            <div className={`text-sm font-bold mt-1 ${isCompletedOrActive ? 'text-slate-900' : 'text-slate-500'}`}>
                               {isLoading ? '-' : stage.value}
                             </div>
                           </div>
@@ -154,10 +174,24 @@ export default function OnboardingPage() {
             {/* Active Onboarding Grid */}
             <div>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-bold text-slate-900">Active Onboarding <span className="text-slate-500 font-medium">({metrics?.inProgress || 0} total)</span></h3>
+                <h3 className="text-sm font-bold text-slate-900">Active Onboarding <span className="text-slate-500 font-medium">({filteredAndSortedOnboarding.length} total)</span></h3>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => showToast("Filter functionality coming soon!")} className="p-2 bg-white border border-slate-200 rounded hover:bg-slate-50 text-slate-600"><Filter className="w-4 h-4" /></button>
-                  <button onClick={() => showToast("Sorting functionality coming soon!")} className="p-2 bg-white border border-slate-200 rounded hover:bg-slate-50 text-slate-600"><SortDesc className="w-4 h-4" /></button>
+                  <div className="relative">
+                    <button onClick={() => setShowFilter(!showFilter)} className={`p-2 bg-white border border-slate-200 rounded hover:bg-slate-50 text-slate-600 ${filterStage ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : ''}`}>
+                      <Filter className="w-4 h-4" />
+                    </button>
+                    {showFilter && (
+                      <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 w-48 py-1">
+                        <button onClick={() => { setFilterStage(null); setShowFilter(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 font-semibold">All Stages</button>
+                        {['OFFER_ACCEPTED', 'DOCUMENTATION', 'ASSET_ALLOCATION', 'TRAINING', 'MANAGER_INTRO'].map(stage => (
+                          <button key={stage} onClick={() => { setFilterStage(stage); setShowFilter(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50">{stage.replace('_', ' ')}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')} className="p-2 bg-white border border-slate-200 rounded hover:bg-slate-50 text-slate-600">
+                    <SortDesc className={`w-4 h-4 transition-transform ${sortOrder === 'asc' ? 'rotate-180' : ''}`} />
+                  </button>
                 </div>
               </div>
 
@@ -165,8 +199,8 @@ export default function OnboardingPage() {
                 
                 {isLoading ? (
                   <div className="col-span-2 py-10 flex justify-center"><div className="animate-spin w-8 h-8 border-4 border-slate-200 border-t-slate-900 rounded-full"></div></div>
-                ) : metrics?.activeOnboarding?.length > 0 ? (
-                  metrics.activeOnboarding.map((session: any) => (
+                ) : filteredAndSortedOnboarding.length > 0 ? (
+                  filteredAndSortedOnboarding.map((session: any) => (
                     <div key={session.id} className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 flex flex-col">
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex items-center gap-3">
@@ -234,9 +268,9 @@ export default function OnboardingPage() {
                   <div className="text-center py-4 text-xs font-medium text-slate-500">No pending HR tasks!</div>
                 )}
               </div>
-              <button onClick={() => showToast("Full task view coming soon!")} className="w-full text-center text-xs font-bold text-slate-900 hover:text-slate-900 uppercase tracking-wider pt-2 border-t border-slate-100">
+              <Link href="/tasks" className="block w-full text-center text-xs font-bold text-slate-900 hover:text-slate-900 uppercase tracking-wider pt-2 border-t border-slate-100">
                 View All Tasks
-              </button>
+              </Link>
             </div>
 
             {/* Recent Activity */}
