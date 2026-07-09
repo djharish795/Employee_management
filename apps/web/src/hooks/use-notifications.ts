@@ -8,7 +8,7 @@ let socket: Socket | null = null;
 
 export function useNotifications() {
   const queryClient = useQueryClient();
-  const token = useAuthStore((state) => state.token);
+  const token = useAuthStore((state) => state.accessToken);
 
   // Fetch notifications initially
   const { data: notifications = [], isLoading } = useQuery<NotificationRecord[]>({

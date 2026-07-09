@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, User, Monitor, CheckCircle2, ChevronRight, AlertCircle, Briefcase, FileText } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
+import { apiClient } from '@/lib/api/client';
 
 const STEPS = [
   { id: 1, title: 'Exit Details', icon: User },
@@ -31,8 +33,10 @@ interface OffboardingFormData {
 }
 
 export default function NewOffboardingPage() {
+  const router = useRouter();
   const role = useAuthStore((state) => state.role);
   const [currentStep, setCurrentStep] = useState(1);
+  const [employees, setEmployees] = useState<any[]>([]);
   const [formData, setFormData] = useState<OffboardingFormData>({
     employeeId: '',
     resignationDate: '',
@@ -49,7 +53,45 @@ export default function NewOffboardingPage() {
     exitInterviewDate: ''
   });
 
-  const [isLoading, setIsLoading] = useState(false); // To mock fetching state from backend
+  const [isLoading, setIsLoading] = useState(false);
+  const [assignedAssets, setAssignedAssets] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const response = await apiClient.get("/employees?limit=1000");
+        if (response.data && Array.isArray(response.data.data)) {
+          setEmployees(response.data.data.filter((e: any) => e.status !== "EXITED"));
+        } else if (Array.isArray(response.data)) {
+          setEmployees(response.data.filter((e: any) => e.status !== "EXITED"));
+        }
+      } catch (err) {
+        console.error("Failed to fetch employees", err);
+      }
+    };
+    fetchEmployees();
+  }, []);
+
+  useEffect(() => {
+    if (!formData.employeeId) {
+      setAssignedAssets([]);
+      return;
+    }
+    const fetchEmployeeAssets = async () => {
+      try {
+        const response = await apiClient.get(`/employees/${formData.employeeId}`);
+        if (response.data && Array.isArray(response.data.assetsHeld)) {
+          setAssignedAssets(response.data.assetsHeld);
+        } else {
+          setAssignedAssets([]);
+        }
+      } catch (err) {
+        console.error("Failed to fetch employee assets", err);
+        setAssignedAssets([]);
+      }
+    };
+    fetchEmployeeAssets();
+  }, [formData.employeeId]);
 
   // Protect route: Only HR can access
   if (role !== "HR") {
@@ -76,15 +118,35 @@ export default function NewOffboardingPage() {
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
   const submitForm = async () => {
     setIsLoading(true);
-    // TODO: Send `formData` to backend API
-    await new Promise(res => setTimeout(res, 1000));
-    setIsLoading(false);
-    alert('Offboarding successfully initiated!');
+    try {
+      const payload = {
+        employeeId: formData.employeeId,
+        resignationDate: formData.resignationDate ? new Date(formData.resignationDate).toISOString() : undefined,
+        lastWorkingDay: formData.lastWorkingDay ? new Date(formData.lastWorkingDay).toISOString() : undefined,
+        exitType: formData.exitType,
+        exitReason: formData.exitReason || undefined,
+        accessRevocationDate: formData.accessRevocationDate ? new Date(formData.accessRevocationDate).toISOString() : undefined,
+        ktAssigneeId: formData.ktAssignee || undefined,
+        ktTargetDate: formData.ktTargetDate ? new Date(formData.ktTargetDate).toISOString() : undefined,
+        ffExpectedDate: formData.ffExpectedDate ? new Date(formData.ffExpectedDate).toISOString() : undefined,
+        generateLetters: formData.generateLetters,
+        exitInterviewDate: formData.exitInterviewDate ? new Date(formData.exitInterviewDate).toISOString() : undefined,
+      };
+
+      await apiClient.post("/lifecycle/offboarding", payload);
+      alert('Offboarding successfully initiated!');
+      router.push('/offboarding');
+    } catch (err: any) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Failed to initiate offboarding. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="flex flex-col h-full font-sans bg-slate-50 overflow-y-auto">
-      
+
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3 text-slate-600">
@@ -103,7 +165,7 @@ export default function NewOffboardingPage() {
       </div>
 
       <div className="flex flex-1 max-w-[1400px] mx-auto w-full">
-        
+
         {/* Left Sidebar (Stepper) */}
         <div className="w-64 border-r border-slate-200 bg-slate-50/50 p-6 hidden md:block">
           <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-6">Steps</h3>
@@ -111,7 +173,7 @@ export default function NewOffboardingPage() {
             {STEPS.map((step) => {
               const isActive = currentStep === step.id;
               const isCompleted = currentStep > step.id;
-              
+
               let circleClass = "bg-white border-2 border-slate-200 text-slate-400";
               if (isActive) circleClass = "bg-rose-700 border-2 border-rose-700 text-white";
               if (isCompleted) circleClass = "bg-rose-500 border-2 border-rose-500 text-white";
@@ -139,7 +201,7 @@ export default function NewOffboardingPage() {
         {/* Main Content Area */}
         <div className="flex-1 p-8 pb-24">
           <div className="max-w-3xl">
-            
+
             {/* Step 1: Exit Details */}
             {currentStep === 1 && (
               <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
@@ -152,12 +214,19 @@ export default function NewOffboardingPage() {
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">Select Employee *</label>
                     <select name="employeeId" value={formData.employeeId} onChange={handleInputChange} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-rose-700 focus:bg-white transition-colors text-slate-700">
                       <option value="">Search employee to offboard...</option>
-                      {/* Dynamic employee list from backend API should be mapped here */}
+                      {employees.map((emp) => {
+                        const name = emp.preferredName || `${emp.firstName} ${emp.lastName}` || emp.personalEmail;
+                        return (
+                          <option key={emp.id} value={emp.id}>
+                            {name} ({emp.personalEmail})
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
-                  
+
                   <hr className="border-slate-100" />
-                  
+
                   <div className="grid grid-cols-2 gap-5">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1.5">Resignation Date *</label>
@@ -203,7 +272,7 @@ export default function NewOffboardingPage() {
                   <h2 className="text-lg font-bold text-white">Asset Recovery & Access Revocation</h2>
                 </div>
                 <div className="p-6 space-y-6">
-                  
+
                   <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg flex gap-3 text-amber-800 text-sm mb-6">
                     <AlertCircle className="w-5 h-5 flex-shrink-0" />
                     <p>Asset list below should be pre-populated by the backend API based on the employee's inventory records.</p>
@@ -213,12 +282,37 @@ export default function NewOffboardingPage() {
                     <h3 className="text-sm font-bold text-slate-900 mb-3">Assigned Assets to Recover</h3>
                     {/* Rendered from backend list */}
                     <div className="border border-slate-200 rounded-lg divide-y divide-slate-100">
-                      <div className="p-3 text-sm text-slate-500 italic text-center">Waiting for backend data...</div>
+                      {assignedAssets.length === 0 ? (
+                        <div className="p-4 text-sm text-slate-500 italic text-center">
+                          {!formData.employeeId
+                            ? "Please select an employee in Step 1 to see their assigned assets."
+                            : "No assets currently assigned to this employee."}
+                        </div>
+                      ) : (
+                        assignedAssets.map((asset) => (
+                          <div key={asset.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded bg-slate-100 border border-slate-200 flex items-center justify-center">
+                                <Monitor className="w-4 h-4 text-slate-600" />
+                              </div>
+                              <div>
+                                <h4 className="text-xs font-bold text-slate-800">{asset.name}</h4>
+                                <p className="text-[10px] font-semibold text-slate-500">
+                                  {asset.category} • S/N: {asset.serialNumber || 'N/A'}
+                                </p>
+                              </div>
+                            </div>
+                            <span className="px-2 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] font-bold rounded">
+                              {asset.assetTag}
+                            </span>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
 
                   <hr className="border-slate-100" />
-                  
+
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">Target Date for IT Access Revocation</label>
                     <input type="date" name="accessRevocationDate" value={formData.accessRevocationDate} onChange={handleInputChange} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-rose-700 focus:bg-white transition-colors text-slate-700" />
@@ -236,15 +330,22 @@ export default function NewOffboardingPage() {
                   <h2 className="text-lg font-bold text-white">Knowledge Transfer (KT)</h2>
                 </div>
                 <div className="p-6 space-y-6">
-                  
+
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">Assign KT To (Colleague / Manager)</label>
                     <select name="ktAssignee" value={formData.ktAssignee} onChange={handleInputChange} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-rose-700 focus:bg-white transition-colors text-slate-700">
                       <option value="">Search employee...</option>
-                      {/* Dynamic employee list from backend API */}
+                      {employees.map((emp) => {
+                        const name = emp.preferredName || `${emp.firstName} ${emp.lastName}` || emp.personalEmail;
+                        return (
+                          <option key={emp.id} value={emp.id}>
+                            {name} ({emp.personalEmail})
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-5">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1.5">Target KT Completion Date</label>
@@ -268,7 +369,7 @@ export default function NewOffboardingPage() {
                   <h2 className="text-lg font-bold text-white">Final Settlement & Interview</h2>
                 </div>
                 <div className="p-6 space-y-6">
-                  
+
                   <div className="grid grid-cols-2 gap-5">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1.5">Expected F&F Settlement Date</label>
@@ -302,11 +403,16 @@ export default function NewOffboardingPage() {
                   <h2 className="text-lg font-bold text-white">Review & Submit</h2>
                 </div>
                 <div className="p-6 space-y-6">
-                  
+
                   <div className="bg-slate-50 border border-slate-200 rounded-lg p-5">
                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-200 pb-2 mb-3">1. Exit Details</h3>
                     <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div><span className="text-slate-500 font-medium">Employee:</span> <span className="font-bold text-slate-900">{formData.employeeId || '—'}</span></div>
+                      <div><span className="text-slate-500 font-medium">Employee:</span> <span className="font-bold text-slate-900">{
+                        (() => {
+                          const emp = employees.find(e => e.id === formData.employeeId);
+                          return emp ? (emp.preferredName || `${emp.firstName} ${emp.lastName}`) : (formData.employeeId || '—');
+                        })()
+                      }</span></div>
                       <div><span className="text-slate-500 font-medium">Exit Type:</span> <span className="font-bold text-slate-900">{formData.exitType || '—'}</span></div>
                       <div><span className="text-slate-500 font-medium">Last Day:</span> <span className="font-bold text-slate-900">{formData.lastWorkingDay || '—'}</span></div>
                     </div>
@@ -334,7 +440,7 @@ export default function NewOffboardingPage() {
               ) : (
                 <div></div>
               )}
-              
+
               {currentStep < 5 ? (
                 <button onClick={nextStep} className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors shadow-sm">
                   Continue to next step <ChevronRight className="w-4 h-4" />

@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { Search, Bell, Download, Calendar, ChevronDown, Lock, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { fetchSummaryToday } from '@/lib/api/attendance';
+import HistoryPanel from "@/components/modules/attendance/history-panel";
+import ReportsPanel from "@/components/modules/attendance/reports-panel";
 
 // ─── Interfaces (No Hardcoded Mock Data) ─────────────────────────────────────────
 interface AttendanceMetrics {
@@ -48,6 +50,7 @@ export default function AttendanceSummaryPage() {
 
   // New interactive states
   const [listTab, setListTab] = useState<'exceptions' | 'present'>('exceptions');
+  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'logs'>('overview');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedDept, setSelectedDept] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -136,29 +139,55 @@ export default function AttendanceSummaryPage() {
     <div className="flex flex-col h-full font-sans bg-slate-50 dark:bg-slate-900 overflow-y-auto transition-colors">
       
       {/* Top Header */}
-      <div className="bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 px-8 py-4 flex items-center justify-between shadow-sm transition-colors">
-        <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Attendance</h1>
-        
-        <div className="flex items-center gap-4">
-          <div className="relative w-64 hidden md:block">
-            <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input 
-              type="text" 
-              placeholder="Search exceptions..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:border-slate-900 dark:focus:border-slate-500 focus:bg-white dark:focus:bg-slate-950 transition-colors"
-            />
+      <div className="bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 px-8 pt-6 flex flex-col gap-6 shadow-sm transition-colors">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Attendance Summary</h1>
+          
+          <div className="flex items-center gap-4">
+            <div className="relative w-64 hidden md:block">
+              <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input 
+                type="text" 
+                placeholder="Search exceptions..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:border-slate-900 dark:focus:border-slate-500 focus:bg-white dark:focus:bg-slate-950 transition-colors"
+              />
+            </div>
+            <button className="text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
+              <Bell className="w-5 h-5" />
+            </button>
           </div>
-          <button className="text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
-            <Bell className="w-5 h-5" />
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="flex items-center gap-8">
+          <button 
+            onClick={() => setActiveTab('overview')}
+            className={`pb-4 text-sm font-bold border-b-2 transition-all ${activeTab === 'overview' ? 'border-slate-900 dark:border-white text-slate-900 dark:text-white' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+          >
+            Today's Overview
+          </button>
+          <button 
+            onClick={() => setActiveTab('analytics')}
+            className={`pb-4 text-sm font-bold border-b-2 transition-all ${activeTab === 'analytics' ? 'border-slate-900 dark:border-white text-slate-900 dark:text-white' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+          >
+            Analytics & Trends
+          </button>
+          <button 
+            onClick={() => setActiveTab('logs')}
+            className={`pb-4 text-sm font-bold border-b-2 transition-all ${activeTab === 'logs' ? 'border-slate-900 dark:border-white text-slate-900 dark:text-white' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+          >
+            Organization Logs
           </button>
         </div>
       </div>
 
       <div className="p-8 max-w-[1400px] mx-auto w-full space-y-6">
         
-        {/* Controls Row */}
+        {activeTab === 'overview' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            {/* Controls Row */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center gap-4">
             <div className="relative flex items-center">
@@ -329,9 +358,13 @@ export default function AttendanceSummaryPage() {
             </div>
           </div>
         </div>
+        </div>
+        )}
 
-        {/* Bottom Chart Layout */}
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-6 transition-colors">
+        {activeTab === 'analytics' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            {/* Bottom Chart Layout */}
+            <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-6 transition-colors">
           <h3 className="text-base font-bold text-slate-900 dark:text-white mb-6">Monthly attendance trend</h3>
           
           <div className="relative w-full h-[250px]">
@@ -392,7 +425,23 @@ export default function AttendanceSummaryPage() {
               <div className="w-full border-t border-slate-100 dark:border-slate-800"></div>
             </div>
           </div>
+
+          {/* Analytics & Reports */}
+          <div className="pt-2">
+             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Detailed Analytics</h3>
+             <ReportsPanel activeRole="HR" />
+          </div>
         </div>
+        </div>
+        )}
+
+        {activeTab === 'logs' && (
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+            {/* Organization History Logs */}
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Organization Attendance Logs</h3>
+            <HistoryPanel mode="org" />
+          </div>
+        )}
 
       </div>
     </div>

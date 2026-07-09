@@ -28,6 +28,7 @@ import { ReportsModule } from "./modules/reports/reports.module";
 import { DepartmentsModule } from './modules/departments/departments.module';
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { SearchModule } from './modules/search/search.module';
+import { LifecycleModule } from "./modules/lifecycle/lifecycle.module";
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -62,6 +63,7 @@ import { SearchModule } from './modules/search/search.module';
     DepartmentsModule,
     NotificationsModule,
     SearchModule,
+    LifecycleModule,
   ],
 })
 export class AppModule { }

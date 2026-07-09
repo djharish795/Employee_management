@@ -3,6 +3,7 @@ export enum EmployeeStatus {
   ACTIVE = "ACTIVE",
   NOTICE_PERIOD = "NOTICE_PERIOD",
   EXITED = "EXITED",
+  ONBOARDING = "ONBOARDING",
 }
 
 export enum Gender {

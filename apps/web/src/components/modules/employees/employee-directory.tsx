@@ -137,7 +137,7 @@ export default function EmployeeDirectory() {
   const updateEmployeesMutation = useMutation({
     mutationFn: async (updatedList: Employee[]) => updatedList,
     onSuccess: (data) => {
-      queryClient.setQueryData(["employees"], data);
+      queryClient.setQueryData(["employees", accessToken], data);
     },
   });
 
@@ -147,10 +147,33 @@ export default function EmployeeDirectory() {
     setActionModalState({ isOpen: true, type: action, employee });
   };
 
-  const handleActionSuccess = (action: EmployeeActionType, employeeId: string, payload?: any) => {
+  const handleActionSuccess = async (action: EmployeeActionType, employeeId: string, payload?: any) => {
     let updatedList = [...rawEmployees];
     if (action === "delete") {
-      updatedList = updatedList.filter(e => e.id !== employeeId);
+      try {
+        const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+        const res = await fetch(`${url}/employees/${employeeId}`, {
+          method: 'DELETE',
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
+        });
+        
+        if (!res.ok) {
+          let errText = await res.text();
+          try {
+            const errObj = JSON.parse(errText);
+            if (errObj.message) errText = errObj.message;
+          } catch(e) {}
+          
+          alert(`Cannot delete employee: \n${errText}`);
+          return;
+        }
+        
+        updatedList = updatedList.filter(e => e.id !== employeeId);
+      } catch (err) {
+        console.error("Failed to delete employee", err);
+        alert("Network error occurred while trying to delete.");
+        return;
+      }
     } else {
       updatedList = updatedList.map(emp => {
         if (emp.id !== employeeId) return emp;
