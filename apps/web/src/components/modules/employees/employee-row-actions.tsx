@@ -51,29 +51,29 @@ export function EmployeeRowActions({ employeeId, employeeName, status, onAction 
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[200px] bg-white border border-slate-200 shadow-xl z-[9999] rounded-lg p-1.5">
         
-        <DropdownMenuItem onClick={() => onAction("edit", employeeId)} className="cursor-pointer text-xs font-semibold text-slate-700">
+        <DropdownMenuItem onSelect={() => onAction("edit", employeeId)} className="cursor-pointer text-xs font-semibold text-slate-700">
           <Pencil className="mr-2 h-3.5 w-3.5 text-slate-400" />
           Edit Employee
         </DropdownMenuItem>
         
-        <DropdownMenuItem onClick={() => onAction("assign-manager", employeeId)} className="cursor-pointer text-xs font-semibold text-slate-700">
+        <DropdownMenuItem onSelect={() => onAction("assign-manager", employeeId)} className="cursor-pointer text-xs font-semibold text-slate-700">
           <UserCheck className="mr-2 h-3.5 w-3.5 text-slate-400" />
           Assign Manager
         </DropdownMenuItem>
         
-        <DropdownMenuItem onClick={() => onAction("transfer-dept", employeeId)} className="cursor-pointer text-xs font-semibold text-slate-700">
+        <DropdownMenuItem onSelect={() => onAction("transfer-dept", employeeId)} className="cursor-pointer text-xs font-semibold text-slate-700">
           <ArrowRightLeft className="mr-2 h-3.5 w-3.5 text-slate-400" />
           Transfer Department
         </DropdownMenuItem>
         
-        <DropdownMenuItem onClick={() => onAction("change-designation", employeeId)} className="cursor-pointer text-xs font-semibold text-slate-700">
+        <DropdownMenuItem onSelect={() => onAction("change-designation", employeeId)} className="cursor-pointer text-xs font-semibold text-slate-700">
           <Briefcase className="mr-2 h-3.5 w-3.5 text-slate-400" />
           Change Designation
         </DropdownMenuItem>
         
         <DropdownMenuSeparator className="bg-slate-100" />
         
-        <DropdownMenuItem onClick={() => onAction("toggle-status", employeeId)} className="cursor-pointer text-xs font-semibold text-slate-700">
+        <DropdownMenuItem onSelect={() => onAction("toggle-status", employeeId)} className="cursor-pointer text-xs font-semibold text-slate-700">
           {isActive ? (
             <>
               <PowerOff className="mr-2 h-3.5 w-3.5 text-rose-500" />
@@ -87,26 +87,26 @@ export function EmployeeRowActions({ employeeId, employeeName, status, onAction 
           )}
         </DropdownMenuItem>
         
-        <DropdownMenuItem onClick={() => onAction("reset-password", employeeId)} className="cursor-pointer text-xs font-semibold text-slate-700">
+        <DropdownMenuItem onSelect={() => onAction("reset-password", employeeId)} className="cursor-pointer text-xs font-semibold text-slate-700">
           <KeyRound className="mr-2 h-3.5 w-3.5 text-slate-400" />
           Reset Password
         </DropdownMenuItem>
         
         <DropdownMenuSeparator className="bg-slate-100" />
         
-        <DropdownMenuItem onClick={() => onAction("view-documents", employeeId)} className="cursor-pointer text-xs font-semibold text-slate-700">
+        <DropdownMenuItem onSelect={() => onAction("view-documents", employeeId)} className="cursor-pointer text-xs font-semibold text-slate-700">
           <FileText className="mr-2 h-3.5 w-3.5 text-slate-400" />
           View Documents
         </DropdownMenuItem>
         
-        <DropdownMenuItem onClick={() => onAction("download-pdf", employeeId)} className="cursor-pointer text-xs font-semibold text-slate-700">
+        <DropdownMenuItem onSelect={() => onAction("download-pdf", employeeId)} className="cursor-pointer text-xs font-semibold text-slate-700">
           <Download className="mr-2 h-3.5 w-3.5 text-slate-400" />
           Download Profile PDF
         </DropdownMenuItem>
         
         <DropdownMenuSeparator className="bg-slate-100" />
         
-        <DropdownMenuItem onClick={() => onAction("delete", employeeId)} className="cursor-pointer text-xs font-bold text-rose-600 focus:bg-rose-50 focus:text-rose-700">
+        <DropdownMenuItem onSelect={() => onAction("delete", employeeId)} className="cursor-pointer text-xs font-bold text-rose-600 focus:bg-rose-50 focus:text-rose-700">
           <Trash2 className="mr-2 h-3.5 w-3.5 text-rose-500" />
           Delete Employee
         </DropdownMenuItem>

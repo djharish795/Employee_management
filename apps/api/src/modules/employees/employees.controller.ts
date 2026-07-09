@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Query, Param, Patch } from "@nestjs/common";
+import { Controller, Post, Body, Get, Query, Param, Patch, Delete } from "@nestjs/common";
 import { EmployeesService } from "./employees.service";
 import { CreateEmployeeDto } from "./dto/create-employee.dto";
 import { UpdateEmployeeDto } from "./dto/update-employee.dto";
@@ -23,6 +23,12 @@ export class EmployeesController {
   @Permissions(Permission.WRITE_EMPLOYEES)
   async saveOnboardingStep(@Body() body: OnboardingDraftStepDto) {
     return this.employeesService.saveOnboardingStep(body.draftId || "", body.stepNumber, body.payload);
+  }
+
+  @Get("onboarding/draft/:id")
+  @Permissions(Permission.WRITE_EMPLOYEES)
+  async getOnboardingDraft(@Param("id") id: string) {
+    return this.employeesService.getOnboardingDraft(id);
   }
 
   @Post("onboarding/draft/complete")
@@ -79,6 +85,13 @@ export class EmployeesController {
   @Permissions(Permission.WRITE_EMPLOYEES, Permission.WRITE_OWN_PROFILE)
   updateEmployee(@Param("id") id: string, @Body() dto: UpdateEmployeeDto, @CurrentUser() user: any): Promise<Employee> {
     return this.employeesService.updateEmployee(id, dto, user);
+  }
+
+  @Delete(":id")
+  @Permissions(Permission.WRITE_EMPLOYEES)
+  async deleteEmployee(@Param("id") id: string): Promise<{ success: boolean }> {
+    await this.employeesService.deleteEmployee(id);
+    return { success: true };
   }
 }
 

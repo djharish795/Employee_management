@@ -8,17 +8,17 @@ datasource db {
 }
 
 model Employee {
-  id                         String               @id @default(cuid())
-  employeeId                 String               @unique
+  id                         String                     @id @default(cuid())
+  employeeId                 String                     @unique
   firstName                  String
   lastName                   String
-  officialEmail              String               @unique
+  officialEmail              String                     @unique
   departmentId               String?
-  createdAt                  DateTime             @default(now())
-  updatedAt                  DateTime             @updatedAt
+  createdAt                  DateTime                   @default(now())
+  updatedAt                  DateTime                   @updatedAt
   aadhaar                    String?
   alternatePhone             String?
-  backgroundVerified         Boolean              @default(false)
+  backgroundVerified         Boolean                    @default(false)
   band                       String?
   bloodGroup                 String?
   currentAddress             Json?
@@ -27,7 +27,7 @@ model Employee {
   digitalSignatureUrl        String?
   drivingLicence             String?
   emergencyContact           Json?
-  employeeType               EmployeeType?        @default(FULL_TIME)
+  employeeType               EmployeeType?              @default(FULL_TIME)
   exitDate                   DateTime?
   exitReason                 String?
   gender                     Gender?
@@ -35,7 +35,7 @@ model Employee {
   joiningDate                DateTime?
   maritalStatus              MaritalStatus?
   middleName                 String?
-  nationality                String?              @default("Indian")
+  nationality                String?                    @default("Indian")
   pan                        String?
   passport                   String?
   permanentAddress           Json?
@@ -47,7 +47,7 @@ model Employee {
   skipLevelManagerId         String?
   voterId                    String?
   workLocation               String?
-  status                     EmployeeStatus       @default(PROBATION)
+  status                     EmployeeStatus             @default(PROBATION)
   accountType                String?
   bankAccountEnc             String?
   bankBranch                 String?
@@ -58,64 +58,64 @@ model Employee {
   paymentMode                String?
   aiChats                    AIChat[]
   appSettingsUpdated         AppSetting[]
-  assetsAssignedByMe         AssetAssignment[]    @relation("AssetAssigner")
-  assetAssignments           AssetAssignment[]    @relation("AssetAssignmentEmployee")
-  assetsHeld                 Asset[]              @relation("CurrentAssetHolder")
+  assetsAssignedByMe         AssetAssignment[]          @relation("AssetAssigner")
+  assetAssignments           AssetAssignment[]          @relation("AssetAssignmentEmployee")
+  assetsHeld                 Asset[]                    @relation("CurrentAssetHolder")
   attendanceRecords          AttendanceRecord[]
-  regularizedAttendances     AttendanceRecord[]   @relation("AttendanceRegularizer")
+  regularizedAttendances     AttendanceRecord[]         @relation("AttendanceRegularizer")
   regularizationRequests     RegularizationRequest[]
   attritionRiskScores        AttritionRiskScore[]
   auditLogEntries            AuditLog[]
-  consentLogsCollected       ConsentLog[]         @relation("ConsentCollector")
-  consentLogsAsSubject       ConsentLog[]         @relation("ConsentSubject")
-  erasureRequestsApproved    DataErasureRequest[] @relation("ErasureApprover")
-  erasureRequestsAsSubject   DataErasureRequest[] @relation("ErasureSubject")
-  erasureRequestsMade        DataErasureRequest[] @relation("ErasureRequester")
-  headOf                     Department[]         @relation("DepartmentHead")
+  consentLogsCollected       ConsentLog[]               @relation("ConsentCollector")
+  consentLogsAsSubject       ConsentLog[]               @relation("ConsentSubject")
+  erasureRequestsApproved    DataErasureRequest[]       @relation("ErasureApprover")
+  erasureRequestsAsSubject   DataErasureRequest[]       @relation("ErasureSubject")
+  erasureRequestsMade        DataErasureRequest[]       @relation("ErasureRequester")
+  headOf                     Department[]               @relation("DepartmentHead")
   employeeSkills             EmployeeSkill[]
-  skillsVerified             EmployeeSkill[]      @relation("SkillVerifier")
-  department                 Department?          @relation("EmployeeDepartment", fields: [departmentId], references: [id])
-  designation                Designation?         @relation(fields: [designationId], references: [id])
-  reportingManager           Employee?            @relation("ReportingManager", fields: [reportingManagerId], references: [id])
-  subordinates               Employee[]           @relation("ReportingManager")
-  skipLevelManager           Employee?            @relation("SkipLevelManager", fields: [skipLevelManagerId], references: [id])
-  skipLevelOf                Employee[]           @relation("SkipLevelManager")
+  skillsVerified             EmployeeSkill[]            @relation("SkillVerifier")
+  department                 Department?                @relation("EmployeeDepartment", fields: [departmentId], references: [id])
+  designation                Designation?               @relation(fields: [designationId], references: [id])
+  reportingManager           Employee?                  @relation("ReportingManager", fields: [reportingManagerId], references: [id])
+  subordinates               Employee[]                 @relation("ReportingManager")
+  skipLevelManager           Employee?                  @relation("SkipLevelManager", fields: [skipLevelManagerId], references: [id])
+  skipLevelOf                Employee[]                 @relation("SkipLevelManager")
   enrollments                Enrollment[]
   goals                      Goal[]
-  grievanceCasesAsSubject    GrievanceCase[]      @relation("GrievanceSubject")
-  grievanceCasesAsOfficer    GrievanceCase[]      @relation("GrievanceOfficer")
+  grievanceCasesAsSubject    GrievanceCase[]            @relation("GrievanceSubject")
+  grievanceCasesAsOfficer    GrievanceCase[]            @relation("GrievanceOfficer")
   interviewsConducted        Interview[]
   jobsAsHiringManager        Job[]
   knowledgeDocsAuthored      KnowledgeDoc[]
   knowledgeAcknowledgements  KnowledgeAcknowledgement[]
   leaveBalances              LeaveBalance[]
-  leaveRequestsToApprove     LeaveRequest[]       @relation("LeaveApprover")
-  leaveRequestsMade          LeaveRequest[]       @relation("LeaveRequester")
+  leaveRequestsToApprove     LeaveRequest[]             @relation("LeaveApprover")
+  leaveRequestsMade          LeaveRequest[]             @relation("LeaveRequester")
   notifications              Notification[]
   payrollLineItems           PayrollLineItem[]
   payrollRunsInitiated       PayrollRun[]
-  reviewsAsSubject           PerformanceReview[]  @relation("ReviewSubject")
-  reviewsAuthored            PerformanceReview[]  @relation("ReviewAuthor")
-  recognitionsGiven          Recognition[]        @relation("RecognitionGiver")
-  recognitionsReceived       Recognition[]        @relation("RecognitionReceiver")
-  reimbursementsApproved     Reimbursement[]      @relation("ReimbursementApprover")
+  reviewsAsSubject           PerformanceReview[]        @relation("ReviewSubject")
+  reviewsAuthored            PerformanceReview[]        @relation("ReviewAuthor")
+  recognitionsGiven          Recognition[]              @relation("RecognitionGiver")
+  recognitionsReceived       Recognition[]              @relation("RecognitionReceiver")
+  reimbursementsApproved     Reimbursement[]            @relation("ReimbursementApprover")
   reimbursementsClaimed      Reimbursement[]
-  salaryStructuresCreated    SalaryStructure[]    @relation("SalaryStructureCreator")
+  salaryStructuresCreated    SalaryStructure[]          @relation("SalaryStructureCreator")
   salaryStructures           SalaryStructure[]
-  successionPlansAsIncumbent SuccessionPlan[]     @relation("SuccessionIncumbent")
-  successionPlansAsSuccessor SuccessionPlan[]     @relation("SuccessionSuccessor")
+  successionPlansAsIncumbent SuccessionPlan[]           @relation("SuccessionIncumbent")
+  successionPlansAsSuccessor SuccessionPlan[]           @relation("SuccessionSuccessor")
   surveyResponses            SurveyResponse[]
   surveysCreated             Survey[]
   talentApplications         TalentApplication[]
-  transferRequestsMade       TransferRequest[]    @relation("TransferEmployee")
-  transferRequestsProcessed  TransferRequest[]    @relation("TransferProcessor")
+  transferRequestsMade       TransferRequest[]          @relation("TransferEmployee")
+  transferRequestsProcessed  TransferRequest[]          @relation("TransferProcessor")
   user                       User?
   workflowsInitiated         WorkflowInstance[]
   projectAssignments         ProjectAssignment[]
-  wfhRequestsMade            WorkFromHomeRequest[] @relation("WfhRequester")
-  wfhRequestsApproved        WorkFromHomeRequest[] @relation("WfhApprover")
-  meetRequestsMade           MeetRequest[]         @relation("MeetRequester")
-  meetRequestsAssigned       MeetRequest[]         @relation("MeetAssignee")
+  wfhRequestsMade            WorkFromHomeRequest[]      @relation("WfhRequester")
+  wfhRequestsApproved        WorkFromHomeRequest[]      @relation("WfhApprover")
+  meetRequestsMade           MeetRequest[]              @relation("MeetRequester")
+  meetRequestsAssigned       MeetRequest[]              @relation("MeetAssignee")
   meetParticipations         MeetParticipant[]
   connectSettings            ConnectSettings?
   assignedTasks              Task[]               @relation("TaskAssignee")
@@ -123,6 +123,7 @@ model Employee {
   generatedReports           ReportHistory[]      @relation("ReportGenerator")
   offboardingRecord          OffboardingProcess?  @relation("EmployeeOffboarding")
   ktAssignments              OffboardingProcess[] @relation("KTAssignee")
+  onboardingSession          OnboardingSession?
 
   @@map("employees")
 }
@@ -231,14 +232,14 @@ model OTPVerification {
 }
 
 model AttendanceRecord {
-  id              String           @id @default(cuid())
-  checkInIp       String?
-  checkInMethod   CheckInMethod?
-  checkInTime     DateTime?
-  checkOutTime    DateTime?
-  createdAt       DateTime         @default(now())
-  date            DateTime         @db.Date
-  employeeId      String
+  id                    String           @id @default(cuid())
+  checkInIp             String?
+  checkInMethod         CheckInMethod?
+  checkInTime           DateTime?
+  checkOutTime          DateTime?
+  createdAt             DateTime         @default(now())
+  date                  DateTime         @db.Date
+  employeeId            String
   isRegularized         Boolean          @default(false)
   notes                 String?
   overtime              Decimal?         @db.Decimal(5, 2)
@@ -249,8 +250,8 @@ model AttendanceRecord {
   breakHistory          Json?            @default("[]")
   updatedAt             DateTime         @updatedAt
   workHours             Decimal?         @db.Decimal(5, 2)
-  employee        Employee         @relation(fields: [employeeId], references: [id])
-  regularizedBy   Employee?        @relation("AttendanceRegularizer", fields: [regularizedById], references: [id])
+  employee              Employee         @relation(fields: [employeeId], references: [id])
+  regularizedBy         Employee?        @relation("AttendanceRegularizer", fields: [regularizedById], references: [id])
 
   @@unique([employeeId, date])
   @@index([employeeId, date])
@@ -399,42 +400,42 @@ enum MeetType {
 }
 
 model MeetRequest {
-  id              String         @id @default(cuid())
-  title           String
-  description     String?
-  startTime       DateTime
-  endTime         DateTime
-  status          MeetStatus     @default(PENDING)
-  meetLink        String?
-  eventId         String?
-  type            MeetType       @default(ONE_ON_ONE)
-  requesterId     String
-  assigneeId      String?
-  departmentId    String?
-  agenda          Json?
-  actionItems     Json?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  linkedGoalId    String?
-  
-  requester       Employee       @relation("MeetRequester", fields: [requesterId], references: [id])
-  assignee        Employee?      @relation("MeetAssignee", fields: [assigneeId], references: [id])
-  department      Department?    @relation("DepartmentMeetRequests", fields: [departmentId], references: [id])
-  linkedGoal      Goal?          @relation(fields: [linkedGoalId], references: [id], onDelete: SetNull)
-  participants    MeetParticipant[]
-  tasks           Task[]
+  id           String     @id @default(cuid())
+  title        String
+  description  String?
+  startTime    DateTime
+  endTime      DateTime
+  status       MeetStatus @default(PENDING)
+  meetLink     String?
+  eventId      String?
+  type         MeetType   @default(ONE_ON_ONE)
+  requesterId  String
+  assigneeId   String?
+  departmentId String?
+  agenda       Json?
+  actionItems  Json?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  linkedGoalId String?
+
+  requester    Employee          @relation("MeetRequester", fields: [requesterId], references: [id])
+  assignee     Employee?         @relation("MeetAssignee", fields: [assigneeId], references: [id])
+  department   Department?       @relation("DepartmentMeetRequests", fields: [departmentId], references: [id])
+  linkedGoal   Goal?             @relation(fields: [linkedGoalId], references: [id], onDelete: SetNull)
+  participants MeetParticipant[]
+  tasks        Task[]
 
   @@map("meet_requests")
 }
 
 model MeetParticipant {
-  id              String         @id @default(cuid())
-  meetRequestId   String
-  employeeId      String
-  hasAccepted     Boolean        @default(false)
-  
-  meetRequest     MeetRequest    @relation(fields: [meetRequestId], references: [id], onDelete: Cascade)
-  employee        Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  id            String  @id @default(cuid())
+  meetRequestId String
+  employeeId    String
+  hasAccepted   Boolean @default(false)
+
+  meetRequest MeetRequest @relation(fields: [meetRequestId], references: [id], onDelete: Cascade)
+  employee    Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@unique([meetRequestId, employeeId])
   @@map("meet_participants")
@@ -458,34 +459,34 @@ model WorkflowInstance {
 }
 
 model KnowledgeDoc {
-  id           String                   @id @default(cuid())
-  authorId     String
-  category     KnowledgeCategory
-  content      String
-  createdAt    DateTime                 @default(now())
-  isPublished  Boolean                  @default(false)
-  publishedAt  DateTime?
-  searchVector Unsupported("tsvector")?
-  slug         String                   @unique
-  title        String
-  updatedAt    DateTime                 @updatedAt
-  version      String                   @default("1.0")
-  requiresSignature Boolean             @default(false)
-  author       Employee                 @relation(fields: [authorId], references: [id])
-  acknowledgements KnowledgeAcknowledgement[]
+  id                String                     @id @default(cuid())
+  authorId          String
+  category          KnowledgeCategory
+  content           String
+  createdAt         DateTime                   @default(now())
+  isPublished       Boolean                    @default(false)
+  publishedAt       DateTime?
+  searchVector      Unsupported("tsvector")?
+  slug              String                     @unique
+  title             String
+  updatedAt         DateTime                   @updatedAt
+  version           String                     @default("1.0")
+  requiresSignature Boolean                    @default(false)
+  author            Employee                   @relation(fields: [authorId], references: [id])
+  acknowledgements  KnowledgeAcknowledgement[]
 
   @@map("knowledge_docs")
 }
 
 model KnowledgeAcknowledgement {
-  id             String       @id @default(cuid())
+  id             String   @id @default(cuid())
   employeeId     String
   documentId     String
-  signatureName  String       // The full name typed by the employee as signature
-  acknowledgedAt DateTime     @default(now())
-  
-  employee       Employee     @relation(fields: [employeeId], references: [id])
-  document       KnowledgeDoc @relation(fields: [documentId], references: [id])
+  signatureName  String // The full name typed by the employee as signature
+  acknowledgedAt DateTime @default(now())
+
+  employee Employee     @relation(fields: [employeeId], references: [id])
+  document KnowledgeDoc @relation(fields: [documentId], references: [id])
 
   @@unique([employeeId, documentId])
   @@map("knowledge_acknowledgements")
@@ -505,7 +506,7 @@ model AuditLog {
   resourceId  String
   userAgent   String?
   actor       Employee? @relation(fields: [actorId], references: [id])
-  
+
   @@index([resource, resourceId])
   @@index([actorId])
   @@index([performedAt])
@@ -763,21 +764,21 @@ model Offer {
 }
 
 model Goal {
-  id            String       @id @default(cuid())
-  createdAt     DateTime     @default(now())
-  currentValue  Decimal?     @db.Decimal(10, 2)
+  id            String        @id @default(cuid())
+  createdAt     DateTime      @default(now())
+  currentValue  Decimal?      @db.Decimal(10, 2)
   description   String?
-  dueDate       DateTime?    @db.Date
+  dueDate       DateTime?     @db.Date
   employeeId    String
   reviewCycleId String?
-  status        GoalStatus   @default(NOT_STARTED)
-  targetValue   Decimal?     @db.Decimal(10, 2)
+  status        GoalStatus    @default(NOT_STARTED)
+  targetValue   Decimal?      @db.Decimal(10, 2)
   title         String
   type          GoalType
   unit          String?
-  weight        Decimal?     @db.Decimal(5, 2)
-  employee      Employee     @relation(fields: [employeeId], references: [id])
-  reviewCycle   ReviewCycle? @relation(fields: [reviewCycleId], references: [id])
+  weight        Decimal?      @db.Decimal(5, 2)
+  employee      Employee      @relation(fields: [employeeId], references: [id])
+  reviewCycle   ReviewCycle?  @relation(fields: [reviewCycleId], references: [id])
   meetRequests  MeetRequest[]
 
   @@map("goals")
@@ -1021,8 +1022,6 @@ model AIChat {
   @@map("ai_chats")
 }
 
-
-
 model Project {
   id          String              @id @default(cuid())
   name        String
@@ -1047,18 +1046,18 @@ model ProjectAssignment {
 }
 
 model WorkFromHomeRequest {
-  id                 String               @id @default(cuid())
-  employeeId         String
-  date               DateTime             @db.Date
-  reason             String
-  status             LeaveRequestStatus   @default(PENDING)
-  appliedAt          DateTime             @default(now())
-  approvedAt         DateTime?
-  approverId         String?
-  approvalQueue      Json?
-  currentStep        Int                  @default(0)
-  employee           Employee             @relation("WfhRequester", fields: [employeeId], references: [id])
-  approver           Employee?            @relation("WfhApprover", fields: [approverId], references: [id])
+  id            String             @id @default(cuid())
+  employeeId    String
+  date          DateTime           @db.Date
+  reason        String
+  status        LeaveRequestStatus @default(PENDING)
+  appliedAt     DateTime           @default(now())
+  approvedAt    DateTime?
+  approverId    String?
+  approvalQueue Json?
+  currentStep   Int                @default(0)
+  employee      Employee           @relation("WfhRequester", fields: [employeeId], references: [id])
+  approver      Employee?          @relation("WfhApprover", fields: [approverId], references: [id])
 
   @@index([employeeId, status])
   @@map("wfh_requests")
@@ -1067,7 +1066,7 @@ model WorkFromHomeRequest {
 model CompanyHoliday {
   id          String   @id @default(cuid())
   name        String
-  date        DateTime @db.Date @unique
+  date        DateTime @unique @db.Date
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -1076,20 +1075,20 @@ model CompanyHoliday {
 }
 
 model ConnectSettings {
-  id                      String    @id @default(cuid())
-  employeeId              String    @unique
-  googleCalendarConnected Boolean   @default(false)
-  workingHoursStart       String    @default("09:00")
-  workingHoursEnd         String    @default("18:00")
-  timezone                String    @default("Asia/Kolkata")
-  bufferMinutes           Int       @default(15)
-  minNoticeHours          Int       @default(2)
-  emailNotifications      Boolean   @default(true)
-  systemNotifications     Boolean   @default(true)
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
+  id                      String   @id @default(cuid())
+  employeeId              String   @unique
+  googleCalendarConnected Boolean  @default(false)
+  workingHoursStart       String   @default("09:00")
+  workingHoursEnd         String   @default("18:00")
+  timezone                String   @default("Asia/Kolkata")
+  bufferMinutes           Int      @default(15)
+  minNoticeHours          Int      @default(2)
+  emailNotifications      Boolean  @default(true)
+  systemNotifications     Boolean  @default(true)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 
-  employee                Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@map("connect_settings")
 }
@@ -1117,11 +1116,11 @@ enum UserStatus {
 }
 
 enum EmployeeStatus {
+  ONBOARDING
   PROBATION
   ACTIVE
   NOTICE_PERIOD
   EXITED
-  ONBOARDING
 }
 
 enum Gender {
@@ -1452,22 +1451,22 @@ enum TaskPriority {
 }
 
 model Task {
-  id            String       @id @default(cuid())
-  title         String
-  description   String?
-  status        TaskStatus   @default(TODO)
-  priority      TaskPriority @default(MEDIUM)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  dueDate       DateTime?
-  
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  dueDate     DateTime?
+
   assigneeId    String?
   creatorId     String
   meetRequestId String?
 
-  assignee      Employee?    @relation("TaskAssignee", fields: [assigneeId], references: [id])
-  creator       Employee     @relation("TaskCreator", fields: [creatorId], references: [id])
-  meetRequest   MeetRequest? @relation(fields: [meetRequestId], references: [id], onDelete: SetNull)
+  assignee    Employee?    @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  creator     Employee     @relation("TaskCreator", fields: [creatorId], references: [id])
+  meetRequest MeetRequest? @relation(fields: [meetRequestId], references: [id], onDelete: SetNull)
 
   @@index([assigneeId, status])
   @@map("tasks")
@@ -1486,19 +1485,19 @@ enum RegularizationStatus {
 }
 
 model RegularizationRequest {
-  id              String                       @id @default(cuid())
-  employeeId      String
-  attendanceDate  DateTime                     @db.Date
-  reason          String
-  correctionType  RegularizationCorrectionType
-  attachmentName  String?
-  managerStatus   RegularizationStatus         @default(PENDING)
-  hrStatus        RegularizationStatus         @default(PENDING)
-  submittedDate   DateTime                     @default(now())
-  comments        String?
-  
-  employee        Employee                     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  
+  id             String                       @id @default(cuid())
+  employeeId     String
+  attendanceDate DateTime                     @db.Date
+  reason         String
+  correctionType RegularizationCorrectionType
+  attachmentName String?
+  managerStatus  RegularizationStatus         @default(PENDING)
+  hrStatus       RegularizationStatus         @default(PENDING)
+  submittedDate  DateTime                     @default(now())
+  comments       String?
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
   @@index([employeeId])
   @@map("regularization_requests")
 }
@@ -1524,8 +1523,50 @@ model ReportHistory {
   generatedById String?
   generatedAt   DateTime     @default(now())
 
-  generator     Employee?    @relation("ReportGenerator", fields: [generatedById], references: [id])
-  
+  generator Employee? @relation("ReportGenerator", fields: [generatedById], references: [id])
+
   @@index([generatedById])
   @@map("report_history")
+}
+
+enum OnboardingStage {
+  OFFER_ACCEPTED
+  DOCUMENTATION
+  ASSET_ALLOCATION
+  TRAINING
+  MANAGER_INTRO
+  COMPLETED
+}
+
+model OnboardingSession {
+  id           String            @id @default(cuid())
+  employeeId   String            @unique
+  stage        OnboardingStage   @default(OFFER_ACCEPTED)
+  laptopType   String?
+  accessories  Json?             @default("[]")
+  software     Json?             @default("[]")
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  
+  employee     Employee          @relation(fields: [employeeId], references: [id])
+  tasks        OnboardingTask[]
+
+  @@map("onboarding_sessions")
+}
+
+model OnboardingTask {
+  id           String            @id @default(cuid())
+  sessionId    String
+  title        String
+  description  String?
+  isCompleted  Boolean           @default(false)
+  assignedTo   String
+  completedAt  DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  session      OnboardingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("onboarding_tasks")
 }

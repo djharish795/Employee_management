@@ -8,19 +8,19 @@ import { AttendanceLog } from "@/types/attendance";
 import { fetchMyLogs, fetchAllLogs } from "@/lib/api/attendance";
 
 interface HistoryPanelProps {
-  activeRole: "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
+  mode?: "personal" | "org";
 }
 
-export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
+export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
   const [filterMonth, setFilterMonth] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterSearch, setFilterSearch] = useState("");
 
-  const isAdminOrHR = activeRole === "ADMIN" || activeRole === "HR";
+  const isOrgMode = mode === "org";
   
   const { data: rawLogs = [], isLoading } = useQuery<AttendanceLog[]>({
-    queryKey: ["attendanceLogs", isAdminOrHR ? "all" : "my"],
-    queryFn: () => isAdminOrHR ? fetchAllLogs(1, 500) : fetchMyLogs(),
+    queryKey: ["attendanceLogs", isOrgMode ? "all" : "my"],
+    queryFn: () => isOrgMode ? fetchAllLogs(1, 500) : fetchMyLogs(),
   });
 
   const logs = useMemo(() => {
@@ -70,7 +70,7 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
     if (filteredLogs.length === 0) return;
     
     // Header
-    const headers = isAdminOrHR 
+    const headers = isOrgMode 
       ? ["Employee", "Date", "Check In", "Check Out", "Hours Worked", "Status", "Remarks"]
       : ["Date", "Check In", "Check Out", "Hours Worked", "Status", "Remarks"];
       
@@ -83,7 +83,7 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
         log.status,
         `"${log.remarks}"`,
       ];
-      if (isAdminOrHR) {
+      if (isOrgMode) {
         row.unshift(`"${(log as any).employeeName || 'Unknown'}"`);
       }
       return row;
@@ -195,7 +195,7 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider text-left">
-                  {isAdminOrHR && <th className="px-6 py-4">Employee</th>}
+                  {isOrgMode && <th className="px-6 py-4">Employee</th>}
                   <th className="px-6 py-4">Date</th>
                   <th className="px-6 py-4">Check In</th>
                   <th className="px-6 py-4">Check Out</th>
@@ -215,7 +215,7 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
 
                   return (
                     <tr key={(log as any).id || idx} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                      {isAdminOrHR && (
+                      {isOrgMode && (
                         <td className="px-6 py-4 font-bold text-slate-900">
                           {(log as any).employeeName || "Unknown"}
                         </td>

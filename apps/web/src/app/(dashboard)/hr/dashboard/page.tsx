@@ -42,11 +42,7 @@ export default function HrDashboardPage() {
     } catch (e) { console.error(e); }
   };
 
-  // TEMPORARY MOCK DATA TO TEST WFH CHART SECTION
-  if (data && data.attendance) {
-    data.attendance.wfh = 3;
-    data.attendance.absent = data.attendance.total - data.attendance.present - 3;
-  }
+
 
   const attendanceTotal = data?.attendance?.total || 1;
   const presentPct = data ? Math.round((data.attendance.present / attendanceTotal) * 100) || 0 : 0;
@@ -131,14 +127,26 @@ export default function HrDashboardPage() {
           </div>
         </div>
 
-        {/* Open Positions */}
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-5 shadow-sm transition-colors">
-          <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">OPEN POSITIONS</p>
-          <div className="flex items-center gap-2">
-            <span className="text-3xl font-bold text-slate-500 dark:text-slate-400">{data.recruitment.openPositions}</span>
-            <Lock className="w-4 h-4 text-slate-300 dark:text-slate-600" />
+        {/* Open Positions (Phase 2 Feature) */}
+        {process.env.NEXT_PUBLIC_PHASE_2_ENABLED === 'true' ? (
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-5 shadow-sm transition-colors">
+            <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">OPEN POSITIONS</p>
+            <div className="flex items-center gap-2">
+              <span className="text-3xl font-bold text-slate-500 dark:text-slate-400">{data.recruitment.openPositions}</span>
+              <Lock className="w-4 h-4 text-slate-300 dark:text-slate-600" />
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5 shadow-sm transition-colors opacity-70">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">RECRUITMENT</p>
+              <Lock className="w-3.5 h-3.5 text-slate-400" />
+            </div>
+            <div className="flex items-center gap-2 mt-3">
+              <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">Locked in Phase 1</span>
+            </div>
+          </div>
+        )}
 
         {/* New Joins */}
         <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-5 shadow-sm transition-colors">
@@ -173,7 +181,7 @@ export default function HrDashboardPage() {
                   a.download = 'hr-overview.csv';
                   a.click();
                 }}>Export Data</DropdownMenuItem>
-                <DropdownMenuItem asChild><Link href="/attendance">View Details</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link href="/attendance/reports">View Details</Link></DropdownMenuItem>
                 <DropdownMenuItem onClick={() => {
                   setRefreshKey(prev => prev + 1);
                   queryClient.invalidateQueries({ queryKey: ['hr-overview'] });

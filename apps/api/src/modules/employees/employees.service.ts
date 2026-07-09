@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, NotFoundException, ForbiddenException } from "@nestjs/common";
+import { Injectable, ConflictException, NotFoundException, ForbiddenException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { RbacService } from "../rbac/rbac.service";
 import { CreateEmployeeDto } from "./dto/create-employee.dto";
@@ -168,6 +168,12 @@ export class EmployeesService {
     await this.redis.setJson(redisKey, updatedDraft, 60 * 60 * 24);
 
     return { draftId: id };
+  }
+
+  async getOnboardingDraft(draftId: string): Promise<any> {
+    const redisKey = `employee_draft:${draftId}`;
+    const draftData = await this.redis.getJson<any>(redisKey);
+    return draftData || {};
   }
 
   async completeOnboarding(draftId: string): Promise<Employee> {
@@ -584,5 +590,24 @@ export class EmployeesService {
       engineers,
       totalCount: engineers.length
     };
+  }
+
+  async deleteEmployee(id: string): Promise<void> {
+    try {
+      // Manually cascade delete onboarding session data to prevent FK constraint failures
+      const onboardingSession = await this.prisma.onboardingSession.findUnique({ where: { employeeId: id } });
+      if (onboardingSession) {
+        await this.prisma.onboardingTask.deleteMany({ where: { sessionId: onboardingSession.id } });
+        await this.prisma.onboardingSession.delete({ where: { employeeId: id } });
+      }
+      
+      // Actually delete the employee
+      await this.prisma.employee.delete({ where: { id } });
+    } catch (error: any) {
+      if (error.code === 'P2003') {
+        throw new BadRequestException("Cannot delete this employee because they have active records (Attendance, Leaves, Audit Logs, etc). Please 'Deactivate' the employee instead.");
+      }
+      throw error;
+    }
   }
 }

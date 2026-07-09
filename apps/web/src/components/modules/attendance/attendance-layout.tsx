@@ -20,16 +20,9 @@ export default function AttendanceLayout({ children, activeRole }: AttendanceLay
       { title: "Dashboard", href: "/attendance", icon: LayoutDashboard },
       { title: "History", href: "/attendance/history", icon: History },
       { title: "Regularization", href: "/attendance/regularization", icon: CheckSquare },
-      { title: "Reports", href: "/attendance/reports", icon: BarChart3 },
     ];
 
-    return items.filter((item) => {
-      // Employees cannot see the analytical reports view
-      if (item.href === "/attendance/reports") {
-        return activeRole !== "EMPLOYEE";
-      }
-      return true;
-    });
+    return items;
   }, [activeRole]);
 
   const roleLabel: Record<AttendanceRole, string> = {

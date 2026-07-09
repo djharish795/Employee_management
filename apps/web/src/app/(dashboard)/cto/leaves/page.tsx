@@ -45,7 +45,7 @@ export default function CTOLeavesPage() {
   const handleReject = async (id: string) => {
     const reason = window.prompt("Please enter a rejection reason:");
     if (!reason) return;
-    
+
     setProcessingId(id);
     try {
       await rejectLeave(id, reason);
@@ -106,7 +106,7 @@ export default function CTOLeavesPage() {
 
   // Group leaves for calendar view
   const calendarLeaves = requests.filter(r => r.status === 'APPROVED' || r.status === 'PENDING');
-  
+
   const groupedLeaves = calendarLeaves.reduce((acc, req) => {
     if (!acc[req.employeeName]) {
       acc[req.employeeName] = [];
@@ -122,7 +122,7 @@ export default function CTOLeavesPage() {
   return (
     <div className="flex flex-col h-full font-sans bg-slate-50 overflow-y-auto">
       <div className="p-8 max-w-[1000px] mx-auto w-full space-y-6">
-        
+
         {/* Info Banner */}
         <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 flex items-start gap-3">
           <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
@@ -134,48 +134,43 @@ export default function CTOLeavesPage() {
         {/* Tabs */}
         <div className="border-b border-slate-200">
           <div className="flex gap-8">
-            <button 
+            <button
               onClick={() => setActiveTab('pending')}
-              className={`pb-4 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${
-                activeTab === 'pending' 
-                  ? 'border-slate-900 text-slate-900' 
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-              }`}
+              className={`pb-4 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'pending'
+                ? 'border-slate-900 text-slate-900'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                }`}
             >
-              Pending 
-              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-                activeTab === 'pending' ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-600'
-              }`}>
+              Pending
+              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${activeTab === 'pending' ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-600'
+                }`}>
                 {pendingCount}
               </span>
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('approved')}
-              className={`pb-4 text-sm font-bold border-b-2 transition-colors ${
-                activeTab === 'approved' 
-                  ? 'border-slate-900 text-slate-900' 
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-              }`}
+              className={`pb-4 text-sm font-bold border-b-2 transition-colors ${activeTab === 'approved'
+                ? 'border-slate-900 text-slate-900'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                }`}
             >
               Approved this month ({approvedCount})
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('rejected')}
-              className={`pb-4 text-sm font-bold border-b-2 transition-colors ${
-                activeTab === 'rejected' 
-                  ? 'border-slate-900 text-slate-900' 
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-              }`}
+              className={`pb-4 text-sm font-bold border-b-2 transition-colors ${activeTab === 'rejected'
+                ? 'border-slate-900 text-slate-900'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                }`}
             >
               Rejected ({rejectedCount})
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('calendar')}
-              className={`pb-4 text-sm font-bold border-b-2 transition-colors ${
-                activeTab === 'calendar' 
-                  ? 'border-slate-900 text-slate-900' 
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-              }`}
+              className={`pb-4 text-sm font-bold border-b-2 transition-colors ${activeTab === 'calendar'
+                ? 'border-slate-900 text-slate-900'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                }`}
             >
               Team leave calendar
             </button>
@@ -220,24 +215,23 @@ export default function CTOLeavesPage() {
                       <div className="text-sm font-bold text-slate-900">{req.dateRange} ({req.days} days)</div>
                     </div>
                     <div>
-                      <span className={`px-2.5 py-1 text-xs font-bold rounded-full border ${
-                        req.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                      <span className={`px-2.5 py-1 text-xs font-bold rounded-full border ${req.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
                         req.status === 'REJECTED' ? 'bg-red-50 text-red-700 border-red-100' :
-                        'bg-amber-50 text-amber-700 border-amber-100'
-                      }`}>
+                          'bg-amber-50 text-amber-700 border-amber-100'
+                        }`}>
                         {req.status}
                       </span>
                     </div>
                     {req.status === 'PENDING' && (
                       <div className="flex items-center gap-2">
-                        <button 
+                        <button
                           onClick={() => handleApprove(req.id)}
                           disabled={processingId === req.id}
                           className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50"
                         >
                           {processingId === req.id ? '...' : 'Approve'}
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleReject(req.id)}
                           disabled={processingId === req.id}
                           className="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-lg transition-colors disabled:opacity-50"
@@ -267,7 +261,7 @@ export default function CTOLeavesPage() {
                 </button>
               </div>
             </div>
-            
+
             <div className="border border-slate-200 rounded-lg overflow-x-auto relative">
               <table className="w-full border-collapse text-sm min-w-[800px]">
                 <thead>
@@ -318,17 +312,15 @@ export default function CTOLeavesPage() {
                           return (
                             <td key={day} className="p-1 min-w-[30px] border-r border-slate-100 last:border-r-0 text-center h-[52px]">
                               {activeLeave && (
-                                <div 
+                                <div
                                   title={`${activeLeave.type} (${activeLeave.status})`}
-                                  className={`w-full h-full rounded flex items-center justify-center cursor-pointer ${
-                                    activeLeave.status === 'APPROVED' 
-                                      ? 'bg-emerald-100 border border-emerald-200' 
-                                      : 'bg-amber-100 border border-amber-200'
-                                  }`}
+                                  className={`w-full h-full rounded flex items-center justify-center cursor-pointer ${activeLeave.status === 'APPROVED'
+                                    ? 'bg-emerald-100 border border-emerald-200'
+                                    : 'bg-amber-100 border border-amber-200'
+                                    }`}
                                 >
-                                  <div className={`w-1.5 h-1.5 rounded-full ${
-                                    activeLeave.status === 'APPROVED' ? 'bg-emerald-500' : 'bg-amber-500'
-                                  }`}></div>
+                                  <div className={`w-1.5 h-1.5 rounded-full ${activeLeave.status === 'APPROVED' ? 'bg-emerald-500' : 'bg-amber-500'
+                                    }`}></div>
                                 </div>
                               )}
                             </td>

@@ -16,6 +16,6 @@ import { TasksModule } from "../tasks/tasks.module";
     ZoomService,
     EmailService,
   ],
-  exports: [ConnectService],
+  exports: [ConnectService, ZoomService, EmailService],
 })
 export class ConnectModule {}

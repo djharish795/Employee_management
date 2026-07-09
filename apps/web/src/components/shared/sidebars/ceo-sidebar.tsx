@@ -51,7 +51,7 @@ const getNavGroups = (role: string, unreadCount: number) => {
             ]
           },
           { title: 'Employees', icon: Users, href: '/employees' },
-          { title: 'Analytics', icon: BarChart3, href: '/analytics' },
+          { title: 'Analytics', icon: BarChart3, locked: true },
           { title: 'Compliance', icon: ShieldCheck, href: '/compliance' },
           { title: 'Leaves', icon: Calendar, href: '/leaves' },
         ]
@@ -129,7 +129,7 @@ const getNavGroups = (role: string, unreadCount: number) => {
   mainItems.push(
     { title: 'Employees', icon: Users, href: '/employees' },
     { title: 'Org Chart', icon: Network, href: '/org-chart' },
-    { title: 'Analytics', icon: BarChart3, href: '/analytics' }
+    { title: 'Analytics', icon: BarChart3, locked: true }
   );
 
   if (['SUPER_ADMIN', 'CEO', 'COO', 'HR', 'CHRO', 'COMPLIANCE_OFFICER', 'LEGAL'].includes(role)) {
