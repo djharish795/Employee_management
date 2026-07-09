@@ -11,13 +11,15 @@ export default function OrgChartDashboardPage() {
   const activeRole = useAuthStore((state) => state.role) || "EMPLOYEE";
   const router = useRouter();
 
+  const isRestrictedRole = ["EMPLOYEE", "MANAGER", "TEAM_LEAD", "IT"].includes(activeRole);
+
   useEffect(() => {
-    if (activeRole === "EMPLOYEE") {
+    if (isRestrictedRole) {
       router.push("/org-chart/hierarchy");
     }
-  }, [activeRole, router]);
+  }, [activeRole, router, isRestrictedRole]);
 
-  if (activeRole === "EMPLOYEE") return null;
+  if (isRestrictedRole) return null;
 
   return (
     <OrgLayout activeRole={activeRole as any} onRoleChange={() => {}}>

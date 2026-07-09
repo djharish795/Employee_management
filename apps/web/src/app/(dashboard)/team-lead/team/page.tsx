@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button';
 
 // Placeholder data structure for backend team to replace with API call
 const mockTeamMembers = [
-  { id: '1', name: 'Pooja J.', role: 'Frontend Developer', status: 'ACTIVE', tenure: '1.2 yrs', tasks: '3 Active', skills: ['React.js', 'TypeScript', 'Tailwind'], level: 'Senior Associate', initials: 'PJ' },
-  { id: '2', name: 'Karthik R.', role: 'Software Engineer', status: 'ACTIVE', tenure: '2.1 yrs', tasks: '2 Active', skills: ['Node.js', 'Go', 'PostgreSQL'], level: 'Senior Engineer', initials: 'KR' },
-  { id: '3', name: 'Divya N.', role: 'QA Engineer', status: 'PROBATION', tenure: '2 months', tasks: '1 Active', skills: ['Selenium', 'PyTest'], level: 'Associate Engineer', initials: 'DN' },
-  { id: '4', name: 'Sameer K.', role: 'Software Engineer', status: 'ON LEAVE', tenure: '1.5 yrs', tasks: '1 Active', skills: ['Java Spring', 'Docker', 'AWS'], level: 'Lead Engineer', initials: 'SK' },
+  { id: '1', name: 'Pooja J.', role: 'Frontend Developer', status: 'ACTIVE', tenure: '1.2 yrs', tasks: '3 Active', skills: ['React.js', 'TypeScript', 'Tailwind'], level: 'Senior Associate', avatar: 'https://i.pravatar.cc/150?img=47' },
+  { id: '2', name: 'Karthik R.', role: 'Software Engineer', status: 'ACTIVE', tenure: '2.1 yrs', tasks: '2 Active', skills: ['Node.js', 'Go', 'PostgreSQL'], level: 'Senior Engineer', avatar: 'https://i.pravatar.cc/150?img=11' },
+  { id: '3', name: 'Divya N.', role: 'QA Engineer', status: 'PROBATION', tenure: '2 months', tasks: '1 Active', skills: ['Selenium', 'PyTest'], level: 'Associate Engineer', avatar: 'https://i.pravatar.cc/150?img=32' },
+  { id: '4', name: 'Sameer K.', role: 'Software Engineer', status: 'ON LEAVE', tenure: '1.5 yrs', tasks: '1 Active', skills: ['Java Spring', 'Docker', 'AWS'], level: 'Lead Engineer', avatar: 'https://i.pravatar.cc/150?img=12' },
 ];
 
 export default function MyTeamPage() {
@@ -18,29 +18,7 @@ export default function MyTeamPage() {
   return (
     <div className="flex-1 w-full bg-slate-50 min-h-screen flex flex-col font-sans overflow-x-hidden">
       
-      {/* Top Header - Simple and clean to match design */}
-      <header className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between sticky top-0 z-10 shadow-sm">
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">My Team</h1>
-        <div className="flex items-center gap-6">
-          <div className="relative w-64 hidden md:block">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input 
-              type="text" 
-              placeholder="Search..." 
-              className="w-full bg-slate-100 border-none rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200 text-slate-700"
-            />
-          </div>
-          <button className="text-slate-500 hover:text-slate-900 transition-colors">
-            <Bell className="w-5 h-5" />
-          </button>
-          <button className="text-slate-500 hover:text-slate-900 transition-colors">
-            <Settings className="w-5 h-5" />
-          </button>
-          <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-200 shadow-sm">
-             <img src="https://i.pravatar.cc/150?img=11" alt="Profile" className="w-full h-full object-cover" />
-          </div>
-        </div>
-      </header>
+
 
       {/* Main Content Area */}
       <main className="p-8 max-w-7xl mx-auto w-full space-y-8">
@@ -65,7 +43,7 @@ export default function MyTeamPage() {
           {teamMembers.map((member) => (
             <TeamMemberCard 
               key={member.id}
-              initials={member.initials}
+              avatar={member.avatar}
               name={member.name}
               role={member.role}
               status={member.status}
@@ -96,7 +74,7 @@ export default function MyTeamPage() {
                 {teamMembers.map((member) => (
                   <TableRow 
                     key={member.id}
-                    initials={member.initials}
+                    avatar={member.avatar}
                     name={member.name}
                     skills={member.skills}
                     level={member.level}
@@ -114,15 +92,15 @@ export default function MyTeamPage() {
 
 // Components
 
-function TeamMemberCard({ initials, name, role, status, tenure, tasks }: any) {
+function TeamMemberCard({ avatar, name, role, status, tenure, tasks }: any) {
   
   const isProbation = status === 'PROBATION';
   const isLeave = status === 'ON LEAVE';
   
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col items-center shadow-sm hover:shadow-md transition-shadow">
-      <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-white shadow-md mb-4 bg-slate-100 flex items-center justify-center text-2xl font-bold text-slate-500">
-        {initials}
+      <div className="w-20 h-20 rounded-full overflow-hidden border border-slate-200 shadow-sm mb-4 bg-slate-100 flex items-center justify-center">
+        <img src={avatar} alt={name} className="w-full h-full object-cover" />
       </div>
       
       <h3 className="font-bold text-lg text-slate-900 tracking-tight">{name}</h3>
@@ -153,13 +131,13 @@ function TeamMemberCard({ initials, name, role, status, tenure, tasks }: any) {
   );
 }
 
-function TableRow({ initials, name, skills, level }: any) {
+function TableRow({ avatar, name, skills, level }: any) {
   return (
     <tr className="hover:bg-slate-50/50 transition-colors group">
       <td className="px-6 py-4">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">
-            {initials}
+          <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center">
+            <img src={avatar} alt={name} className="w-full h-full object-cover" />
           </div>
           <span className="font-bold text-slate-900 text-sm">{name}</span>
         </div>

@@ -26,8 +26,8 @@ const ALL_ROLES: AssetRole[] = ["IT_ADMIN", "ADMIN", "HR", "CEO", "MANAGER", "EM
 export default function AssetsLayout({ children, activeRole, onRoleChange }: AssetsLayoutProps) {
   const pathname = usePathname();
   const currentUserRole = useAuthStore((state) => state.role) || "EMPLOYEE";
-  const isActualEmployee = currentUserRole === "EMPLOYEE";
-  const effectiveRole = isActualEmployee ? "EMPLOYEE" : activeRole;
+  const isEmployeeLevel = ["EMPLOYEE", "MANAGER", "TEAM_LEAD", "IT"].includes(currentUserRole);
+  const effectiveRole = isEmployeeLevel ? "EMPLOYEE" : activeRole;
 
   const navItems = React.useMemo(() => {
     const items = [
@@ -78,7 +78,7 @@ export default function AssetsLayout({ children, activeRole, onRoleChange }: Ass
               </h1>
 
               {/* Dev Role Switcher */}
-              {!isActualEmployee && (
+              {!isEmployeeLevel && (
                 <div className="relative inline-block text-left group">
                   <button className="flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-full transition-all shadow-sm">
                     <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />

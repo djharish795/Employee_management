@@ -24,8 +24,8 @@ const INDIVIDUAL_NAV_ITEMS = [
 const TEAM_NAV_ITEMS = [
   { title: 'Dashboard',         icon: LayoutDashboard, href: '/team-lead/dashboard' },
   { title: 'My Team',           icon: Users,           href: '/team-lead/team' },
-  { title: 'Team Attendance',   icon: CalendarCheck,   href: '/attendance' },
-  { title: 'Team Leave',        icon: Calendar,        href: '/leaves' },
+  { title: 'Team Attendance',   icon: CalendarCheck,   href: '/team-lead/attendance' },
+  { title: 'Team Leave',        icon: Calendar,        href: '/team-lead/leaves' },
   { title: 'Task Board',        icon: CheckSquare,     href: '/team-lead/task-board' },
   { title: 'Performance Input', icon: Star,            href: '/team-lead/performance' },
 ];
