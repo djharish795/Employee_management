@@ -121,6 +121,8 @@ model Employee {
   assignedTasks              Task[]               @relation("TaskAssignee")
   createdTasks               Task[]               @relation("TaskCreator")
   generatedReports           ReportHistory[]      @relation("ReportGenerator")
+  offboardingRecord          OffboardingProcess?  @relation("EmployeeOffboarding")
+  ktAssignments              OffboardingProcess[] @relation("KTAssignee")
 
   @@map("employees")
 }
@@ -541,6 +543,35 @@ model DataErasureRequest {
   requestedBy   Employee             @relation("ErasureRequester", fields: [requestedById], references: [id])
 
   @@map("data_erasure_requests")
+}
+
+model OffboardingProcess {
+  id                    String            @id @default(cuid())
+  employeeId            String            @unique
+  resignationDate       DateTime
+  lastWorkingDay        DateTime
+  exitType              String
+  exitReason            String?
+  accessRevocationDate  DateTime?
+  ktAssigneeId          String?
+  ktTargetDate          DateTime?
+  ffExpectedDate        DateTime?
+  generateLetters       Boolean           @default(true)
+  exitInterviewDate     DateTime?
+  status                String            @default("IN_PROGRESS")
+  
+  assetChecklist        Json              @default("[]")
+  deactivationChecklist Json              @default("[]")
+  settlementChecklist   Json              @default("[]")
+  ktChecklist           Json              @default("[]")
+
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  employee              Employee          @relation("EmployeeOffboarding", fields: [employeeId], references: [id], onDelete: Cascade)
+  ktAssignee            Employee?         @relation("KTAssignee", fields: [ktAssigneeId], references: [id], onDelete: SetNull)
+
+  @@map("offboarding_processes")
 }
 
 model GrievanceCase {
@@ -1090,6 +1121,7 @@ enum EmployeeStatus {
   ACTIVE
   NOTICE_PERIOD
   EXITED
+  ONBOARDING
 }
 
 enum Gender {

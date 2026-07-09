@@ -5,10 +5,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Search, Bell, CheckCircle2, Circle, Clock, Check, AlertCircle, AlertTriangle, Lock, HelpCircle, Calendar } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
+import { apiClient } from '@/lib/api/client';
 
 // ─── Interfaces (No Hardcoded Mock Data) ─────────────────────────────────────────
 interface ChecklistItem {
-  id: number;
+  id: string | number;
   label: string;
   status: 'completed' | 'pending' | 'scheduled' | 'locked' | 'pending_manager';
   text?: string;
@@ -55,7 +56,86 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
   const router = useRouter();
   const role = useAuthStore((state) => state.role);
   const [data, setData] = useState<OffboardingProcessData | null>(null);
-  
+
+  useEffect(() => {
+    const fetchOffboardingDetail = async () => {
+      try {
+        const response = await apiClient.get(`/lifecycle/offboarding/${params.id}`);
+        const record = response.data;
+        if (record) {
+          const employeeName = record.employee
+            ? record.employee.preferredName || `${record.employee.firstName || ''} ${record.employee.lastName || ''}`.trim()
+            : "Unknown Employee";
+
+          const assetList = Array.isArray(record.assetChecklist) ? record.assetChecklist : [];
+          const deactivationList = Array.isArray(record.deactivationChecklist) ? record.deactivationChecklist : [];
+          const settlementList = Array.isArray(record.settlementChecklist) ? record.settlementChecklist : [];
+          const ktList = Array.isArray(record.ktChecklist) ? record.ktChecklist : [];
+
+          const totalTasks = assetList.length + deactivationList.length + settlementList.length + ktList.length;
+          const completedTasks = [
+            ...assetList,
+            ...deactivationList,
+            ...settlementList,
+            ...ktList
+          ].filter(item => item.status === "completed").length;
+
+          const percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+          const daysRemaining = Math.max(0, Math.ceil(
+            (new Date(record.lastWorkingDay).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+          ));
+
+          const mappedData: OffboardingProcessData = {
+            id: record.employeeId,
+            name: employeeName,
+            designation: record.employee?.designation?.title || "Employee",
+            lastDay: new Date(record.lastWorkingDay).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            avatarInitials: employeeName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() || "EE",
+            status: record.status,
+            noticePeriod: record.employee?.status === "NOTICE_PERIOD",
+            alert: {
+              daysRemaining,
+              tasksPending: totalTasks - completedTasks,
+              totalTasks
+            },
+            progress: {
+              completed: completedTasks,
+              total: totalTasks,
+              percentage,
+              target: new Date(record.lastWorkingDay).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+            },
+            checklists: {
+              assetRecovery: assetList,
+              accountDeactivation: deactivationList,
+              finalSettlement: settlementList,
+              knowledgeTransfer: ktList
+            },
+            exitDetails: {
+              resignationDate: new Date(record.resignationDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+              lastWorkingDay: new Date(record.lastWorkingDay).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+              noticePeriod: "30 Days",
+              exitType: record.exitType,
+              exitReason: record.exitReason || "Not Specified"
+            },
+            exitInterview: {
+              status: record.exitInterviewDate 
+                ? `Scheduled for ${new Date(record.exitInterviewDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` 
+                : "Not Scheduled"
+            }
+          };
+          setData(mappedData);
+        }
+      } catch (err) {
+        console.error("Failed to fetch offboarding details", err);
+      }
+    };
+
+    if (params.id) {
+      fetchOffboardingDetail();
+    }
+  }, [params.id]);
+
   // Protect route: Only HR can access
   if (role !== "HR") {
     return (
