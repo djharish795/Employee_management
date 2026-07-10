@@ -7,6 +7,18 @@ import { AttendanceLog } from "@/types/attendance";
 
 import { fetchMyLogs, fetchAllLogs } from "@/lib/api/attendance";
 
+const formatTimeValue = (val: string | null | undefined): string => {
+  if (!val) return "—";
+  if (val.includes("AM") || val.includes("PM") || val === "--:--" || val === "—") {
+    return val;
+  }
+  const parsed = new Date(val);
+  if (isNaN(parsed.getTime())) {
+    return val;
+  }
+  return parsed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+};
+
 interface HistoryPanelProps {
   mode?: "personal" | "org";
 }
@@ -26,8 +38,8 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
   const logs = useMemo(() => {
     return rawLogs.map((log) => {
       const formattedDate = new Date(log.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-      const formattedCheckIn = log.checkIn ? new Date(log.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
-      const formattedCheckOut = log.checkOut ? new Date(log.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
+      const formattedCheckIn = formatTimeValue(log.checkIn);
+      const formattedCheckOut = formatTimeValue(log.checkOut);
       const formattedHours = typeof log.hoursWorked === 'number' ? `${log.hoursWorked.toFixed(1)}h` : log.hoursWorked;
       
       return {

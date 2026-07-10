@@ -11,7 +11,7 @@ export default function AttendanceHistoryPage() {
 
   return (
     <AttendanceLayout activeRole={activeRole}>
-      <HistoryPanel mode="personal" />
+      <HistoryPanel mode={activeRole === "HR" || activeRole === "ADMIN" ? "org" : "personal"} />
     </AttendanceLayout>
   );
 }
