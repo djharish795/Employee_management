@@ -6,6 +6,11 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { useDebounce } from '@/hooks/use-debounce';
 import { apiClient } from '@/lib/api/client';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '@/components/ui/dropdown-menu';
+import { useNotifications } from '@/hooks/use-notifications';
+import { formatDistanceToNow } from 'date-fns';
+import { CheckCircle2 } from 'lucide-react';
+import Link from 'next/link';
 
 const IconMap: Record<string, React.ElementType> = {
   Monitor, Users, Calendar, LayoutDashboard, Clock, BookOpen, 
@@ -53,6 +58,8 @@ export function Topbar() {
 
   // --- Search Logic ---
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  const { notifications, unreadCount, markAllAsRead, markAsRead } = useNotifications();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -255,12 +262,60 @@ export function Topbar() {
       {/* Right Actions */}
       <div className="flex items-center gap-3 sm:gap-6 ml-auto">
         <div className="flex items-center gap-2 sm:gap-4 text-slate-600 dark:text-slate-400">
-          <button onClick={() => {}} className="hover:text-slate-900 dark:hover:text-white transition-colors focus:outline-none">
-            <Bell className="w-5 h-5" />
-          </button>
-          <button onClick={() => {}} className="hidden sm:block hover:text-slate-900 dark:hover:text-white transition-colors focus:outline-none">
-            <HelpCircle className="w-5 h-5" />
-          </button>
+          <DropdownMenu onOpenChange={(open) => {
+            if (open && unreadCount > 0) {
+              markAllAsRead();
+            }
+          }}>
+            <DropdownMenuTrigger asChild>
+              <button className="relative hover:text-slate-900 dark:hover:text-white transition-colors focus:outline-none outline-none">
+                <Bell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 border-2 border-white dark:border-slate-900 rounded-full"></span>
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-80 p-0 z-[100] bg-white border-slate-200">
+              <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="font-bold text-sm text-slate-900">Notifications</h3>
+                {unreadCount > 0 && (
+                  <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{unreadCount} New</span>
+                )}
+              </div>
+              <div className="max-h-[300px] overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center p-6 text-center text-slate-500">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-400 mb-2" />
+                    <p className="text-sm font-semibold text-slate-600">You're all caught up!</p>
+                  </div>
+                ) : (
+                  notifications.slice(0, 10).map((notif) => (
+                    <div
+                      key={notif.id}
+                      className={`p-3 border-b border-slate-50 last:border-b-0 hover:bg-slate-50 cursor-pointer transition-colors ${!notif.isRead ? 'bg-blue-50/50' : ''}`}
+                      onClick={() => {
+                        if (!notif.isRead) markAsRead(notif.id);
+                      }}
+                    >
+                      <p className={`text-sm ${notif.isRead ? 'text-slate-600 font-medium' : 'text-slate-900 font-bold'}`}>
+                        {notif.body || notif.title}
+                      </p>
+                      <p className="text-[10px] font-medium text-slate-400 mt-1">
+                        {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+              {notifications.length > 0 && (
+                <div className="p-2 border-t border-slate-100 text-center">
+                  <Link href="/notifications" className="text-xs font-bold text-blue-600 hover:text-blue-700 block w-full py-1">
+                    View all notifications
+                  </Link>
+                </div>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Divider */}

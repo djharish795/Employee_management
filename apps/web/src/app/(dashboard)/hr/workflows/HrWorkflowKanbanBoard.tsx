@@ -84,20 +84,29 @@ export function HrWorkflowKanbanBoard() {
   }
 
   return (
-    <div className="p-8 h-full flex flex-col">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
-          <Kanban className="w-8 h-8 text-blue-600" />
-          HR Workflow Tracker
-        </h1>
-        <p className="text-slate-500 font-medium mt-2">
-          Drag and drop workflows to track employee onboarding, offboarding, and process status.
-        </p>
-      </div>
+    <div className="flex flex-col h-full font-sans overflow-y-auto">
+      <div className="p-8 max-w-[1400px] mx-auto w-full h-full flex flex-col space-y-6">
+        
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-2">
+          <div>
+            <div className="text-[10px] font-bold text-slate-900 uppercase tracking-widest mb-1 flex items-center gap-2">
+              <span className="text-slate-500">EMS</span> / <span className="text-slate-500">WORKFLOWS</span> / OVERVIEW
+            </div>
+            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+              HR Workflow Tracker
+            </h1>
+            <p className="text-slate-500 font-medium mt-2">
+              Drag and drop workflows to track employee onboarding, offboarding, and process status.
+            </p>
+          </div>
+        </div>
 
-      <div className="flex-1 flex gap-6 overflow-x-auto pb-4">
-        {COLUMNS.map(col => {
-          const colItems = workflows.filter(w => w.status === col.id);
+        {/* Board Container */}
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 flex-1 flex flex-col min-h-0">
+          <div className="flex-1 flex gap-6 overflow-x-auto pb-4 h-full">
+            {COLUMNS.map(col => {
+              const colItems = workflows.filter(w => w.status === col.id);
           
           return (
             <div 
@@ -151,6 +160,8 @@ export function HrWorkflowKanbanBoard() {
             </div>
           );
         })}
+          </div>
+        </div>
       </div>
     </div>
   );
