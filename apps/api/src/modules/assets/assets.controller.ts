@@ -26,7 +26,7 @@ import { CreateAssetRequestDto, RespondAssetRequestDto } from "./dto/asset-reque
 @Controller("assets/kpis")
 @UseGuards(JwtAuthGuard, RbacGuard)
 export class AssetsKpiController {
-  constructor(private readonly assetsService: AssetsService) {}
+  constructor(private readonly assetsService: AssetsService) { }
 
   @Get("summary")
   async getSummary(@CurrentUser() user: any) {
@@ -64,7 +64,16 @@ export class AssetsKpiController {
 @Controller("assets")
 @UseGuards(JwtAuthGuard, RbacGuard)
 export class AssetsController {
-  constructor(private readonly assetsService: AssetsService) {}
+  constructor(private readonly assetsService: AssetsService) { }
+
+  // My active assets
+  @Get("my")
+  @Permissions(Permission.READ_OWN_PROFILE)
+  async findMyAssets(@CurrentUser() user: any) {
+    return this.assetsService.findAll(user.role as UserRole, user.employeeId, {
+      status: "ASSIGNED" as any
+    });
+  }
 
   // Inventory list
   @Get()
@@ -77,7 +86,7 @@ export class AssetsController {
     @Query("page") page?: string,
     @Query("limit") limit?: string
   ) {
-    return this.assetsService.findAll(user.role as UserRole, user.sub, {
+    return this.assetsService.findAll(user.role as UserRole, user.employeeId, {
       status,
       category,
       search,
@@ -86,11 +95,18 @@ export class AssetsController {
     });
   }
 
+  // Recent Activity
+  @Get("activity")
+  @Permissions(Permission.READ_OWN_PROFILE)
+  async getActivity(@CurrentUser() user: any) {
+    return this.assetsService.getRecentActivity(user.role as UserRole, user.employeeId);
+  }
+
   // Single asset detail
   @Get(":id")
   @Permissions(Permission.READ_EMPLOYEES)
   async findOne(@CurrentUser() user: any, @Param("id") id: string) {
-    return this.assetsService.findById(user.role as UserRole, user.sub, id);
+    return this.assetsService.findById(user.role as UserRole, user.employeeId, id);
   }
 
   // Create new asset (IT Admin / Super Admin only)
@@ -122,6 +138,7 @@ export class AssetsController {
     @Param("id") assetId: string,
     @Body() dto: AssignAssetDto
   ) {
+    dto.assignedById = user.employeeId || "system";
     return this.assetsService.assign(user.role as UserRole, assetId, dto);
   }
 
@@ -148,14 +165,14 @@ export class AssetsController {
 @Controller("assets/requests")
 @UseGuards(JwtAuthGuard, RbacGuard)
 export class AssetRequestsController {
-  constructor(private readonly assetsService: AssetsService) {}
+  constructor(private readonly assetsService: AssetsService) { }
 
   @Get()
   async findRequests(
     @CurrentUser() user: any,
     @Query("status") status?: string
   ) {
-    return this.assetsService.findRequests(user.role as UserRole, user.sub, status);
+    return this.assetsService.findRequests(user.role as UserRole, user.employeeId, status);
   }
 
   @Post()
@@ -163,7 +180,7 @@ export class AssetRequestsController {
     @CurrentUser() user: any,
     @Body() dto: CreateAssetRequestDto
   ) {
-    return this.assetsService.createRequest(user.sub, dto);
+    return this.assetsService.createRequest(user.employeeId, dto);
   }
 
   @Patch(":id/respond")
@@ -172,16 +189,18 @@ export class AssetRequestsController {
     @Param("id") id: string,
     @Body() dto: RespondAssetRequestDto
   ) {
-    return this.assetsService.respondToRequest(user.role as UserRole, id, user.sub, dto);
+    return this.assetsService.respondToRequest(user.role as UserRole, id, user.employeeId, dto);
   }
 }
 
 // ─── CTO Controller (kept for backwards compat with cto.ts API client) ────
+// Triggers restart again
+// Triggers restart
 
 @Controller("assets")
 @UseGuards(JwtAuthGuard, RbacGuard)
 export class CtoAssetsController {
-  constructor(private readonly assetsService: AssetsService) {}
+  constructor(private readonly assetsService: AssetsService) { }
 
   @Get("cto")
   @Permissions(Permission.READ_EMPLOYEES)

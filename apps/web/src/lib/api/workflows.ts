@@ -24,6 +24,11 @@ export const workflowsApi = {
     return response.data;
   },
 
+  getMyApprovals: async (): Promise<WorkflowInstance[]> => {
+    const response = await apiClient.get("/hr/workflows/my-approvals");
+    return response.data;
+  },
+
   updateStatus: async (id: string, status: string): Promise<any> => {
     const response = await apiClient.patch(`/hr/workflows/${id}/status`, { status });
     return response.data;

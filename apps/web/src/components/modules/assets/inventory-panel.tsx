@@ -21,10 +21,17 @@ import {
   MoreHorizontal,
   UserPlus,
   CornerDownLeft,
+  Trash2,
 } from "lucide-react";
 import { Asset, AssetCategory, AssetRole, AssetStatus } from "@/types/assets";
 import { AssetFormSheet } from "./asset-form-sheet";
-import { AssignAssetDialog, ReturnAssetDialog, ViewAssetDialog } from "./asset-action-dialogs";
+import { AssignAssetDialog, ReturnAssetDialog, ViewAssetDialog, DeleteAssetDialog } from "./asset-action-dialogs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface InventoryPanelProps {
   activeRole: AssetRole;
@@ -78,6 +85,7 @@ export default function InventoryPanel({ activeRole }: InventoryPanelProps) {
   const [assetToView, setAssetToView] = useState<Asset | null>(null);
   const [assetToAssign, setAssetToAssign] = useState<Asset | null>(null);
   const [assetToReturn, setAssetToReturn] = useState<Asset | null>(null);
+  const [assetToDelete, setAssetToDelete] = useState<Asset | null>(null);
 
   const { data: apiData, isLoading } = useQuery({
     queryKey: ["assets", statusFilter, categoryFilter, search],
@@ -123,7 +131,7 @@ export default function InventoryPanel({ activeRole }: InventoryPanelProps) {
 
   const filtered = assets;
 
-  const canEdit = ["IT_ADMIN", "ADMIN"].includes(activeRole);
+  const canEdit = ["IT_ADMIN", "SUPER_ADMIN", "HR"].includes(activeRole);
 
   return (
     <div className="space-y-5">
@@ -342,9 +350,22 @@ export default function InventoryPanel({ activeRole }: InventoryPanelProps) {
                               <CornerDownLeft className="w-3.5 h-3.5" />
                             </button>
                           )}
-                          <button className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors" title="More">
-                            <MoreHorizontal className="w-3.5 h-3.5" />
-                          </button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors" title="More">
+                                <MoreHorizontal className="w-3.5 h-3.5" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => setAssetToDelete(asset)}
+                                className="text-rose-600 focus:text-rose-700 focus:bg-rose-50 font-bold text-xs"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 mr-2" />
+                                Delete Asset
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </td>
                     )}
@@ -386,6 +407,7 @@ export default function InventoryPanel({ activeRole }: InventoryPanelProps) {
       <ViewAssetDialog asset={assetToView} onClose={() => setAssetToView(null)} />
       <AssignAssetDialog asset={assetToAssign} onClose={() => setAssetToAssign(null)} />
       <ReturnAssetDialog asset={assetToReturn} onClose={() => setAssetToReturn(null)} />
+      <DeleteAssetDialog asset={assetToDelete} onClose={() => setAssetToDelete(null)} />
     </div>
   );
 }

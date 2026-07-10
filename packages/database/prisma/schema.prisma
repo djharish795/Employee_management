@@ -1153,6 +1153,7 @@ enum OtpType {
 
 enum AttendanceStatus {
   PRESENT
+  LATE
   ABSENT
   HALF_DAY
   HOLIDAY

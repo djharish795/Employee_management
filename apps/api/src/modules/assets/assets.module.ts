@@ -15,8 +15,8 @@ import { AuditModule } from "../audit/audit.module";
   imports: [PrismaModule, WorkflowsModule, AuditModule],
   controllers: [
     AssetsKpiController,
-    AssetsController,
     AssetRequestsController,
+    AssetsController,
     CtoAssetsController,
   ],
   providers: [AssetsService, AssetsRepository],

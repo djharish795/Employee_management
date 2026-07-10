@@ -18,6 +18,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { AssetCategory, AssetRequest, AssetRole } from "@/types/assets";
+import { FulfillRequestDialog } from "./asset-action-dialogs";
 
 interface RequestsPanelProps {
   activeRole: AssetRole;
@@ -60,7 +61,7 @@ const STORAGE_KEY = "naprocs_asset_requests"; // kept for legacy cleanup only
 export default function RequestsPanel({ activeRole }: RequestsPanelProps) {
   const queryClient = useQueryClient();
   const isEmployee = activeRole === "EMPLOYEE";
-  const canApprove = ["IT_ADMIN", "ADMIN"].includes(activeRole);
+  const canApprove = ["IT_ADMIN", "ADMIN", "HR"].includes(activeRole);
 
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
@@ -69,6 +70,7 @@ export default function RequestsPanel({ activeRole }: RequestsPanelProps) {
     justification: "",
     priority: "MEDIUM" as "LOW" | "MEDIUM" | "HIGH" | "URGENT",
   });
+  const [requestToFulfill, setRequestToFulfill] = useState<AssetRequest | null>(null);
 
   const { data: rawRequests = [], isLoading } = useQuery({
     queryKey: ["assetRequests"],
@@ -82,13 +84,14 @@ export default function RequestsPanel({ activeRole }: RequestsPanelProps) {
       const meta = r.metadata ?? {};
       return {
         id: r.id,
-        requestedBy: r.requestedBy
-          ? `${r.requestedBy.firstName} ${r.requestedBy.lastName}`
+        initiatorId: r.initiatedById,
+        requestedBy: r.initiatedBy
+          ? `${r.initiatedBy.firstName} ${r.initiatedBy.lastName}`
           : "Unknown",
-        requestedByAvatar: r.requestedBy
-          ? `https://api.dicebear.com/7.x/notionists/svg?seed=${r.requestedBy.firstName}`
+        requestedByAvatar: r.initiatedBy
+          ? `https://api.dicebear.com/7.x/notionists/svg?seed=${r.initiatedBy.firstName}`
           : "",
-        department: r.requestedBy?.department ?? "",
+        department: r.initiatedBy?.department?.name ?? "",
         assetCategory: (meta.category ?? "OTHER") as AssetCategory,
         description: meta.description ?? "",
         justification: meta.justification ?? "",
@@ -329,7 +332,7 @@ export default function RequestsPanel({ activeRole }: RequestsPanelProps) {
                         Reject
                       </button>
                       <button
-                        onClick={() => respondMutation.mutate({ id: req.id, status: "APPROVED" })}
+                        onClick={() => setRequestToFulfill(req)}
                         className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-[10px] font-bold rounded-lg transition-colors"
                       >
                         Approve
@@ -348,6 +351,11 @@ export default function RequestsPanel({ activeRole }: RequestsPanelProps) {
           </div>
         )}
       </div>
+
+      <FulfillRequestDialog 
+        request={requestToFulfill} 
+        onClose={() => setRequestToFulfill(null)} 
+      />
     </div>
   );
 }
