@@ -58,15 +58,20 @@ export class RbacService {
     [UserRole.IT]: [
       Permission.READ_EMPLOYEES,
     ],
+    [UserRole.CAM]: [
+      Permission.READ_EMPLOYEES,
+    ],
+    [UserRole.OE]: [
+      Permission.READ_EMPLOYEES,
+    ],
   };
 
   getPermissionsForRole(role: UserRole): Permission[] {
     const basePerms = this.rolePermissions[role] || [];
-    // Universally grant own profile read/write access to all roles for testing and standard profile usage
+    // Universally grant own profile read access to all roles
     return Array.from(new Set([
       ...basePerms,
       Permission.READ_OWN_PROFILE,
-      Permission.WRITE_OWN_PROFILE,
     ]));
   }
 
@@ -75,6 +80,6 @@ export class RbacService {
     if (!requiredPermissions || requiredPermissions.length === 0) {
       return true;
     }
-    return requiredPermissions.some((perm) => rolePerms.includes(perm));
+    return requiredPermissions.every((perm) => rolePerms.includes(perm));
   }
 }

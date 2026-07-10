@@ -10,7 +10,9 @@ import { S3Client } from "@aws-sdk/client-s3";
  * them and they will corrupt the credential strings (appended as part of value).
  */
 export const createS3Client = (): S3Client => {
-  const region = (process.env.AWS_REGION || "ap-south-1").trim();
+  const regionRaw = process.env.AWS_REGION;
+  if (!regionRaw) throw new Error("AWS_REGION is not defined in environment");
+  const region = regionRaw.trim();
   const accessKeyId = (process.env.AWS_ACCESS_KEY_ID || "").trim();
   const secretAccessKey = (process.env.AWS_SECRET_ACCESS_KEY || "").trim();
 

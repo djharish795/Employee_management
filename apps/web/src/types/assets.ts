@@ -40,6 +40,7 @@ export interface Asset {
 
 export interface AssetRequest {
   id: string;
+  initiatorId: string;
   requestedBy: string;
   requestedByAvatar: string;
   department: string;

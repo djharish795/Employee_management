@@ -1,3 +1,4 @@
+import Image from "next/image";
 import React from 'react';
 import { Briefcase, Network, Building2, Calendar, Banknote } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -226,7 +227,7 @@ export function EmploymentForm({ onSave, initialData = {} }: EmploymentProps) {
             {initialData.manager ? (
               <div className="py-8 flex flex-col items-center justify-center text-center">
                 <div className="w-12 h-12 rounded-full overflow-hidden mb-3 border-2 border-white shadow-sm">
-                  <img src={initialData.manager.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${initialData.manager.name}`} alt="Manager" className="w-full h-full object-cover" />
+                  <Image src={initialData.manager.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${initialData.manager.name}`} alt="Manager" className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
                 </div>
                 <h4 className="text-sm font-bold text-slate-900">{initialData.manager.name}</h4>
                 <p className="text-xs font-semibold text-slate-500 mt-0.5">Manager</p>

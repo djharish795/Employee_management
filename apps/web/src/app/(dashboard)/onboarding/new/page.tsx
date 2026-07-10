@@ -28,6 +28,31 @@ export default function NewOnboardingPage() {
     laptopType: 'MacBook Pro 14"', accessories: [] as string[], software: [] as string[]
   });
 
+  React.useEffect(() => {
+    const draftId = localStorage.getItem('onboarding_draft_id');
+    if (draftId) {
+      apiClient.get(`/employees/onboarding/draft/${draftId}`)
+        .then(res => {
+          if (res.data && Object.keys(res.data).length > 0) {
+            setFormData(prev => ({ ...prev, ...res.data }));
+          }
+        })
+        .catch(err => {
+          console.error('Failed to fetch draft from server', err);
+          // Fallback to local storage draft
+          const localDraft = localStorage.getItem('onboarding_draft');
+          if (localDraft) {
+            try { setFormData(JSON.parse(localDraft)); } catch (e) {}
+          }
+        });
+    } else {
+      const draft = localStorage.getItem('onboarding_draft');
+      if (draft) {
+        try { setFormData(JSON.parse(draft)); } catch (e) {}
+      }
+    }
+  }, []);
+
   // Protect route: Only HR can access
   if (role !== "HR") {
     return (
@@ -64,9 +89,10 @@ export default function NewOnboardingPage() {
       await apiClient.post('/onboarding/initiate', formData);
       alert('Onboarding initiated successfully!');
       router.push('/onboarding');
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert('Failed to initiate onboarding');
+      const msg = error?.response?.data?.message || 'Failed to initiate onboarding';
+      alert(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -76,17 +102,40 @@ export default function NewOnboardingPage() {
     <div className="flex flex-col h-full font-sans bg-slate-50 overflow-y-auto">
       
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between shadow-sm">
+      <div className="h-16 border-b border-slate-200 bg-white px-8 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-3 text-slate-600">
           <Link href="/onboarding" className="hover:text-slate-900 transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <span className="font-semibold text-slate-900">
+          <span className="font-semibold text-slate-900 bg-white">
             Initiate New Onboarding
           </span>
         </div>
         <div className="flex gap-3">
-          <button className="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+          <button 
+            type="button" 
+            onClick={async () => {
+              try {
+                const draftId = localStorage.getItem('onboarding_draft_id') || "";
+                const res = await apiClient.post('/employees/onboarding/draft/step', {
+                  draftId,
+                  stepNumber: currentStep.toString(),
+                  payload: formData
+                });
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('onboarding_draft_id', res.data.draftId);
+                }
+                alert('Draft saved successfully to server!');
+              } catch (err) {
+                console.error(err);
+                alert('Failed to save draft to server.');
+                // Fallback to local storage
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('onboarding_draft', JSON.stringify(formData));
+                }
+              }
+            }}
+            className="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
             Save as Draft
           </button>
         </div>
@@ -240,8 +289,7 @@ export default function NewOnboardingPage() {
                       <label className="block text-xs font-bold text-slate-700 mb-1.5">Work Location</label>
                       <select name="location" value={formData.location} onChange={handleInputChange} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-900 focus:bg-white transition-colors text-slate-700">
                         <option value="">Select Location</option>
-                        <option value="Hyderabad Office">Hyderabad Office</option>
-                        <option value="Bangalore Office">Bangalore Office</option>
+                        <option value="Guntur Office">Guntur Office</option>
                         <option value="Remote">Remote</option>
                       </select>
                     </div>

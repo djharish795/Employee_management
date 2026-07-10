@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, UseInterceptors } from "@nestjs/common";
+import { Controller, Get, Post, Body, Param, UseGuards, UseInterceptors, Patch, Ip } from "@nestjs/common";
 import { ConsentService } from "./consent.service";
 import { ErasureService } from "./erasure.service";
 import { GrievanceService } from "./grievance.service";
@@ -9,7 +9,7 @@ import { Permissions } from "../../common/decorators/permissions.decorator";
 import { Permission } from "@naprocs/types";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { PrismaService } from "../../prisma/prisma.service";
-import { DataErasureRequest } from "@naprocs/database";
+import { DataErasureRequest, ConsentLog, GrievanceCase } from "@naprocs/database";
 
 @Controller("compliance")
 @UseGuards(JwtAuthGuard, RbacGuard)
@@ -59,11 +59,31 @@ export class ComplianceController {
     return this.consentService.getAllConsentLogs();
   }
 
+  @Get("consents/me/status")
+  @Permissions(Permission.READ_OWN_PROFILE)
+  async getMyConsentStatus(@CurrentUser() user: any) {
+    const logs = await this.prisma.consentLog.findMany({
+      where: { 
+        employeeId: user.employeeId, 
+        revokedAt: null,
+        purpose: "ONBOARDING_PII_DATA_PROCESSING"
+      }
+    });
+    return { hasConsented: logs.length > 0 };
+  }
+
+  @Post("consents/me")
+  @Permissions(Permission.WRITE_OWN_PROFILE)
+  async addMyConsent(@Body() body: { purpose: string }, @CurrentUser() user: any, @Ip() ip: string) {
+    const clientIp = ip || "127.0.0.1";
+    return this.consentService.addConsentLog(user.employeeId, body.purpose, user.employeeId, clientIp);
+  }
+
   @Post("consents")
   @Permissions(Permission.WRITE_EMPLOYEES)
-  addConsent(@Body() body: { employeeId: string; purpose: string }, @CurrentUser() user: any) {
-    // Collect IP if possible, default to internal for now
-    return this.consentService.addConsentLog(body.employeeId, body.purpose, user.employeeId, "127.0.0.1");
+  addConsent(@Body() body: { employeeId: string; purpose: string }, @CurrentUser() user: any, @Ip() ip: string) {
+    const clientIp = ip || "127.0.0.1";
+    return this.consentService.addConsentLog(body.employeeId, body.purpose, user.employeeId, clientIp);
   }
 
   @Get("erasures")
@@ -82,5 +102,41 @@ export class ComplianceController {
   @Permissions(Permission.READ_EMPLOYEES, Permission.READ_AUDIT)
   getGrievances() {
     return this.grievanceService.getAllGrievanceCases();
+  }
+
+  @Post("erasures")
+  @Permissions(Permission.WRITE_OWN_PROFILE, Permission.WRITE_EMPLOYEES)
+  createErasureRequest(@Body() body: { notes?: string }, @CurrentUser() user: any): Promise<DataErasureRequest> {
+    return this.erasureService.createErasureRequest(user.employeeId, body.notes);
+  }
+
+  @Patch("consents/:id/revoke")
+  @Permissions(Permission.WRITE_OWN_PROFILE, Permission.WRITE_EMPLOYEES)
+  revokeConsent(@Param("id") id: string, @CurrentUser() user: any): Promise<ConsentLog> {
+    return this.consentService.revokeConsent(id, user.employeeId, user.role);
+  }
+
+  @Post("grievances")
+  @Permissions(Permission.READ_OWN_PROFILE)
+  createGrievance(@Body() body: { description: string }, @CurrentUser() user: any): Promise<GrievanceCase> {
+    return this.grievanceService.createGrievance(user.employeeId, body.description);
+  }
+
+  @Get("policies")
+  @Permissions(Permission.READ_OWN_PROFILE)
+  getPolicies() {
+    return [
+      { id: "1", title: "Data Protection Policy", url: `${process.env.FRONTEND_URL}/policies/data-protection`, updated: "2024-01-01" },
+      { id: "2", title: "Code of Conduct", url: `${process.env.FRONTEND_URL}/policies/code-of-conduct`, updated: "2024-01-15" }
+    ];
+  }
+
+  @Get("reports")
+  @Permissions(Permission.READ_AUDIT)
+  getReports() {
+    return [
+      { id: "1", title: "Q1 Compliance Audit", date: "2024-03-31", url: "#" },
+      { id: "2", title: "Q2 DPDPA Assessment", date: "2024-06-30", url: "#" }
+    ];
   }
 }

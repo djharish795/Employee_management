@@ -15,4 +15,14 @@ export class GrievanceService {
       },
     });
   }
+
+  async createGrievance(employeeId: string, description: string) {
+    return this.prisma.grievanceCase.create({
+      data: {
+        employeeId,
+        description,
+        status: "OPEN",
+      }
+    });
+  }
 }

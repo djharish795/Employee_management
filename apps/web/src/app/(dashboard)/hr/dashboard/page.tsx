@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Download, MoreVertical, Check, X as CloseIcon, Lock } from "lucide-react";
+import { Download, MoreVertical, Check, X as CloseIcon, Lock, FileText, FileSpreadsheet, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import {
   DropdownMenu,
@@ -13,6 +13,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api/client";
 import { Loader2 } from "lucide-react";
 import { PersonalAttendanceWidget } from "@/components/shared/personal-attendance-widget";
+import { RecentNotificationsWidget } from '@/components/shared/recent-notifications-widget';
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 
 export default function HrDashboardPage() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -42,11 +46,53 @@ export default function HrDashboardPage() {
     } catch (e) { console.error(e); }
   };
 
-  // TEMPORARY MOCK DATA TO TEST WFH CHART SECTION
-  if (data && data.attendance) {
-    data.attendance.wfh = 3;
-    data.attendance.absent = data.attendance.total - data.attendance.present - 3;
-  }
+  const handleDownloadPDF = () => {
+    if (!data) return;
+    const doc = new jsPDF();
+    
+    // Add Title
+    doc.setFontSize(20);
+    doc.text("HR Overview Report", 14, 22);
+    
+    // Add Date
+    doc.setFontSize(11);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+    
+    // Headcount Info
+    autoTable(doc, {
+      startY: 40,
+      head: [["Metric", "Value"]],
+      body: [
+        ["Total Headcount", data.headcount.total?.toString()],
+        ["New Joins (This Month)", data.headcount.newJoins?.toString()],
+        ["Present Today", data.attendance.present?.toString()],
+        ["On Leave (Planned)", data.attendance.onLeave?.toString()],
+        ["Absent", data.attendance.absent?.toString()],
+        ["Open Positions", data.recruitment?.openPositions?.toString() || "0"]
+      ],
+      theme: 'grid',
+      headStyles: { fillColor: [63, 131, 248] },
+    });
+
+    doc.save("HR_Overview_Report.pdf");
+  };
+
+  const handleDownloadExcel = () => {
+    if (!data) return;
+    const reportData = [
+      { Metric: "Total Headcount", Value: data.headcount.total },
+      { Metric: "New Joins (This Month)", Value: data.headcount.newJoins },
+      { Metric: "Present Today", Value: data.attendance.present },
+      { Metric: "On Leave (Planned)", Value: data.attendance.onLeave },
+      { Metric: "Absent", Value: data.attendance.absent },
+      { Metric: "Open Positions", Value: data.recruitment?.openPositions || 0 }
+    ];
+
+    const worksheet = XLSX.utils.json_to_sheet(reportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "HR Overview");
+    XLSX.writeFile(workbook, "HR_Overview_Report.xlsx");
+  };
 
   const attendanceTotal = data?.attendance?.total || 1;
   const presentPct = data ? Math.round((data.attendance.present / attendanceTotal) * 100) || 0 : 0;
@@ -93,10 +139,25 @@ export default function HrDashboardPage() {
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">Today is {dateString}</p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-semibold rounded-md shadow-sm transition-colors">
-            <Download className="w-4 h-4" />
-            Export Report
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-semibold rounded-md shadow-sm transition-colors focus:outline-none">
+                <Download className="w-4 h-4" />
+                Export Report
+                <ChevronDown className="w-3 h-3 ml-1" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 bg-white border-slate-200">
+              <DropdownMenuItem onClick={handleDownloadPDF} className="cursor-pointer py-2.5">
+                <FileText className="w-4 h-4 mr-2 text-red-500" />
+                <span className="font-medium">Download as PDF</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDownloadExcel} className="cursor-pointer py-2.5">
+                <FileSpreadsheet className="w-4 h-4 mr-2 text-emerald-600" />
+                <span className="font-medium">Download as Excel</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -131,14 +192,26 @@ export default function HrDashboardPage() {
           </div>
         </div>
 
-        {/* Open Positions */}
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-5 shadow-sm transition-colors">
-          <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">OPEN POSITIONS</p>
-          <div className="flex items-center gap-2">
-            <span className="text-3xl font-bold text-slate-500 dark:text-slate-400">{data.recruitment.openPositions}</span>
-            <Lock className="w-4 h-4 text-slate-300 dark:text-slate-600" />
+        {/* Open Positions (Phase 2 Feature) */}
+        {process.env.NEXT_PUBLIC_PHASE_2_ENABLED === 'true' ? (
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-5 shadow-sm transition-colors">
+            <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">OPEN POSITIONS</p>
+            <div className="flex items-center gap-2">
+              <span className="text-3xl font-bold text-slate-500 dark:text-slate-400">{data.recruitment.openPositions}</span>
+              <Lock className="w-4 h-4 text-slate-300 dark:text-slate-600" />
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5 shadow-sm transition-colors opacity-70">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">RECRUITMENT</p>
+              <Lock className="w-3.5 h-3.5 text-slate-400" />
+            </div>
+            <div className="flex items-center gap-2 mt-3">
+              <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">Locked in Phase 1</span>
+            </div>
+          </div>
+        )}
 
         {/* New Joins */}
         <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-5 shadow-sm transition-colors">
@@ -173,7 +246,7 @@ export default function HrDashboardPage() {
                   a.download = 'hr-overview.csv';
                   a.click();
                 }}>Export Data</DropdownMenuItem>
-                <DropdownMenuItem asChild><Link href="/attendance">View Details</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link href="/attendance/reports">View Details</Link></DropdownMenuItem>
                 <DropdownMenuItem onClick={() => {
                   setRefreshKey(prev => prev + 1);
                   queryClient.invalidateQueries({ queryKey: ['hr-overview'] });
@@ -296,7 +369,7 @@ export default function HrDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Recent activity */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-6 shadow-sm transition-colors">
+        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-6 shadow-sm transition-colors">
           <h3 className="text-sm font-bold text-slate-800 dark:text-white mb-6">Recent activity</h3>
           <div className="relative border-l border-slate-200 dark:border-slate-800 ml-3 space-y-8 pb-4">
             {data.activity.length === 0 ? (
@@ -320,6 +393,11 @@ export default function HrDashboardPage() {
               })
             )}
           </div>
+        </div>
+
+        {/* Recent Notifications */}
+        <div>
+          <RecentNotificationsWidget />
         </div>
 
         {/* Upcoming events */}

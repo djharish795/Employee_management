@@ -2,8 +2,13 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Edit3, Download, Monitor, FileSpreadsheet, ChevronDown, Check, Camera } from "lucide-react";
+import { Edit3, Download, Monitor, FileSpreadsheet, ChevronDown, Check, Camera, FileText } from "lucide-react";
 import { FullEmployeeProfile, DirectoryRole } from "@/types/employees";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
+import Image from "next/image";
 
 interface ProfileHeaderProps {
   profile: FullEmployeeProfile;
@@ -49,6 +54,60 @@ export default function ProfileHeader({ profile, activeRole, onRoleChange }: Pro
     router.push(`/employees/${profile.id}/edit`);
   };
 
+  const handleDownloadPDF = () => {
+    try {
+      const doc = new jsPDF();
+      doc.setFontSize(18);
+      doc.text("Employee Profile", 14, 22);
+
+      doc.setFontSize(11);
+      doc.setTextColor(100);
+      doc.text(`Generated on ${new Date().toLocaleDateString()}`, 14, 30);
+
+      autoTable(doc, {
+        startY: 40,
+        head: [['Field', 'Details']],
+        body: [
+          ['Name', profile.name || ''],
+          ['Employee ID', profile.employeeId || profile.id || ''],
+          ['Designation', profile.designation || ''],
+          ['Department', profile.department || ''],
+          ['Status', profile.status || ''],
+          ['Location', profile.location || ''],
+          ['Reporting Manager', profile.manager?.name || 'N/A'],
+        ],
+        theme: 'striped',
+        headStyles: { fillColor: [15, 23, 42] },
+      });
+
+      doc.save(`${profile.name.replace(/\s+/g, '_')}_Profile.pdf`);
+    } catch (error) {
+      console.error("PDF generation failed:", error);
+    }
+  };
+
+  const handleDownloadExcel = () => {
+    try {
+      const data = [
+        {
+          "Name": profile.name || '',
+          "Employee ID": profile.employeeId || profile.id || '',
+          "Designation": profile.designation || '',
+          "Department": profile.department || '',
+          "Status": profile.status || '',
+          "Location": profile.location || '',
+          "Reporting Manager": profile.manager?.name || 'N/A',
+        }
+      ];
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Profile");
+      XLSX.writeFile(workbook, `${profile.name.replace(/\s+/g, '_')}_Profile.xlsx`);
+    } catch (error) {
+      console.error("Excel generation failed:", error);
+    }
+  };
+
   const displayPhotoUrl = previewUrl || profile.photoUrl;
 
   return (
@@ -70,7 +129,7 @@ export default function ProfileHeader({ profile, activeRole, onRoleChange }: Pro
           >
             <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center text-2xl sm:text-3xl font-bold border-4 border-white shadow-md overflow-hidden ${profile.avatarBg}`}>
               {displayPhotoUrl ? (
-                <img src={displayPhotoUrl} alt={profile.name} className="w-full h-full object-cover" />
+                <Image src={displayPhotoUrl} alt={profile.name} className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
               ) : (
                 <span>{profile.initials}</span>
               )}
@@ -127,7 +186,7 @@ export default function ProfileHeader({ profile, activeRole, onRoleChange }: Pro
                 <div className="flex items-center gap-2">
                   <span className="text-slate-400">Reporting to:</span>
                   <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 border border-slate-100 rounded-md">
-                    <img src={profile.manager.photoUrl} alt={profile.manager.name} className="w-4 h-4 rounded-full" />
+                    <Image src={profile.manager.photoUrl} alt={profile.manager.name} className="w-4 h-4 rounded-full" fill style={{ objectFit: "cover" }} />
                     <span className="text-slate-700 font-bold text-[11px]">{profile.manager.name}</span>
                   </div>
                 </div>
@@ -171,10 +230,33 @@ export default function ProfileHeader({ profile, activeRole, onRoleChange }: Pro
 
           {/* Quick Action Buttons — wrap on small screens */}
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-            <button className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-sm transition-colors whitespace-nowrap">
-              <Download className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>Download</span>
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-sm transition-colors whitespace-nowrap outline-none focus:ring-2 focus:ring-slate-200">
+                  <Download className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>Download</span>
+                  <ChevronDown className="w-3 h-3 text-slate-400 ml-0.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 bg-white z-[100] border-slate-200 shadow-xl rounded-xl">
+                <DropdownMenuItem onClick={handleDownloadPDF} className="cursor-pointer font-semibold text-xs py-2 hover:bg-slate-50 outline-none">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-full bg-red-50 flex items-center justify-center text-red-600">
+                      <FileText className="w-3 h-3" />
+                    </div>
+                    Download as PDF
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDownloadExcel} className="cursor-pointer font-semibold text-xs py-2 hover:bg-slate-50 outline-none">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
+                      <FileSpreadsheet className="w-3 h-3" />
+                    </div>
+                    Download as Excel
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {canAssignAssets && (
               <button className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-sm transition-colors whitespace-nowrap">

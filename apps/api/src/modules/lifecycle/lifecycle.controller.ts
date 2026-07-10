@@ -1,9 +1,13 @@
 import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, UseInterceptors } from "@nestjs/common";
 import { OffboardingService } from "./offboarding.service";
-import { InitiateOffboardingDto } from "./dto/initiate-offboarding.dto";
-import { UpdateOffboardingDto } from "./dto/update-offboarding.dto";
-import { UpdateChecklistItemDto } from "./dto/update-checklist-item.dto";
-import { RecordInterviewDto } from "./dto/record-interview.dto";
+import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
+import { 
+  initiateOffboardingSchema, 
+  updateOffboardingSchema, 
+  updateChecklistItemSchema, 
+  recordInterviewSchema,
+  cancelOffboardingSchema
+} from "@naprocs/schemas";
 import { GetOffboardingQueryDto } from "./dto/get-offboarding-query.dto";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RbacGuard } from "../../common/guards/rbac.guard";
@@ -22,7 +26,7 @@ export class LifecycleController {
   @Permissions(Permission.WRITE_EMPLOYEES)
   async initiate(
     @CurrentUser() user: any,
-    @Body() dto: InitiateOffboardingDto
+    @Body(new ZodValidationPipe(initiateOffboardingSchema)) dto: any
   ): Promise<any> {
     return this.offboardingService.initiate(dto, user?.employeeId);
   }
@@ -44,7 +48,7 @@ export class LifecycleController {
   async update(
     @Param("id") id: string,
     @CurrentUser() user: any,
-    @Body() dto: UpdateOffboardingDto
+    @Body(new ZodValidationPipe(updateOffboardingSchema)) dto: any
   ): Promise<any> {
     return this.offboardingService.update(id, dto, user?.employeeId);
   }
@@ -54,7 +58,7 @@ export class LifecycleController {
   async updateChecklistItem(
     @Param("id") id: string,
     @CurrentUser() user: any,
-    @Body() dto: UpdateChecklistItemDto
+    @Body(new ZodValidationPipe(updateChecklistItemSchema)) dto: any
   ): Promise<any> {
     return this.offboardingService.updateChecklistItem(id, dto, user?.employeeId);
   }
@@ -64,8 +68,18 @@ export class LifecycleController {
   async recordInterview(
     @Param("id") id: string,
     @CurrentUser() user: any,
-    @Body() dto: RecordInterviewDto
+    @Body(new ZodValidationPipe(recordInterviewSchema)) dto: any
   ): Promise<any> {
     return this.offboardingService.recordInterview(id, dto, user?.employeeId);
+  }
+
+  @Post(":id/cancel")
+  @Permissions(Permission.WRITE_EMPLOYEES)
+  async cancel(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body(new ZodValidationPipe(cancelOffboardingSchema)) dto: any
+  ): Promise<any> {
+    return this.offboardingService.cancel(id, dto.reason, user?.employeeId);
   }
 }

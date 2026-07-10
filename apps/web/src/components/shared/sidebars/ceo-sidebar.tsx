@@ -51,7 +51,7 @@ const getNavGroups = (role: string, unreadCount: number) => {
             ]
           },
           { title: 'Employees', icon: Users, href: '/employees' },
-          { title: 'Analytics', icon: BarChart3, href: '/analytics' },
+          { title: 'Analytics', icon: BarChart3, locked: true },
           { title: 'Compliance', icon: ShieldCheck, href: '/compliance' },
           { title: 'Leaves', icon: Calendar, href: '/leaves' },
         ]
@@ -95,6 +95,8 @@ const getNavGroups = (role: string, unreadCount: number) => {
               { title: 'My Attendance', href: '/attendance' }
             ]
           },
+          { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
+          { title: 'Connect', icon: MessageSquare, href: '/connect' },
         ]
       },
       {
@@ -131,7 +133,7 @@ const getNavGroups = (role: string, unreadCount: number) => {
   mainItems.push(
     { title: 'Employees', icon: Users, href: '/employees' },
     { title: 'Org Chart', icon: Network, href: '/org-chart' },
-    { title: 'Analytics', icon: BarChart3, href: '/analytics' }
+    { title: 'Analytics', icon: BarChart3, locked: true }
   );
 
   if (['SUPER_ADMIN', 'CEO', 'COO', 'HR', 'CHRO', 'COMPLIANCE_OFFICER', 'LEGAL'].includes(role)) {
@@ -145,7 +147,7 @@ const getNavGroups = (role: string, unreadCount: number) => {
     mainItems.push({ title: 'Offboarding', icon: UserMinus, href: '/offboarding' });
     mainItems.push({ title: 'Workflows', icon: BookOpen, href: '/hr/workflows' });
     mainItems.push({ title: 'Knowledge Base', icon: BookOpen, href: '/knowledge-base' });
-    mainItems.push({ title: 'Asset Management', icon: Monitor, href: '/hr/assets' });
+    mainItems.push({ title: 'Asset Management', icon: Monitor, href: '/assets' });
   }
 
   if (role === 'SUPER_ADMIN') {

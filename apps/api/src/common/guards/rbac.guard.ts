@@ -18,7 +18,7 @@ export class RbacGuard implements CanActivate {
     ]);
 
     if (!requiredPermissions || requiredPermissions.length === 0) {
-      return true;
+      throw new ForbiddenException("No permissions defined for this route (fail-closed)");
     }
 
     const request = context.switchToHttp().getRequest();

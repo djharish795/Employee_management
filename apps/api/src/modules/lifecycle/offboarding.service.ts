@@ -305,6 +305,10 @@ export class OffboardingService {
                     returnedCondition: "GOOD"
                   }
                 });
+                await tx.asset.update({
+                  where: { id: assignment.assetId },
+                  data: { status: "AVAILABLE" }
+                });
               }
             } catch (e) {
               // Custom asset checklist items ignore DB log
@@ -334,6 +338,10 @@ export class OffboardingService {
         await tx.employee.update({
           where: { id: existing.employeeId },
           data: { status: "EXITED" }
+        });
+        await tx.user.updateMany({
+          where: { employeeId: existing.employeeId },
+          data: { status: "SUSPENDED" }
         });
       }
 
@@ -388,12 +396,18 @@ export class OffboardingService {
       try {
         const assignment = await this.prisma.assetAssignment.findUnique({ where: { id: dto.itemId } });
         if (assignment) {
-          await this.prisma.assetAssignment.update({
-            where: { id: dto.itemId },
-            data: {
-              returnedAt: new Date(),
-              returnedCondition: "GOOD"
-            }
+          await this.prisma.$transaction(async (tx) => {
+            await tx.assetAssignment.update({
+              where: { id: dto.itemId },
+              data: {
+                returnedAt: new Date(),
+                returnedCondition: "GOOD"
+              }
+            });
+            await tx.asset.update({
+              where: { id: assignment.assetId },
+              data: { status: "AVAILABLE" }
+            });
           });
         }
       } catch (e) {
@@ -428,6 +442,10 @@ export class OffboardingService {
         await tx.employee.update({
           where: { id: existing.employeeId },
           data: { status: "EXITED" }
+        });
+        await tx.user.updateMany({
+          where: { employeeId: existing.employeeId },
+          data: { status: "SUSPENDED" }
         });
 
         // Set process to completed
@@ -477,6 +495,56 @@ export class OffboardingService {
       newValue: {
         exitInterviewDate: now,
         feedback: dto.feedback
+      }
+    });
+
+    return result;
+  }
+  async cancel(id: string, reason: string, actorId?: string): Promise<any> {
+    const existing = await this.findOne(id);
+
+    if (existing.status === "COMPLETED") {
+      throw new BadRequestException("Cannot cancel an already completed offboarding process");
+    }
+    if (existing.status === "CANCELLED") {
+      throw new BadRequestException("Offboarding process is already cancelled");
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      // 1. Revert Employee status if they haven't exited
+      if (existing.employee.status !== "EXITED") {
+        await tx.employee.update({
+          where: { id: existing.employeeId },
+          data: {
+            status: "ACTIVE",
+            exitDate: null,
+            exitReason: null
+          }
+        });
+      }
+
+      // 2. Set OffboardingProcess status to CANCELLED
+      return tx.offboardingProcess.update({
+        where: { id: existing.id },
+        data: {
+          status: "CANCELLED",
+          exitReason: `Cancelled: ${reason}`
+        },
+        include: {
+          employee: { include: { designation: true, department: true } },
+          ktAssignee: true
+        }
+      });
+    });
+
+    await this.auditService.createLog({
+      action: "OFFBOARDING_CANCELLED",
+      actorId,
+      resource: "OffboardingProcess",
+      resourceId: existing.id,
+      newValue: {
+        reason,
+        status: "CANCELLED"
       }
     });
 

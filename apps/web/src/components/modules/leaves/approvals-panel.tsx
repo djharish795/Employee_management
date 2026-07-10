@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check, X, Info, Loader2, AlertCircle, User, ArrowRight } from "lucide-react";
 import { useAuthStore } from "@/store/auth";
 import { fetchApprovals, approveLeave, rejectLeave, ApiLeaveRequest } from "@/lib/api/leaves";
+import Image from "next/image";
 
 interface ApprovalsPanelProps {
   activeRole: "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
@@ -121,7 +122,7 @@ export default function ApprovalsPanel({ activeRole }: ApprovalsPanelProps) {
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-sm text-slate-900 border border-slate-200 overflow-hidden">
                     {(req.employee as any)?.photoUrl ? (
-                      <img src={(req.employee as any).photoUrl} alt="Avatar" className="w-full h-full object-cover" />
+                      <Image src={(req.employee as any).photoUrl} alt="Avatar" className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
                     ) : (
                       `${req.employee?.firstName?.[0] ?? ""}${req.employee?.lastName?.[0] ?? ""}`
                     )}

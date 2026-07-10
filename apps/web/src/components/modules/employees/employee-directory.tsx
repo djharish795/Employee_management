@@ -2,8 +2,10 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import {
   useReactTable,
   getCoreRowModel,
@@ -27,6 +29,7 @@ import { useAuthStore } from "@/store/auth";
 
 import { EmployeeActionModals } from "./employee-action-modals";
 import { EmployeeRowActions, EmployeeActionType } from "./employee-row-actions";
+import Image from "next/image";
 
 export default function EmployeeDirectory() {
   const queryClient = useQueryClient();
@@ -40,6 +43,7 @@ export default function EmployeeDirectory() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const searchParams = useSearchParams();
+  const router = useRouter();
   const initialDept = searchParams.get("department") || "";
 
   // Filters State
@@ -62,7 +66,7 @@ export default function EmployeeDirectory() {
 
   // Fetch from API
   const fetchEmployees = async (): Promise<Employee[]> => {
-    const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+    const url = process.env.NEXT_PUBLIC_API_URL!;
     const res = await fetch(`${url}/employees?page=1&limit=100`, {
       headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
       cache: "no-store",
@@ -107,6 +111,21 @@ export default function EmployeeDirectory() {
     enabled: !!accessToken,
   });
 
+  const fetchDepartments = async () => {
+    const url = process.env.NEXT_PUBLIC_API_URL!;
+    const res = await fetch(`${url}/departments`, {
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
+    });
+    if (!res.ok) return { data: [] };
+    return res.json();
+  };
+
+  const { data: departmentsData } = useQuery({
+    queryKey: ["departments", accessToken],
+    queryFn: fetchDepartments,
+    enabled: !!accessToken,
+  });
+
   if (isError) {
     console.error("Employee fetch error:", error);
   }
@@ -134,40 +153,155 @@ export default function EmployeeDirectory() {
     return result;
   }, [rawEmployees, filters]);
 
+  const uniqueDepartments = useMemo<string[]>(() => {
+    if (departmentsData?.data && Array.isArray(departmentsData.data)) {
+      return departmentsData.data.map((d: any) => d.name as string).sort();
+    }
+    return [];
+  }, [departmentsData]);
+
   const updateEmployeesMutation = useMutation({
     mutationFn: async (updatedList: Employee[]) => updatedList,
     onSuccess: (data) => {
-      queryClient.setQueryData(["employees"], data);
+      queryClient.setQueryData(["employees", accessToken], data);
     },
   });
 
   const handleAction = (action: EmployeeActionType, employeeId: string) => {
     const employee = rawEmployees.find(e => e.id === employeeId);
     if (!employee) return;
+    
+    if (action === "view-documents" || action === "download-pdf") {
+      handleActionSuccess(action, employeeId);
+      return;
+    }
+    
     setActionModalState({ isOpen: true, type: action, employee });
   };
 
-  const handleActionSuccess = (action: EmployeeActionType, employeeId: string, payload?: any) => {
-    let updatedList = [...rawEmployees];
-    if (action === "delete") {
-      updatedList = updatedList.filter(e => e.id !== employeeId);
-    } else {
-      updatedList = updatedList.map(emp => {
-        if (emp.id !== employeeId) return emp;
-        switch (action) {
-          case "edit":
-          case "transfer-dept":
-          case "change-designation":
-          case "assign-manager":
-            return { ...emp, ...payload };
-          case "toggle-status":
-            return { ...emp, status: emp.status === "DEACTIVATED" ? "ACTIVE" : "DEACTIVATED" };
-          default:
-            return emp;
+  const handleActionSuccess = async (action: EmployeeActionType, employeeId: string, payload?: any) => {
+    const url = process.env.NEXT_PUBLIC_API_URL!;
+    const headers = { 
+      "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
+    };
+
+    try {
+      if (action === "view-documents") {
+        router.push(`/employees/${employeeId}?tab=documents`);
+        return;
+      }
+      
+      if (action === "download-pdf") {
+        const emp = rawEmployees.find(e => e.id === employeeId);
+        if (emp) {
+          const doc = new jsPDF();
+          doc.setFontSize(20);
+          doc.text(`Employee Profile: ${emp.name}`, 14, 22);
+          
+          doc.setFontSize(10);
+          doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+          
+          autoTable(doc, {
+            startY: 40,
+            head: [["Field", "Value"]],
+            body: [
+              ["Employee ID", emp.employeeId || emp.id],
+              ["Name", emp.name],
+              ["Email", emp.email],
+              ["Department", emp.department],
+              ["Designation", emp.designation],
+              ["Status", emp.status],
+              ["Manager ID", emp.manager?.id || "N/A"],
+              ["Manager Name", emp.manager?.name || "N/A"]
+            ],
+            theme: 'grid',
+            headStyles: { fillColor: [63, 131, 248] },
+          });
+          
+          doc.save(`Employee_Profile_${emp.employeeId || emp.id}.pdf`);
         }
-      });
+        return;
+      }
+
+      let res;
+      switch (action) {
+        case "edit":
+          const [firstName, ...lastNameParts] = (payload.name || "").split(" ");
+          const lastName = lastNameParts.join(" ") || "";
+          res = await fetch(`${url}/employees/${employeeId}`, {
+            method: "PATCH",
+            headers,
+            body: JSON.stringify({ 
+              firstName, 
+              lastName, 
+              officialEmail: payload.email, 
+              departmentId: payload.department, 
+              designationId: payload.designation 
+            }),
+          });
+          break;
+        case "assign-manager":
+          res = await fetch(`${url}/employees/org-chart/reassign`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ employeeId, newManagerId: payload.manager }),
+          });
+          break;
+        case "transfer-dept":
+          res = await fetch(`${url}/employees/${employeeId}`, {
+            method: "PATCH",
+            headers,
+            body: JSON.stringify({ departmentId: payload.department }),
+          });
+          break;
+        case "change-designation":
+          res = await fetch(`${url}/employees/${employeeId}`, {
+            method: "PATCH",
+            headers,
+            body: JSON.stringify({ designationId: payload.designation }),
+          });
+          break;
+        case "toggle-status":
+          const currentEmp = rawEmployees.find((e) => e.id === employeeId);
+          const newStatus = currentEmp?.status === "DEACTIVATED" ? "ACTIVE" : "DEACTIVATED";
+          res = await fetch(`${url}/employees/${employeeId}`, {
+            method: "PATCH",
+            headers,
+            body: JSON.stringify({ status: newStatus }),
+          });
+          break;
+        case "reset-password":
+          res = await fetch(`${url}/employees/${employeeId}`, {
+            method: "PATCH",
+            headers,
+            body: JSON.stringify({ password: payload.password, oldPassword: payload.oldPassword }),
+          });
+          break;
+        case "delete":
+          res = await fetch(`${url}/employees/${employeeId}`, {
+            method: "DELETE",
+            headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+          });
+          break;
+      }
+
+      if (res && !res.ok) {
+        let errText = await res.text();
+        try {
+          const errObj = JSON.parse(errText);
+          if (errObj.message) errText = Array.isArray(errObj.message) ? errObj.message.join(", ") : errObj.message;
+        } catch (e) {}
+        alert(`Failed to complete action: \n${errText}`);
+        return;
+      }
+
+      // Refresh list
+      queryClient.invalidateQueries({ queryKey: ["employees", accessToken] });
+    } catch (err) {
+      console.error("Action error:", err);
+      alert("A network error occurred while performing this action.");
     }
-    updateEmployeesMutation.mutate(updatedList);
   };
 
   const columns = useMemo<ColumnDef<Employee>[]>(
@@ -185,7 +319,7 @@ export default function EmployeeDirectory() {
             <div className="flex items-center gap-3">
               <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 relative border border-slate-200 shadow-sm overflow-hidden ${emp.avatarBg}`}>
                 {emp.photoUrl ? (
-                  <img src={emp.photoUrl} alt={emp.name} className="w-full h-full object-cover" />
+                  <Image src={emp.photoUrl} alt={emp.name} className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
                 ) : (
                   <span>{emp.initials}</span>
                 )}
@@ -325,10 +459,9 @@ export default function EmployeeDirectory() {
                       className="w-full h-9 rounded-md border border-slate-300 text-sm px-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-900/20"
                     >
                       <option value="">All Departments</option>
-                      <option value="Engineering">Engineering</option>
-                      <option value="Human Resources">Human Resources</option>
-                      <option value="Operations">Operations</option>
-                      <option value="Finance">Finance</option>
+                      {uniqueDepartments.map(dept => (
+                        <option key={dept} value={dept}>{dept}</option>
+                      ))}
                     </select>
                   </div>
                   <div className="space-y-1">

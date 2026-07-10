@@ -9,7 +9,11 @@ export interface LoginResponse {
   role?: string;
   redirectPath?: string;
   employeeId?: string | null;
+<<<<<<< HEAD
   isTeamLead?: boolean;
+=======
+  employeeStatus?: string;
+>>>>>>> origin/developer
 }
 
 export interface VerifyMFAResponse {
@@ -21,12 +25,16 @@ export interface VerifyMFAResponse {
   unknownDevice?: boolean;
   deviceDetails?: DeviceDetails;
   employeeId?: string | null;
+<<<<<<< HEAD
   isTeamLead?: boolean;
+=======
+  employeeStatus?: string;
+>>>>>>> origin/developer
 }
 
 export class AuthService {
   private static getApiUrl() {
-    return process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+    return process.env.NEXT_PUBLIC_API_URL!;
   }
 
   static async login(email: string, password: string): Promise<LoginResponse> {

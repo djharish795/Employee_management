@@ -1,11 +1,10 @@
 import { Controller, Get, Post, Body, Param, Req, UseGuards, Query } from '@nestjs/common';
 import { ApplyLeaveDto } from './dto/apply-leave.dto';
 import { LeavesService } from './leaves.service';
-// Add proper guards and auth when integrating fully
-// import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
 @Controller('leaves')
-// @UseGuards(JwtAuthGuard) // Uncomment when authentication is ready
+@UseGuards(JwtAuthGuard)
 export class LeavesController {
 
   constructor(private readonly leaveService: LeavesService) {}

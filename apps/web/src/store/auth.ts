@@ -48,8 +48,8 @@ export const useAuthStore = create<AuthState>()(
       clearSession: () => {
         // Also clear cookies on logout
         if (typeof document !== "undefined") {
-          document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-          document.cookie = "role=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+          document.cookie = "token=; path=/; max-age=0; SameSite=Strict";
+          document.cookie = "role=; path=/; max-age=0; SameSite=Strict";
         }
         set({
           tempSession: null,

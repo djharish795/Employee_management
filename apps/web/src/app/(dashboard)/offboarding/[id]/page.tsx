@@ -56,6 +56,24 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
   const router = useRouter();
   const role = useAuthStore((state) => state.role);
   const [data, setData] = useState<OffboardingProcessData | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+
+  const handleCancelOffboarding = async () => {
+    if (!confirm('Are you sure you want to cancel this offboarding process?')) return;
+    const reason = prompt('Please provide a cancellation reason:');
+    if (!reason) return;
+
+    setIsCancelling(true);
+    try {
+      await apiClient.post(`/lifecycle/offboarding/${params.id}/cancel`, { reason });
+      alert('Offboarding successfully cancelled.');
+      router.push('/offboarding');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to cancel offboarding');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   useEffect(() => {
     const fetchOffboardingDetail = async () => {
@@ -206,23 +224,19 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
             <Link href="/offboarding" className="text-slate-500 hover:text-slate-900">Offboarding</Link> — {data.name}
           </span>
         </div>
-        <div className="flex items-center gap-4 text-slate-500">
-          <button className="hover:text-slate-900"><Bell className="w-5 h-5" /></button>
-          <button className="hover:text-slate-900"><HelpCircle className="w-5 h-5" /></button>
-          <div className="w-px h-6 bg-slate-200 mx-2"></div>
-          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-700">TK</div>
-        </div>
       </div>
 
       <div className="p-8 max-w-6xl mx-auto w-full space-y-6">
         
         {/* Alert Banner */}
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-center gap-3">
-          <AlertTriangle className="w-5 h-5 text-orange-600 flex-shrink-0" />
-          <span className="text-sm font-bold text-orange-800">
-            {data.alert.daysRemaining} days remaining until last day. {data.alert.tasksPending} of {data.alert.totalTasks} tasks pending.
-          </span>
-        </div>
+        {data.status === 'IN_PROGRESS' && (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-orange-600 flex-shrink-0" />
+            <span className="text-sm font-bold text-orange-800">
+              {data.alert.daysRemaining} days remaining until last day. {data.alert.tasksPending} of {data.alert.totalTasks} tasks pending.
+            </span>
+          </div>
+        )}
 
         {/* Profile Card */}
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
@@ -250,7 +264,11 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
             </div>
             <div className="flex flex-col items-end">
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">STATUS</div>
-              <div className="text-sm font-bold text-rose-600">{data.status}</div>
+              <div className={`text-sm font-bold ${
+                data.status === 'COMPLETED' ? 'text-emerald-600' :
+                data.status === 'CANCELLED' ? 'text-slate-600' :
+                'text-rose-600'
+              }`}>{data.status}</div>
             </div>
           </div>
           
@@ -351,6 +369,21 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
               </div>
               <button className="w-full px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 font-bold text-[13px] rounded-lg transition-colors">
                 Schedule exit interview
+              </button>
+            </div>
+
+            {/* Cancel Offboarding */}
+            <div className="bg-rose-50 border border-rose-200 rounded-xl shadow-sm p-6">
+              <h3 className="text-[15px] font-bold text-rose-900 mb-2">Cancel Offboarding</h3>
+              <p className="text-xs text-rose-700 mb-5 leading-snug">
+                This will abort the offboarding process, revert the employee's status to ACTIVE, and stop all tasks.
+              </p>
+              <button 
+                onClick={handleCancelOffboarding}
+                disabled={isCancelling || data.status === 'COMPLETED' || data.status === 'CANCELLED'}
+                className="w-full px-4 py-2 bg-white border border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-[13px] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isCancelling ? 'Cancelling...' : 'Cancel Offboarding'}
               </button>
             </div>
 

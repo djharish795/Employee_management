@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, NotFoundException, ForbiddenException } from "@nestjs/common";
+import { Injectable, ConflictException, NotFoundException, ForbiddenException, BadRequestException, Logger } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { RbacService } from "../rbac/rbac.service";
 import { CreateEmployeeDto } from "./dto/create-employee.dto";
@@ -16,6 +16,7 @@ import { createS3Client } from "../../common/utils/s3.util";
 
 @Injectable()
 export class EmployeesService {
+  private readonly logger = new Logger(EmployeesService.name);
   private readonly s3: S3Client;
   private readonly bucketName: string;
 
@@ -143,7 +144,7 @@ export class EmployeesService {
           });
           employee.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
         } catch (error) {
-          console.error(`Failed to sign URL for employee ${employee.id}:`, error);
+          this.logger.error(`Failed to sign URL for employee ${employee.id}:`, error);
         }
       }
 
@@ -168,6 +169,12 @@ export class EmployeesService {
     await this.redis.setJson(redisKey, updatedDraft, 60 * 60 * 24);
 
     return { draftId: id };
+  }
+
+  async getOnboardingDraft(draftId: string): Promise<any> {
+    const redisKey = `employee_draft:${draftId}`;
+    const draftData = await this.redis.getJson<any>(redisKey);
+    return draftData || {};
   }
 
   async completeOnboarding(draftId: string): Promise<Employee> {
@@ -211,7 +218,7 @@ export class EmployeesService {
     ]);
 
     // Enhance employees with signed photo URLs
-    for (const emp of data) {
+    await Promise.all(data.map(async (emp) => {
       if (emp.photoUrl && !emp.photoUrl.startsWith("http")) {
         try {
           const command = new GetObjectCommand({
@@ -220,10 +227,10 @@ export class EmployeesService {
           });
           emp.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
         } catch (error) {
-          console.error(`Failed to sign URL for employee ${emp.id}:`, error);
+          this.logger.error(`Failed to sign URL for employee ${emp.id}:`, error);
         }
       }
-    }
+    }));
 
     return createPaginatedResponse(data, total, page, limit);
   }
@@ -257,28 +264,6 @@ export class EmployeesService {
         consentLogsAsSubject: {
           orderBy: { consentedAt: 'desc' },
           take: 5
-        },
-        projectAssignments: {
-          include: {
-            project: {
-              select: { id: true, name: true, status: true, description: true, startDate: true, endDate: true }
-            }
-          }
-        },
-        reviewsAsSubject: {
-          include: {
-            reviewer: {
-              select: { firstName: true, lastName: true, designation: { select: { title: true } } }
-            }
-          },
-          orderBy: { submittedAt: 'desc' }
-        },
-        employeeSkills: {
-          include: {
-            skill: {
-              select: { name: true, category: true }
-            }
-          }
         }
       }
     });
@@ -318,7 +303,7 @@ export class EmployeesService {
 
     const empWithRels = employee as any;
     if (empWithRels.subordinates && empWithRels.subordinates.length > 0) {
-      for (const sub of empWithRels.subordinates) {
+      await Promise.all(empWithRels.subordinates.map(async (sub: any) => {
         if (sub.photoUrl && !sub.photoUrl.startsWith("http")) {
           try {
             const subCommand = new GetObjectCommand({
@@ -327,10 +312,10 @@ export class EmployeesService {
             });
             sub.photoUrl = await getSignedUrl(this.s3, subCommand, { expiresIn: 900 });
           } catch (e) {
-            console.error(`Failed to sign URL for sub ${sub.id}:`, e);
+            this.logger.error(`Failed to sign URL for sub ${sub.id}:`, e);
           }
         }
-      }
+      }));
     }
 
     return employee;
@@ -350,83 +335,25 @@ export class EmployeesService {
         reportingManagerId: true,
         workLocation: true,
         department: { select: { name: true } },
-        designation: { select: { id: true, title: true, reportsToDesignationId: true } }
+        designation: { select: { title: true } }
       }
     });
 
-    const designations = await this.prisma.designation.findMany();
-    const desigMap = new Map(designations.map(d => [d.id, d]));
-
-    for (const emp of employees) {
+    await Promise.all(employees.map(async (emp) => {
       if (emp.photoUrl && !emp.photoUrl.startsWith("http")) {
         try {
-          const command = new GetObjectCommand({ Bucket: this.bucketName, Key: emp.photoUrl });
+          const command = new GetObjectCommand({
+            Bucket: this.bucketName,
+            Key: emp.photoUrl,
+          });
           emp.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
         } catch (e) {
-          console.error(`Failed to sign URL for org chart emp ${emp.id}:`, e);
+          this.logger.error(`Failed to sign URL for org chart emp ${emp.id}:`, e);
         }
       }
-    }
+    }));
 
-    // Process dummy vacant nodes
-    const dummyNodes = new Map<string, any>();
-    const resultEmployees: any[] = JSON.parse(JSON.stringify(employees));
-
-    // Helper to get designation chain from manager's desig to employee's desig (exclusive of manager, exclusive of employee)
-    const getIntermediateDesignations = (managerDesigId: string | null, empDesigId: string | null) => {
-      if (!managerDesigId || !empDesigId) return [];
-      
-      const chain: any[] = [];
-      let currentDesigId = empDesigId;
-      
-      // Traverse upwards from employee
-      while (currentDesigId) {
-        const desig = desigMap.get(currentDesigId);
-        if (!desig || !desig.reportsToDesignationId) break;
-        if (desig.reportsToDesignationId === managerDesigId) break;
-        
-        currentDesigId = desig.reportsToDesignationId;
-        const parentDesig = desigMap.get(currentDesigId);
-        if (parentDesig) chain.unshift(parentDesig);
-      }
-      return chain;
-    };
-
-    for (const emp of resultEmployees) {
-      if (!emp.reportingManagerId || !emp.designation) continue;
-
-      const manager = resultEmployees.find(m => m.id === emp.reportingManagerId);
-      if (!manager || !manager.designation) continue;
-
-      const intermediate = getIntermediateDesignations(manager.designation.id, emp.designation.id);
-      
-      if (intermediate.length > 0) {
-        let currentManagerId = manager.id;
-        
-        for (const missingDesig of intermediate) {
-          const dummyId = `vacant-${missingDesig.id}-under-${manager.id}`;
-          
-          if (!dummyNodes.has(dummyId)) {
-            dummyNodes.set(dummyId, {
-              id: dummyId,
-              firstName: "Vacant",
-              lastName: missingDesig.title,
-              designation: { title: missingDesig.title },
-              department: { name: manager.department?.name || "General" },
-              reportingManagerId: currentManagerId,
-              isVacant: true,
-              photoUrl: "",
-            });
-          }
-          currentManagerId = dummyId;
-        }
-        
-        // Point the actual employee to the last dummy node
-        emp.reportingManagerId = currentManagerId;
-      }
-    }
-
-    return [...resultEmployees, ...Array.from(dummyNodes.values())];
+    return employees;
   }
 
   async getOrgStats() {
@@ -568,7 +495,7 @@ export class EmployeesService {
         });
         updatedEmployee.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
       } catch (error) {
-        console.error(`Failed to sign URL for employee ${updatedEmployee.id}:`, error);
+        this.logger.error(`Failed to sign URL for employee ${updatedEmployee.id}:`, error);
       }
     }
 
@@ -589,22 +516,20 @@ export class EmployeesService {
       if (!manager) throw new NotFoundException("New manager not found.");
 
       // Prevent cyclic management: Check if the new manager already reports to this employee (directly or indirectly)
-      let currentManagerId: string | null = manager.reportingManagerId;
-      const visited = new Set<string>();
-      visited.add(newManagerId);
-
-      while (currentManagerId) {
-        if (currentManagerId === employeeId) {
-          throw new ConflictException("Cannot assign a subordinate as a manager. This would create a circular reporting line.");
-        }
-        if (visited.has(currentManagerId)) {
-          break; // Break on existing cycle just in case
-        }
-        visited.add(currentManagerId);
-        
-        const currentManager = await this.prisma.employee.findUnique({ where: { id: currentManagerId } });
-        if (!currentManager) break;
-        currentManagerId = currentManager.reportingManagerId;
+      const cycleCheck = await this.prisma.$queryRaw<any[]>`
+        WITH RECURSIVE chain AS (
+          SELECT id, "reportingManagerId" 
+          FROM "Employee" 
+          WHERE id = ${newManagerId}
+          UNION ALL
+          SELECT e.id, e."reportingManagerId"
+          FROM "Employee" e
+          JOIN chain c ON c."reportingManagerId" = e.id
+        )
+        SELECT id FROM chain WHERE id = ${employeeId} OR "reportingManagerId" = ${employeeId} LIMIT 1
+      `;
+      if (cycleCheck.length > 0) {
+        throw new ConflictException("Cannot assign a subordinate as a manager. This would create a circular reporting line.");
       }
     }
     
@@ -618,11 +543,6 @@ export class EmployeesService {
     const employees = await this.prisma.employee.findMany({
       where: { 
         status: 'ACTIVE',
-        department: {
-          name: {
-            in: ['Engineering ', 'Technology', 'Engineering']
-          }
-        }
       },
       include: {
         department: true,
@@ -669,5 +589,24 @@ export class EmployeesService {
       engineers,
       totalCount: engineers.length
     };
+  }
+
+  async deleteEmployee(id: string): Promise<void> {
+    try {
+      // Manually cascade delete onboarding session data to prevent FK constraint failures
+      const onboardingSession = await this.prisma.onboardingSession.findUnique({ where: { employeeId: id } });
+      if (onboardingSession) {
+        await this.prisma.onboardingTask.deleteMany({ where: { sessionId: onboardingSession.id } });
+        await this.prisma.onboardingSession.delete({ where: { employeeId: id } });
+      }
+      
+      // Actually delete the employee
+      await this.prisma.employee.delete({ where: { id } });
+    } catch (error: any) {
+      if (error.code === 'P2003') {
+        throw new BadRequestException("Cannot delete this employee because they have active records (Attendance, Leaves, Audit Logs, etc). Please 'Deactivate' the employee instead.");
+      }
+      throw error;
+    }
   }
 }

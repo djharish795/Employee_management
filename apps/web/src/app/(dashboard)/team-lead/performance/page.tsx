@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Bell, HelpCircle, ArrowLeft, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import Image from "next/image";
 
 export default function PerformanceInputPage() {
   const [rating1, setRating1] = useState(0);
@@ -27,7 +28,7 @@ export default function PerformanceInputPage() {
             <HelpCircle className="w-5 h-5" />
           </button>
           <div className="w-8 h-8 rounded-full bg-slate-900 flex items-center justify-center text-white text-xs font-bold overflow-hidden shadow-sm">
-            <img src="https://i.pravatar.cc/100?img=11" alt="AT" className="w-full h-full object-cover" />
+            <Image src="https://i.pravatar.cc/100?img=11" alt="AT" className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
           </div>
         </div>
       </header>

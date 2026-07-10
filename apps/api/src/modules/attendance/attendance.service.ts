@@ -3,6 +3,7 @@ import { RedisService } from "../../redis/redis.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import { PunchDto } from "./dto/punch.dto";
 import { AttendanceStatus } from "@naprocs/database";
+import { toZonedTime } from "date-fns-tz";
 
 @Injectable()
 export class AttendanceService {
@@ -132,17 +133,28 @@ export class AttendanceService {
       state.startTime = now;
       await this.redis.setJson(key, state, 60 * 60 * 24); // 24 hours
 
+      let initialStatus = "PRESENT";
+      if (isFirstPunch) {
+        const checkInTime = new Date(now);
+        const zoned = toZonedTime(checkInTime, 'Asia/Kolkata');
+        const h = zoned.getHours();
+        const m = zoned.getMinutes();
+        if (h > 10 || (h === 10 && m > 15)) {
+          initialStatus = "LATE";
+        }
+      }
+
       if (isFirstPunch) {
         // Upsert first punch. Update block explicitly omits checkInTime to prevent overwriting
         // original checkIn on subsequent Redis-flushed false first punches.
         await this.prisma.attendanceRecord.upsert({
           where: { employeeId_date: { employeeId, date: shiftDate } },
-          update: { status: "PRESENT", checkInIp: ipAddress },
+          update: { status: initialStatus as any, checkInIp: ipAddress },
           create: {
             employeeId,
             date: shiftDate,
             checkInTime: new Date(now),
-            status: "PRESENT",
+            status: initialStatus as any,
             isRegularized: false,
             checkInIp: ipAddress,
             workHours: 0,
@@ -201,8 +213,30 @@ export class AttendanceService {
       await this.redis.setJson(key, state, 60 * 60 * 24);
 
       const workHoursDecimal = state.offset / 3600;
+      
+      const existingRecord = await this.prisma.attendanceRecord.findUnique({
+        where: { employeeId_date: { employeeId, date: shiftDate } }
+      });
+      const checkInTime = existingRecord?.checkInTime || new Date(state.startTime);
+      const zoned = toZonedTime(checkInTime, 'Asia/Kolkata');
+      const h = zoned.getHours();
+      const m = zoned.getMinutes();
+      const isLate = (h > 10 || (h === 10 && m > 15));
+
       // Threshold: 9 hours = 32400 seconds for early checkout
-      const finalStatus = state.offset < 32400 ? "EARLY_CHECKOUT" : "PRESENT";
+      let finalStatus = "PRESENT";
+      if (state.offset < 32400) {
+        finalStatus = "EARLY_CHECKOUT";
+      } else if (isLate) {
+        finalStatus = "LATE";
+      } else if (existingRecord?.status === "WFH") {
+        finalStatus = "WFH";
+      }
+
+      let overtimeDecimal = 0;
+      if (state.offset > 32400) {
+        overtimeDecimal = (state.offset - 32400) / 3600;
+      }
 
       await this.prisma.attendanceRecord.upsert({
         where: { employeeId_date: { employeeId, date: shiftDate } },
@@ -210,6 +244,7 @@ export class AttendanceService {
           checkOutTime: new Date(now),
           workHours: workHoursDecimal,
           status: finalStatus as any,
+          overtime: overtimeDecimal,
         },
         create: {
           employeeId,
@@ -219,6 +254,7 @@ export class AttendanceService {
           status: finalStatus as any,
           isRegularized: false,
           workHours: workHoursDecimal,
+          overtime: overtimeDecimal,
         }
       }).catch(err => {
         console.error(`Check-out upsert failed for employee ${employeeId}:`, err);
@@ -406,10 +442,10 @@ export class AttendanceService {
       const checkInTime = record.checkInTime;
       let isLate = false;
       if (checkInTime) {
-        const h = checkInTime.getUTCHours();
-        const m = checkInTime.getUTCMinutes();
-        // Assuming standard Indian shift 10:00 AM IST (04:30 UTC). Grace till 10:15 AM.
-        if (h > 4 || (h === 4 && m > 45)) isLate = true;
+        const zoned = toZonedTime(checkInTime, 'Asia/Kolkata');
+        const h = zoned.getHours();
+        const m = zoned.getMinutes();
+        if (h > 10 || (h === 10 && m > 15)) isLate = true;
       }
 
       if (isLate) {
@@ -459,9 +495,10 @@ export class AttendanceService {
     sixMonthRecords.forEach(record => {
       let isLate = false;
       if (record.checkInTime) {
-        const h = record.checkInTime.getUTCHours();
-        const m = record.checkInTime.getUTCMinutes();
-        if (h > 4 || (h === 4 && m > 45)) isLate = true;
+        const zoned = toZonedTime(record.checkInTime, 'Asia/Kolkata');
+        const h = zoned.getHours();
+        const m = zoned.getMinutes();
+        if (h > 10 || (h === 10 && m > 15)) isLate = true;
       }
 
       if (isLate) {
@@ -557,10 +594,10 @@ export class AttendanceService {
 
         // Check for late arrival
         if (record.checkInTime) {
-          const h = record.checkInTime.getUTCHours();
-          const m = record.checkInTime.getUTCMinutes();
-          // Assuming 10:00 AM IST -> 04:30 AM UTC
-          if (h > 4 || (h === 4 && m > 45)) {
+          const zoned = toZonedTime(record.checkInTime, 'Asia/Kolkata');
+          const h = zoned.getHours();
+          const m = zoned.getMinutes();
+          if (h > 10 || (h === 10 && m > 15)) {
             isLate = true;
           }
         }
@@ -650,8 +687,6 @@ export class AttendanceService {
       let perc = 0;
       if (stat && stat.total > 0) {
         perc = Math.round((stat.present / stat.total) * 100);
-      } else {
-        perc = 75 + Math.floor(Math.random() * 20); 
       }
       trendData.push({ month: mName, percentage: perc });
     }

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import React from "react";
 import { ChevronDown, ChevronUp, MoreHorizontal, UserCircle, LayoutGrid } from "lucide-react";
 import { OrgTreeNode } from "@/types/org-chart";
@@ -46,11 +47,11 @@ export function EmployeeCard({
 
       <div className={`w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold mb-3 overflow-hidden shadow-sm border border-slate-100 ${node.avatarBg}`}>
         {node.photoUrl && (
-          <img 
+          <Image 
             src={node.photoUrl} 
             alt={node.name} 
             className="w-full h-full object-cover z-10" 
-            onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+            onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} fill style={{ objectFit: "cover" }}
           />
         )}
         <span className="absolute">{node.initials}</span>

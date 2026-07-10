@@ -34,6 +34,8 @@ const roleDashboardMap: Record<string, string> = {
   CHRO: "/hr/dashboard",
   HR: "/hr/dashboard",
   TEAM_LEAD: "/team-lead/dashboard",
+  CAM: "/cam/dashboard",
+  OE: "/oe/dashboard",
 };
 
 // ---------- Inline design tokens (from HTML) ----------
@@ -99,9 +101,12 @@ export const LoginForm: React.FC = () => {
         });
         document.cookie = `token=${res.token}; path=/; max-age=86400; SameSite=Strict`;
         document.cookie = `role=${role}; path=/; max-age=86400; SameSite=Strict`;
+        if (res.employeeStatus) {
+          document.cookie = `employeeStatus=${res.employeeStatus}; path=/; max-age=86400; SameSite=Strict`;
+        }
         router.push(res.redirectPath ?? "/employee/dashboard");
       } else {
-        router.push("/employee/dashboard");
+        throw new Error("Authentication failed: Missing secure tokens in server response.");
       }
     } catch (err: any) {
       setErrorMsg(err.message || "An unexpected error occurred. Please try again.");

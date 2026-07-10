@@ -57,11 +57,14 @@ export interface Sprint {
 export const tasksApi = {
   getMyTasks: async (): Promise<Task[]> => {
     const response = await apiClient.get(API_BASE_URL);
+<<<<<<< HEAD
     return response.data;
   },
 
   getProjectTasks: async (projectId: string): Promise<Task[]> => {
     const response = await apiClient.get(`${API_BASE_URL}/project/${projectId}`);
+=======
+>>>>>>> origin/developer
     return response.data;
   },
 
@@ -70,6 +73,7 @@ export const tasksApi = {
     return response.data;
   },
 
+<<<<<<< HEAD
   updateTask: async (id: string, data: Partial<Task>): Promise<Task> => {
     const response = await apiClient.patch(`${API_BASE_URL}/${id}`, data);
     return response.data;
@@ -97,6 +101,15 @@ export const tasksApi = {
 
   createSprint: async (projectId: string, data: Partial<Sprint>): Promise<Sprint> => {
     const response = await apiClient.post(`/projects/${projectId}/sprints`, data);
+=======
+  updateStatus: async (id: string, status: "TODO" | "IN_PROGRESS" | "DONE"): Promise<Task> => {
+    const response = await apiClient.patch(`${API_BASE_URL}/${id}/status`, { status });
+    return response.data;
+  },
+
+  deleteTask: async (id: string): Promise<any> => {
+    const response = await apiClient.delete(`${API_BASE_URL}/${id}`);
+>>>>>>> origin/developer
     return response.data;
   }
 };

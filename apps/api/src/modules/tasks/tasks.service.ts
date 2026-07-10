@@ -178,4 +178,13 @@ export class TasksService {
 
     return action;
   }
+
+  async deleteTask(taskId: string, employeeId: string): Promise<any> {
+    const task = await this.tasksRepo.findById(taskId);
+    if (!task) throw new NotFoundException("Task not found");
+    if (task.creatorId !== employeeId && task.assigneeId !== employeeId) {
+      throw new NotFoundException("Task not found"); // Masking forbidden as not found
+    }
+    return this.tasksRepo.deleteTask(taskId);
+  }
 }

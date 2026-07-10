@@ -18,6 +18,26 @@ export class ErasureService {
     });
   }
 
+  async createErasureRequest(employeeId: string, notes?: string): Promise<DataErasureRequest> {
+    // Ensure one doesn't already exist that's PENDING
+    const existing = await this.prisma.dataErasureRequest.findFirst({
+      where: { employeeId, status: ErasureRequestStatus.PENDING }
+    });
+
+    if (existing) {
+      throw new BadRequestException("A pending erasure request already exists for this employee.");
+    }
+
+    return this.prisma.dataErasureRequest.create({
+      data: {
+        employeeId,
+        requestedById: employeeId,
+        notes,
+        status: ErasureRequestStatus.PENDING,
+      }
+    });
+  }
+
   async processErasureRequest(id: string, approvedById: string, action: "APPROVE" | "REJECT"): Promise<DataErasureRequest> {
     const request = await this.prisma.dataErasureRequest.findUnique({
       where: { id },

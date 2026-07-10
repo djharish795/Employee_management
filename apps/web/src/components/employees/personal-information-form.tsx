@@ -1,3 +1,4 @@
+import Image from "next/image";
 import React, { useState } from 'react';
 import { Camera, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -22,7 +23,7 @@ export function PersonalInformationForm({ onSave, initialData: incomingData }: P
 
     setIsUploading(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${apiUrl}/documents/upload-url`, {
         method: "POST",
         headers: {
@@ -170,7 +171,7 @@ export function PersonalInformationForm({ onSave, initialData: incomingData }: P
                 <label className="w-24 h-24 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:bg-slate-100 hover:border-slate-400 transition-colors overflow-hidden relative">
                   <input type="file" accept="image/jpeg,image/png" className="hidden" onChange={handlePhotoUpload} disabled={isUploading} />
                   {previewUrl ? (
-                    <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                    <Image src={previewUrl} alt="Preview" className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
                   ) : (
                     <>
                       {isUploading ? (

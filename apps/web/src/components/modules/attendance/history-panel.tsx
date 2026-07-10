@@ -7,35 +7,61 @@ import { AttendanceLog } from "@/types/attendance";
 
 import { fetchMyLogs, fetchAllLogs } from "@/lib/api/attendance";
 
+const formatTimeValue = (val: string | null | undefined): string => {
+  if (!val) return "—";
+  if (val.includes("AM") || val.includes("PM") || val === "--:--" || val === "—") {
+    return val;
+  }
+  const parsed = new Date(val);
+  if (isNaN(parsed.getTime())) {
+    return val;
+  }
+  return parsed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+};
+
 interface HistoryPanelProps {
-  activeRole: "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
+  mode?: "personal" | "org";
 }
 
-export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
+export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
   const [filterMonth, setFilterMonth] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterSearch, setFilterSearch] = useState("");
 
-  const isAdminOrHR = activeRole === "ADMIN" || activeRole === "HR";
+  const isOrgMode = mode === "org";
   
   const { data: rawLogs = [], isLoading } = useQuery<AttendanceLog[]>({
-    queryKey: ["attendanceLogs", isAdminOrHR ? "all" : "my"],
-    queryFn: () => isAdminOrHR ? fetchAllLogs(1, 500) : fetchMyLogs(),
+    queryKey: ["attendanceLogs", isOrgMode ? "all" : "my"],
+    queryFn: () => isOrgMode ? fetchAllLogs(1, 500) : fetchMyLogs(),
   });
 
   const logs = useMemo(() => {
     return rawLogs.map((log) => {
       const formattedDate = new Date(log.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-      const formattedCheckIn = log.checkIn ? new Date(log.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
-      const formattedCheckOut = log.checkOut ? new Date(log.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
+      const formattedCheckIn = formatTimeValue(log.checkIn);
+      const formattedCheckOut = formatTimeValue(log.checkOut);
       const formattedHours = typeof log.hoursWorked === 'number' ? `${log.hoursWorked.toFixed(1)}h` : log.hoursWorked;
       
+      // Calculate formatted break
+      let formattedBreak = "—";
+      if (log.totalBreakSeconds && log.totalBreakSeconds > 0) {
+        const breakMins = Math.round(log.totalBreakSeconds / 60);
+        if (breakMins < 60) {
+          formattedBreak = `${breakMins}m`;
+        } else {
+          const hrs = Math.floor(breakMins / 60);
+          const mins = breakMins % 60;
+          formattedBreak = mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
+        }
+      }
+
       return {
         ...log,
         displayDate: formattedDate,
         displayCheckIn: formattedCheckIn,
         displayCheckOut: formattedCheckOut,
         displayHours: formattedHours,
+        displayBreak: formattedBreak,
       };
     });
   }, [rawLogs]);
@@ -70,9 +96,9 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
     if (filteredLogs.length === 0) return;
     
     // Header
-    const headers = isAdminOrHR 
-      ? ["Employee", "Date", "Check In", "Check Out", "Hours Worked", "Status", "Remarks"]
-      : ["Date", "Check In", "Check Out", "Hours Worked", "Status", "Remarks"];
+    const headers = isOrgMode 
+      ? ["Employee", "Date", "Check In", "Check Out", "Hours Worked", "Break Time", "Status", "Remarks"]
+      : ["Date", "Check In", "Check Out", "Hours Worked", "Break Time", "Status", "Remarks"];
       
     const rows = filteredLogs.map((log) => {
       const row = [
@@ -80,10 +106,11 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
         log.displayCheckIn,
         log.displayCheckOut,
         log.displayHours,
+        log.displayBreak,
         log.status,
         `"${log.remarks}"`,
       ];
-      if (isAdminOrHR) {
+      if (isOrgMode) {
         row.unshift(`"${(log as any).employeeName || 'Unknown'}"`);
       }
       return row;
@@ -195,11 +222,12 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider text-left">
-                  {isAdminOrHR && <th className="px-6 py-4">Employee</th>}
+                  {isOrgMode && <th className="px-6 py-4">Employee</th>}
                   <th className="px-6 py-4">Date</th>
                   <th className="px-6 py-4">Check In</th>
                   <th className="px-6 py-4">Check Out</th>
                   <th className="px-6 py-4">Hours Worked</th>
+                  <th className="px-6 py-4">Break Time</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4">Remarks</th>
                 </tr>
@@ -215,7 +243,7 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
 
                   return (
                     <tr key={(log as any).id || idx} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                      {isAdminOrHR && (
+                      {isOrgMode && (
                         <td className="px-6 py-4 font-bold text-slate-900">
                           {(log as any).employeeName || "Unknown"}
                         </td>
@@ -226,6 +254,7 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
                       <td className="px-6 py-4 font-mono text-slate-500">{log.displayCheckIn}</td>
                       <td className="px-6 py-4 font-mono text-slate-500">{log.displayCheckOut}</td>
                       <td className="px-6 py-4 font-bold text-slate-900">{log.displayHours}</td>
+                      <td className="px-6 py-4 font-bold text-amber-600">{log.displayBreak}</td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase ${badge}`}>
                           {log.status}

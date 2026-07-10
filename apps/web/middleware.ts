@@ -41,6 +41,11 @@ export function middleware(request: NextRequest) {
   else if (['CFO', 'FINANCE'].includes(role)) targetDashboard = '/finance/dashboard';
   else if (['CHRO', 'HR'].includes(role)) targetDashboard = '/hr/dashboard';
 
+  const employeeStatus = request.cookies.get('employeeStatus')?.value;
+  if (employeeStatus === 'ONBOARDING') {
+    targetDashboard = '/employee/onboarding';
+  }
+
   // ─── Redirect authenticated users away from /login ───────────────────────
   if (token && pathname.startsWith('/login')) {
     return NextResponse.redirect(new URL(targetDashboard, request.url));
@@ -54,6 +59,10 @@ export function middleware(request: NextRequest) {
 
   // ─── Module-level RBAC (authenticated users only) ────────────────────────
   if (token) {
+    if (employeeStatus === 'ONBOARDING' && pathname !== '/employee/onboarding' && !pathname.startsWith('/api')) {
+      return NextResponse.redirect(new URL('/employee/onboarding', request.url));
+    }
+
     // 1. Leave Approvals — only approver roles (HR, CHRO, MANAGER, CTO, SUPER_ADMIN)
     if (pathname.startsWith('/leaves/approvals') && !leaveApproverRoles.has(role)) {
       return NextResponse.redirect(new URL('/access-restricted', request.url));

@@ -6,6 +6,7 @@ import { Play, Square, Coffee, ShieldAlert, CheckCircle2, Clock, Calendar, Arrow
 import Link from "next/link";
 import { AttendanceLog, AttendanceKPIs } from "@/types/attendance";
 import { fetchTodayStatus, fetchMyLogs, fetchMyKpis, submitPunch, fetchRegularizations, actionRegularization } from "@/lib/api/attendance";
+import Image from "next/image";
 
 interface DashboardPanelProps {
   activeRole: "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
@@ -564,6 +565,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                   <th className="px-5 py-2.5">Check-In</th>
                   <th className="px-5 py-2.5">Check-Out</th>
                   <th className="px-5 py-2.5">Hours</th>
+                  <th className="px-5 py-2.5">Break</th>
                   <th className="px-5 py-2.5">Status</th>
                 </tr>
               </thead>
@@ -581,6 +583,18 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                   const formattedCheckIn = log.checkIn ? new Date(log.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
                   const formattedCheckOut = log.checkOut ? new Date(log.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
                   const formattedHours = typeof log.hoursWorked === 'number' ? `${log.hoursWorked.toFixed(1)}h` : log.hoursWorked;
+                  
+                  let formattedBreak = "—";
+                  if (log.totalBreakSeconds && log.totalBreakSeconds > 0) {
+                    const breakMins = Math.round(log.totalBreakSeconds / 60);
+                    if (breakMins < 60) {
+                      formattedBreak = `${breakMins}m`;
+                    } else {
+                      const hrs = Math.floor(breakMins / 60);
+                      const mins = breakMins % 60;
+                      formattedBreak = mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
+                    }
+                  }
 
                   return (
                     <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
@@ -588,6 +602,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                       <td className="px-5 py-3 font-mono">{formattedCheckIn}</td>
                       <td className="px-5 py-3 font-mono">{formattedCheckOut}</td>
                       <td className="px-5 py-3 font-bold">{formattedHours}</td>
+                      <td className="px-5 py-3 font-bold text-amber-600">{formattedBreak}</td>
                       <td className="px-5 py-3">
                         <span className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase ${badge}`}>{log.status}</span>
                       </td>
@@ -724,7 +739,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                     <div key={req.id} className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm flex flex-col gap-2.5">
                       <div className="flex gap-2.5 items-start">
                         <div className="w-8 h-8 rounded-full bg-slate-200 overflow-hidden flex-shrink-0">
-                          <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${req.employeeName || req.id}`} alt="Avatar" className="w-full h-full object-cover" />
+                          <Image src={`https://api.dicebear.com/7.x/notionists/svg?seed=${req.employeeName || req.id}`} alt="Avatar" className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
                         </div>
                         <div>
                           <div className="text-xs font-bold text-slate-900">{req.employeeName || "Unknown"}</div>

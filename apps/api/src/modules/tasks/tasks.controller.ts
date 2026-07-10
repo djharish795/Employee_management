@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, Req, UseGuards } from "@nestjs/common";
+import { Controller, Get, Post, Patch, Delete, Body, Param, Req, UseGuards } from "@nestjs/common";
 import { TasksService } from "./tasks.service";
 import { Request } from "express";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
@@ -60,5 +60,11 @@ export class TasksController {
     @Body() dto: { type: string; notes?: string }
   ): Promise<any> {
     return this.tasksService.addAction(id, user.employeeId, dto.type, dto.notes);
+  }
+
+  @Delete(":id")
+  @Permissions(Permission.WRITE_OWN_PROFILE)
+  async deleteTask(@CurrentUser() user: any, @Param("id") id: string): Promise<any> {
+    return this.tasksService.deleteTask(id, user.employeeId);
   }
 }

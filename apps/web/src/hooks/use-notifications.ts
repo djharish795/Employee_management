@@ -30,7 +30,7 @@ export function useNotifications() {
       });
 
       socket.on("connect", () => {
-        console.log("Connected to Real-time Notifications Gateway");
+        // Connected
       });
 
       socket.on("new_notification", (notification: NotificationRecord) => {

@@ -46,42 +46,13 @@ export class AuthService {
       throw new UnauthorizedException("Invalid email or password.");
     }
 
-    // --- MFA TEMPORARILY BYPASSED FOR TESTING ---
-    // const challenge = await this.mfa.createEmailOtpChallenge(user.id, user.email);
-    //
-    // return {
-    //   mfaRequired: true,
-    //   challengeId: challenge.challengeId,
-    //   method: challenge.method,
-    // };
-
-    let isTeamLead = false;
-    if (user.employeeId) {
-      const tlAssignment = await this.prisma.projectAssignment.findFirst({
-        where: { employeeId: user.employeeId, projectRole: 'TL' },
-      });
-      if (tlAssignment) isTeamLead = true;
-    }
-
-    const issued = await this.tokens.issueTokens({
-      userId: user.id,
-      email: user.email,
-      role: isTeamLead && user.role === UserRole.EMPLOYEE ? UserRole.TEAM_LEAD : (user.role as UserRole),
-      employeeId: user.employeeId ?? undefined,
-    });
-
-
+    const challenge = await this.mfa.createEmailOtpChallenge(user.id, user.email);
 
     return {
-      mfaRequired: false,
-      token: issued.accessToken,
-      refreshToken: issued.refreshToken,
-      role: issued.role,
-      redirectPath: issued.redirectPath,
-      employeeId: user.employeeId ?? null,
-      isTeamLead,
+      mfaRequired: true,
+      challengeId: challenge.challengeId,
+      method: challenge.method,
     };
-    // ---------------------------------------------
   }
 
   async verifyMfa(dto: MfaVerifyDto) {
@@ -104,22 +75,12 @@ export class AuthService {
       data: { lastLoginAt: new Date() },
     });
 
-    let isTeamLead = false;
-    if (user.employeeId) {
-      const tlAssignment = await this.prisma.projectAssignment.findFirst({
-        where: { employeeId: user.employeeId, projectRole: 'TL' },
-      });
-      if (tlAssignment) isTeamLead = true;
-    }
-
     const issued = await this.tokens.issueTokens({
       userId: user.id,
       email: user.email,
-      role: isTeamLead && user.role === UserRole.EMPLOYEE ? UserRole.TEAM_LEAD : (user.role as UserRole),
+      role: user.role as UserRole,
       employeeId: user.employeeId ?? undefined,
     });
-
-
 
     return {
       success: true,
@@ -128,7 +89,6 @@ export class AuthService {
       role: issued.role,
       redirectPath: issued.redirectPath,
       employeeId: user.employeeId ?? null,
-      isTeamLead,
       unknownDevice: false,
     };
   }
@@ -176,20 +136,24 @@ export class AuthService {
     const issued = await this.tokens.issueTokens({
       userId: user.id,
       email: user.email,
-      role: isTeamLead && user.role === UserRole.EMPLOYEE ? UserRole.TEAM_LEAD : (user.role as UserRole),
+      role: isTeamLead && user.role === 'EMPLOYEE' ? 'TEAM_LEAD' : (user.role as any),
       employeeId: user.employeeId ?? undefined,
     });
 
-
+    let finalRedirectPath = issued.redirectPath;
+    if (user.employee?.status === "ONBOARDING") {
+      finalRedirectPath = "/employee/onboarding";
+    }
 
     return {
       success: true,
       token: issued.accessToken,
       refreshToken: issued.refreshToken,
       role: issued.role,
-      redirectPath: issued.redirectPath,
+      redirectPath: finalRedirectPath,
       employeeId: user.employeeId ?? null,
       isTeamLead,
+      employeeStatus: user.employee?.status ?? null,
     };
   }
 }

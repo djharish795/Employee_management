@@ -11,6 +11,7 @@ interface DepartmentsPanelProps {
 }
 import { fetchDepartments, updateDepartment } from "@/lib/api/organization";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import Image from "next/image";
 
 export default function DepartmentsPanel({ activeRole }: DepartmentsPanelProps) {
   const canManage = activeRole === "ADMIN" || activeRole === "HR";
@@ -162,7 +163,7 @@ export default function DepartmentsPanel({ activeRole }: DepartmentsPanelProps) 
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 text-xs font-bold border border-slate-200 overflow-hidden">
                   {dept.head ? (
-                    <img src={dept.head.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${dept.head.name}`} alt="Head" />
+                    <Image src={dept.head.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${dept.head.name}`} alt="Head" fill style={{ objectFit: "cover" }} />
                   ) : (
                     <Users className="w-4 h-4 text-slate-400" />
                   )}

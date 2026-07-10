@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ApplyLeaveDto } from './dto/apply-leave.dto';
+import { WorkflowEngineService } from '../workflows/workflow-engine.service';
 
 export interface ApprovalQueueItem {
   role: string;
@@ -11,7 +12,12 @@ export interface ApprovalQueueItem {
 
 @Injectable()
 export class LeavesService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(LeavesService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly workflowEngine: WorkflowEngineService
+  ) {}
 
   async getLeavesKPI(employeeId: string): Promise<unknown> {
     const currentYear = new Date().getFullYear();
@@ -205,6 +211,16 @@ export class LeavesService {
 
       return newLeave;
     });
+
+    try {
+      await this.workflowEngine.startWorkflow('LEAVE', leave.id, employee.id, {
+        leaveTypeId: leaveType.id,
+        totalDays,
+        isEmergency
+      });
+    } catch (err) {
+      this.logger.warn(`Workflow Engine failed to start for Leave ${leave.id}. Fallback to traditional queue. Error: ${(err as Error).message}`);
+    }
 
     return { message: 'Leave Applied Successfully', data: leave };
   }

@@ -5,6 +5,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import { CeoSidebar } from '@/components/shared/sidebars/ceo-sidebar';
 import { EmployeeSidebar } from '@/components/shared/sidebars/employee-sidebar';
 import { TeamLeadSidebar } from '@/components/shared/sidebars/team-lead-sidebar';
+import { CamSidebar } from '@/components/shared/sidebars/cam-sidebar';
+import { OeSidebar } from '@/components/shared/sidebars/oe-sidebar';
 import { Topbar } from '@/components/shared/topbar';
 import { useAuthStore } from '@/store/auth';
 
@@ -52,9 +54,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isPrivileged = ['CEO', 'COO', 'CTO', 'CFO', 'HR', 'SUPER_ADMIN', 'FINANCE', 'MANAGER', 'IT'].includes(activeRole);
   
   const renderSidebar = () => {
+<<<<<<< HEAD
     if (activeRole === 'TEAM_LEAD' || (isTeamLead && pathname?.startsWith('/team-lead'))) {
       return <TeamLeadSidebar />;
     }
+=======
+    if (activeRole === 'CAM') return <CamSidebar />;
+    if (activeRole === 'OE') return <OeSidebar />;
+    if (activeRole === 'TEAM_LEAD') return <TeamLeadSidebar />;
+>>>>>>> origin/developer
     if (isPrivileged) return <CeoSidebar />;
     return <EmployeeSidebar />;
   };
