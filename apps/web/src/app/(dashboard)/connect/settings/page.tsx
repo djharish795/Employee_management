@@ -92,7 +92,9 @@ export default function ConnectSettingsPage() {
                 <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center font-bold text-blue-600">G</div>
                 <div>
                   <h4 className="text-sm font-bold text-slate-900">Google Calendar</h4>
-                  <p className="text-xs font-medium text-slate-500">ravi.kumar@naprocs.com</p>
+                  <p className="text-xs font-medium text-slate-500">
+                    {settings.googleCalendarConnected ? "Connected" : "Not connected"}
+                  </p>
                 </div>
               </div>
               <button 

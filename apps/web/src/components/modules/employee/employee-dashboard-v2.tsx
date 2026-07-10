@@ -151,8 +151,8 @@ export default function EmployeeDashboardV2() {
           onClick={handlePunch}
           disabled={punchMutation.isPending || todayQuery.isLoading}
           className={`px-6 py-2.5 rounded-lg font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${isPunchedIn
-              ? "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
-              : "bg-slate-900 text-white hover:bg-slate-800"
+            ? "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
+            : "bg-slate-900 text-white hover:bg-slate-800"
             }`}
         >
           {punchMutation.isPending ? (
@@ -390,35 +390,7 @@ export default function EmployeeDashboardV2() {
       </div>
 
       {/* Recent Notifications */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold text-slate-900">Recent notifications</h3>
-          <Link href="/notifications" className="text-xs font-bold text-blue-600 hover:text-blue-700">View all</Link>
-        </div>
-        <div className="space-y-4">
-          <div className="flex items-start gap-4">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0"></span>
-            <div>
-              <p className="text-sm font-semibold text-slate-900">Team lunch invitation for this Friday has been sent to your calendar.</p>
-              <p className="text-[11px] font-medium text-slate-400 mt-0.5">1h ago</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-4">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0"></span>
-            <div>
-              <p className="text-sm font-semibold text-slate-900">Your leave request for 22 Jan 2025 has been <span className="text-emerald-600">Approved</span>.</p>
-              <p className="text-[11px] font-medium text-slate-400 mt-0.5">2h ago</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-4">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0"></span>
-            <div>
-              <p className="text-sm font-semibold text-slate-900">A New device (MacBook Pro M3) has been assigned to you. Please confirm delivery.</p>
-              <p className="text-[11px] font-medium text-slate-400 mt-0.5">Yesterday</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <RecentNotificationsWidget />
 
     </div>
   );

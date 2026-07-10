@@ -5,8 +5,8 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "prisma generate && tsc -p tsconfig.json",
-    "generate": "prisma generate",
+    "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 prisma generate && tsc -p tsconfig.json",
+    "generate": "cross-env NODE_OPTIONS=--max_old_space_size=8192 prisma generate",
     "migrate:dev": "dotenv -e ../../apps/api/.env -e ../../apps/api/.env.local -- prisma migrate dev",
     "migrate:deploy": "dotenv -e ../../apps/api/.env -e ../../apps/api/.env.local -- prisma migrate deploy",
     "seed": "dotenv -e ../../apps/api/.env -e ../../apps/api/.env.local -- tsx prisma/seeds/seed.ts",
