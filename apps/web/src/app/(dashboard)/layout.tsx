@@ -54,15 +54,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isPrivileged = ['CEO', 'COO', 'CTO', 'CFO', 'HR', 'SUPER_ADMIN', 'FINANCE', 'MANAGER', 'IT'].includes(activeRole);
   
   const renderSidebar = () => {
-<<<<<<< HEAD
+    if (activeRole === 'CAM') return <CamSidebar />;
+    if (activeRole === 'OE') return <OeSidebar />;
     if (activeRole === 'TEAM_LEAD' || (isTeamLead && pathname?.startsWith('/team-lead'))) {
       return <TeamLeadSidebar />;
     }
-=======
-    if (activeRole === 'CAM') return <CamSidebar />;
-    if (activeRole === 'OE') return <OeSidebar />;
-    if (activeRole === 'TEAM_LEAD') return <TeamLeadSidebar />;
->>>>>>> origin/developer
     if (isPrivileged) return <CeoSidebar />;
     return <EmployeeSidebar />;
   };

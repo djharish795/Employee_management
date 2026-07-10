@@ -9,11 +9,7 @@ export interface LoginResponse {
   role?: string;
   redirectPath?: string;
   employeeId?: string | null;
-<<<<<<< HEAD
   isTeamLead?: boolean;
-=======
-  employeeStatus?: string;
->>>>>>> origin/developer
 }
 
 export interface VerifyMFAResponse {
@@ -25,11 +21,7 @@ export interface VerifyMFAResponse {
   unknownDevice?: boolean;
   deviceDetails?: DeviceDetails;
   employeeId?: string | null;
-<<<<<<< HEAD
   isTeamLead?: boolean;
-=======
-  employeeStatus?: string;
->>>>>>> origin/developer
 }
 
 export class AuthService {
