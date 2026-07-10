@@ -451,6 +451,7 @@ model WorkflowInstance {
   status           WorkflowInstanceStatus @default(PENDING)
   updatedAt        DateTime               @updatedAt
   workflowId       String
+  metadata         Json?
   initiatedBy      Employee               @relation(fields: [initiatedById], references: [id])
   workflow         Workflow               @relation(fields: [workflowId], references: [id])
 

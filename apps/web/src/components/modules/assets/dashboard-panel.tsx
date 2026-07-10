@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Asset, AssetActivity, AssetKPIs, AssetRole, AssetRequest } from "@/types/assets";
+import { assetsApi } from "@/lib/api/assets";
 
 interface DashboardPanelProps {
   activeRole: AssetRole;
@@ -221,28 +222,7 @@ const PRIORITY_COLORS: Record<string, string> = {
   URGENT: "text-rose-700 bg-rose-50 border border-rose-100",
 };
 
-// ─── KPI Data by Role ─────────────────────────────────────────────────────────
-
-function getKPIs(role: AssetRole): AssetKPIs {
-  if (role === "EMPLOYEE") {
-    return {
-      totalAssets: 3,
-      assignedAssets: 3,
-      availableAssets: 0,
-      maintenanceAssets: 0,
-      totalValue: "₹2,08,000",
-      pendingRequests: 0,
-    };
-  }
-  return {
-    totalAssets: 412,
-    assignedAssets: 298,
-    availableAssets: 84,
-    maintenanceAssets: 23,
-    totalValue: "₹1.8 Cr",
-    pendingRequests: 7,
-  };
-}
+// ─── Component ────────────────────────────────────────────────────────────────
 
 // ─── Category Distribution ───────────────────────────────────────────────────
 
@@ -259,7 +239,51 @@ const CATEGORY_DISTRIBUTION = [
 export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
   const isEmployee = activeRole === "EMPLOYEE";
   const isITOrAdmin = ["IT_ADMIN", "ADMIN"].includes(activeRole);
-  const kpis = useMemo(() => getKPIs(activeRole), [activeRole]);
+
+  const { data: summaryKpis } = useQuery({
+    queryKey: ["kpiSummary"],
+    queryFn: async () => assetsApi.kpiSummary(),
+    enabled: !isEmployee,
+  });
+
+  const { data: financialKpis } = useQuery({
+    queryKey: ["kpiFinancials"],
+    queryFn: async () => assetsApi.kpiFinancials(),
+    enabled: !isEmployee,
+  });
+
+  const { data: categoryKpis } = useQuery({
+    queryKey: ["kpiCategories"],
+    queryFn: async () => assetsApi.kpiCategories(),
+    enabled: !isEmployee,
+  });
+
+  const kpis = useMemo(() => {
+    if (isEmployee) {
+      return {
+        totalAssets: 3,
+        assignedAssets: 3,
+        availableAssets: 0,
+        maintenanceAssets: 0,
+        totalValue: "₹2,08,000",
+        pendingRequests: 0,
+      };
+    }
+    const counts = summaryKpis?.countsByStatus || {};
+    const totalActiveValue = financialKpis?.activeValuation || 0;
+    const valueFormatted = totalActiveValue > 10000000 
+      ? `₹${(totalActiveValue / 10000000).toFixed(1)} Cr` 
+      : `₹${(totalActiveValue / 100000).toFixed(1)} L`;
+      
+    return {
+      totalAssets: summaryKpis?.totalAssetsCount || 0,
+      assignedAssets: counts.ASSIGNED || 0,
+      availableAssets: counts.AVAILABLE || 0,
+      maintenanceAssets: counts.MAINTENANCE || 0,
+      totalValue: valueFormatted,
+      pendingRequests: summaryKpis?.pendingWorkflowRequests || 0,
+    };
+  }, [isEmployee, summaryKpis, financialKpis]);
 
   const { data: myAssets = [] } = useQuery<Asset[]>({
     queryKey: ["myAssets"],
@@ -450,22 +474,31 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                 </span>
               </div>
               <div className="space-y-4">
-                {CATEGORY_DISTRIBUTION.map((cat, idx) => (
-                  <div key={idx} className="flex items-center gap-3">
-                    <div className="text-xs font-bold text-slate-700 w-20 flex-shrink-0">
-                      {cat.label}
+                {(categoryKpis || CATEGORY_DISTRIBUTION).map((cat: any, idx: number) => {
+                  const percent = cat.utilizationRate !== undefined ? cat.utilizationRate : cat.percent;
+                  const label = cat.category || cat.label;
+                  const count = cat.totalCount !== undefined ? cat.totalCount : cat.count;
+                  // simple color rotation
+                  const colors = ["bg-violet-600", "bg-slate-700", "bg-emerald-500", "bg-amber-500", "bg-sky-500", "bg-rose-500", "bg-slate-400"];
+                  const color = cat.color || colors[idx % colors.length];
+                  
+                  return (
+                    <div key={idx} className="flex items-center gap-3">
+                      <div className="text-xs font-bold text-slate-700 w-24 flex-shrink-0">
+                        {label}
+                      </div>
+                      <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full ${color} rounded-full transition-all duration-700`}
+                          style={{ width: `${percent}%` }}
+                        />
+                      </div>
+                      <div className="text-xs font-bold text-slate-900 w-8 text-right">
+                        {count}
+                      </div>
                     </div>
-                    <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full ${cat.color} rounded-full transition-all duration-700`}
-                        style={{ width: `${cat.percent}%` }}
-                      />
-                    </div>
-                    <div className="text-xs font-bold text-slate-900 w-8 text-right">
-                      {cat.count}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

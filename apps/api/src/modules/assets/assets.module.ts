@@ -1,14 +1,25 @@
 import { Module } from "@nestjs/common";
-import { AssetsController, CtoAssetsController } from "./assets.controller";
+import {
+  AssetsController,
+  AssetsKpiController,
+  AssetRequestsController,
+  CtoAssetsController,
+} from "./assets.controller";
 import { AssetsService } from "./assets.service";
 import { AssetsRepository } from "./assets.repository";
 import { PrismaModule } from "../../prisma/prisma.module";
+import { WorkflowsModule } from "../workflows/workflows.module";
+import { AuditModule } from "../audit/audit.module";
 
 @Module({
-  imports: [PrismaModule],
-  controllers: [AssetsController, CtoAssetsController],
+  imports: [PrismaModule, WorkflowsModule, AuditModule],
+  controllers: [
+    AssetsKpiController,
+    AssetsController,
+    AssetRequestsController,
+    CtoAssetsController,
+  ],
   providers: [AssetsService, AssetsRepository],
   exports: [AssetsService],
 })
 export class AssetsModule {}
-

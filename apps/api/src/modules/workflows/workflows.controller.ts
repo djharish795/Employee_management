@@ -50,7 +50,7 @@ export class WorkflowsController {
     @Param("id") id: string,
     @Body("status") status: WorkflowInstanceStatus,
     @CurrentUser() user: any
-  ) {
+  ): Promise<any> {
     return this.workflowEngineService.forceStatusUpdate(id, status, user?.employeeId);
   }
 
@@ -59,7 +59,7 @@ export class WorkflowsController {
     @Param("id") id: string,
     @CurrentUser() user: any,
     @Body("notes") notes?: string
-  ) {
+  ): Promise<any> {
     return this.workflowEngineService.processApproval(id, "APPROVE", user?.employeeId, notes);
   }
 
@@ -68,7 +68,7 @@ export class WorkflowsController {
     @Param("id") id: string,
     @CurrentUser() user: any,
     @Body("notes") notes?: string
-  ) {
+  ): Promise<any> {
     return this.workflowEngineService.processApproval(id, "REJECT", user?.employeeId, notes);
   }
 }

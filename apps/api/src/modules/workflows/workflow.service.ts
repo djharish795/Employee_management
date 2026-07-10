@@ -86,7 +86,7 @@ export class WorkflowService {
     return filteredInstances;
   }
 
-  async updateStatus(id: string, status: WorkflowInstanceStatus) {
+  async updateStatus(id: string, status: WorkflowInstanceStatus): Promise<any> {
     const instance = await this.prisma.workflowInstance.findUnique({
       where: { id }
     });

@@ -15,7 +15,7 @@ export class WorkflowEngineService {
     private readonly emailService: EmailService
   ) { }
 
-  async startWorkflow(type: WorkflowType, resourceId: string, initiatorId: string, payload?: any) {
+  async startWorkflow(type: WorkflowType, resourceId: string, initiatorId: string, payload?: any): Promise<any> {
     const workflow = await this.prisma.workflow.findUnique({
       where: { type }
     });
@@ -36,7 +36,8 @@ export class WorkflowEngineService {
         resourceType: type,
         initiatedById: initiatorId,
         currentStepIndex: 0,
-        status: "PENDING"
+        status: "PENDING",
+        metadata: payload, // save payload as metadata
       }
     });
 
@@ -45,7 +46,7 @@ export class WorkflowEngineService {
       actorId: initiatorId,
       resource: "WorkflowInstance",
       resourceId: instance.id,
-      newValue: { type, resourceId, currentStepIndex: 0 }
+      newValue: { type, resourceId, currentStepIndex: 0, payload }
     });
 
     await this.notifyAssignee(instance.id, steps[0]);
@@ -78,7 +79,7 @@ export class WorkflowEngineService {
     );
   }
 
-  async processApproval(instanceId: string, action: "APPROVE" | "REJECT", actorId: string, notes?: string) {
+  async processApproval(instanceId: string, action: "APPROVE" | "REJECT", actorId: string, notes?: string): Promise<any> {
     const instance = await this.prisma.workflowInstance.findUnique({
       where: { id: instanceId },
       include: {
@@ -183,7 +184,7 @@ export class WorkflowEngineService {
     return updated;
   }
 
-  async forceStatusUpdate(instanceId: string, status: WorkflowInstanceStatus, actorId: string) {
+  async forceStatusUpdate(instanceId: string, status: WorkflowInstanceStatus, actorId: string): Promise<any> {
     const instance = await this.prisma.workflowInstance.findUnique({
       where: { id: instanceId },
       include: { workflow: true }

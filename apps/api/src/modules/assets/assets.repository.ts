@@ -1,19 +1,250 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AssetStatus, AssetCategory } from "@naprocs/database";
+import { CreateAssetDto } from "./dto/create-asset.dto";
+import { UpdateAssetDto } from "./dto/update-asset.dto";
 
 @Injectable()
 export class AssetsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  // ─── Inventory CRUD ────────────────────────────────────────────────────────
+
+  async findAll(
+    role: string,
+    userId: string,
+    filters: {
+      status?: AssetStatus;
+      category?: AssetCategory;
+      search?: string;
+      page?: number;
+      limit?: number;
+    }
+  ) {
+    const { status, category, search, page = 1, limit = 50 } = filters;
+
+    const where: any = {};
+    if (status) where.status = status;
+    if (category) where.category = category;
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { assetTag: { contains: search, mode: "insensitive" } },
+        { brand: { contains: search, mode: "insensitive" } },
+        { serialNumber: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    const privilegedRoles = ["SUPER_ADMIN", "IT", "HR", "CHRO", "CEO", "CTO"];
+    if (!privilegedRoles.includes(role)) {
+      if (role === "MANAGER" || role === "TEAM_LEAD") {
+        where.currentHolder = {
+          OR: [
+            { id: userId },
+            { reportingManagerId: userId }
+          ]
+        };
+      } else {
+        where.currentHolderId = userId;
+      }
+    }
+
+    const [assets, total] = await Promise.all([
+      this.prisma.asset.findMany({
+        where,
+        include: {
+          currentHolder: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              department: true,
+            },
+          },
+        },
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: "desc" },
+      }),
+      this.prisma.asset.count({ where }),
+    ]);
+
+    return { assets, total, page, limit };
+  }
+
+  async findById(id: string) {
+    return this.prisma.asset.findUnique({
+      where: { id },
+      include: {
+        currentHolder: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            department: true,
+          },
+        },
+        assignments: {
+          include: {
+            employee: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                department: true,
+              },
+            },
+          },
+          orderBy: { assignedAt: "desc" },
+          take: 10,
+        },
+      },
+    });
+  }
+
+  async create(dto: CreateAssetDto): Promise<any> {
+    return this.prisma.asset.create({
+      data: {
+        assetTag: dto.assetTag,
+        name: dto.name,
+        category: dto.category,
+        brand: dto.brand,
+        model: dto.model,
+        serialNumber: dto.serialNumber,
+        purchaseCost: dto.purchaseCost,
+        purchaseDate: dto.purchaseDate ? new Date(dto.purchaseDate) : undefined,
+        notes: dto.notes,
+        status: dto.status ?? AssetStatus.AVAILABLE,
+      },
+    });
+  }
+
+  async update(id: string, dto: UpdateAssetDto): Promise<any> {
+    return this.prisma.asset.update({
+      where: { id },
+      data: {
+        ...(dto.name && { name: dto.name }),
+        ...(dto.category && { category: dto.category }),
+        ...(dto.brand !== undefined && { brand: dto.brand }),
+        ...(dto.model !== undefined && { model: dto.model }),
+        ...(dto.serialNumber !== undefined && { serialNumber: dto.serialNumber }),
+        ...(dto.purchaseCost !== undefined && { purchaseCost: dto.purchaseCost }),
+        ...(dto.purchaseDate && { purchaseDate: new Date(dto.purchaseDate) }),
+        ...(dto.notes !== undefined && { notes: dto.notes }),
+        ...(dto.status && { status: dto.status }),
+      },
+    });
+  }
+
+  async delete(id: string): Promise<any> {
+    return this.prisma.$transaction([
+      this.prisma.assetAssignment.deleteMany({ where: { assetId: id } }),
+      this.prisma.asset.delete({ where: { id } }),
+    ]);
+  }
+
+  // ─── Assignment ────────────────────────────────────────────────────────────
+
+  async assign(assetId: string, employeeIdentifier: string, assignedByIdentifier: string, notes?: string) {
+    // Resolve the target employee
+    const employee = await this.prisma.employee.findFirst({
+      where: {
+        OR: [
+          { id: employeeIdentifier },
+          { employeeId: employeeIdentifier }
+        ]
+      }
+    });
+
+    if (!employee) {
+      throw new NotFoundException(`Employee with ID ${employeeIdentifier} not found`);
+    }
+
+    // Resolve the assigner (just in case they have a human-readable ID too)
+    const assigner = await this.prisma.employee.findFirst({
+      where: {
+        OR: [
+          { id: assignedByIdentifier },
+          { employeeId: assignedByIdentifier }
+        ]
+      }
+    });
+
+    if (!assigner) {
+      throw new NotFoundException(`Assigner with ID ${assignedByIdentifier} not found`);
+    }
+
+    const [assignment] = await this.prisma.$transaction([
+      this.prisma.assetAssignment.create({
+        data: {
+          assetId,
+          employeeId: employee.id,
+          assignedById: assigner.id,
+          notes,
+        },
+      }),
+      this.prisma.asset.update({
+        where: { id: assetId },
+        data: { status: AssetStatus.ASSIGNED, currentHolderId: employee.id },
+      }),
+    ]);
+    return assignment;
+  }
+
+  async returnAsset(assetId: string, returnedCondition?: string) {
+    const latestAssignment = await this.prisma.assetAssignment.findFirst({
+      where: { assetId, returnedAt: null },
+      orderBy: { assignedAt: "desc" },
+    });
+
+    if (!latestAssignment) return null;
+
+    const [assignment] = await this.prisma.$transaction([
+      this.prisma.assetAssignment.update({
+        where: { id: latestAssignment.id },
+        data: { returnedAt: new Date(), returnedCondition },
+      }),
+      this.prisma.asset.update({
+        where: { id: assetId },
+        data: { status: AssetStatus.AVAILABLE, currentHolderId: null },
+      }),
+    ]);
+    return assignment;
+  }
+
+  // ─── Asset Requests (via WorkflowInstance) ─────────────────────────────────
+
+  async findRequests(filters: { status?: string; employeeId?: string }): Promise<any> {
+    const where: any = {
+      workflow: { type: "ASSET_REQUEST" },
+    };
+    if (filters.status) where.status = filters.status;
+    if (filters.employeeId) where.initiatedById = filters.employeeId;
+
+    return this.prisma.workflowInstance.findMany({
+      where,
+      include: {
+        initiatedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            department: true,
+          },
+        },
+        workflow: { select: { id: true, name: true, type: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+  // ─── KPI Queries (existing, unchanged) ────────────────────────────────────
+
   async getSummaryKPIs(): Promise<any> {
     const totalAssetsCount = await this.prisma.asset.count();
-    
+
     const statusCounts = await this.prisma.asset.groupBy({
-      by: ['status'],
-      _count: {
-        _all: true,
-      },
+      by: ["status"],
+      _count: { _all: true },
     });
 
     const countsByStatus: Record<AssetStatus, number> = {
@@ -30,46 +261,29 @@ export class AssetsRepository {
     });
 
     const activeAssetsCount = await this.prisma.asset.count({
-      where: {
-        status: {
-          notIn: [AssetStatus.RETIRED, AssetStatus.REPLACED],
-        },
-      },
+      where: { status: { notIn: [AssetStatus.RETIRED, AssetStatus.REPLACED] } },
     });
 
     const assignedAssetsCount = countsByStatus[AssetStatus.ASSIGNED] || 0;
-    const allocationRate = activeAssetsCount > 0
-      ? Number(((assignedAssetsCount / activeAssetsCount) * 100).toFixed(2))
-      : 0;
+    const allocationRate =
+      activeAssetsCount > 0
+        ? Number(((assignedAssetsCount / activeAssetsCount) * 100).toFixed(2))
+        : 0;
 
-    // Count pending workflow instances of type ASSET_REQUEST
     const pendingWorkflowRequests = await this.prisma.workflowInstance.count({
-      where: {
-        status: 'PENDING',
-        workflow: {
-          type: 'ASSET_REQUEST',
-        },
-      },
+      where: { status: "PENDING", workflow: { type: "ASSET_REQUEST" } },
     });
 
-    return {
-      totalAssetsCount,
-      allocationRate,
-      countsByStatus,
-      pendingWorkflowRequests,
-    };
+    return { totalAssetsCount, allocationRate, countsByStatus, pendingWorkflowRequests };
   }
 
   async getCategoryBreakdown(): Promise<any> {
     const assets = await this.prisma.asset.findMany({
-      select: {
-        category: true,
-        status: true,
-      },
+      select: { category: true, status: true },
     });
 
     const categories = Object.values(AssetCategory);
-    const breakdown = categories.map((cat) => {
+    return categories.map((cat) => {
       const catAssets = assets.filter((a) => a.category === cat);
       const totalCount = catAssets.length;
       const assignedCount = catAssets.filter((a) => a.status === AssetStatus.ASSIGNED).length;
@@ -77,42 +291,23 @@ export class AssetsRepository {
       const damagedCount = catAssets.filter((a) => a.status === AssetStatus.DAMAGED).length;
       const lostCount = catAssets.filter((a) => a.status === AssetStatus.LOST).length;
       const retiredCount = catAssets.filter((a) => a.status === AssetStatus.RETIRED).length;
-
       const activeCount = catAssets.filter(
         (a) => a.status !== AssetStatus.RETIRED && a.status !== AssetStatus.REPLACED
       ).length;
-
-      const utilizationRate = activeCount > 0
-        ? Number(((assignedCount / activeCount) * 100).toFixed(2))
-        : 0;
-
-      return {
-        category: cat,
-        totalCount,
-        assignedCount,
-        availableCount,
-        damagedCount,
-        lostCount,
-        retiredCount,
-        utilizationRate,
-      };
+      const utilizationRate =
+        activeCount > 0 ? Number(((assignedCount / activeCount) * 100).toFixed(2)) : 0;
+      return { category: cat, totalCount, assignedCount, availableCount, damagedCount, lostCount, retiredCount, utilizationRate };
     });
-
-    return breakdown;
   }
 
   async getFinancialSummary(): Promise<any> {
     const assets = await this.prisma.asset.findMany({
-      select: {
-        category: true,
-        status: true,
-        purchaseCost: true,
-      },
+      select: { category: true, status: true, purchaseCost: true },
     });
 
     let totalInvestment = 0;
     let activeValuation = 0;
-    const lossValuation = {
+    const lossValuation: Record<string, number> = {
       [AssetStatus.LOST]: 0,
       [AssetStatus.DAMAGED]: 0,
       [AssetStatus.RETIRED]: 0,
@@ -133,16 +328,20 @@ export class AssetsRepository {
     assets.forEach((asset) => {
       const cost = asset.purchaseCost ? Number(asset.purchaseCost) : 0;
       totalInvestment += cost;
-
-      if (asset.status !== AssetStatus.RETIRED && asset.status !== AssetStatus.REPLACED && asset.status !== AssetStatus.LOST && asset.status !== AssetStatus.DAMAGED) {
+      if (
+        asset.status !== AssetStatus.RETIRED &&
+        asset.status !== AssetStatus.REPLACED &&
+        asset.status !== AssetStatus.LOST &&
+        asset.status !== AssetStatus.DAMAGED
+      ) {
         activeValuation += cost;
       }
-
-      if (asset.status === AssetStatus.LOST || asset.status === AssetStatus.DAMAGED || asset.status === AssetStatus.RETIRED) {
-        lossValuation[asset.status] += cost;
+      if (([AssetStatus.LOST, AssetStatus.DAMAGED, AssetStatus.RETIRED] as AssetStatus[]).includes(asset.status)) {
+        lossValuation[asset.status] = (lossValuation[asset.status] || 0) + cost;
       }
-
-      expenditureByCategory[asset.category] += cost;
+      if (expenditureByCategory[asset.category] !== undefined) {
+        expenditureByCategory[asset.category] += cost;
+      }
     });
 
     return {
@@ -150,9 +349,9 @@ export class AssetsRepository {
       totalInvestment: Number(totalInvestment.toFixed(2)),
       activeValuation: Number(activeValuation.toFixed(2)),
       lossValuation: {
-        LOST: Number(lossValuation[AssetStatus.LOST].toFixed(2)),
-        DAMAGED: Number(lossValuation[AssetStatus.DAMAGED].toFixed(2)),
-        RETIRED: Number(lossValuation[AssetStatus.RETIRED].toFixed(2)),
+        LOST: Number((lossValuation[AssetStatus.LOST] || 0).toFixed(2)),
+        DAMAGED: Number((lossValuation[AssetStatus.DAMAGED] || 0).toFixed(2)),
+        RETIRED: Number((lossValuation[AssetStatus.RETIRED] || 0).toFixed(2)),
       },
       expenditureByCategory: Object.keys(expenditureByCategory).reduce((acc, key) => {
         acc[key] = Number(expenditureByCategory[key as AssetCategory].toFixed(2));
@@ -161,19 +360,14 @@ export class AssetsRepository {
     };
   }
 
-  async getLifecycleTrends(startDate: Date, endDate: Date, interval: 'MONTH' | 'QUARTER'): Promise<any> {
+  async getLifecycleTrends(
+    startDate: Date,
+    endDate: Date,
+    interval: "MONTH" | "QUARTER"
+  ): Promise<any> {
     const assets = await this.prisma.asset.findMany({
-      where: {
-        createdAt: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
-      select: {
-        createdAt: true,
-        status: true,
-        updatedAt: true,
-      },
+      where: { createdAt: { gte: startDate, lte: endDate } },
+      select: { createdAt: true, status: true, updatedAt: true },
     });
 
     const assignments = await this.prisma.assetAssignment.findMany({
@@ -183,82 +377,45 @@ export class AssetsRepository {
           { returnedAt: { gte: startDate, lte: endDate } },
         ],
       },
-      select: {
-        assignedAt: true,
-        returnedAt: true,
-      },
+      select: { assignedAt: true, returnedAt: true },
     });
 
     const getBucketKey = (date: Date): string => {
       const year = date.getFullYear();
-      if (interval === 'QUARTER') {
-        const quarter = Math.floor(date.getMonth() / 3) + 1;
-        return `${year}-Q${quarter}`;
-      } else {
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        return `${year}-${month}`;
+      if (interval === "QUARTER") {
+        return `${year}-Q${Math.floor(date.getMonth() / 3) + 1}`;
       }
+      return `${year}-${String(date.getMonth() + 1).padStart(2, "0")}`;
     };
 
-    const buckets: Record<string, {
-      period: string;
-      assetsProcured: number;
-      assignmentsCreated: number;
-      returnsProcessed: number;
-      reportedDamaged: number;
-      reportedLost: number;
-    }> = {};
-
+    const buckets: Record<string, any> = {};
     const current = new Date(startDate);
     while (current <= endDate) {
       const key = getBucketKey(current);
       if (!buckets[key]) {
-        buckets[key] = {
-          period: key,
-          assetsProcured: 0,
-          assignmentsCreated: 0,
-          returnsProcessed: 0,
-          reportedDamaged: 0,
-          reportedLost: 0,
-        };
+        buckets[key] = { period: key, assetsProcured: 0, assignmentsCreated: 0, returnsProcessed: 0, reportedDamaged: 0, reportedLost: 0 };
       }
-      if (interval === 'QUARTER') {
-        current.setMonth(current.getMonth() + 3);
-      } else {
-        current.setMonth(current.getMonth() + 1);
-      }
+      current.setMonth(current.getMonth() + (interval === "QUARTER" ? 3 : 1));
     }
 
     assets.forEach((asset) => {
       const key = getBucketKey(asset.createdAt);
-      if (buckets[key]) {
-        buckets[key].assetsProcured += 1;
-      }
-      
+      if (buckets[key]) buckets[key].assetsProcured += 1;
       if (asset.status === AssetStatus.DAMAGED) {
-        const updateKey = getBucketKey(asset.updatedAt);
-        if (buckets[updateKey] && asset.updatedAt >= startDate && asset.updatedAt <= endDate) {
-          buckets[updateKey].reportedDamaged += 1;
-        }
+        const k = getBucketKey(asset.updatedAt);
+        if (buckets[k] && asset.updatedAt >= startDate && asset.updatedAt <= endDate) buckets[k].reportedDamaged += 1;
       } else if (asset.status === AssetStatus.LOST) {
-        const updateKey = getBucketKey(asset.updatedAt);
-        if (buckets[updateKey] && asset.updatedAt >= startDate && asset.updatedAt <= endDate) {
-          buckets[updateKey].reportedLost += 1;
-        }
+        const k = getBucketKey(asset.updatedAt);
+        if (buckets[k] && asset.updatedAt >= startDate && asset.updatedAt <= endDate) buckets[k].reportedLost += 1;
       }
     });
 
     assignments.forEach((assign) => {
-      const assignKey = getBucketKey(assign.assignedAt);
-      if (buckets[assignKey] && assign.assignedAt >= startDate && assign.assignedAt <= endDate) {
-        buckets[assignKey].assignmentsCreated += 1;
-      }
-
+      const ak = getBucketKey(assign.assignedAt);
+      if (buckets[ak] && assign.assignedAt >= startDate && assign.assignedAt <= endDate) buckets[ak].assignmentsCreated += 1;
       if (assign.returnedAt) {
-        const returnKey = getBucketKey(assign.returnedAt);
-        if (buckets[returnKey] && assign.returnedAt >= startDate && assign.returnedAt <= endDate) {
-          buckets[returnKey].returnsProcessed += 1;
-        }
+        const rk = getBucketKey(assign.returnedAt);
+        if (buckets[rk] && assign.returnedAt >= startDate && assign.returnedAt <= endDate) buckets[rk].returnsProcessed += 1;
       }
     });
 
@@ -267,51 +424,44 @@ export class AssetsRepository {
 
   async getCtoAssets(): Promise<any> {
     const assetAssignments = await this.prisma.assetAssignment.findMany({
-      where: {
-        returnedAt: null
-      },
-      include: {
-        employee: true,
-        asset: true
-      },
-      orderBy: { assignedAt: 'desc' }
+      where: { returnedAt: null },
+      include: { employee: true, asset: true },
+      orderBy: { assignedAt: "desc" },
     });
 
-    const totalDevices = assetAssignments.filter(a => ['LAPTOP', 'DESKTOP', 'MONITOR', 'MOBILE_DEVICE'].includes(a.asset.category)).length;
-    const softwareLicenses = assetAssignments.filter(a => ['SOFTWARE_LICENCE', 'CLOUD_ACCOUNT'].includes(a.asset.category)).length;
-    
-    // Calculate real dueForRefresh: Devices older than 3 years
     const threeYearsAgo = new Date();
     threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
-    
+
     let dueForRefresh = 0;
-    const assets = assetAssignments.map(a => {
-      const isRefreshDue = a.asset.createdAt < threeYearsAgo && ['LAPTOP', 'DESKTOP', 'MONITOR', 'MOBILE_DEVICE'].includes(a.asset.category);
-      if (isRefreshDue) {
-        dueForRefresh++;
-      }
-      
+    const assets = assetAssignments.map((a) => {
+      const isRefreshDue =
+        a.asset.createdAt < threeYearsAgo &&
+        ["LAPTOP", "DESKTOP", "MONITOR", "MOBILE_DEVICE"].includes(a.asset.category);
+      if (isRefreshDue) dueForRefresh++;
       return {
         id: a.id,
-        assetName: a.asset.brand || 'Asset',
-        category: ['LAPTOP', 'DESKTOP'].includes(a.asset.category) ? 'Laptop' : 
-                  a.asset.category === 'MONITOR' ? 'Monitor' :
-                  ['SOFTWARE_LICENCE', 'CLOUD_ACCOUNT'].includes(a.asset.category) ? 'Software' : 'Accessory',
+        assetName: a.asset.brand || "Asset",
+        category: ["LAPTOP", "DESKTOP"].includes(a.asset.category)
+          ? "Laptop"
+          : a.asset.category === "MONITOR"
+          ? "Monitor"
+          : ["SOFTWARE_LICENCE", "CLOUD_ACCOUNT"].includes(a.asset.category)
+          ? "Software"
+          : "Accessory",
         assignedToName: `${a.employee.firstName} ${a.employee.lastName}`,
         assignedToInitials: `${a.employee.firstName.charAt(0)}${a.employee.lastName.charAt(0)}`,
-        assignedDate: a.assignedAt.toISOString().split('T')[0],
-        status: isRefreshDue ? 'Due for refresh' : 'Active'
+        assignedDate: a.assignedAt.toISOString().split("T")[0],
+        status: isRefreshDue ? "Due for refresh" : "Active",
       };
     });
 
-    return {
-      metrics: {
-        totalDevices,
-        softwareLicenses,
-        dueForRefresh
-      },
-      assets,
-      totalCount: assets.length
-    };
+    const totalDevices = assetAssignments.filter((a) =>
+      ["LAPTOP", "DESKTOP", "MONITOR", "MOBILE_DEVICE"].includes(a.asset.category)
+    ).length;
+    const softwareLicenses = assetAssignments.filter((a) =>
+      ["SOFTWARE_LICENCE", "CLOUD_ACCOUNT"].includes(a.asset.category)
+    ).length;
+
+    return { metrics: { totalDevices, softwareLicenses, dueForRefresh }, assets, totalCount: assets.length };
   }
 }

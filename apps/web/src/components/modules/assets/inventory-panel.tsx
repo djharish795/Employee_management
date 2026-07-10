@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { assetsApi } from "@/lib/api/assets";
 import {
   Search,
   Filter,
@@ -18,177 +19,17 @@ import {
   Edit2,
   Wrench,
   MoreHorizontal,
+  UserPlus,
+  CornerDownLeft,
 } from "lucide-react";
 import { Asset, AssetCategory, AssetRole, AssetStatus } from "@/types/assets";
+import { AssetFormSheet } from "./asset-form-sheet";
+import { AssignAssetDialog, ReturnAssetDialog, ViewAssetDialog } from "./asset-action-dialogs";
 
 interface InventoryPanelProps {
   activeRole: AssetRole;
 }
 
-// ─── Mock Assets ────────────────────────────────────────────────────────────
-
-const MOCK_ASSETS: Asset[] = [
-  {
-    id: "a1",
-    assetTag: "LAP-2024-0042",
-    name: 'MacBook Pro 14"',
-    category: "LAPTOP",
-    brand: "Apple",
-    model: "MacBook Pro M3 Pro",
-    serialNumber: "C02ZG1XKMD6T",
-    purchaseDate: "Jan 2024",
-    purchaseValue: 185000,
-    currentValue: 148000,
-    status: "ASSIGNED",
-    assignedTo: "Ranjith Kumar",
-    assignedToAvatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Ranjith",
-    department: "Engineering",
-    location: "Hyderabad HQ",
-    warrantyExpiry: "Jan 2027",
-    condition: "EXCELLENT",
-    notes: "Primary work laptop",
-  },
-  {
-    id: "a2",
-    assetTag: "MON-2024-0011",
-    name: 'Dell UltraSharp 27"',
-    category: "MONITOR",
-    brand: "Dell",
-    model: "U2723QE",
-    serialNumber: "CN0482C4",
-    purchaseDate: "Feb 2024",
-    purchaseValue: 48000,
-    currentValue: 40000,
-    status: "ASSIGNED",
-    assignedTo: "Ananya Sharma",
-    assignedToAvatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Ananya",
-    department: "Design",
-    location: "Hyderabad HQ",
-    warrantyExpiry: "Feb 2027",
-    condition: "GOOD",
-    notes: "Secondary display",
-  },
-  {
-    id: "a3",
-    assetTag: "LAP-2023-0021",
-    name: "Dell Latitude 7430",
-    category: "LAPTOP",
-    brand: "Dell",
-    model: "Latitude 7430",
-    serialNumber: "5MV3N12",
-    purchaseDate: "Mar 2023",
-    purchaseValue: 95000,
-    currentValue: 64000,
-    status: "AVAILABLE",
-    assignedTo: null,
-    assignedToAvatar: null,
-    department: null,
-    location: "IT Store Room",
-    warrantyExpiry: "Mar 2026",
-    condition: "GOOD",
-    notes: "Available for assignment",
-  },
-  {
-    id: "a4",
-    assetTag: "PHN-2024-0007",
-    name: "iPhone 15 Pro",
-    category: "PHONE",
-    brand: "Apple",
-    model: "iPhone 15 Pro 256GB",
-    serialNumber: "F2LMR5QP0X",
-    purchaseDate: "Sep 2024",
-    purchaseValue: 135000,
-    currentValue: 105000,
-    status: "ASSIGNED",
-    assignedTo: "Pradeep Chandra",
-    assignedToAvatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Pradeep",
-    department: "Leadership",
-    location: "Hyderabad HQ",
-    warrantyExpiry: "Sep 2026",
-    condition: "EXCELLENT",
-    notes: "CEO device",
-  },
-  {
-    id: "a5",
-    assetTag: "LAP-2022-0005",
-    name: "HP EliteBook 850",
-    category: "LAPTOP",
-    brand: "HP",
-    model: "EliteBook 850 G8",
-    serialNumber: "5CG2178CLV",
-    purchaseDate: "Jun 2022",
-    purchaseValue: 88000,
-    currentValue: 40000,
-    status: "MAINTENANCE",
-    assignedTo: null,
-    assignedToAvatar: null,
-    department: "Sales",
-    location: "IT Repair Bay",
-    warrantyExpiry: "Jun 2025",
-    condition: "FAIR",
-    notes: "Screen replacement in progress",
-  },
-  {
-    id: "a6",
-    assetTag: "HST-2023-0019",
-    name: "Sony WH-1000XM5",
-    category: "HEADSET",
-    brand: "Sony",
-    model: "WH-1000XM5",
-    serialNumber: "5068281-00",
-    purchaseDate: "Sep 2023",
-    purchaseValue: 28000,
-    currentValue: 20000,
-    status: "ASSIGNED",
-    assignedTo: "Meera Pillai",
-    assignedToAvatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Meera",
-    department: "Design",
-    location: "Hyderabad HQ",
-    warrantyExpiry: "Sep 2025",
-    condition: "GOOD",
-    notes: "Noise-cancelling headset",
-  },
-  {
-    id: "a7",
-    assetTag: "TAB-2023-0004",
-    name: 'iPad Pro 12.9"',
-    category: "TABLET",
-    brand: "Apple",
-    model: "iPad Pro M2",
-    serialNumber: "DLXJM2WY0G",
-    purchaseDate: "Apr 2023",
-    purchaseValue: 120000,
-    currentValue: 85000,
-    status: "AVAILABLE",
-    assignedTo: null,
-    assignedToAvatar: null,
-    department: null,
-    location: "IT Store Room",
-    warrantyExpiry: "Apr 2026",
-    condition: "EXCELLENT",
-    notes: "Recently returned",
-  },
-  {
-    id: "a8",
-    assetTag: "LAP-2020-0002",
-    name: "Lenovo ThinkPad X1",
-    category: "LAPTOP",
-    brand: "Lenovo",
-    model: "ThinkPad X1 Carbon Gen 8",
-    serialNumber: "PF2QV8DN",
-    purchaseDate: "Jan 2020",
-    purchaseValue: 110000,
-    currentValue: 22000,
-    status: "RETIRED",
-    assignedTo: null,
-    assignedToAvatar: null,
-    department: null,
-    location: "Archive",
-    warrantyExpiry: "Jan 2023",
-    condition: "POOR",
-    notes: "End of life — to be disposed",
-  },
-];
 
 const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
   LAPTOP: Laptop,
@@ -232,26 +73,55 @@ export default function InventoryPanel({ activeRole }: InventoryPanelProps) {
   const [statusFilter, setStatusFilter] = useState<AssetStatus | "ALL">("ALL");
   const [categoryFilter, setCategoryFilter] = useState<AssetCategory | "ALL">("ALL");
   const [showFilters, setShowFilters] = useState(false);
+  const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
+  const [assetToEdit, setAssetToEdit] = useState<Asset | null>(null);
+  const [assetToView, setAssetToView] = useState<Asset | null>(null);
+  const [assetToAssign, setAssetToAssign] = useState<Asset | null>(null);
+  const [assetToReturn, setAssetToReturn] = useState<Asset | null>(null);
 
-  const { data: assets = [] } = useQuery<Asset[]>({
-    queryKey: ["assets"],
-    queryFn: async () => MOCK_ASSETS,
+  const { data: apiData, isLoading } = useQuery({
+    queryKey: ["assets", statusFilter, categoryFilter, search],
+    queryFn: () =>
+      assetsApi.list({
+        status: statusFilter !== "ALL" ? statusFilter : undefined,
+        category: categoryFilter !== "ALL" ? categoryFilter : undefined,
+        search: search || undefined,
+      }),
+    staleTime: 30_000,
   });
 
-  const filtered = useMemo(() => {
-    return assets.filter((a) => {
-      const q = search.toLowerCase();
-      const matchesSearch =
-        !q ||
-        a.name.toLowerCase().includes(q) ||
-        a.assetTag.toLowerCase().includes(q) ||
-        (a.assignedTo?.toLowerCase() ?? "").includes(q) ||
-        a.brand.toLowerCase().includes(q);
-      const matchesStatus = statusFilter === "ALL" || a.status === statusFilter;
-      const matchesCat = categoryFilter === "ALL" || a.category === categoryFilter;
-      return matchesSearch && matchesStatus && matchesCat;
-    });
-  }, [assets, search, statusFilter, categoryFilter]);
+  // Map API response shape → local Asset shape
+  const assets: Asset[] = useMemo(() => {
+    const raw: any[] = apiData?.assets ?? [];
+    return raw.map((a) => ({
+      id: a.id,
+      assetTag: a.assetTag,
+      name: a.name,
+      category: a.category as AssetCategory,
+      brand: a.brand ?? "",
+      model: a.model ?? "",
+      serialNumber: a.serialNumber ?? "",
+      purchaseDate: a.purchaseDate
+        ? new Date(a.purchaseDate).toLocaleDateString("en-IN", { month: "short", year: "numeric" })
+        : "—",
+      purchaseValue: a.purchaseCost ? Number(a.purchaseCost) : 0,
+      currentValue: a.purchaseCost ? Number(a.purchaseCost) : 0,
+      status: a.status as AssetStatus,
+      assignedTo: a.currentHolder
+        ? `${a.currentHolder.firstName} ${a.currentHolder.lastName}`
+        : null,
+      assignedToAvatar: a.currentHolder
+        ? `https://api.dicebear.com/7.x/notionists/svg?seed=${a.currentHolder.firstName}`
+        : null,
+      department: a.currentHolder?.department ?? null,
+      location: a.notes ?? "—",
+      warrantyExpiry: null,
+      condition: "GOOD" as const,
+      notes: a.notes ?? "",
+    }));
+  }, [apiData]);
+
+  const filtered = assets;
 
   const canEdit = ["IT_ADMIN", "ADMIN"].includes(activeRole);
 
@@ -285,7 +155,10 @@ export default function InventoryPanel({ activeRole }: InventoryPanelProps) {
             Filters
           </button>
           {canEdit && (
-            <button className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm">
+            <button
+              onClick={() => setIsAddSheetOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
+            >
               <Plus className="w-3.5 h-3.5" />
               Add Asset
             </button>
@@ -437,15 +310,38 @@ export default function InventoryPanel({ activeRole }: InventoryPanelProps) {
                     {canEdit && (
                       <td className="px-5 py-3.5">
                         <div className="flex items-center justify-end gap-1.5">
-                          <button className="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-md transition-colors" title="View">
+                          <button 
+                            className="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-md transition-colors" 
+                            title="View"
+                            onClick={() => setAssetToView(asset)}
+                          >
                             <Eye className="w-3.5 h-3.5" />
                           </button>
-                          <button className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors" title="Edit">
+                          <button 
+                            className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors" 
+                            title="Edit"
+                            onClick={() => setAssetToEdit(asset)}
+                          >
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
-                          <button className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors" title="Maintenance">
-                            <Wrench className="w-3.5 h-3.5" />
-                          </button>
+                          {asset.status === "AVAILABLE" && (
+                            <button 
+                              className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors" 
+                              title="Assign"
+                              onClick={() => setAssetToAssign(asset)}
+                            >
+                              <UserPlus className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {asset.status === "ASSIGNED" && (
+                            <button 
+                              className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors" 
+                              title="Return"
+                              onClick={() => setAssetToReturn(asset)}
+                            >
+                              <CornerDownLeft className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                           <button className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors" title="More">
                             <MoreHorizontal className="w-3.5 h-3.5" />
                           </button>
@@ -455,7 +351,14 @@ export default function InventoryPanel({ activeRole }: InventoryPanelProps) {
                   </tr>
                 );
               })}
-              {filtered.length === 0 && (
+              {isLoading && (
+                <tr>
+                  <td colSpan={canEdit ? 8 : 7} className="px-5 py-12 text-center text-sm text-slate-400 font-medium">
+                    Loading assets…
+                  </td>
+                </tr>
+              )}
+              {!isLoading && filtered.length === 0 && (
                 <tr>
                   <td
                     colSpan={canEdit ? 8 : 7}
@@ -469,6 +372,20 @@ export default function InventoryPanel({ activeRole }: InventoryPanelProps) {
           </table>
         </div>
       </div>
+      <AssetFormSheet 
+        open={isAddSheetOpen || !!assetToEdit} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsAddSheetOpen(false);
+            setAssetToEdit(null);
+          }
+        }} 
+        initialAsset={assetToEdit}
+      />
+      
+      <ViewAssetDialog asset={assetToView} onClose={() => setAssetToView(null)} />
+      <AssignAssetDialog asset={assetToAssign} onClose={() => setAssetToAssign(null)} />
+      <ReturnAssetDialog asset={assetToReturn} onClose={() => setAssetToReturn(null)} />
     </div>
   );
 }
