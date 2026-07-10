@@ -11,6 +11,7 @@ import { useNotifications } from '@/hooks/use-notifications';
 import { formatDistanceToNow } from 'date-fns';
 import { CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
+import Image from "next/image";
 
 const IconMap: Record<string, React.ElementType> = {
   Monitor, Users, Calendar, LayoutDashboard, Clock, BookOpen, 
@@ -342,7 +343,7 @@ export function Topbar() {
             </div>
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-700 dark:text-slate-300 font-bold text-sm uppercase transition-colors">
               {displayPhotoUrl ? (
-                <img src={displayPhotoUrl} alt="Profile" className="w-full h-full object-cover" />
+                <Image src={displayPhotoUrl} alt="Profile" className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
               ) : (
                 userEmail.charAt(0)
               )}

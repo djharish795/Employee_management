@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, UseInterceptors, Patch } from "@nestjs/common";
+import { Controller, Get, Post, Body, Param, UseGuards, UseInterceptors, Patch, Ip } from "@nestjs/common";
 import { ConsentService } from "./consent.service";
 import { ErasureService } from "./erasure.service";
 import { GrievanceService } from "./grievance.service";
@@ -74,15 +74,16 @@ export class ComplianceController {
 
   @Post("consents/me")
   @Permissions(Permission.WRITE_OWN_PROFILE)
-  async addMyConsent(@Body() body: { purpose: string }, @CurrentUser() user: any) {
-    return this.consentService.addConsentLog(user.employeeId, body.purpose, user.employeeId, "127.0.0.1");
+  async addMyConsent(@Body() body: { purpose: string }, @CurrentUser() user: any, @Ip() ip: string) {
+    const clientIp = ip || "127.0.0.1";
+    return this.consentService.addConsentLog(user.employeeId, body.purpose, user.employeeId, clientIp);
   }
 
   @Post("consents")
   @Permissions(Permission.WRITE_EMPLOYEES)
-  addConsent(@Body() body: { employeeId: string; purpose: string }, @CurrentUser() user: any) {
-    // Collect IP if possible, default to internal for now
-    return this.consentService.addConsentLog(body.employeeId, body.purpose, user.employeeId, "127.0.0.1");
+  addConsent(@Body() body: { employeeId: string; purpose: string }, @CurrentUser() user: any, @Ip() ip: string) {
+    const clientIp = ip || "127.0.0.1";
+    return this.consentService.addConsentLog(body.employeeId, body.purpose, user.employeeId, clientIp);
   }
 
   @Get("erasures")
@@ -125,8 +126,8 @@ export class ComplianceController {
   @Permissions(Permission.READ_OWN_PROFILE)
   getPolicies() {
     return [
-      { id: "1", title: "Data Protection Policy", url: "https://naprocs.in/policies/data-protection", updated: "2024-01-01" },
-      { id: "2", title: "Code of Conduct", url: "https://naprocs.in/policies/code-of-conduct", updated: "2024-01-15" }
+      { id: "1", title: "Data Protection Policy", url: `${process.env.FRONTEND_URL}/policies/data-protection`, updated: "2024-01-01" },
+      { id: "2", title: "Code of Conduct", url: `${process.env.FRONTEND_URL}/policies/code-of-conduct`, updated: "2024-01-15" }
     ];
   }
 

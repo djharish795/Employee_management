@@ -22,6 +22,7 @@ import {
   Lock,
 } from "lucide-react";
 import { FullEmployeeProfile, DirectoryRole } from "@/types/employees";
+import Image from "next/image";
 
 interface ProfileTabsProps {
   profile: FullEmployeeProfile;
@@ -223,7 +224,7 @@ function OverviewTab({ profile }: { profile: FullEmployeeProfile }) {
                   key={report.id}
                   className="flex items-center gap-2.5 p-2 bg-slate-50 rounded-lg border border-slate-100"
                 >
-                  <img src={report.photoUrl} alt={report.name} className="w-8 h-8 rounded-full border border-slate-200 shadow-sm" />
+                  <Image src={report.photoUrl} alt={report.name} className="w-8 h-8 rounded-full border border-slate-200 shadow-sm" fill style={{ objectFit: "cover" }} />
                   <div className="truncate">
                     <div className="text-xs font-bold text-slate-900 truncate">{report.name}</div>
                     <div className="text-[10px] font-semibold text-slate-400 truncate mt-0.5">{report.designation}</div>
@@ -274,7 +275,7 @@ function EmploymentTab({ profile }: { profile: FullEmployeeProfile }) {
           {profile.manager && (
             <>
               <div className="flex items-center gap-3 bg-white p-2.5 rounded-lg border border-slate-200/80 shadow-sm w-full max-w-sm">
-                <img src={profile.manager.photoUrl} alt={profile.manager.name} className="w-8 h-8 rounded-full" />
+                <Image src={profile.manager.photoUrl} alt={profile.manager.name} className="w-8 h-8 rounded-full" fill style={{ objectFit: "cover" }} />
                 <div>
                   <div className="text-xs font-bold text-slate-900">{profile.manager.name}</div>
                   <div className="text-[9px] font-semibold text-slate-400 mt-0.5">Manager • {profile.manager.id}</div>
@@ -284,7 +285,7 @@ function EmploymentTab({ profile }: { profile: FullEmployeeProfile }) {
             </>
           )}
           <div className="flex items-center gap-3 bg-slate-100/50 border border-slate-300/60 p-2.5 rounded-lg w-full max-w-sm shadow-sm ring-1 ring-slate-900/10">
-            <img src={profile.photoUrl} alt={profile.name} className="w-8 h-8 rounded-full border border-blue-300" />
+            <Image src={profile.photoUrl} alt={profile.name} className="w-8 h-8 rounded-full border border-blue-300" fill style={{ objectFit: "cover" }} />
             <div>
               <div className="text-xs font-bold text-slate-950">{profile.name}</div>
               <div className="text-[9px] font-bold text-slate-700 uppercase tracking-wide mt-0.5">

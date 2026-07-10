@@ -77,7 +77,7 @@ export class OnboardingService {
     };
   }
 
-  async initiateOnboarding(data: any, actor: any) {
+  async initiateOnboarding(data: any, actor: any, ipAddress: string) {
     this.logger.log(`Initiating onboarding for ${data.firstName} ${data.lastName}`);
     
     // Check if email already exists
@@ -173,7 +173,7 @@ export class OnboardingService {
               employeeId: employee.id,
               collectedById: actor?.employeeId || employee.id, // Fallback if no actor
               purpose: "Onboarding Data Collection",
-              ipAddress: "127.0.0.1", // IP ideally comes from req
+              ipAddress: ipAddress,
             }
           });
 
@@ -253,7 +253,7 @@ export class OnboardingService {
         employeeName: data.firstName,
         employeeId: result.employee.employeeId,
         password: result.tempPassword,
-        loginUrl: 'https://naprocs.in/login' 
+        loginUrl: `${process.env.FRONTEND_URL}/login` 
       }
     ).catch(err => {
       this.logger.error(`Failed to send welcome email to ${data.email}`, err);

@@ -28,7 +28,7 @@ export class KnowledgeController {
   constructor(private readonly knowledgeService: KnowledgeService) { }
 
   @Post()
-  @Permissions(Permission.READ_OWN_PROFILE)
+  @Permissions(Permission.WRITE_EMPLOYEES)
   async create(
     @CurrentUser() user: any,
     @Body() dto: CreateKnowledgeDocDto,
@@ -64,7 +64,7 @@ export class KnowledgeController {
   }
 
   @Patch(":id")
-  @Permissions(Permission.READ_OWN_PROFILE)
+  @Permissions(Permission.WRITE_EMPLOYEES)
   async update(
     @Param("id") id: string,
     @CurrentUser() user: any,
@@ -74,7 +74,7 @@ export class KnowledgeController {
   }
 
   @Delete(":id")
-  @Permissions(Permission.READ_OWN_PROFILE)
+  @Permissions(Permission.WRITE_EMPLOYEES)
   async remove(
     @Param("id") id: string,
     @CurrentUser() user: any,
@@ -83,7 +83,7 @@ export class KnowledgeController {
   }
 
   @Patch(":id/publish")
-  @Permissions(Permission.READ_OWN_PROFILE)
+  @Permissions(Permission.WRITE_EMPLOYEES)
   async publish(
     @Param("id") id: string,
     @CurrentUser() user: any,

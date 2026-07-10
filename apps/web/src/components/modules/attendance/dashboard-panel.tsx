@@ -6,6 +6,7 @@ import { Play, Square, Coffee, ShieldAlert, CheckCircle2, Clock, Calendar, Arrow
 import Link from "next/link";
 import { AttendanceLog, AttendanceKPIs } from "@/types/attendance";
 import { fetchTodayStatus, fetchMyLogs, fetchMyKpis, submitPunch, fetchRegularizations, actionRegularization } from "@/lib/api/attendance";
+import Image from "next/image";
 
 interface DashboardPanelProps {
   activeRole: "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
@@ -738,7 +739,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                     <div key={req.id} className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm flex flex-col gap-2.5">
                       <div className="flex gap-2.5 items-start">
                         <div className="w-8 h-8 rounded-full bg-slate-200 overflow-hidden flex-shrink-0">
-                          <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${req.employeeName || req.id}`} alt="Avatar" className="w-full h-full object-cover" />
+                          <Image src={`https://api.dicebear.com/7.x/notionists/svg?seed=${req.employeeName || req.id}`} alt="Avatar" className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
                         </div>
                         <div>
                           <div className="text-xs font-bold text-slate-900">{req.employeeName || "Unknown"}</div>

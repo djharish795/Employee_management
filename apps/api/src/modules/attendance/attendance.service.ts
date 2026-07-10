@@ -3,6 +3,7 @@ import { RedisService } from "../../redis/redis.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import { PunchDto } from "./dto/punch.dto";
 import { AttendanceStatus } from "@naprocs/database";
+import { toZonedTime } from "date-fns-tz";
 
 @Injectable()
 export class AttendanceService {
@@ -135,9 +136,10 @@ export class AttendanceService {
       let initialStatus = "PRESENT";
       if (isFirstPunch) {
         const checkInTime = new Date(now);
-        const h = checkInTime.getUTCHours();
-        const m = checkInTime.getUTCMinutes();
-        if (h > 4 || (h === 4 && m > 45)) {
+        const zoned = toZonedTime(checkInTime, 'Asia/Kolkata');
+        const h = zoned.getHours();
+        const m = zoned.getMinutes();
+        if (h > 10 || (h === 10 && m > 15)) {
           initialStatus = "LATE";
         }
       }
@@ -216,9 +218,10 @@ export class AttendanceService {
         where: { employeeId_date: { employeeId, date: shiftDate } }
       });
       const checkInTime = existingRecord?.checkInTime || new Date(state.startTime);
-      const h = checkInTime.getUTCHours();
-      const m = checkInTime.getUTCMinutes();
-      const isLate = (h > 4 || (h === 4 && m > 45));
+      const zoned = toZonedTime(checkInTime, 'Asia/Kolkata');
+      const h = zoned.getHours();
+      const m = zoned.getMinutes();
+      const isLate = (h > 10 || (h === 10 && m > 15));
 
       // Threshold: 9 hours = 32400 seconds for early checkout
       let finalStatus = "PRESENT";
@@ -439,10 +442,10 @@ export class AttendanceService {
       const checkInTime = record.checkInTime;
       let isLate = false;
       if (checkInTime) {
-        const h = checkInTime.getUTCHours();
-        const m = checkInTime.getUTCMinutes();
-        // Assuming standard Indian shift 10:00 AM IST (04:30 UTC). Grace till 10:15 AM.
-        if (h > 4 || (h === 4 && m > 45)) isLate = true;
+        const zoned = toZonedTime(checkInTime, 'Asia/Kolkata');
+        const h = zoned.getHours();
+        const m = zoned.getMinutes();
+        if (h > 10 || (h === 10 && m > 15)) isLate = true;
       }
 
       if (isLate) {
@@ -492,9 +495,10 @@ export class AttendanceService {
     sixMonthRecords.forEach(record => {
       let isLate = false;
       if (record.checkInTime) {
-        const h = record.checkInTime.getUTCHours();
-        const m = record.checkInTime.getUTCMinutes();
-        if (h > 4 || (h === 4 && m > 45)) isLate = true;
+        const zoned = toZonedTime(record.checkInTime, 'Asia/Kolkata');
+        const h = zoned.getHours();
+        const m = zoned.getMinutes();
+        if (h > 10 || (h === 10 && m > 15)) isLate = true;
       }
 
       if (isLate) {
@@ -590,10 +594,10 @@ export class AttendanceService {
 
         // Check for late arrival
         if (record.checkInTime) {
-          const h = record.checkInTime.getUTCHours();
-          const m = record.checkInTime.getUTCMinutes();
-          // Assuming 10:00 AM IST -> 04:30 AM UTC
-          if (h > 4 || (h === 4 && m > 45)) {
+          const zoned = toZonedTime(record.checkInTime, 'Asia/Kolkata');
+          const h = zoned.getHours();
+          const m = zoned.getMinutes();
+          if (h > 10 || (h === 10 && m > 15)) {
             isLate = true;
           }
         }

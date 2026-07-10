@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, MoreVertical, Bell, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import Image from "next/image";
 
 // Placeholder data structure for backend team to replace with API call
 const mockTeamMembers = [
@@ -100,7 +101,7 @@ function TeamMemberCard({ avatar, name, role, status, tenure, tasks }: any) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col items-center shadow-sm hover:shadow-md transition-shadow">
       <div className="w-20 h-20 rounded-full overflow-hidden border border-slate-200 shadow-sm mb-4 bg-slate-100 flex items-center justify-center">
-        <img src={avatar} alt={name} className="w-full h-full object-cover" />
+        <Image src={avatar} alt={name} className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
       </div>
       
       <h3 className="font-bold text-lg text-slate-900 tracking-tight">{name}</h3>
@@ -137,7 +138,7 @@ function TableRow({ avatar, name, skills, level }: any) {
       <td className="px-6 py-4">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center">
-            <img src={avatar} alt={name} className="w-full h-full object-cover" />
+            <Image src={avatar} alt={name} className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
           </div>
           <span className="font-bold text-slate-900 text-sm">{name}</span>
         </div>

@@ -40,7 +40,7 @@ export default function AddEmployeePage() {
         payload: stepData
       };
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${apiUrl}/employees/onboarding/draft/step`, {
         method: "POST",
         headers: { 
@@ -74,7 +74,7 @@ export default function AddEmployeePage() {
 
   const completeOnboarding = async (id: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${apiUrl}/employees/onboarding/draft/complete`, {
         method: "POST",
         headers: { 

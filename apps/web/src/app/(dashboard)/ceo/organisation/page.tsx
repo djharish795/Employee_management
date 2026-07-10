@@ -24,7 +24,7 @@ export default function CEOOrganisationPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['organisation-dashboard-stats'],
     queryFn: async () => {
-      const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const url = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${url}/departments/dashboard`, {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
       });

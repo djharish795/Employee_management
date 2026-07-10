@@ -57,14 +57,31 @@ export class WorkflowEngineService {
   private async notifyAssignee(instanceId: string, step: any) {
     const instance = await this.prisma.workflowInstance.findUnique({
       where: { id: instanceId },
-      include: { initiatedBy: true }
+      include: { 
+        initiatedBy: {
+          include: { department: { include: { head: true } } }
+        } 
+      }
     });
     if (!instance) return;
 
     const role = step.assigneeRole;
-    // In a real implementation we would look up the exact employee based on role/department.
-    // For now we will broadcast to HR or Manager alias.
-    const recipientEmail = role === 'MANAGER' ? 'manager@naprocs.in' : 'hr@naprocs.in';
+    let recipientEmail = 'hr@naprocs.in'; // fallback
+
+    if (role === 'MANAGER') {
+      const manager = (instance.initiatedBy as any).department?.head;
+      if (manager && manager.officialEmail) {
+        recipientEmail = manager.officialEmail;
+      }
+    } else {
+      const potentialAssignee = await this.prisma.user.findFirst({
+        where: { role: role },
+        include: { employee: true }
+      });
+      if (potentialAssignee?.employee?.officialEmail) {
+        recipientEmail = potentialAssignee.employee.officialEmail;
+      }
+    }
 
     await this.emailService.sendEmail(
       recipientEmail,
@@ -254,7 +271,14 @@ export class WorkflowEngineService {
             newValue: { reason: "Timeout reached", escalatedTo: "HR" }
           });
           // Notify HR
-          await this.emailService.sendEmail('hr@naprocs.in', `Workflow Escalated: ${instance.resourceType}`, 'workflow_escalation', { workflowId: instance.id });
+          const hrUsers = await this.prisma.user.findMany({
+            where: { role: "HR" },
+            include: { employee: true }
+          });
+          const hrEmails = hrUsers.map(u => u.employee?.officialEmail).filter(Boolean);
+          if (hrEmails.length > 0) {
+            await this.emailService.sendEmail(hrEmails[0] as string, `Workflow Escalated: ${instance.resourceType}`, 'workflow_escalation', { workflowId: instance.id });
+          }
         }
       }
     }

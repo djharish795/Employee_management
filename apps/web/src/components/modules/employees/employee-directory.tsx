@@ -29,6 +29,7 @@ import { useAuthStore } from "@/store/auth";
 
 import { EmployeeActionModals } from "./employee-action-modals";
 import { EmployeeRowActions, EmployeeActionType } from "./employee-row-actions";
+import Image from "next/image";
 
 export default function EmployeeDirectory() {
   const queryClient = useQueryClient();
@@ -65,7 +66,7 @@ export default function EmployeeDirectory() {
 
   // Fetch from API
   const fetchEmployees = async (): Promise<Employee[]> => {
-    const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+    const url = process.env.NEXT_PUBLIC_API_URL!;
     const res = await fetch(`${url}/employees?page=1&limit=100`, {
       headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
       cache: "no-store",
@@ -111,7 +112,7 @@ export default function EmployeeDirectory() {
   });
 
   const fetchDepartments = async () => {
-    const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+    const url = process.env.NEXT_PUBLIC_API_URL!;
     const res = await fetch(`${url}/departments`, {
       headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
     });
@@ -152,9 +153,9 @@ export default function EmployeeDirectory() {
     return result;
   }, [rawEmployees, filters]);
 
-  const uniqueDepartments = useMemo(() => {
+  const uniqueDepartments = useMemo<string[]>(() => {
     if (departmentsData?.data && Array.isArray(departmentsData.data)) {
-      return departmentsData.data.map((d: any) => d.name).sort();
+      return departmentsData.data.map((d: any) => d.name as string).sort();
     }
     return [];
   }, [departmentsData]);
@@ -179,7 +180,7 @@ export default function EmployeeDirectory() {
   };
 
   const handleActionSuccess = async (action: EmployeeActionType, employeeId: string, payload?: any) => {
-    const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+    const url = process.env.NEXT_PUBLIC_API_URL!;
     const headers = { 
       "Content-Type": "application/json",
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
@@ -318,7 +319,7 @@ export default function EmployeeDirectory() {
             <div className="flex items-center gap-3">
               <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 relative border border-slate-200 shadow-sm overflow-hidden ${emp.avatarBg}`}>
                 {emp.photoUrl ? (
-                  <img src={emp.photoUrl} alt={emp.name} className="w-full h-full object-cover" />
+                  <Image src={emp.photoUrl} alt={emp.name} className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
                 ) : (
                   <span>{emp.initials}</span>
                 )}

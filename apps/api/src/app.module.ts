@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
-import { ConfigModule } from "@nestjs/config";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { ThrottlerModule } from "@nestjs/throttler";
 import { ScheduleModule } from "@nestjs/schedule";
 import { AuthModule } from "./modules/auth/auth.module";
 import { DocumentsModule } from "./modules/documents/documents.module";
@@ -34,6 +35,18 @@ import { LifecycleModule } from "./modules/lifecycle/lifecycle.module";
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [".env.local", ".env"],
+    }),
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        throttlers: [
+          {
+            ttl: 60,
+            limit: 10,
+          },
+        ],
+      }),
     }),
     ScheduleModule.forRoot(),
     PrismaModule,

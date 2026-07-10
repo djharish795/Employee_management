@@ -122,7 +122,7 @@ export default function NewOnboardingPage() {
                   stepNumber: currentStep.toString(),
                   payload: formData
                 });
-                if (res.data?.draftId) {
+                if (typeof window !== 'undefined') {
                   localStorage.setItem('onboarding_draft_id', res.data.draftId);
                 }
                 alert('Draft saved successfully to server!');
@@ -130,7 +130,9 @@ export default function NewOnboardingPage() {
                 console.error(err);
                 alert('Failed to save draft to server.');
                 // Fallback to local storage
-                localStorage.setItem('onboarding_draft', JSON.stringify(formData));
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('onboarding_draft', JSON.stringify(formData));
+                }
               }
             }}
             className="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
