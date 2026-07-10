@@ -118,11 +118,11 @@ model Employee {
   meetRequestsAssigned       MeetRequest[]              @relation("MeetAssignee")
   meetParticipations         MeetParticipant[]
   connectSettings            ConnectSettings?
-  assignedTasks              Task[]               @relation("TaskAssignee")
-  createdTasks               Task[]               @relation("TaskCreator")
-  generatedReports           ReportHistory[]      @relation("ReportGenerator")
-  offboardingRecord          OffboardingProcess?  @relation("EmployeeOffboarding")
-  ktAssignments              OffboardingProcess[] @relation("KTAssignee")
+  assignedTasks              Task[]                     @relation("TaskAssignee")
+  createdTasks               Task[]                     @relation("TaskCreator")
+  generatedReports           ReportHistory[]            @relation("ReportGenerator")
+  offboardingRecord          OffboardingProcess?        @relation("EmployeeOffboarding")
+  ktAssignments              OffboardingProcess[]       @relation("KTAssignee")
   onboardingSession          OnboardingSession?
 
   @@map("employees")
@@ -548,30 +548,30 @@ model DataErasureRequest {
 }
 
 model OffboardingProcess {
-  id                    String            @id @default(cuid())
-  employeeId            String            @unique
-  resignationDate       DateTime
-  lastWorkingDay        DateTime
-  exitType              String
-  exitReason            String?
-  accessRevocationDate  DateTime?
-  ktAssigneeId          String?
-  ktTargetDate          DateTime?
-  ffExpectedDate        DateTime?
-  generateLetters       Boolean           @default(true)
-  exitInterviewDate     DateTime?
-  status                String            @default("IN_PROGRESS")
-  
-  assetChecklist        Json              @default("[]")
-  deactivationChecklist Json              @default("[]")
-  settlementChecklist   Json              @default("[]")
-  ktChecklist           Json              @default("[]")
+  id                   String    @id @default(cuid())
+  employeeId           String    @unique
+  resignationDate      DateTime
+  lastWorkingDay       DateTime
+  exitType             String
+  exitReason           String?
+  accessRevocationDate DateTime?
+  ktAssigneeId         String?
+  ktTargetDate         DateTime?
+  ffExpectedDate       DateTime?
+  generateLetters      Boolean   @default(true)
+  exitInterviewDate    DateTime?
+  status               String    @default("IN_PROGRESS")
 
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
+  assetChecklist        Json @default("[]")
+  deactivationChecklist Json @default("[]")
+  settlementChecklist   Json @default("[]")
+  ktChecklist           Json @default("[]")
 
-  employee              Employee          @relation("EmployeeOffboarding", fields: [employeeId], references: [id], onDelete: Cascade)
-  ktAssignee            Employee?         @relation("KTAssignee", fields: [ktAssigneeId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  employee   Employee  @relation("EmployeeOffboarding", fields: [employeeId], references: [id], onDelete: Cascade)
+  ktAssignee Employee? @relation("KTAssignee", fields: [ktAssigneeId], references: [id], onDelete: SetNull)
 
   @@map("offboarding_processes")
 }
@@ -1108,6 +1108,7 @@ enum UserRole {
   TEAM_LEAD
   EMPLOYEE
   IT
+  CAM
 }
 
 enum UserStatus {
@@ -1540,33 +1541,33 @@ enum OnboardingStage {
 }
 
 model OnboardingSession {
-  id           String            @id @default(cuid())
-  employeeId   String            @unique
-  stage        OnboardingStage   @default(OFFER_ACCEPTED)
-  laptopType   String?
-  accessories  Json?             @default("[]")
-  software     Json?             @default("[]")
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  
-  employee     Employee          @relation(fields: [employeeId], references: [id])
-  tasks        OnboardingTask[]
+  id          String          @id @default(cuid())
+  employeeId  String          @unique
+  stage       OnboardingStage @default(OFFER_ACCEPTED)
+  laptopType  String?
+  accessories Json?           @default("[]")
+  software    Json?           @default("[]")
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  employee Employee         @relation(fields: [employeeId], references: [id])
+  tasks    OnboardingTask[]
 
   @@map("onboarding_sessions")
 }
 
 model OnboardingTask {
-  id           String            @id @default(cuid())
-  sessionId    String
-  title        String
-  description  String?
-  isCompleted  Boolean           @default(false)
-  assignedTo   String
-  completedAt  DateTime?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  id          String    @id @default(cuid())
+  sessionId   String
+  title       String
+  description String?
+  isCompleted Boolean   @default(false)
+  assignedTo  String
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  session      OnboardingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session OnboardingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([sessionId])
   @@map("onboarding_tasks")

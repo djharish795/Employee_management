@@ -21,6 +21,8 @@ export function Topbar() {
   const role = useAuthStore((state) => state.role);
   const photoUrl = useAuthStore((state) => state.photoUrl);
 
+  const lastKnownRef = useRef({ email: "User", role: "Employee", photoUrl: null as string | null });
+
   let userEmail = "User";
   if (accessToken) {
     try {
@@ -28,12 +30,18 @@ export function Topbar() {
       if (payload.email) {
         userEmail = payload.email.split('@')[0];
         // Replace dots with spaces and capitalize
-        userEmail = userEmail.split('.').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
+        userEmail = userEmail.split('.').map((part: string) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
       }
     } catch (e) {
       // ignore
     }
+    lastKnownRef.current = { email: userEmail, role: role || "Employee", photoUrl };
+  } else {
+    userEmail = lastKnownRef.current.email;
   }
+
+  const displayRole = accessToken ? (role || "Employee") : lastKnownRef.current.role;
+  const displayPhotoUrl = accessToken ? photoUrl : lastKnownRef.current.photoUrl;
 
   const handleLogout = () => {
     setIsDropdownOpen(false);
@@ -275,11 +283,11 @@ export function Topbar() {
             {/* Hide text name on mobile, show only avatar */}
             <div className="hidden sm:flex text-right flex-col">
               <span className="text-sm font-bold text-slate-900 dark:text-white leading-tight">{userEmail}</span>
-              <span className="text-[11px] font-semibold tracking-wide text-slate-500 dark:text-slate-400">{role || 'Employee'}</span>
+              <span className="text-[11px] font-semibold tracking-wide text-slate-500 dark:text-slate-400">{displayRole}</span>
             </div>
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-700 dark:text-slate-300 font-bold text-sm uppercase transition-colors">
-              {photoUrl ? (
-                <img src={photoUrl} alt="Profile" className="w-full h-full object-cover" />
+              {displayPhotoUrl ? (
+                <img src={displayPhotoUrl} alt="Profile" className="w-full h-full object-cover" />
               ) : (
                 userEmail.charAt(0)
               )}
