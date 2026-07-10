@@ -109,6 +109,38 @@ const getNavGroups = (role: string, unreadCount: number) => {
     ];
   }
 
+  if (role === 'MANAGER' || role === 'OPERATIONS_HEAD') {
+    return [
+      {
+        label: 'OPERATIONS PORTAL',
+        items: [
+          { title: 'Dashboard', icon: LayoutDashboard, href: '/employee/dashboard' },
+          { title: 'Scheduler', icon: Calendar, href: '/cam/scheduler' },
+          { title: 'Reports', icon: BarChart3, href: '/cam/reports' },
+        ]
+      },
+      {
+        label: 'MY WORKPLACE',
+        items: [
+          { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
+          { title: 'Connect', icon: MessageSquare, href: '/connect' },
+          { title: 'Attendance', icon: CalendarCheck, href: '/attendance' },
+          { title: 'Leaves', icon: Calendar, href: '/leaves' },
+          { title: 'Assets', icon: Monitor, href: '/assets' },
+          { title: 'Knowledge Base', icon: BookOpen, href: '/knowledge' },
+          { title: 'Org Chart', icon: Network, href: '/org-chart' },
+        ]
+      },
+      {
+        label: 'OTHER',
+        items: [
+          { title: 'Notifications', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined, href: '/notifications' },
+          { title: 'Settings', icon: Settings, href: '/settings' },
+        ]
+      }
+    ];
+  }
+
   const mainItems: any[] = [
     { title: 'Dashboard', icon: LayoutDashboard, href: getDashboardPath(role) },
     { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
