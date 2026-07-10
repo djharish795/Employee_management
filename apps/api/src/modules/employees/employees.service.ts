@@ -257,6 +257,28 @@ export class EmployeesService {
         consentLogsAsSubject: {
           orderBy: { consentedAt: 'desc' },
           take: 5
+        },
+        projectAssignments: {
+          include: {
+            project: {
+              select: { id: true, name: true, status: true, description: true, startDate: true, endDate: true }
+            }
+          }
+        },
+        reviewsAsSubject: {
+          include: {
+            reviewer: {
+              select: { firstName: true, lastName: true, designation: { select: { title: true } } }
+            }
+          },
+          orderBy: { submittedAt: 'desc' }
+        },
+        employeeSkills: {
+          include: {
+            skill: {
+              select: { name: true, category: true }
+            }
+          }
         }
       }
     });
@@ -328,17 +350,17 @@ export class EmployeesService {
         reportingManagerId: true,
         workLocation: true,
         department: { select: { name: true } },
-        designation: { select: { title: true } }
+        designation: { select: { id: true, title: true, reportsToDesignationId: true } }
       }
     });
+
+    const designations = await this.prisma.designation.findMany();
+    const desigMap = new Map(designations.map(d => [d.id, d]));
 
     for (const emp of employees) {
       if (emp.photoUrl && !emp.photoUrl.startsWith("http")) {
         try {
-          const command = new GetObjectCommand({
-            Bucket: this.bucketName,
-            Key: emp.photoUrl,
-          });
+          const command = new GetObjectCommand({ Bucket: this.bucketName, Key: emp.photoUrl });
           emp.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
         } catch (e) {
           console.error(`Failed to sign URL for org chart emp ${emp.id}:`, e);
@@ -346,7 +368,65 @@ export class EmployeesService {
       }
     }
 
-    return employees;
+    // Process dummy vacant nodes
+    const dummyNodes = new Map<string, any>();
+    const resultEmployees: any[] = JSON.parse(JSON.stringify(employees));
+
+    // Helper to get designation chain from manager's desig to employee's desig (exclusive of manager, exclusive of employee)
+    const getIntermediateDesignations = (managerDesigId: string | null, empDesigId: string | null) => {
+      if (!managerDesigId || !empDesigId) return [];
+      
+      const chain: any[] = [];
+      let currentDesigId = empDesigId;
+      
+      // Traverse upwards from employee
+      while (currentDesigId) {
+        const desig = desigMap.get(currentDesigId);
+        if (!desig || !desig.reportsToDesignationId) break;
+        if (desig.reportsToDesignationId === managerDesigId) break;
+        
+        currentDesigId = desig.reportsToDesignationId;
+        const parentDesig = desigMap.get(currentDesigId);
+        if (parentDesig) chain.unshift(parentDesig);
+      }
+      return chain;
+    };
+
+    for (const emp of resultEmployees) {
+      if (!emp.reportingManagerId || !emp.designation) continue;
+
+      const manager = resultEmployees.find(m => m.id === emp.reportingManagerId);
+      if (!manager || !manager.designation) continue;
+
+      const intermediate = getIntermediateDesignations(manager.designation.id, emp.designation.id);
+      
+      if (intermediate.length > 0) {
+        let currentManagerId = manager.id;
+        
+        for (const missingDesig of intermediate) {
+          const dummyId = `vacant-${missingDesig.id}-under-${manager.id}`;
+          
+          if (!dummyNodes.has(dummyId)) {
+            dummyNodes.set(dummyId, {
+              id: dummyId,
+              firstName: "Vacant",
+              lastName: missingDesig.title,
+              designation: { title: missingDesig.title },
+              department: { name: manager.department?.name || "General" },
+              reportingManagerId: currentManagerId,
+              isVacant: true,
+              photoUrl: "",
+            });
+          }
+          currentManagerId = dummyId;
+        }
+        
+        // Point the actual employee to the last dummy node
+        emp.reportingManagerId = currentManagerId;
+      }
+    }
+
+    return [...resultEmployees, ...Array.from(dummyNodes.values())];
   }
 
   async getOrgStats() {
@@ -538,6 +618,11 @@ export class EmployeesService {
     const employees = await this.prisma.employee.findMany({
       where: { 
         status: 'ACTIVE',
+        department: {
+          name: {
+            in: ['Engineering ', 'Technology', 'Engineering']
+          }
+        }
       },
       include: {
         department: true,

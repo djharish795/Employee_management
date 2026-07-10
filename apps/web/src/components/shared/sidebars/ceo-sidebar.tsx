@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, Calendar, ShieldCheck, History,
-  Network, BarChart3, Settings, LogOut, Menu, X, ChevronLeft, Plus,
+  Network, BarChart3, Settings, LogOut, Menu, X, ChevronLeft, Plus, FolderPlus,
   MessageSquare, CalendarCheck, UserPlus, UserMinus, BookOpen, Monitor, Lock, Bell, CheckSquare
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
@@ -31,6 +31,8 @@ const getNavGroups = (role: string, unreadCount: number) => {
         label: 'MAIN',
         items: [
           { title: 'Dashboard', icon: LayoutDashboard, href: '/executive/dashboard' },
+          { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
+          { title: 'Connect', icon: MessageSquare, href: '/connect' },
           { title: 'Organisation', icon: Network, href: '/ceo/organisation' },
           { title: 'Org Chart', icon: Network, href: '/org-chart' },
           { title: 'Succession Planning', icon: Users, href: '/ceo/succession-planning' },
@@ -40,8 +42,6 @@ const getNavGroups = (role: string, unreadCount: number) => {
       {
         label: 'OPERATIONS',
         items: [
-          { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
-          { title: 'Connect', icon: MessageSquare, href: '/connect' },
           { 
             title: 'Attendance', 
             icon: CalendarCheck, 
@@ -80,6 +80,8 @@ const getNavGroups = (role: string, unreadCount: number) => {
         label: 'MAIN',
         items: [
           { title: 'Dashboard', icon: LayoutDashboard, href: '/cto/dashboard' },
+          { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
+          { title: 'Connect', icon: MessageSquare, href: '/connect' },
           { title: 'Engineering Team', icon: Users, href: '/cto/team' },
           { title: 'Skill Matrix', icon: Network, href: '/cto/skills' },
           { title: 'Assets', icon: Monitor, href: '/cto/assets' },

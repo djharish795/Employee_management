@@ -64,7 +64,7 @@ export class EmployeesController {
   }
 
   @Get("cto-team")
-  @Permissions(Permission.READ_EMPLOYEES)
+  @Permissions(Permission.READ_EMPLOYEES, Permission.READ_TEAM_PROFILES)
   getCtoTeam(): Promise<any> {
     return this.employeesService.getCtoTeam();
   }

@@ -39,10 +39,12 @@ export class RbacService {
       Permission.READ_EMPLOYEES,
       Permission.WRITE_EMPLOYEES,
       Permission.READ_AUDIT,
+      Permission.MANAGE_PROJECTS,
     ],
     [UserRole.CTO]: [
       Permission.READ_EMPLOYEES,
       Permission.READ_AUDIT,
+      Permission.MANAGE_PROJECTS,
     ],
     [UserRole.COO]: [
       Permission.READ_EMPLOYEES,

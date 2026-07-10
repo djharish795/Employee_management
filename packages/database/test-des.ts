@@ -1,0 +1,1 @@
+import { PrismaClient } from '@prisma/client'; const prisma = new PrismaClient(); async function main() { const des = await prisma.designation.findMany({ include: { department: true } }); console.log(des.map(d => d.title + ' (' + d.department?.name + ')')); } main().finally(() => prisma.$disconnect());

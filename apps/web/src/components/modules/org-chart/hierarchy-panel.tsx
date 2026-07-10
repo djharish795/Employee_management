@@ -66,8 +66,9 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
         email: emp.officialEmail,
         photoUrl: emp.photoUrl || '',
         initials: (emp.firstName?.[0] || '') + (emp.lastName?.[0] || ''),
-        avatarBg: colors[index % colors.length],
-        managerId: emp.reportingManagerId
+        avatarBg: emp.isVacant ? "bg-slate-100 text-slate-400" : colors[index % colors.length],
+        managerId: emp.reportingManagerId,
+        isVacant: emp.isVacant || false
       }));
 
       return mappedEmployees;

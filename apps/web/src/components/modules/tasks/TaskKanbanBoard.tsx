@@ -1,24 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Task, tasksApi } from "@/lib/api/tasks";
 import toast from "react-hot-toast";
 import { format } from "date-fns";
+import { NewTaskModal } from "./NewTaskModal";
+import { TaskDetailsModal } from "./TaskDetailsModal";
+import { useAuthStore } from "@/store/auth";
 
-export function TaskKanbanBoard({ initialTasks }: { initialTasks: Task[] }) {
+export function TaskKanbanBoard({ initialTasks, projectId, onTaskUpdated }: { initialTasks: Task[], projectId?: string, onTaskUpdated?: (task: Task) => void }) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const currentUserId = useAuthStore((state) => state.employeeId);
+
+  useEffect(() => {
+    setTasks(initialTasks);
+  }, [initialTasks]);
 
   const columns = [
     { id: "TODO", title: "To Do" },
     { id: "IN_PROGRESS", title: "In Progress" },
+    { id: "IN_REVIEW", title: "In Review" },
+    { id: "QA", title: "QA Testing" },
     { id: "DONE", title: "Done" },
+    { id: "BLOCKED", title: "Blocked" }
   ];
 
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
     e.dataTransfer.setData("taskId", taskId);
   };
 
-  const handleDrop = async (e: React.DragEvent, targetStatus: "TODO" | "IN_PROGRESS" | "DONE") => {
+  const handleDrop = async (e: React.DragEvent, targetStatus: Task["status"]) => {
     e.preventDefault();
     const taskId = e.dataTransfer.getData("taskId");
     const task = tasks.find((t) => t.id === taskId);
@@ -30,10 +43,13 @@ export function TaskKanbanBoard({ initialTasks }: { initialTasks: Task[] }) {
       );
 
       try {
-        await tasksApi.updateStatus(taskId, targetStatus);
-        toast.success("Task updated");
+        const updatedTask = await tasksApi.updateTask(taskId, { status: targetStatus });
+        toast.success("Task status updated");
+        if (onTaskUpdated) {
+          onTaskUpdated({ ...task, status: targetStatus });
+        }
       } catch (err) {
-        toast.error("Failed to update task");
+        toast.error("Failed to update task status");
         // Revert on failure
         setTasks((prev) =>
           prev.map((t) => (t.id === taskId ? { ...t, status: task.status } : t))
@@ -47,21 +63,15 @@ export function TaskKanbanBoard({ initialTasks }: { initialTasks: Task[] }) {
   };
 
   return (
-    <div className="flex flex-col h-full gap-6 p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">My Tasks</h1>
-        <button className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-          + New Task
-        </button>
-      </div>
+    <div className="flex flex-col h-full p-2">
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3 h-full">
+      <div className="flex h-[calc(100vh-180px)] overflow-x-auto overflow-y-hidden space-x-6 pb-4">
         {columns.map((col) => (
           <div
             key={col.id}
             onDrop={(e) => handleDrop(e, col.id as any)}
             onDragOver={handleDragOver}
-            className="flex flex-col gap-4 p-4 bg-gray-50 rounded-xl min-h-[500px]"
+            className="flex flex-col gap-4 p-4 bg-gray-50 rounded-xl min-w-[320px] max-w-[320px] max-h-full overflow-y-auto"
           >
             <h2 className="text-sm font-semibold text-gray-700 uppercase">
               {col.title} ({tasks.filter((t) => t.status === col.id).length})
@@ -70,12 +80,19 @@ export function TaskKanbanBoard({ initialTasks }: { initialTasks: Task[] }) {
             <div className="flex flex-col gap-3">
               {tasks
                 .filter((t) => t.status === col.id)
-                .map((task) => (
+                .map((task) => {
+                  const isAssignee = task.assigneeId === currentUserId;
+                  return (
                   <div
                     key={task.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, task.id)}
-                    className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm cursor-grab active:cursor-grabbing hover:border-blue-300 hover:shadow-md transition-all"
+                    draggable={isAssignee}
+                    onDragStart={(e) => {
+                      if (isAssignee) handleDragStart(e, task.id);
+                    }}
+                    onClick={() => setSelectedTask(task)}
+                    className={`p-4 bg-white border border-gray-200 rounded-lg shadow-sm transition-all ${
+                      isAssignee ? 'cursor-grab active:cursor-grabbing hover:border-blue-300 hover:shadow-md' : 'cursor-pointer hover:border-gray-300'
+                    }`}
                   >
                     <div className="flex items-start justify-between">
                       <h3 className="font-medium text-gray-900">{task.title}</h3>
@@ -89,6 +106,17 @@ export function TaskKanbanBoard({ initialTasks }: { initialTasks: Task[] }) {
                         }`}
                       >
                         {task.priority}
+                      </span>
+                    </div>
+                    
+                    <div className="flex mt-2">
+                      <span className={`text-[10px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded border ${
+                        task.type === "BUG" ? "border-red-500 text-red-600 bg-red-50" :
+                        task.type === "STORY" ? "border-green-500 text-green-600 bg-green-50" :
+                        task.type === "EPIC" ? "border-purple-500 text-purple-600 bg-purple-50" :
+                        "border-blue-500 text-blue-600 bg-blue-50"
+                      }`}>
+                        {task.type}
                       </span>
                     </div>
                     {task.description && (
@@ -109,11 +137,29 @@ export function TaskKanbanBoard({ initialTasks }: { initialTasks: Task[] }) {
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
             </div>
           </div>
         ))}
       </div>
+
+      <NewTaskModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        projectId={projectId}
+        onTaskCreated={(newTask) => setTasks((prev) => [newTask, ...prev])}
+      />
+
+      <TaskDetailsModal
+        isOpen={!!selectedTask}
+        onClose={() => setSelectedTask(null)}
+        task={selectedTask}
+        onTaskUpdated={(updatedTask) => {
+          setTasks((prev) => prev.map((t) => (t.id === updatedTask.id ? updatedTask : t)));
+          setSelectedTask(updatedTask);
+        }}
+      />
     </div>
   );
 }

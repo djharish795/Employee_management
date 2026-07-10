@@ -43,7 +43,7 @@ export const connectApi = {
     api.get("/connect/settings"),
 
   updateSettings: (data: any) => 
-    api.put("/connect/settings", data),
+    api.post("/connect/settings", data),
 
   getGoals: () => 
     api.get("/connect/goals"),

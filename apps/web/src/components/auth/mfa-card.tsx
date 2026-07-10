@@ -92,6 +92,7 @@ export const MfaCard: React.FC = () => {
           refreshToken: res.refreshToken,
           role: role,
           employeeId: res.employeeId ?? null,
+          isTeamLead: res.isTeamLead ?? false,
         });
         document.cookie = `token=${res.token}; path=/; max-age=86400; SameSite=Strict`;
         document.cookie = `role=${role}; path=/; max-age=86400; SameSite=Strict`;

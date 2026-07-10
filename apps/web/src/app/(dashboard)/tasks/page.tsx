@@ -7,7 +7,7 @@ export const metadata = {
 export default function TasksPage() {
   return (
     <div className="h-full bg-white">
-      <TasksClient />
+      <TasksClient mode="INDIVIDUAL" />
     </div>
   );
 }

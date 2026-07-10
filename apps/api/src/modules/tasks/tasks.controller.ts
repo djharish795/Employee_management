@@ -20,16 +20,45 @@ export class TasksController {
     return this.tasksService.getMyTasks(employeeId);
   }
 
+  @Get("project/:projectId")
+  @Permissions(Permission.READ_EMPLOYEES)
+  async getProjectTasks(@Param("projectId") projectId: string): Promise<any> {
+    return this.tasksService.getProjectTasks(projectId);
+  }
+
   @Post()
   @Permissions(Permission.WRITE_OWN_PROFILE)
   async createTask(@CurrentUser() user: any, @Body() dto: any): Promise<any> {
-    const employeeId = user.employeeId;
-    return this.tasksService.createTask(employeeId, dto);
+    return this.tasksService.createTask(user, dto);
   }
 
-  @Patch(":id/status")
-  @Permissions(Permission.WRITE_OWN_PROFILE)
-  async updateStatus(@Param("id") id: string, @Body("status") status: TaskStatus): Promise<any> {
-    return this.tasksService.updateTaskStatus(id, status);
+  @Patch(":id")
+  @Permissions(Permission.WRITE_OWN_PROFILE, Permission.MANAGE_PROJECTS)
+  async updateTask(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body() dto: any
+  ): Promise<any> {
+    return this.tasksService.updateTask(id, user, dto);
+  }
+
+  @Post(":id/comments")
+  @Permissions(Permission.WRITE_OWN_PROFILE, Permission.MANAGE_PROJECTS)
+  async addComment(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body() dto: { content: string, category?: string }
+  ): Promise<any> {
+    return this.tasksService.addComment(id, user.employeeId, dto.content, dto.category);
+  }
+
+  @Post(":id/actions")
+  @Permissions(Permission.MANAGE_PROJECTS)
+  async addAction(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body() dto: { type: string; notes?: string }
+  ): Promise<any> {
+    return this.tasksService.addAction(id, user.employeeId, dto.type, dto.notes);
   }
 }

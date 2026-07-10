@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Bell, HelpCircle, LogOut, User } from 'lucide-react';
+import { Search, Bell, HelpCircle, LogOut, User, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 
@@ -13,6 +13,7 @@ export function Topbar() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const role = useAuthStore((state) => state.role);
   const photoUrl = useAuthStore((state) => state.photoUrl);
+  const isTeamLead = useAuthStore((state) => state.isTeamLead);
 
   let userEmail = "User";
   if (accessToken) {
@@ -102,10 +103,10 @@ export function Topbar() {
       {/* Right Actions */}
       <div className="flex items-center gap-3 sm:gap-6 ml-auto">
         <div className="flex items-center gap-2 sm:gap-4 text-slate-600 dark:text-slate-400">
-          <button onClick={() => {}} className="hover:text-slate-900 dark:hover:text-white transition-colors focus:outline-none">
+          <button onClick={() => { }} className="hover:text-slate-900 dark:hover:text-white transition-colors focus:outline-none">
             <Bell className="w-5 h-5" />
           </button>
-          <button onClick={() => {}} className="hidden sm:block hover:text-slate-900 dark:hover:text-white transition-colors focus:outline-none">
+          <button onClick={() => { }} className="hidden sm:block hover:text-slate-900 dark:hover:text-white transition-colors focus:outline-none">
             <HelpCircle className="w-5 h-5" />
           </button>
         </div>
@@ -115,7 +116,7 @@ export function Topbar() {
 
         {/* Profile with Dropdown */}
         <div className="relative" ref={dropdownRef}>
-          <div 
+          <div
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             className="flex items-center gap-2 sm:gap-3 cursor-pointer group"
           >
@@ -136,19 +137,31 @@ export function Topbar() {
           {/* Dropdown Menu */}
           {isDropdownOpen && (
             <div className="absolute right-0 mt-3 w-48 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-              <button 
+              <button
                 onClick={() => {
                   setIsDropdownOpen(false);
                   router.push('/profile/settings');
-                }} 
+                }}
                 className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-white flex items-center gap-2 transition-colors"
               >
                 <User className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                 Profile Settings
               </button>
+              {isTeamLead && (
+                <button
+                  onClick={() => {
+                    setIsDropdownOpen(false);
+                    router.push('/team-lead/team');
+                  }}
+                  className="w-full text-left px-4 py-2.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 flex items-center gap-2 transition-colors"
+                >
+                  <Users className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
+                  Team Lead Portal
+                </button>
+              )}
               <div className="h-px bg-slate-100 dark:bg-slate-800 my-1 transition-colors" />
-              <button 
-                onClick={handleLogout} 
+              <button
+                onClick={handleLogout}
                 className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center gap-2 transition-colors"
               >
                 <LogOut className="w-4 h-4 text-red-500 dark:text-red-400" />

@@ -9,6 +9,7 @@ export interface LoginResponse {
   role?: string;
   redirectPath?: string;
   employeeId?: string | null;
+  isTeamLead?: boolean;
 }
 
 export interface VerifyMFAResponse {
@@ -20,6 +21,7 @@ export interface VerifyMFAResponse {
   unknownDevice?: boolean;
   deviceDetails?: DeviceDetails;
   employeeId?: string | null;
+  isTeamLead?: boolean;
 }
 
 export class AuthService {

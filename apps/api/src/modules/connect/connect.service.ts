@@ -211,7 +211,7 @@ export class ConnectService {
           item.taskId = task.id; // Save reference back to the JSON
         } else {
           // Update existing task status
-          await this.tasksService.updateTaskStatus(item.taskId, item.completed ? TaskStatus.DONE : TaskStatus.TODO);
+          await this.tasksService.updateTask(item.taskId, { status: item.completed ? TaskStatus.DONE : TaskStatus.TODO });
         }
       }
     }

@@ -12,6 +12,7 @@ export interface OrgEmployee {
   avatarBg: string;
   gender?: string;
   managerId: string | null; // Adjacency list relation
+  isVacant?: boolean;
 }
 
 export interface DepartmentNode {
