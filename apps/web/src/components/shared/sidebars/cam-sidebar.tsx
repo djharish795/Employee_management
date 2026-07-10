@@ -33,14 +33,8 @@ export function CamSidebar() {
     {
       label: 'CAM PORTAL',
       items: [
-        { title: 'Dashboard', icon: LayoutDashboard, href: '/cam/dashboard', locked: true },
-        { title: 'Leads', icon: Users, href: '/cam/leads', locked: true },
-        { title: 'Pipeline', icon: AlignLeft, href: '/cam/pipeline', locked: true },
+        { title: 'Dashboard', icon: LayoutDashboard, href: '/cam/dashboard' },
         { title: 'Scheduler', icon: Calendar, href: '/cam/scheduler' },
-        { title: 'Activity', icon: History, href: '/cam/activity', locked: true },
-        { title: 'Opportunities', icon: Briefcase, href: '/cam/opportunities', locked: true },
-        { title: 'Onboarding', icon: UserPlus, href: '/cam/onboarding', locked: true },
-        { title: 'Targets', icon: Target, href: '/cam/targets', locked: true },
         { title: 'Reports', icon: BarChart3, href: '/cam/reports' },
       ]
     },

@@ -34,6 +34,7 @@ const roleDashboardMap: Record<string, string> = {
   CHRO: "/hr/dashboard",
   HR: "/hr/dashboard",
   TEAM_LEAD: "/team-lead/dashboard",
+  CAM: "/cam/dashboard",
 };
 
 // ---------- Inline design tokens (from HTML) ----------

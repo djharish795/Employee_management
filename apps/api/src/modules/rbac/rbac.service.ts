@@ -56,6 +56,9 @@ export class RbacService {
     [UserRole.IT]: [
       Permission.READ_EMPLOYEES,
     ],
+    [UserRole.CAM]: [
+      Permission.READ_EMPLOYEES,
+    ],
   };
 
   getPermissionsForRole(role: UserRole): Permission[] {

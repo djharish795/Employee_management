@@ -4,7 +4,7 @@ import React from 'react';
 import { 
   Download, FileSpreadsheet, BarChart2, ShoppingCart, 
   DollarSign, TrendingUp, Filter, MoreVertical, 
-  Clock, Calendar, PenSquare, Trash2, CheckCircle2
+  Clock, Calendar, PenSquare, Trash2, CheckCircle2, Users
 } from 'lucide-react';
 
 export default function CamReportsPage() {

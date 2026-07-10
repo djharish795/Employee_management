@@ -22,6 +22,7 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto) {
+    console.log(`Login attempt for email: ${dto.email}, password length: ${dto.password?.length}`);
     const email = dto.email.trim().toLowerCase();
 
     const user = await this.prisma.user.findUnique({

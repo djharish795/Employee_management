@@ -17,6 +17,7 @@ import {
   submitPunch,
 } from "@/lib/api/attendance";
 import { fetchMyLeaveKpi } from "@/lib/api/leaves";
+import { RecentNotificationsWidget } from "@/components/shared/recent-notifications-widget";
 
 export default function EmployeeDashboardV2() {
   const queryClient = useQueryClient();
