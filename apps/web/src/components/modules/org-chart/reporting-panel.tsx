@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api/client";
 import { useAuthStore } from "@/store/auth";
 import Link from "next/link";
+import Image from "next/image";
 
 interface ReportingPanelProps {
   activeRole: string;
@@ -120,7 +121,7 @@ export default function ReportingPanel({ activeRole }: ReportingPanelProps) {
 
   const getAvatarContent = (emp: OrgEmployee, className: string = "w-full h-full object-cover") => {
     if (emp.photoUrl) {
-      return <img src={emp.photoUrl} alt={emp.name} className={className} />;
+      return <Image src={emp.photoUrl} alt={emp.name} className={className} fill style={{ objectFit: "cover" }} />;
     }
     return <span>{emp.initials}</span>;
   };

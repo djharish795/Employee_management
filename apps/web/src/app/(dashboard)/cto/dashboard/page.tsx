@@ -77,7 +77,7 @@ export default function CtoDashboardPage() {
 
   const handleExport = async () => {
     try {
-      const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const url = process.env.NEXT_PUBLIC_API_URL!;
       const token = useAuthStore.getState().accessToken;
       const res = await fetch(`${url}/dashboard/cto-export`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},

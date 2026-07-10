@@ -3,6 +3,7 @@
 import React from "react";
 import { Search, History, MousePointerClick, ShieldCheck, UserCog, Briefcase, FileText } from "lucide-react";
 import { AuditRole, AuditEvent } from "@/types/audit";
+import Image from "next/image";
 
 interface UserActivityPanelProps {
   activeRole: AuditRole;
@@ -84,7 +85,7 @@ export default function UserActivityPanel({ activeRole }: UserActivityPanelProps
 
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-900 flex items-center justify-center font-bold text-sm border border-slate-200 overflow-hidden">
-              <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Lokesh" alt="Lokesh" />
+              <Image src="https://api.dicebear.com/7.x/notionists/svg?seed=Lokesh" alt="Lokesh" fill style={{ objectFit: "cover" }} />
             </div>
             <div>
               <div className="text-sm font-bold text-slate-900">Lokesh Kumar</div>

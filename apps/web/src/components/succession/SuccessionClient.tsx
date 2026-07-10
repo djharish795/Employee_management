@@ -28,7 +28,7 @@ export function SuccessionClient() {
   const { data: employeesData } = useQuery({
     queryKey: ['employees-list'],
     queryFn: async () => {
-      const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const url = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${url}/employees?limit=100`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
@@ -51,7 +51,7 @@ export function SuccessionClient() {
   const { data: plans, isLoading } = useQuery<SuccessionPlanDto[]>({
     queryKey: ['succession-plans'],
     queryFn: async () => {
-      const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const url = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${url}/succession`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
@@ -83,7 +83,7 @@ export function SuccessionClient() {
     setIsSubmitting(true);
     setErrorMsg("");
     try {
-      const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const url = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${url}/succession`, {
         method: "POST",
         headers: {
@@ -116,7 +116,7 @@ export function SuccessionClient() {
     setActiveDropdown(null);
     if (!confirm(`Are you sure you want to delete the position tracking for ${roleTitle}?`)) return;
     try {
-      const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const url = process.env.NEXT_PUBLIC_API_URL!;
       // Real plans have a real ID, mock plans start with 'm' or might not exist in backend
       const realPlans = plansToDelete.filter(p => p.id && !p.id.toString().startsWith('m'));
       
@@ -137,7 +137,7 @@ export function SuccessionClient() {
     setIsSubmitting(true);
     setErrorMsg("");
     try {
-      const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const url = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${url}/succession`, {
         method: "POST",
         headers: {

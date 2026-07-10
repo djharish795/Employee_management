@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 
 import React, { useEffect, useState } from 'react';
 import { Shield, User, Lock, Smartphone, Key, Settings as SettingsIcon, Loader2, Save, Eye, EyeOff, MapPin, Briefcase } from 'lucide-react';
@@ -51,8 +52,10 @@ export default function ProfileSettingsPage() {
     try {
       setSaving(true);
       
-      localStorage.setItem('pref_email', profile?.emailNotifications);
-      localStorage.setItem('pref_push', profile?.pushNotifications);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('pref_email', profile?.emailNotifications);
+        localStorage.setItem('pref_push', profile?.pushNotifications);
+      }
 
       await updateMyProfile({
         phone: profile?.phone,
@@ -134,7 +137,7 @@ export default function ProfileSettingsPage() {
             <div className="relative group w-24 h-24 shrink-0">
               <div className="w-full h-full rounded-full bg-slate-200 dark:bg-slate-800 border-4 border-white dark:border-slate-900 shadow-md flex items-center justify-center overflow-hidden">
                 {profile?.photoUrl ? (
-                  <img src={profile.photoUrl} alt="Profile" className="w-full h-full object-cover" />
+                  <Image src={profile.photoUrl} alt="Profile" className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
                 ) : (
                   <User className="w-10 h-10 text-slate-400 dark:text-slate-500" />
                 )}

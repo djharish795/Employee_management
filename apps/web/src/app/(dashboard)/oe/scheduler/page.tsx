@@ -6,6 +6,7 @@ import {
   MoreVertical, Video, FileText, CheckCircle2, Clock, PlusCircle
 } from 'lucide-react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfMonth, isSameMonth, isSameDay, isToday } from 'date-fns';
+import Image from "next/image";
 
 export default function OeSchedulerPage() {
   const [currentDate, setCurrentDate] = useState(new Date(2023, 8, 7)); // September 7, 2023 to match mockup
@@ -242,7 +243,7 @@ export default function OeSchedulerPage() {
               <div className="bg-white dark:bg-slate-900 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden">
-                    <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Elena" className="w-full h-full object-cover" />
+                    <Image src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Elena" className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-slate-900 dark:text-white">Elena Rodriguez</h4>
@@ -262,7 +263,7 @@ export default function OeSchedulerPage() {
               <div className="bg-white dark:bg-slate-900 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden">
-                    <img src="https://i.pravatar.cc/150?u=a042581f4e29026024d" alt="David" className="w-full h-full object-cover" />
+                    <Image src="https://i.pravatar.cc/150?u=a042581f4e29026024d" alt="David" className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-slate-900 dark:text-white">David Chen</h4>

@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
+import Image from "next/image";
 
 interface ProfileHeaderProps {
   profile: FullEmployeeProfile;
@@ -128,7 +129,7 @@ export default function ProfileHeader({ profile, activeRole, onRoleChange }: Pro
           >
             <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center text-2xl sm:text-3xl font-bold border-4 border-white shadow-md overflow-hidden ${profile.avatarBg}`}>
               {displayPhotoUrl ? (
-                <img src={displayPhotoUrl} alt={profile.name} className="w-full h-full object-cover" />
+                <Image src={displayPhotoUrl} alt={profile.name} className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
               ) : (
                 <span>{profile.initials}</span>
               )}
@@ -185,7 +186,7 @@ export default function ProfileHeader({ profile, activeRole, onRoleChange }: Pro
                 <div className="flex items-center gap-2">
                   <span className="text-slate-400">Reporting to:</span>
                   <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 border border-slate-100 rounded-md">
-                    <img src={profile.manager.photoUrl} alt={profile.manager.name} className="w-4 h-4 rounded-full" />
+                    <Image src={profile.manager.photoUrl} alt={profile.manager.name} className="w-4 h-4 rounded-full" fill style={{ objectFit: "cover" }} />
                     <span className="text-slate-700 font-bold text-[11px]">{profile.manager.name}</span>
                   </div>
                 </div>
