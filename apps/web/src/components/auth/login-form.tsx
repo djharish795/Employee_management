@@ -104,7 +104,7 @@ export const LoginForm: React.FC = () => {
         }
         router.push(res.redirectPath ?? "/employee/dashboard");
       } else {
-        router.push("/employee/dashboard");
+        throw new Error("Authentication failed: Missing secure tokens in server response.");
       }
     } catch (err: any) {
       setErrorMsg(err.message || "An unexpected error occurred. Please try again.");
