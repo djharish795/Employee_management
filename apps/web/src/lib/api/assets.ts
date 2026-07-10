@@ -16,6 +16,16 @@ export const assetsApi = {
     return data.data ?? data;
   },
 
+  getMy: async () => {
+    const { data } = await apiClient.get(`${BASE}/my`);
+    return data.data ?? data;
+  },
+
+  activity: async () => {
+    const { data } = await apiClient.get(`${BASE}/activity`);
+    return data.data ?? data;
+  },
+
   get: async (id: string) => {
     const { data } = await apiClient.get(`${BASE}/${id}`);
     return data.data ?? data;

@@ -464,4 +464,97 @@ export class AssetsRepository {
 
     return { metrics: { totalDevices, softwareLicenses, dueForRefresh }, assets, totalCount: assets.length };
   }
+
+  async getRecentActivity(limit = 10, employeeId?: string): Promise<any[]> {
+    // 1. Fetch recent assignments
+    const assignments = await this.prisma.assetAssignment.findMany({
+      where: employeeId ? { employeeId } : undefined,
+      take: limit,
+      orderBy: { assignedAt: "desc" },
+      include: {
+        asset: true,
+        employee: true,
+        assignedBy: true,
+      },
+    });
+
+    // 2. Fetch recent returns
+    const returns = await this.prisma.assetAssignment.findMany({
+      where: employeeId ? { returnedAt: { not: null }, employeeId } : { returnedAt: { not: null } },
+      take: limit,
+      orderBy: { returnedAt: "desc" },
+      include: {
+        asset: true,
+        employee: true,
+        assignedBy: true, // We'll just use employee for who returned it in this context
+      },
+    });
+
+    // 3. Fetch recent workflow approvals (Asset Requests)
+    const approvals = await this.prisma.workflowInstance.findMany({
+      where: {
+        workflow: { type: "ASSET_REQUEST" },
+        status: { in: ["PENDING", "APPROVED", "REJECTED"] },
+        initiatedById: employeeId ? employeeId : undefined,
+      },
+      take: limit,
+      orderBy: { updatedAt: "desc" },
+      include: {
+        initiatedBy: true,
+        workflow: true,
+      },
+    });
+
+    const activity = [];
+
+    // Map Assignments
+    for (const a of assignments) {
+      activity.push({
+        id: `assign-${a.id}`,
+        action: "ASSIGNED",
+        assetName: a.asset.name,
+        assetTag: a.asset.assetTag,
+        performedBy: a.assignedBy ? `${a.assignedBy.firstName} ${a.assignedBy.lastName}` : "System",
+        performedByAvatar: a.assignedBy ? `https://api.dicebear.com/7.x/notionists/svg?seed=${a.assignedBy.firstName}` : "",
+        targetEmployee: a.employee ? `${a.employee.firstName} ${a.employee.lastName}` : null,
+        timestamp: a.assignedAt.toISOString(),
+      });
+    }
+
+    // Map Returns
+    for (const r of returns) {
+      activity.push({
+        id: `return-${r.id}`,
+        action: "RETURNED",
+        assetName: r.asset.name,
+        assetTag: r.asset.assetTag,
+        performedBy: r.employee ? `${r.employee.firstName} ${r.employee.lastName}` : "System",
+        performedByAvatar: r.employee ? `https://api.dicebear.com/7.x/notionists/svg?seed=${r.employee.firstName}` : "",
+        targetEmployee: null,
+        timestamp: r.returnedAt!.toISOString(),
+      });
+    }
+
+    // Map Requests (Pending/Approved/Rejected)
+    for (const app of approvals) {
+      activity.push({
+        id: `app-${app.id}`,
+        action: app.status === "PENDING" ? "REQUESTED" : app.status === "APPROVED" ? "APPROVED" : "REJECTED",
+        assetName: `Asset Request`,
+        assetTag: `REQ-${app.id.slice(-5).toUpperCase()}`,
+        performedBy: app.status === "PENDING" 
+          ? (app.initiatedBy ? `${app.initiatedBy.firstName} ${app.initiatedBy.lastName}` : "System") 
+          : "HR / IT Admin",
+        performedByAvatar: app.status === "PENDING" && app.initiatedBy 
+          ? `https://api.dicebear.com/7.x/notionists/svg?seed=${app.initiatedBy.firstName}` 
+          : "",
+        targetEmployee: app.initiatedBy ? `${app.initiatedBy.firstName} ${app.initiatedBy.lastName}` : null,
+        timestamp: app.status === "PENDING" ? app.createdAt.toISOString() : app.updatedAt.toISOString(),
+      });
+    }
+
+    // Sort combined by timestamp descending and take limit
+    activity.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return activity.slice(0, limit);
+  }
 }

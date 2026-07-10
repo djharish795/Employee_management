@@ -27,154 +27,7 @@ interface DashboardPanelProps {
   activeRole: AssetRole;
 }
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const MOCK_MY_ASSETS: Asset[] = [
-  {
-    id: "a1",
-    assetTag: "LAP-2024-0042",
-    name: "MacBook Pro 14\"",
-    category: "LAPTOP",
-    brand: "Apple",
-    model: "MacBook Pro M3 Pro",
-    serialNumber: "C02ZG1XKMD6T",
-    purchaseDate: "Jan 2024",
-    purchaseValue: 185000,
-    currentValue: 148000,
-    status: "ASSIGNED",
-    assignedTo: "You",
-    assignedToAvatar: null,
-    department: "Engineering",
-    location: "Hyderabad HQ",
-    warrantyExpiry: "Jan 2027",
-    condition: "EXCELLENT",
-    notes: "Primary work laptop",
-  },
-  {
-    id: "a2",
-    assetTag: "MON-2024-0011",
-    name: "Dell UltraSharp 27\"",
-    category: "MONITOR",
-    brand: "Dell",
-    model: "U2723QE",
-    serialNumber: "CN0482C4",
-    purchaseDate: "Feb 2024",
-    purchaseValue: 48000,
-    currentValue: 40000,
-    status: "ASSIGNED",
-    assignedTo: "You",
-    assignedToAvatar: null,
-    department: "Engineering",
-    location: "Hyderabad HQ",
-    warrantyExpiry: "Feb 2027",
-    condition: "GOOD",
-    notes: "Secondary display",
-  },
-  {
-    id: "a3",
-    assetTag: "HST-2023-0019",
-    name: "Sony WH-1000XM5",
-    category: "HEADSET",
-    brand: "Sony",
-    model: "WH-1000XM5",
-    serialNumber: "5068281-00",
-    purchaseDate: "Sep 2023",
-    purchaseValue: 28000,
-    currentValue: 20000,
-    status: "ASSIGNED",
-    assignedTo: "You",
-    assignedToAvatar: null,
-    department: "Engineering",
-    location: "Hyderabad HQ",
-    warrantyExpiry: "Sep 2025",
-    condition: "GOOD",
-    notes: "Noise-cancelling headset",
-  },
-];
-
-const MOCK_RECENT_ACTIVITY: AssetActivity[] = [
-  {
-    id: "act1",
-    action: "ASSIGNED",
-    assetName: "MacBook Pro 14\"",
-    assetTag: "LAP-2024-0072",
-    performedBy: "Ravi Kumar (IT Admin)",
-    performedByAvatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Ravi",
-    targetEmployee: "Ananya Sharma",
-    timestamp: "15 Jun 2026, 10:30 AM",
-  },
-  {
-    id: "act2",
-    action: "MAINTENANCE",
-    assetName: "HP LaserJet Pro",
-    assetTag: "PRN-2022-0003",
-    performedBy: "Venkat IT (IT Admin)",
-    performedByAvatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Venkat",
-    targetEmployee: null,
-    timestamp: "14 Jun 2026, 02:15 PM",
-  },
-  {
-    id: "act3",
-    action: "RETURNED",
-    assetName: "iPad Pro 12.9\"",
-    assetTag: "TAB-2023-0008",
-    performedBy: "Priya HR",
-    performedByAvatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Priya",
-    targetEmployee: "Kiran Reddy",
-    timestamp: "13 Jun 2026, 05:00 PM",
-  },
-  {
-    id: "act4",
-    action: "APPROVED",
-    assetName: "Logitech MX Master 3",
-    assetTag: "MOU-2026-0031",
-    performedBy: "Ravi Kumar (IT Admin)",
-    performedByAvatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Ravi",
-    targetEmployee: "Suresh V.",
-    timestamp: "12 Jun 2026, 11:00 AM",
-  },
-  {
-    id: "act5",
-    action: "REQUESTED",
-    assetName: "External SSD 1TB",
-    assetTag: "STO-REQ-0023",
-    performedBy: "Divya Menon",
-    performedByAvatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Divya",
-    targetEmployee: null,
-    timestamp: "11 Jun 2026, 09:45 AM",
-  },
-];
-
-const MOCK_PENDING_REQUESTS: AssetRequest[] = [
-  {
-    id: "req1",
-    requestedBy: "Akash Singh",
-    requestedByAvatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Akash",
-    department: "Sales",
-    assetCategory: "LAPTOP",
-    description: "New hire laptop request",
-    justification: "Joining as Senior Sales Executive on July 1st",
-    priority: "HIGH",
-    status: "PENDING",
-    requestDate: "14 Jun 2026",
-    responseDate: null,
-    respondedBy: null,
-  },
-  {
-    id: "req2",
-    requestedBy: "Meera Pillai",
-    requestedByAvatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Meera",
-    department: "Design",
-    assetCategory: "MONITOR",
-    description: "Extra monitor for design work",
-    justification: "Need dual-monitor setup for UI/UX design workflows",
-    priority: "MEDIUM",
-    status: "PENDING",
-    requestDate: "13 Jun 2026",
-    responseDate: null,
-    respondedBy: null,
-  },
-];
+// ─── Component ────────────────────────────────────────────────────────────────
 
 const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
   LAPTOP: Laptop,
@@ -258,23 +111,45 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
     enabled: !isEmployee,
   });
 
+  const { data: myAssetsObj } = useQuery({
+    queryKey: ["myAssets"],
+    queryFn: async () => assetsApi.getMy(),
+    enabled: isEmployee,
+  });
+  const myAssets = (myAssetsObj?.assets || []) as Asset[];
+
+  const { data: recentActivityObj } = useQuery({
+    queryKey: ["assetActivity"],
+    queryFn: async () => assetsApi.activity(),
+  });
+  const recentActivity = (recentActivityObj || []) as AssetActivity[];
+
+  const { data: pendingRequestsObj } = useQuery({
+    queryKey: ["pendingRequests"],
+    queryFn: async () => assetsApi.listRequests(),
+    enabled: isEmployee,
+  });
+  const pendingRequests = (pendingRequestsObj?.requests || pendingRequestsObj || []) as AssetRequest[];
+
   const kpis = useMemo(() => {
     if (isEmployee) {
+      const activeValue = myAssets.reduce((sum, asset) => sum + (asset.purchaseValue || asset.currentValue || 0), 0);
+      const valueFormatted = `₹${activeValue.toLocaleString('en-IN')}`;
       return {
-        totalAssets: 3,
-        assignedAssets: 3,
+        totalAssets: myAssets.length,
+        assignedAssets: myAssets.length,
         availableAssets: 0,
         maintenanceAssets: 0,
-        totalValue: "₹2,08,000",
-        pendingRequests: 0,
+        totalValue: valueFormatted,
+        pendingRequests: pendingRequests.length,
       };
     }
     const counts = summaryKpis?.countsByStatus || {};
     const totalActiveValue = financialKpis?.activeValuation || 0;
-    const valueFormatted = totalActiveValue > 10000000 
-      ? `₹${(totalActiveValue / 10000000).toFixed(1)} Cr` 
+    const valueFormatted = totalActiveValue > 10000000
+      ? `₹${(totalActiveValue / 10000000).toFixed(1)} Cr`
       : `₹${(totalActiveValue / 100000).toFixed(1)} L`;
-      
+
     return {
       totalAssets: summaryKpis?.totalAssetsCount || 0,
       assignedAssets: counts.ASSIGNED || 0,
@@ -283,22 +158,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
       totalValue: valueFormatted,
       pendingRequests: summaryKpis?.pendingWorkflowRequests || 0,
     };
-  }, [isEmployee, summaryKpis, financialKpis]);
-
-  const { data: myAssets = [] } = useQuery<Asset[]>({
-    queryKey: ["myAssets"],
-    queryFn: async () => MOCK_MY_ASSETS,
-  });
-
-  const { data: recentActivity = [] } = useQuery<AssetActivity[]>({
-    queryKey: ["assetActivity"],
-    queryFn: async () => MOCK_RECENT_ACTIVITY,
-  });
-
-  const { data: pendingRequests = [] } = useQuery<AssetRequest[]>({
-    queryKey: ["pendingRequests"],
-    queryFn: async () => MOCK_PENDING_REQUESTS,
-  });
+  }, [isEmployee, summaryKpis, financialKpis, myAssets, pendingRequests]);
 
   return (
     <div className="space-y-6">
@@ -397,9 +257,9 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 My Requests
               </div>
-              <div className="text-xl font-bold text-slate-900 mt-1">0</div>
+              <div className="text-xl font-bold text-slate-900 mt-1">{kpis.pendingRequests}</div>
               <div className="text-[10px] font-semibold text-slate-900 mt-1">
-                No pending requests
+                {kpis.pendingRequests === 1 ? "1 pending request" : `${kpis.pendingRequests} pending requests`}
               </div>
             </div>
             <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm col-span-2 md:col-span-1">
@@ -481,7 +341,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                   // simple color rotation
                   const colors = ["bg-violet-600", "bg-slate-700", "bg-emerald-500", "bg-amber-500", "bg-sky-500", "bg-rose-500", "bg-slate-400"];
                   const color = cat.color || colors[idx % colors.length];
-                  
+
                   return (
                     <div key={idx} className="flex items-center gap-3">
                       <div className="text-xs font-bold text-slate-700 w-24 flex-shrink-0">
@@ -657,24 +517,45 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
               <AlertCircle className="w-4 h-4 text-amber-500" />
             </div>
             <div className="space-y-2.5">
-              {[
-                { name: "Sony WH-1000XM5", tag: "HST-2023-0019", expiry: "Sep 2025", days: 90 },
-                { name: "Dell Latitude 7420", tag: "LAP-2021-0008", expiry: "Dec 2025", days: 180 },
-              ].map((item, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between p-2.5 bg-amber-50 border border-amber-100 rounded-lg"
-                >
-                  <div>
-                    <div className="text-xs font-bold text-slate-900">{item.name}</div>
-                    <div className="text-[10px] font-semibold text-slate-400">{item.tag}</div>
+              {(() => {
+                const now = new Date();
+                const alerts = myAssets.map(asset => {
+                  if (!asset.warrantyExpiry) return null;
+                  const expiryDate = new Date(asset.warrantyExpiry);
+                  if (isNaN(expiryDate.getTime())) return null;
+                  const diffTime = expiryDate.getTime() - now.getTime();
+                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                  if (diffDays <= 180 && diffDays >= 0) {
+                    return {
+                      name: asset.name,
+                      tag: asset.assetTag,
+                      expiry: expiryDate.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }),
+                      days: diffDays
+                    };
+                  }
+                  return null;
+                }).filter(Boolean);
+
+                if (alerts.length === 0) {
+                  return <div className="text-xs text-slate-500 font-medium">No impending warranty expirations.</div>;
+                }
+
+                return alerts.map((item, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between p-2.5 bg-amber-50 border border-amber-100 rounded-lg"
+                  >
+                    <div>
+                      <div className="text-xs font-bold text-slate-900">{item!.name}</div>
+                      <div className="text-[10px] font-semibold text-slate-400">{item!.tag}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[10px] font-bold text-amber-700">Expires {item!.expiry}</div>
+                      <div className="text-[9px] font-semibold text-amber-600">{item!.days} days left</div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-[10px] font-bold text-amber-700">Expires {item.expiry}</div>
-                    <div className="text-[9px] font-semibold text-amber-600">{item.days} days left</div>
-                  </div>
-                </div>
-              ))}
+                ));
+              })()}
             </div>
           </div>
         </div>

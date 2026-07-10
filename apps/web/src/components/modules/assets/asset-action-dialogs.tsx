@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { assetsApi } from "@/lib/api/assets";
 import {
@@ -222,6 +222,153 @@ export function ViewAssetDialog({ asset, onClose }: ActionDialogProps) {
             className="px-4 py-2 text-sm font-bold text-white bg-slate-800 rounded-lg hover:bg-slate-900"
           >
             Close
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function FulfillRequestDialog({ request, onClose }: { request: any, onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const [selectedAssetId, setSelectedAssetId] = useState<string>("");
+
+  const { data: availableAssetsObj, isLoading } = useQuery({
+    queryKey: ["assets", "AVAILABLE", request?.assetCategory],
+    queryFn: () => assetsApi.list({ status: "AVAILABLE", category: request?.assetCategory }),
+    enabled: !!request,
+  });
+
+  const availableAssets = (availableAssetsObj?.assets || []) as Asset[];
+
+  const fulfillMutation = useMutation({
+    mutationFn: async () => {
+      // 1. Mark request as APPROVED
+      await assetsApi.respondToRequest(request!.id, { status: "APPROVED" });
+      
+      // 2. If an asset is selected, assign it
+      if (selectedAssetId) {
+        await assetsApi.assign(selectedAssetId, {
+          employeeId: request!.initiatorId,
+          assignedById: "system", // The backend controller injects the actual user
+          notes: `Fulfilled request ${request!.id}`
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["assetRequests"] });
+      queryClient.invalidateQueries({ queryKey: ["assets"] });
+      queryClient.invalidateQueries({ queryKey: ["kpiSummary"] });
+      queryClient.invalidateQueries({ queryKey: ["assetActivity"] });
+      onClose();
+      toast.success(selectedAssetId ? "Request Approved & Asset Assigned!" : "Request Approved without assignment.");
+    },
+    onError: (err: any) => {
+      const msg = err.response?.data?.message || err.message || "Failed to fulfill request";
+      toast.error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    }
+  });
+
+  if (!request) return null;
+
+  return (
+    <Dialog open={!!request} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Approve & Assign Asset</DialogTitle>
+          <DialogDescription>
+            Fulfill {request.requestedBy}'s request for a {request.assetCategory}.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-slate-700">Select Available Asset</label>
+            {isLoading ? (
+              <p className="text-sm text-slate-500">Loading inventory...</p>
+            ) : availableAssets.length === 0 ? (
+              <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg text-amber-800 text-sm">
+                No available assets found in category <strong>{request.assetCategory}</strong>. 
+                You can still approve the request now and assign an asset later.
+              </div>
+            ) : (
+              <select
+                value={selectedAssetId}
+                onChange={(e) => setSelectedAssetId(e.target.value)}
+                className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 outline-none transition-all bg-white"
+              >
+                <option value="">-- Do not assign right now --</option>
+                {availableAssets.map(a => (
+                  <option key={a.id} value={a.id}>
+                    {a.name} ({a.assetTag})
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        </div>
+        <DialogFooter>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-bold text-slate-600 border rounded-lg hover:bg-slate-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => fulfillMutation.mutate()}
+            disabled={fulfillMutation.isPending}
+            className="px-4 py-2 text-sm font-bold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50"
+          >
+            {fulfillMutation.isPending ? "Processing..." : (selectedAssetId ? "Approve & Assign" : "Approve Only")}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function DeleteAssetDialog({ asset, onClose }: { asset: Asset | null, onClose: () => void }) {
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: () => assetsApi.delete(asset!.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["assets"] });
+      queryClient.invalidateQueries({ queryKey: ["kpiSummary"] });
+      queryClient.invalidateQueries({ queryKey: ["kpiCategories"] });
+      queryClient.invalidateQueries({ queryKey: ["kpiFinancials"] });
+      onClose();
+      toast.success("Asset deleted successfully!");
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || "Failed to delete asset");
+    },
+  });
+
+  return (
+    <Dialog open={!!asset} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Delete Asset</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete <strong>{asset?.name}</strong> ({asset?.assetTag})? This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+
+        <DialogFooter className="mt-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={deleteMutation.isPending}
+            onClick={() => deleteMutation.mutate()}
+            className="px-4 py-2 text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-sm transition-colors disabled:opacity-50"
+          >
+            {deleteMutation.isPending ? "Deleting..." : "Delete Asset"}
           </button>
         </DialogFooter>
       </DialogContent>

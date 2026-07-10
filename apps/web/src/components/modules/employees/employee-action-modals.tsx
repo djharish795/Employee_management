@@ -27,6 +27,22 @@ export function EmployeeActionModals({ actionType, employee, isOpen, onClose, on
   const [designation, setDesignation] = useState("");
   const [reason, setReason] = useState("");
   const [confirmText, setConfirmText] = useState("");
+  
+  // Additional state for editing
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [oldPassword, setOldPassword] = useState("");
+
+  React.useEffect(() => {
+    if (employee) {
+      setName(employee.name || "");
+      setEmail(employee.email || "");
+      setDepartment(employee.department || "");
+      setDesignation(employee.designation || "");
+      setManager(employee.manager?.id || "");
+    }
+  }, [employee, isOpen]);
 
   if (!employee || !actionType) return null;
 
@@ -37,12 +53,25 @@ export function EmployeeActionModals({ actionType, employee, isOpen, onClose, on
     setDesignation("");
     setReason("");
     setConfirmText("");
+    setName("");
+    setEmail("");
+    setPassword("");
+    setOldPassword("");
     onClose();
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSuccess(actionType, employee.id, { manager, department, designation, reason });
+    onSuccess(actionType, employee.id, { 
+      manager, 
+      department, 
+      designation, 
+      reason,
+      name,
+      email,
+      password,
+      oldPassword
+    });
     handleClose();
   };
 
@@ -63,11 +92,11 @@ export function EmployeeActionModals({ actionType, employee, isOpen, onClose, on
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Full Name</label>
-                  <Input defaultValue={employee.name} className="h-9 text-sm font-medium" />
+                  <Input value={name} onChange={(e) => setName(e.target.value)} required className="h-9 text-sm font-medium" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Email</label>
-                  <Input defaultValue={employee.email} className="h-9 text-sm font-medium" />
+                  <Input value={email} onChange={(e) => setEmail(e.target.value)} required type="email" className="h-9 text-sm font-medium" />
                 </div>
               </div>
             </div>
@@ -77,11 +106,11 @@ export function EmployeeActionModals({ actionType, employee, isOpen, onClose, on
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Department</label>
-                  <Input defaultValue={employee.department} className="h-9 text-sm font-medium" />
+                  <Input value={department} onChange={(e) => setDepartment(e.target.value)} required className="h-9 text-sm font-medium" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Designation</label>
-                  <Input defaultValue={employee.designation} className="h-9 text-sm font-medium" />
+                  <Input value={designation} onChange={(e) => setDesignation(e.target.value)} required className="h-9 text-sm font-medium" />
                 </div>
               </div>
             </div>
@@ -116,18 +145,14 @@ export function EmployeeActionModals({ actionType, employee, isOpen, onClose, on
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Select Manager</label>
-              <select 
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Manager ID</label>
+              <Input 
                 value={manager} 
                 onChange={(e) => setManager(e.target.value)}
                 required
-                className="w-full h-10 px-3 rounded-lg border border-slate-200 text-sm font-medium bg-white focus:ring-2 focus:ring-slate-900/20"
-              >
-                <option value="">Select a manager...</option>
-                <option value="NAP-0001">Alex Thompson (CEO)</option>
-                <option value="NAP-0003">Sarah Q. (VP)</option>
-                <option value="NAP-9821">Arjun Mehta (Lead)</option>
-              </select>
+                placeholder="Enter Manager Employee ID (e.g. NPR/TR/001)"
+                className="h-10 text-sm font-medium"
+              />
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Effective Date</label>
@@ -156,13 +181,8 @@ export function EmployeeActionModals({ actionType, employee, isOpen, onClose, on
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">New Department</label>
-              <select required value={department} onChange={(e) => setDepartment(e.target.value)} className="w-full h-10 px-3 rounded-lg border border-slate-200 text-sm font-medium bg-white">
-                <option value="">Select...</option>
-                <option value="Engineering">Engineering</option>
-                <option value="Product Design">Product Design</option>
-                <option value="Sales">Sales</option>
-              </select>
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">New Department ID</label>
+              <Input required value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="e.g. Engineering" className="h-10 text-sm font-medium" />
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Reason for Transfer</label>
@@ -222,13 +242,25 @@ export function EmployeeActionModals({ actionType, employee, isOpen, onClose, on
               Are you sure you want to reset the password for <strong>{employee.name}</strong>?
             </DialogDescription>
           </DialogHeader>
-          <div className="bg-amber-50 border border-amber-100 p-3 rounded-lg text-xs font-semibold text-amber-800 my-2">
-            A temporary password will be generated and sent to {employee.email}.
-          </div>
-          <DialogFooter className="pt-2">
-            <button type="button" onClick={handleClose} className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50">Cancel</button>
-            <button onClick={handleSubmit} className="px-4 py-2 rounded-lg bg-amber-500 text-sm font-bold text-white hover:bg-amber-600">Reset Password</button>
-          </DialogFooter>
+          <form onSubmit={handleSubmit}>
+            <div className="bg-amber-50 border border-amber-100 p-3 rounded-lg text-xs font-semibold text-amber-800 my-2">
+              Please enter the old password and the new password for {employee.name}.
+            </div>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Old Password</label>
+                <Input required type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} placeholder="Enter old password" className="h-10 text-sm font-medium" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">New Password</label>
+                <Input required type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter new password" className="h-10 text-sm font-medium" />
+              </div>
+            </div>
+            <DialogFooter className="pt-2">
+              <button type="button" onClick={handleClose} className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50">Cancel</button>
+              <button type="submit" className="px-4 py-2 rounded-lg bg-amber-500 text-sm font-bold text-white hover:bg-amber-600">Reset Password</button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     );

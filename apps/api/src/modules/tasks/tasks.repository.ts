@@ -37,4 +37,16 @@ export class TasksRepository {
       include: { assignee: true, creator: true }
     });
   }
+
+  async findById(id: string): Promise<any> {
+    return this.prisma.task.findUnique({
+      where: { id }
+    });
+  }
+
+  async deleteTask(id: string): Promise<any> {
+    return this.prisma.task.delete({
+      where: { id }
+    });
+  }
 }

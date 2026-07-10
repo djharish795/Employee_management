@@ -26,7 +26,7 @@ const ALL_ROLES: AssetRole[] = ["IT_ADMIN", "ADMIN", "HR", "CEO", "MANAGER", "EM
 export default function AssetsLayout({ children, activeRole, onRoleChange }: AssetsLayoutProps) {
   const pathname = usePathname();
   const currentUserRole = useAuthStore((state) => state.role) || "EMPLOYEE";
-  const isEmployeeLevel = ["EMPLOYEE", "MANAGER", "TEAM_LEAD", "IT"].includes(currentUserRole);
+  const isEmployeeLevel = ["EMPLOYEE", "MANAGER", "TEAM_LEAD"].includes(currentUserRole);
   const effectiveRole = isEmployeeLevel ? "EMPLOYEE" : activeRole;
 
   const navItems = React.useMemo(() => {

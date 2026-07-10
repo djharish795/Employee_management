@@ -17,7 +17,10 @@ import {
   submitPunch,
 } from "@/lib/api/attendance";
 import { fetchMyLeaveKpi } from "@/lib/api/leaves";
-import { RecentNotificationsWidget } from "@/components/shared/recent-notifications-widget";
+import { fetchMyProfile } from "@/lib/api/profile";
+import { assetsApi } from "@/lib/api/assets";
+import { workflowsApi } from "@/lib/api/workflows";
+import { fetchNotifications } from "@/lib/api/notifications";
 
 export default function EmployeeDashboardV2() {
   const queryClient = useQueryClient();
@@ -54,6 +57,30 @@ export default function EmployeeDashboardV2() {
     enabled: !!employeeId,
   });
 
+  const profileQuery = useQuery({
+    queryKey: ["myProfile"],
+    queryFn: fetchMyProfile,
+    staleTime: 600_000,
+  });
+
+  const assetsQuery = useQuery({
+    queryKey: ["myAssets"],
+    queryFn: assetsApi.getMy,
+    staleTime: 60_000,
+  });
+
+  const tasksQuery = useQuery({
+    queryKey: ["myTasks"],
+    queryFn: workflowsApi.getMyApprovals,
+    staleTime: 60_000,
+  });
+
+  const notificationsQuery = useQuery({
+    queryKey: ["myNotifications"],
+    queryFn: fetchNotifications,
+    staleTime: 60_000,
+  });
+
   const todayState = todayQuery.data?.state ?? "OUT";
   const isPunchedIn = todayState === "IN" || todayState === "BREAK";
 
@@ -87,7 +114,7 @@ export default function EmployeeDashboardV2() {
   })();
 
   const leaveBalance = leaveKpiQuery.data?.availableLeaves ?? "--";
-  const assetsAssigned = 3;
+  const assetsAssigned = assetsQuery.data?.length ?? 0;
 
   // Header Data
   const greetingHour = new Date().getHours();
@@ -97,7 +124,9 @@ export default function EmployeeDashboardV2() {
         "Good evening";
 
   let userName = "Employee";
-  if (accessToken) {
+  if (profileQuery.data?.firstName) {
+    userName = `${profileQuery.data.firstName} ${profileQuery.data.lastName || ""}`.trim();
+  } else if (accessToken) {
     try {
       const payload = JSON.parse(atob(accessToken.split('.')[1]));
       if (payload.email) {
@@ -341,57 +370,59 @@ export default function EmployeeDashboardV2() {
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 flex flex-col">
           <h3 className="text-sm font-bold text-slate-900 mb-4">Pending for you</h3>
           <div className="space-y-3">
-            {/* Task 1 */}
-            <div className="border border-slate-200 rounded-xl p-4 flex items-center justify-between hover:border-slate-300 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-amber-700 text-white flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-5 h-5" />
+            {tasksQuery.isLoading ? (
+              <div className="flex justify-center p-4"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
+            ) : tasksQuery.data && tasksQuery.data.length > 0 ? (
+              tasksQuery.data.slice(0, 3).map((task: any) => (
+                <div key={task.id} className="border border-slate-200 rounded-xl p-4 flex items-center justify-between hover:border-slate-300 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">{task.workflow?.name || "Workflow Task"}</p>
+                      <p className="text-[11px] font-medium text-slate-500">From {task.initiatedBy?.firstName} {task.initiatedBy?.lastName}</p>
+                    </div>
+                  </div>
+                  <Link href={`/workflows/${task.id}`} className="px-3 py-1.5 border border-slate-300 rounded-md text-[11px] font-bold text-slate-700 hover:bg-slate-50 transition-colors">
+                    Review
+                  </Link>
                 </div>
-                <div>
-                  <p className="text-sm font-bold text-slate-900">Sign asset agreement</p>
-                  <p className="text-[11px] font-medium text-slate-500">Due tomorrow</p>
-                </div>
+              ))
+            ) : (
+              <div className="text-center p-6 border border-dashed border-slate-200 rounded-xl">
+                <CheckCircle2 className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                <p className="text-sm font-medium text-slate-500">You're all caught up!</p>
               </div>
-              <button className="px-3 py-1.5 border border-slate-300 rounded-md text-[11px] font-bold text-slate-700 hover:bg-slate-50 transition-colors">
-                Sign now
-              </button>
-            </div>
-
-            {/* Task 2 */}
-            <div className="border border-slate-200 rounded-xl p-4 flex items-center justify-between hover:border-slate-300 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center flex-shrink-0">
-                  <ShieldAlert className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-slate-900">Acknowledge policy update</p>
-                  <p className="text-[11px] font-medium text-slate-500">Version 2.4.1</p>
-                </div>
-              </div>
-              <button className="px-3 py-1.5 border border-slate-300 rounded-md text-[11px] font-bold text-slate-700 hover:bg-slate-50 transition-colors">
-                Review
-              </button>
-            </div>
-
-            {/* Task 3 (Completed) */}
-            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
-                  <CheckCircle2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-slate-900">Leave approved</p>
-                  <p className="text-[11px] font-medium text-slate-500">2h ago • Manager: S. Verma</p>
-                </div>
-              </div>
-              <CheckCircle2 className="w-5 h-5 text-emerald-500 mr-2" />
-            </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Recent Notifications */}
-      <RecentNotificationsWidget />
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold text-slate-900">Recent notifications</h3>
+          <Link href="/notifications" className="text-xs font-bold text-blue-600 hover:text-blue-700">View all</Link>
+        </div>
+        <div className="space-y-4">
+          {notificationsQuery.isLoading ? (
+            <div className="flex justify-center p-2"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
+          ) : notificationsQuery.data && notificationsQuery.data.length > 0 ? (
+            notificationsQuery.data.slice(0, 4).map((notification: any) => (
+              <div key={notification.id} className="flex items-start gap-4">
+                <span className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${!notification.isRead ? 'bg-blue-500' : 'bg-slate-300'}`}></span>
+                <div>
+                  <p className={`text-sm ${!notification.isRead ? 'font-semibold text-slate-900' : 'font-medium text-slate-600'}`}>{notification.title}</p>
+                  <p className="text-[11px] font-medium text-slate-400 mt-0.5">{new Date(notification.createdAt).toLocaleDateString()}</p>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm font-medium text-slate-500 text-center py-4">No recent notifications</p>
+          )}
+        </div>
+      </div>
 
     </div>
   );

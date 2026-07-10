@@ -8,17 +8,19 @@ import { useAuthStore } from "@/store/auth";
 
 export default function AssetsDashboardPage() {
   const { activeRole, setActiveRole } = useAssetsTestStore();
-  const authRole = useAuthStore((state) => state.role);
+  const currentUserRole = useAuthStore((state) => state.role) || "EMPLOYEE";
+  const isEmployeeLevel = ["EMPLOYEE", "MANAGER", "TEAM_LEAD"].includes(currentUserRole);
+  const effectiveRole = isEmployeeLevel ? "EMPLOYEE" : activeRole;
 
   useEffect(() => {
-    if (authRole) {
-      setActiveRole(authRole as any);
+    if (currentUserRole) {
+      setActiveRole(currentUserRole as any);
     }
-  }, [authRole, setActiveRole]);
+  }, [currentUserRole, setActiveRole]);
 
   return (
-    <AssetsLayout activeRole={activeRole} onRoleChange={setActiveRole}>
-      <DashboardPanel activeRole={activeRole} />
+    <AssetsLayout activeRole={effectiveRole as any} onRoleChange={setActiveRole}>
+      <DashboardPanel activeRole={effectiveRole as any} />
     </AssetsLayout>
   );
 }
