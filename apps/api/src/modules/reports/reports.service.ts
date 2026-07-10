@@ -22,15 +22,14 @@ export class ReportsService {
     let fileName = `report-${type.toLowerCase()}-${Date.now()}`;
     let name = '';
 
-    const employees = await this.prisma.employee.findMany({
-      include: { department: true, designation: true },
-    });
-
     if (type === 'HEADCOUNT') {
       name = 'Headcount Summary';
       if (format === 'PDF') {
-        buffer = await this.generateHeadcountPDF(employees);
+        buffer = await this.generateHeadcountPDF();
       } else {
+        const employees = await this.prisma.employee.findMany({
+          include: { department: true, designation: true },
+        });
         buffer = await this.generateHeadcountXLSX(employees);
       }
     } else if (type === 'ATTENDANCE') {
@@ -105,7 +104,22 @@ export class ReportsService {
     await this.s3.send(command);
   }
 
-  private async generateHeadcountPDF(employees: any[]): Promise<Buffer> {
+  private async generateHeadcountPDF(): Promise<Buffer> {
+    const counts = await this.prisma.employee.groupBy({
+      by: ['departmentId'],
+      _count: true,
+    });
+    const deptsRaw = await this.prisma.department.findMany();
+    const deptMap = new Map(deptsRaw.map(d => [d.id, d.name]));
+
+    const depts: Record<string, number> = {};
+    let totalEmployees = 0;
+    counts.forEach(c => {
+      const dName = c.departmentId ? (deptMap.get(c.departmentId) || 'Unknown') : 'Unassigned';
+      depts[dName] = (depts[dName] || 0) + c._count;
+      totalEmployees += c._count;
+    });
+
     return new Promise((resolve) => {
       const doc = new PDFDocument();
       const buffers: Buffer[] = [];
@@ -114,14 +128,8 @@ export class ReportsService {
 
       doc.fontSize(20).text('Headcount Summary', { align: 'center' });
       doc.moveDown();
-      doc.fontSize(12).text(`Total Employees: ${employees.length}`);
+      doc.fontSize(12).text(`Total Employees: ${totalEmployees}`);
       doc.moveDown();
-
-      const depts: Record<string, number> = {};
-      employees.forEach((e) => {
-        const d = e.department?.name || 'Unassigned';
-        depts[d] = (depts[d] || 0) + 1;
-      });
 
       doc.fontSize(14).text('By Department:');
       doc.fontSize(12);

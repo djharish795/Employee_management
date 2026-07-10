@@ -1,12 +1,16 @@
-import { ValidationPipe } from "@nestjs/common";
+import { ValidationPipe, Logger } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  if (!process.env.WS_CORS_ORIGIN) {
+    throw new Error('WS_CORS_ORIGIN environment variable is required');
+  }
+
   app.enableCors({
-    origin: process.env.WS_CORS_ORIGIN ?? "http://localhost:3000",
+    origin: process.env.WS_CORS_ORIGIN,
     credentials: true,
   });
 
@@ -23,7 +27,8 @@ async function bootstrap() {
 
   const port = Number(process.env.PORT ?? 3001);
   await app.listen(port);
-  console.log(`API listening on http://localhost:${port}/api/${apiVersion}`);
+  const logger = new Logger('Bootstrap');
+  logger.log(`API listening on port ${port}/api/${apiVersion}`);
 }
 
 bootstrap();

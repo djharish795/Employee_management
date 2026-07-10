@@ -31,7 +31,7 @@ export class EmailService implements OnModuleInit {
     if (this.transporter) {
       try {
         const info = await this.transporter.sendMail({
-          from: `"Naprocs EMS" <${process.env.AWS_SES_FROM_EMAIL || 'noreply@naprocs.in'}>`,
+          from: `"Naprocs EMS" <${process.env.AWS_SES_FROM_EMAIL}>`,
           to,
           subject,
           text: `Template: ${templateName}\n\nContext:\n${JSON.stringify(context, null, 2)}`,

@@ -57,7 +57,7 @@ export class SearchService {
           { officialEmail: { contains: q, mode: 'insensitive' } }
         ]
       },
-      take: 5
+      take: 50
     });
 
     for (const emp of employees) {

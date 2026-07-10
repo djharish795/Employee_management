@@ -111,12 +111,14 @@ export class AssetsController {
 
   // Create new asset (IT Admin / Super Admin only)
   @Post()
+  @Permissions(Permission.READ_EMPLOYEES)
   async create(@CurrentUser() user: any, @Body() dto: CreateAssetDto) {
     return this.assetsService.create(user.role as UserRole, dto);
   }
 
   // Update asset
   @Patch(":id")
+  @Permissions(Permission.READ_EMPLOYEES)
   async update(
     @CurrentUser() user: any,
     @Param("id") id: string,
@@ -127,12 +129,14 @@ export class AssetsController {
 
   // Delete asset
   @Delete(":id")
+  @Permissions(Permission.READ_EMPLOYEES)
   async remove(@CurrentUser() user: any, @Param("id") id: string) {
     return this.assetsService.remove(user.role as UserRole, id);
   }
 
   // Assign asset to employee
   @Post(":id/assign")
+  @Permissions(Permission.READ_EMPLOYEES)
   async assign(
     @CurrentUser() user: any,
     @Param("id") assetId: string,
@@ -144,6 +148,7 @@ export class AssetsController {
 
   // Return asset
   @Post(":id/return")
+  @Permissions(Permission.READ_EMPLOYEES)
   async returnAsset(
     @CurrentUser() user: any,
     @Param("id") assetId: string,
@@ -184,6 +189,7 @@ export class AssetRequestsController {
   }
 
   @Patch(":id/respond")
+  @Permissions(Permission.READ_EMPLOYEES)
   async respondToRequest(
     @CurrentUser() user: any,
     @Param("id") id: string,

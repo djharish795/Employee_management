@@ -278,31 +278,34 @@ export class AssetsRepository {
   }
 
   async getCategoryBreakdown(): Promise<any> {
-    const assets = await this.prisma.asset.findMany({
-      select: { category: true, status: true },
+    const grouped = await this.prisma.asset.groupBy({
+      by: ['category', 'status'],
+      _count: { _all: true }
     });
 
     const categories = Object.values(AssetCategory);
     return categories.map((cat) => {
-      const catAssets = assets.filter((a) => a.category === cat);
-      const totalCount = catAssets.length;
-      const assignedCount = catAssets.filter((a) => a.status === AssetStatus.ASSIGNED).length;
-      const availableCount = catAssets.filter((a) => a.status === AssetStatus.AVAILABLE).length;
-      const damagedCount = catAssets.filter((a) => a.status === AssetStatus.DAMAGED).length;
-      const lostCount = catAssets.filter((a) => a.status === AssetStatus.LOST).length;
-      const retiredCount = catAssets.filter((a) => a.status === AssetStatus.RETIRED).length;
-      const activeCount = catAssets.filter(
-        (a) => a.status !== AssetStatus.RETIRED && a.status !== AssetStatus.REPLACED
-      ).length;
+      const catData = grouped.filter(g => g.category === cat);
+      const totalCount = catData.reduce((acc, curr) => acc + curr._count._all, 0);
+      const assignedCount = catData.find(g => g.status === AssetStatus.ASSIGNED)?._count._all || 0;
+      const availableCount = catData.find(g => g.status === AssetStatus.AVAILABLE)?._count._all || 0;
+      const damagedCount = catData.find(g => g.status === AssetStatus.DAMAGED)?._count._all || 0;
+      const lostCount = catData.find(g => g.status === AssetStatus.LOST)?._count._all || 0;
+      const retiredCount = catData.find(g => g.status === AssetStatus.RETIRED)?._count._all || 0;
+      const replacedCount = catData.find(g => g.status === AssetStatus.REPLACED)?._count._all || 0;
+      
+      const activeCount = totalCount - retiredCount - replacedCount;
       const utilizationRate =
         activeCount > 0 ? Number(((assignedCount / activeCount) * 100).toFixed(2)) : 0;
+      
       return { category: cat, totalCount, assignedCount, availableCount, damagedCount, lostCount, retiredCount, utilizationRate };
     });
   }
 
   async getFinancialSummary(): Promise<any> {
-    const assets = await this.prisma.asset.findMany({
-      select: { category: true, status: true, purchaseCost: true },
+    const grouped = await this.prisma.asset.groupBy({
+      by: ['category', 'status'],
+      _sum: { purchaseCost: true },
     });
 
     let totalInvestment = 0;
@@ -325,22 +328,25 @@ export class AssetsRepository {
       [AssetCategory.OTHER]: 0,
     };
 
-    assets.forEach((asset) => {
-      const cost = asset.purchaseCost ? Number(asset.purchaseCost) : 0;
+    grouped.forEach((g) => {
+      const cost = Number(g._sum.purchaseCost || 0);
       totalInvestment += cost;
+      
       if (
-        asset.status !== AssetStatus.RETIRED &&
-        asset.status !== AssetStatus.REPLACED &&
-        asset.status !== AssetStatus.LOST &&
-        asset.status !== AssetStatus.DAMAGED
+        g.status !== AssetStatus.RETIRED &&
+        g.status !== AssetStatus.REPLACED &&
+        g.status !== AssetStatus.LOST &&
+        g.status !== AssetStatus.DAMAGED
       ) {
         activeValuation += cost;
       }
-      if (([AssetStatus.LOST, AssetStatus.DAMAGED, AssetStatus.RETIRED] as AssetStatus[]).includes(asset.status)) {
-        lossValuation[asset.status] = (lossValuation[asset.status] || 0) + cost;
+      
+      if (([AssetStatus.LOST, AssetStatus.DAMAGED, AssetStatus.RETIRED] as AssetStatus[]).includes(g.status)) {
+        lossValuation[g.status] = (lossValuation[g.status] || 0) + cost;
       }
-      if (expenditureByCategory[asset.category] !== undefined) {
-        expenditureByCategory[asset.category] += cost;
+      
+      if (expenditureByCategory[g.category] !== undefined) {
+        expenditureByCategory[g.category] += cost;
       }
     });
 
@@ -515,7 +521,7 @@ export class AssetsRepository {
         assetName: a.asset.name,
         assetTag: a.asset.assetTag,
         performedBy: a.assignedBy ? `${a.assignedBy.firstName} ${a.assignedBy.lastName}` : "System",
-        performedByAvatar: a.assignedBy ? `https://api.dicebear.com/7.x/notionists/svg?seed=${a.assignedBy.firstName}` : "",
+        performedByAvatar: a.assignedBy ? `${process.env.AVATAR_API_URL}?seed=${a.assignedBy.firstName}` : "",
         targetEmployee: a.employee ? `${a.employee.firstName} ${a.employee.lastName}` : null,
         timestamp: a.assignedAt.toISOString(),
       });
@@ -529,7 +535,7 @@ export class AssetsRepository {
         assetName: r.asset.name,
         assetTag: r.asset.assetTag,
         performedBy: r.employee ? `${r.employee.firstName} ${r.employee.lastName}` : "System",
-        performedByAvatar: r.employee ? `https://api.dicebear.com/7.x/notionists/svg?seed=${r.employee.firstName}` : "",
+        performedByAvatar: r.employee ? `${process.env.AVATAR_API_URL}?seed=${r.employee.firstName}` : "",
         targetEmployee: null,
         timestamp: r.returnedAt!.toISOString(),
       });
@@ -546,7 +552,7 @@ export class AssetsRepository {
           ? (app.initiatedBy ? `${app.initiatedBy.firstName} ${app.initiatedBy.lastName}` : "System") 
           : "HR / IT Admin",
         performedByAvatar: app.status === "PENDING" && app.initiatedBy 
-          ? `https://api.dicebear.com/7.x/notionists/svg?seed=${app.initiatedBy.firstName}` 
+          ? `${process.env.AVATAR_API_URL}?seed=${app.initiatedBy.firstName}` 
           : "",
         targetEmployee: app.initiatedBy ? `${app.initiatedBy.firstName} ${app.initiatedBy.lastName}` : null,
         timestamp: app.status === "PENDING" ? app.createdAt.toISOString() : app.updatedAt.toISOString(),

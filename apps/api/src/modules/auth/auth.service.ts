@@ -22,7 +22,6 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto) {
-    console.log(`Login attempt for email: ${dto.email}, password length: ${dto.password?.length}`);
     const email = dto.email.trim().toLowerCase();
 
     const user = await this.prisma.user.findUnique({
@@ -47,37 +46,13 @@ export class AuthService {
       throw new UnauthorizedException("Invalid email or password.");
     }
 
-    // --- MFA TEMPORARILY BYPASSED FOR TESTING ---
-    // const challenge = await this.mfa.createEmailOtpChallenge(user.id, user.email);
-    //
-    // return {
-    //   mfaRequired: true,
-    //   challengeId: challenge.challengeId,
-    //   method: challenge.method,
-    // };
-
-    const issued = await this.tokens.issueTokens({
-      userId: user.id,
-      email: user.email,
-      role: user.role as UserRole,
-      employeeId: user.employeeId ?? undefined,
-    });
-
-    let finalRedirectPath = issued.redirectPath;
-    if (user.employee?.status === "ONBOARDING") {
-      finalRedirectPath = "/employee/onboarding";
-    }
+    const challenge = await this.mfa.createEmailOtpChallenge(user.id, user.email);
 
     return {
-      mfaRequired: false,
-      token: issued.accessToken,
-      refreshToken: issued.refreshToken,
-      role: issued.role,
-      redirectPath: finalRedirectPath,
-      employeeId: user.employeeId ?? null,
-      employeeStatus: user.employee?.status ?? null,
+      mfaRequired: true,
+      challengeId: challenge.challengeId,
+      method: challenge.method,
     };
-    // ---------------------------------------------
   }
 
   async verifyMfa(dto: MfaVerifyDto) {

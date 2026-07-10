@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, NotFoundException, ForbiddenException, BadRequestException } from "@nestjs/common";
+import { Injectable, ConflictException, NotFoundException, ForbiddenException, BadRequestException, Logger } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { RbacService } from "../rbac/rbac.service";
 import { CreateEmployeeDto } from "./dto/create-employee.dto";
@@ -16,6 +16,7 @@ import { createS3Client } from "../../common/utils/s3.util";
 
 @Injectable()
 export class EmployeesService {
+  private readonly logger = new Logger(EmployeesService.name);
   private readonly s3: S3Client;
   private readonly bucketName: string;
 
@@ -143,7 +144,7 @@ export class EmployeesService {
           });
           employee.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
         } catch (error) {
-          console.error(`Failed to sign URL for employee ${employee.id}:`, error);
+          this.logger.error(`Failed to sign URL for employee ${employee.id}:`, error);
         }
       }
 
@@ -217,7 +218,7 @@ export class EmployeesService {
     ]);
 
     // Enhance employees with signed photo URLs
-    for (const emp of data) {
+    await Promise.all(data.map(async (emp) => {
       if (emp.photoUrl && !emp.photoUrl.startsWith("http")) {
         try {
           const command = new GetObjectCommand({
@@ -226,10 +227,10 @@ export class EmployeesService {
           });
           emp.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
         } catch (error) {
-          console.error(`Failed to sign URL for employee ${emp.id}:`, error);
+          this.logger.error(`Failed to sign URL for employee ${emp.id}:`, error);
         }
       }
-    }
+    }));
 
     return createPaginatedResponse(data, total, page, limit);
   }
@@ -302,7 +303,7 @@ export class EmployeesService {
 
     const empWithRels = employee as any;
     if (empWithRels.subordinates && empWithRels.subordinates.length > 0) {
-      for (const sub of empWithRels.subordinates) {
+      await Promise.all(empWithRels.subordinates.map(async (sub: any) => {
         if (sub.photoUrl && !sub.photoUrl.startsWith("http")) {
           try {
             const subCommand = new GetObjectCommand({
@@ -311,10 +312,10 @@ export class EmployeesService {
             });
             sub.photoUrl = await getSignedUrl(this.s3, subCommand, { expiresIn: 900 });
           } catch (e) {
-            console.error(`Failed to sign URL for sub ${sub.id}:`, e);
+            this.logger.error(`Failed to sign URL for sub ${sub.id}:`, e);
           }
         }
-      }
+      }));
     }
 
     return employee;
@@ -338,7 +339,7 @@ export class EmployeesService {
       }
     });
 
-    for (const emp of employees) {
+    await Promise.all(employees.map(async (emp) => {
       if (emp.photoUrl && !emp.photoUrl.startsWith("http")) {
         try {
           const command = new GetObjectCommand({
@@ -347,10 +348,10 @@ export class EmployeesService {
           });
           emp.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
         } catch (e) {
-          console.error(`Failed to sign URL for org chart emp ${emp.id}:`, e);
+          this.logger.error(`Failed to sign URL for org chart emp ${emp.id}:`, e);
         }
       }
-    }
+    }));
 
     return employees;
   }
@@ -494,7 +495,7 @@ export class EmployeesService {
         });
         updatedEmployee.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
       } catch (error) {
-        console.error(`Failed to sign URL for employee ${updatedEmployee.id}:`, error);
+        this.logger.error(`Failed to sign URL for employee ${updatedEmployee.id}:`, error);
       }
     }
 
@@ -515,22 +516,20 @@ export class EmployeesService {
       if (!manager) throw new NotFoundException("New manager not found.");
 
       // Prevent cyclic management: Check if the new manager already reports to this employee (directly or indirectly)
-      let currentManagerId: string | null = manager.reportingManagerId;
-      const visited = new Set<string>();
-      visited.add(newManagerId);
-
-      while (currentManagerId) {
-        if (currentManagerId === employeeId) {
-          throw new ConflictException("Cannot assign a subordinate as a manager. This would create a circular reporting line.");
-        }
-        if (visited.has(currentManagerId)) {
-          break; // Break on existing cycle just in case
-        }
-        visited.add(currentManagerId);
-        
-        const currentManager = await this.prisma.employee.findUnique({ where: { id: currentManagerId } });
-        if (!currentManager) break;
-        currentManagerId = currentManager.reportingManagerId;
+      const cycleCheck = await this.prisma.$queryRaw<any[]>`
+        WITH RECURSIVE chain AS (
+          SELECT id, "reportingManagerId" 
+          FROM "Employee" 
+          WHERE id = ${newManagerId}
+          UNION ALL
+          SELECT e.id, e."reportingManagerId"
+          FROM "Employee" e
+          JOIN chain c ON c."reportingManagerId" = e.id
+        )
+        SELECT id FROM chain WHERE id = ${employeeId} OR "reportingManagerId" = ${employeeId} LIMIT 1
+      `;
+      if (cycleCheck.length > 0) {
+        throw new ConflictException("Cannot assign a subordinate as a manager. This would create a circular reporting line.");
       }
     }
     
