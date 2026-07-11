@@ -250,4 +250,84 @@ export class ConnectService {
       console.error("Failed to send system notification:", e);
     }
   }
+
+  async getNotes(meetId: string, employeeId: string): Promise<any> {
+    const meet: any = await this.repository.getMeetRequestById(meetId);
+    if (!meet) throw new NotFoundException("Meet not found");
+
+    const isParticipant = meet.requesterId === employeeId || meet.participants.some((p: any) => p.employeeId === employeeId);
+    if (!isParticipant) throw new ForbiddenException("Only participants can view notes");
+
+    return (this.prisma as any).meetNote.findMany({
+      where: { meetRequestId: meetId },
+      include: {
+        author: { select: { id: true, firstName: true, lastName: true, photoUrl: true } },
+        comments: {
+          include: { author: { select: { id: true, firstName: true, lastName: true, photoUrl: true } } },
+          orderBy: { createdAt: 'asc' }
+        }
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+  }
+
+  async upsertNote(meetId: string, employeeId: string, content: string): Promise<any> {
+    const meet: any = await this.repository.getMeetRequestById(meetId);
+    if (!meet) throw new NotFoundException("Meet not found");
+
+    const isParticipant = meet.requesterId === employeeId || meet.participants.some((p: any) => p.employeeId === employeeId);
+    if (!isParticipant) throw new ForbiddenException("Only participants can create notes");
+
+    // Check if the user already has a note for this meeting
+    const existing = await (this.prisma as any).meetNote.findFirst({
+      where: { meetRequestId: meetId, authorId: employeeId }
+    });
+
+    if (existing) {
+      return (this.prisma as any).meetNote.update({
+        where: { id: existing.id },
+        data: { content },
+        include: {
+          author: { select: { id: true, firstName: true, lastName: true, photoUrl: true } },
+          comments: { include: { author: { select: { id: true, firstName: true, lastName: true, photoUrl: true } } } }
+        }
+      });
+    }
+
+    return (this.prisma as any).meetNote.create({
+      data: {
+        meetRequestId: meetId,
+        authorId: employeeId,
+        content
+      },
+      include: {
+        author: { select: { id: true, firstName: true, lastName: true, photoUrl: true } },
+        comments: true
+      }
+    });
+  }
+
+  async addNoteComment(noteId: string, employeeId: string, content: string): Promise<any> {
+    const note: any = await (this.prisma as any).meetNote.findUnique({
+      where: { id: noteId },
+      include: { meetRequest: { include: { participants: true } } }
+    });
+    
+    if (!note) throw new NotFoundException("Note not found");
+
+    const meet = note.meetRequest;
+    const isParticipant = meet.requesterId === employeeId || meet.participants.some((p: any) => p.employeeId === employeeId);
+    if (!isParticipant) throw new ForbiddenException("Only participants can comment on notes");
+
+    return (this.prisma as any).meetNoteComment.create({
+      data: {
+        noteId,
+        authorId: employeeId,
+        content
+      },
+      include: {
+        author: { select: { id: true, firstName: true, lastName: true, photoUrl: true } }
+      }
+    });
+  }
 }

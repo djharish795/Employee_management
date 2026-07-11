@@ -127,6 +127,8 @@ model Employee {
   offboardingRecord          OffboardingProcess?        @relation("EmployeeOffboarding")
   ktAssignments              OffboardingProcess[]       @relation("KTAssignee")
   onboardingSession          OnboardingSession?
+  meetNotes                  MeetNote[]
+  meetNoteComments           MeetNoteComment[]
 
   @@map("employees")
 }
@@ -430,6 +432,7 @@ model MeetRequest {
   linkedGoal   Goal?             @relation(fields: [linkedGoalId], references: [id], onDelete: SetNull)
   participants MeetParticipant[]
   tasks        Task[]
+  notes        MeetNote[]
 
   @@map("meet_requests")
 }
@@ -1700,4 +1703,33 @@ enum OnboardingStage {
   TRAINING
   MANAGER_INTRO
   COMPLETED
+}
+
+model MeetNote {
+  id            String   @id @default(cuid())
+  meetRequestId String
+  authorId      String
+  content       String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  meetRequest   MeetRequest       @relation(fields: [meetRequestId], references: [id], onDelete: Cascade)
+  author        Employee          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments      MeetNoteComment[]
+
+  @@map("meet_notes")
+}
+
+model MeetNoteComment {
+  id         String   @id @default(cuid())
+  noteId     String
+  authorId   String
+  content    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  note       MeetNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  author     Employee @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("meet_note_comments")
 }

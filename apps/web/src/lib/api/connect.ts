@@ -47,4 +47,13 @@ export const connectApi = {
 
   getGoals: () => 
     api.get("/connect/goals"),
+
+  getMeetNotes: (id: string) =>
+    api.get(`/connect/${id}/notes`),
+
+  saveMeetNote: (id: string, content: string) =>
+    api.post(`/connect/${id}/notes`, { content }),
+
+  addNoteComment: (noteId: string, content: string) =>
+    api.post(`/connect/notes/${noteId}/comments`, { content }),
 };
