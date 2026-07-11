@@ -81,6 +81,6 @@ export class RbacService {
     if (!requiredPermissions || requiredPermissions.length === 0) {
       return true;
     }
-    return requiredPermissions.every((perm) => rolePerms.includes(perm));
+    return requiredPermissions.some((perm) => rolePerms.includes(perm));
   }
 }

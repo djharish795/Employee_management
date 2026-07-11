@@ -19,7 +19,7 @@ export class AuthService {
     private readonly mfa: MfaService,
     private readonly tokens: TokenService,
     private readonly redis: RedisService,
-  ) {}
+  ) { }
 
   async login(dto: LoginDto) {
     const email = dto.email.trim().toLowerCase();
@@ -72,6 +72,7 @@ export class AuthService {
     }
 
     return {
+      success: true,
       mfaRequired: false,
       token: issued.accessToken,
       refreshToken: issued.refreshToken,
