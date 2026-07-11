@@ -1,9 +1,9 @@
-import { DeviceDetails } from "../store/auth";
+import { DeviceDetails } from "../store/auth";
 
 export interface LoginResponse {
   mfaRequired: boolean;
   challengeId?: string;
-  method?: "EMAIL_OTP" | "TOTP";
+  method?: "EMAIL_OTP";
   token?: string;
   refreshToken?: string;
   role?: string;

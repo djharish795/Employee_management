@@ -1,6 +1,6 @@
 import type { UserRole } from "./rbac.types";
 
-export type MfaMethod = "EMAIL_OTP" | "TOTP";
+export type MfaMethod = "EMAIL_OTP";
 
 export interface LoginRequest {
   email: string;

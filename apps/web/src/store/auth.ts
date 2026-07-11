@@ -4,7 +4,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 export interface TempSession {
   email: string;
   challengeId: string;
-  method: "EMAIL_OTP" | "TOTP";
+  method: "EMAIL_OTP";
 }
 
 export interface DeviceDetails {

@@ -72,6 +72,7 @@ export class RbacService {
     return Array.from(new Set([
       ...basePerms,
       Permission.READ_OWN_PROFILE,
+      Permission.WRITE_OWN_PROFILE,
     ]));
   }
 

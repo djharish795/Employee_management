@@ -14,7 +14,7 @@ import Link from 'next/link';
 import Image from "next/image";
 
 const IconMap: Record<string, React.ElementType> = {
-  Monitor, Users, Calendar, LayoutDashboard, Clock, BookOpen, 
+  Monitor, Users, Calendar, LayoutDashboard, Clock, BookOpen,
   ShieldCheck, History, Network, CheckSquare, MessageSquare, UserPlus, User, Search
 };
 
@@ -158,7 +158,7 @@ export function Topbar() {
     <header className="h-14 sm:h-[72px] pl-14 lg:pl-8 pr-4 sm:pr-8 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 sticky top-0 z-40 transition-colors">
       {/* Search Bar */}
       <div className="hidden sm:flex flex-1 max-w-2xl relative" ref={searchContainerRef}>
-        <div 
+        <div
           className="relative flex items-center w-full h-10 rounded-lg bg-slate-100/80 dark:bg-slate-900/80 px-3 text-slate-500 dark:text-slate-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 border border-transparent transition-all shadow-sm"
           onClick={() => {
             setIsSearchOpen(true);
@@ -205,24 +205,22 @@ export function Topbar() {
                   {results.map((item, idx) => {
                     const Icon = IconMap[item.icon] || Search;
                     const isSelected = idx === selectedIndex;
-                    
+
                     return (
                       <button
                         key={item.id}
                         onClick={() => handleAction(item)}
                         onMouseEnter={() => setSelectedIndex(idx)}
-                        className={`w-full flex items-center p-3 rounded-lg transition-colors text-left ${
-                          isSelected 
-                            ? 'bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-500/20' 
+                        className={`w-full flex items-center p-3 rounded-lg transition-colors text-left ${isSelected
+                            ? 'bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-500/20'
                             : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                        }`}
+                          }`}
                       >
-                        <div className={`w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0 ${
-                          isSelected ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
-                        }`}>
+                        <div className={`w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0 ${isSelected ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                          }`}>
                           <Icon className="w-4 h-4" />
                         </div>
-                        
+
                         <div className="ml-3 flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className={`text-sm font-bold truncate ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-slate-900 dark:text-white'}`}>
@@ -258,7 +256,7 @@ export function Topbar() {
 
       {/* Mobile: show only icon search button */}
       <div className="flex sm:hidden items-center">
-        <button 
+        <button
           onClick={() => {
             setIsSearchOpen(!isSearchOpen);
             setTimeout(() => inputRef.current?.focus(), 10);

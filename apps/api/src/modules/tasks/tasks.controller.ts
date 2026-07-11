@@ -21,7 +21,7 @@ export class TasksController {
   }
 
   @Get("project/:projectId")
-  @Permissions(Permission.READ_EMPLOYEES)
+  @Permissions(Permission.READ_OWN_PROFILE)
   async getProjectTasks(@Param("projectId") projectId: string): Promise<any> {
     return this.tasksService.getProjectTasks(projectId);
   }
@@ -33,7 +33,7 @@ export class TasksController {
   }
 
   @Patch(":id")
-  @Permissions(Permission.WRITE_OWN_PROFILE, Permission.MANAGE_PROJECTS)
+  @Permissions(Permission.WRITE_OWN_PROFILE)
   async updateTask(
     @Param("id") id: string,
     @CurrentUser() user: any,
@@ -43,7 +43,7 @@ export class TasksController {
   }
 
   @Post(":id/comments")
-  @Permissions(Permission.WRITE_OWN_PROFILE, Permission.MANAGE_PROJECTS)
+  @Permissions(Permission.WRITE_OWN_PROFILE)
   async addComment(
     @Param("id") id: string,
     @CurrentUser() user: any,

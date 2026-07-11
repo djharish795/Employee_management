@@ -46,12 +46,40 @@ export class AuthService {
       throw new UnauthorizedException("Invalid email or password.");
     }
 
-    const challenge = await this.mfa.createEmailOtpChallenge(user.id, user.email);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+
+    let isTeamLead = false;
+    if (user.employeeId) {
+      const tlAssignment = await this.prisma.projectAssignment.findFirst({
+        where: { employeeId: user.employeeId, projectRole: 'TL' },
+      });
+      if (tlAssignment) isTeamLead = true;
+    }
+
+    const issued = await this.tokens.issueTokens({
+      userId: user.id,
+      email: user.email,
+      role: isTeamLead && user.role === 'EMPLOYEE' ? 'TEAM_LEAD' : (user.role as any),
+      employeeId: user.employeeId ?? undefined,
+    });
+
+    let finalRedirectPath = issued.redirectPath;
+    if (user.employee?.status === "ONBOARDING") {
+      finalRedirectPath = "/employee/onboarding";
+    }
 
     return {
-      mfaRequired: true,
-      challengeId: challenge.challengeId,
-      method: challenge.method,
+      mfaRequired: false,
+      token: issued.accessToken,
+      refreshToken: issued.refreshToken,
+      role: issued.role,
+      redirectPath: finalRedirectPath,
+      employeeId: user.employeeId ?? null,
+      isTeamLead,
+      employeeStatus: user.employee?.status ?? null,
     };
   }
 

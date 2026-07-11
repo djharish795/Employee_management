@@ -40,6 +40,7 @@ export class WorkflowsController {
   }
 
   @Get("my-approvals")
+  @Permissions(Permission.READ_OWN_PROFILE)
   async getMyApprovals(@CurrentUser() user: any): Promise<any> {
     return this.workflowService.getMyApprovals(user.employeeId);
   }
@@ -55,6 +56,7 @@ export class WorkflowsController {
   }
 
   @Post(":id/approve")
+  @Permissions(Permission.WRITE_OWN_PROFILE)
   async approve(
     @Param("id") id: string,
     @CurrentUser() user: any,
@@ -64,6 +66,7 @@ export class WorkflowsController {
   }
 
   @Post(":id/reject")
+  @Permissions(Permission.WRITE_OWN_PROFILE)
   async reject(
     @Param("id") id: string,
     @CurrentUser() user: any,

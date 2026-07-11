@@ -50,12 +50,13 @@ export class ProjectsController {
   }
 
   @Get()
+  @Permissions(Permission.READ_OWN_PROFILE)
   getAllProjects(@CurrentUser() user: any) {
     return this.projectsService.getAllProjects(user);
   }
 
   @Get(':id')
-  @Permissions(Permission.READ_EMPLOYEES, Permission.READ_TEAM_PROFILES)
+  @Permissions(Permission.READ_OWN_PROFILE)
   getProjectDetails(@Param('id') id: string) {
     return this.projectsService.getProjectDetails(id);
   }
@@ -73,6 +74,7 @@ export class ProjectsController {
   }
 
   @Post(':id/assign')
+  @Permissions(Permission.READ_OWN_PROFILE)
   assignMember(
     @Param('id') id: string,
     @Body() data: AssignMemberDto,
@@ -82,6 +84,7 @@ export class ProjectsController {
   }
 
   @Post(':id/release')
+  @Permissions(Permission.READ_OWN_PROFILE)
   releaseMember(
     @Param('id') id: string,
     @Body() data: ReleaseMemberDto,
@@ -91,19 +94,19 @@ export class ProjectsController {
   }
 
   @Post(':id/sprints')
-  @Permissions(Permission.MANAGE_PROJECTS)
+  @Permissions(Permission.WRITE_OWN_PROFILE)
   createSprint(@Param('id') id: string, @Body() data: { name: string; startDate: string; endDate: string }) {
     return this.projectsService.createSprint(id, data);
   }
 
   @Get(':id/sprints')
-  @Permissions(Permission.READ_EMPLOYEES, Permission.READ_TEAM_PROFILES)
+  @Permissions(Permission.READ_OWN_PROFILE)
   getProjectSprints(@Param('id') id: string) {
     return this.projectsService.getProjectSprints(id);
   }
 
   @Patch('sprints/:sprintId')
-  @Permissions(Permission.MANAGE_PROJECTS)
+  @Permissions(Permission.WRITE_OWN_PROFILE)
   updateSprint(@Param('sprintId') sprintId: string, @Body() data: any) {
     return this.projectsService.updateSprint(sprintId, data);
   }
