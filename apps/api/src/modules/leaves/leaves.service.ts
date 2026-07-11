@@ -132,11 +132,57 @@ export class LeavesService {
 
     const startDate = new Date(data.startDate);
     const endDate = new Date(data.endDate);
-    let totalDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24) + 1;
+    
+    // 1. Backdated Check (3 days max grace period)
+    const today = new Date();
+    today.setUTCHours(0,0,0,0);
+    const graceDate = new Date(today);
+    graceDate.setDate(graceDate.getDate() - 3);
+    
+    if (startDate < graceDate) {
+      throw new BadRequestException('Backdated leave requests beyond 3 days are not allowed. Please contact HR.');
+    }
+
+    // 2. Overlap Check
+    const overlaps = await this.prisma.leaveRequest.findFirst({
+      where: {
+        employeeId: data.employeeId,
+        status: { notIn: ['REJECTED', 'CANCELLED'] },
+        startDate: { lte: endDate },
+        endDate: { gte: startDate }
+      }
+    });
+
+    if (overlaps) {
+      throw new BadRequestException('You already have a pending or approved leave during this date range.');
+    }
+
+    // 3. Smart Total Days Calculation
+    let totalDays = 0;
     
     if (data.isHalfDay) {
-        if (totalDays > 1) throw new BadRequestException('Half day leave can only be applied for a single date');
+        const strictDiff = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        if (strictDiff > 1) throw new BadRequestException('Half day leave can only be applied for a single date');
         totalDays = 0.5;
+    } else {
+        const holidays = await this.prisma.companyHoliday.findMany({
+          where: { date: { gte: startDate, lte: endDate } }
+        });
+        const holidayDates = holidays.map((h: any) => h.date.toISOString().split('T')[0]);
+
+        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+          const dayOfWeek = d.getDay();
+          const dateStr = d.toISOString().split('T')[0];
+          
+          // Skip Sundays (0), Saturdays (6), and Holidays
+          if (dayOfWeek !== 0 && dayOfWeek !== 6 && !holidayDates.includes(dateStr)) {
+            totalDays++;
+          }
+        }
+    }
+    
+    if (totalDays === 0) {
+      throw new BadRequestException('The selected date range contains only non-working days (weekends or holidays).');
     }
     
     if (totalDays > 2 && !data.attachmentUrl) {
