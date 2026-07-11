@@ -6,6 +6,7 @@ import { Task, tasksApi } from "@/lib/api/tasks";
 import toast from "react-hot-toast";
 import { format } from "date-fns";
 import { useAuthStore } from "@/store/auth";
+import { apiClient } from "@/lib/api/client";
 
 interface TaskDetailsModalProps {
   isOpen: boolean;
@@ -22,6 +23,63 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated }: TaskD
   const [localTask, setLocalTask] = useState<Task | null>(task);
   const [actionType, setActionType] = useState("");
   const [actionNotes, setActionNotes] = useState("");
+
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [mentionMenuOpen, setMentionMenuOpen] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState("");
+  
+  useEffect(() => {
+    if (isOpen) {
+      apiClient.get('/employees/org-chart').then(res => setEmployees(res.data)).catch(console.error);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen && localTask && (localTask as any).isMentioned) {
+      tasksApi.markMentionsAsRead(localTask.id).then(() => {
+        // Optimistically clear the mention flag so the UI updates
+        (localTask as any).isMentioned = false;
+        onTaskUpdated(localTask);
+      }).catch(console.error);
+    }
+  }, [isOpen, localTask?.id]);
+
+  const handleCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setCommentContent(val);
+    
+    const cursor = e.target.selectionStart;
+    const textBeforeCursor = val.substring(0, cursor);
+    const words = textBeforeCursor.split(/\s/);
+    const currentWord = words[words.length - 1];
+    
+    if (currentWord.startsWith('@')) {
+      setMentionQuery(currentWord.substring(1).toLowerCase());
+      setMentionMenuOpen(true);
+    } else {
+      setMentionMenuOpen(false);
+    }
+  };
+
+  const handleMentionSelect = (email: string) => {
+    const cursor = commentContent.lastIndexOf('@', commentContent.length);
+    const textBefore = commentContent.substring(0, cursor);
+    const textAfter = commentContent.substring(cursor + mentionQuery.length + 1);
+    
+    setCommentContent(`${textBefore}@${email} ${textAfter}`);
+    setMentionMenuOpen(false);
+    setMentionQuery("");
+  };
+
+  const renderCommentText = (text: string) => {
+    const parts = text.split(/(@[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('@')) {
+        return <span key={i} className="text-blue-600 font-bold bg-blue-50 px-1 rounded">{part}</span>;
+      }
+      return part;
+    });
+  };
 
   useEffect(() => {
     setLocalTask(task);
@@ -171,7 +229,7 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated }: TaskD
                               </div>
                             )}
                             <p className="text-gray-700 whitespace-pre-wrap">
-                              {activity.kind === 'comment' ? (activity as any).content : (activity as any).notes}
+                              {activity.kind === 'comment' ? renderCommentText((activity as any).content) : (activity as any).notes}
                             </p>
                           </div>
                         </div>
@@ -231,13 +289,37 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated }: TaskD
                           <option value="IMPROVEMENT">Suggest an improvement</option>
                         </select>
                       </div>
-                      <textarea
-                        rows={2}
-                        placeholder="Type @email to mention someone..."
-                        className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                        value={commentContent}
-                        onChange={(e) => setCommentContent(e.target.value)}
-                      />
+                      <div className="relative">
+                        <textarea
+                          rows={2}
+                          placeholder="Type @email to mention someone..."
+                          className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                          value={commentContent}
+                          onChange={handleCommentChange}
+                        />
+                        {mentionMenuOpen && (
+                          <div className="absolute bottom-full left-0 mb-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto z-50">
+                            {employees
+                              .filter(e => 
+                                e.firstName.toLowerCase().includes(mentionQuery) || 
+                                e.lastName.toLowerCase().includes(mentionQuery) || 
+                                e.officialEmail.toLowerCase().includes(mentionQuery)
+                              )
+                              .slice(0, 5)
+                              .map(e => (
+                                <button
+                                  key={e.id}
+                                  onClick={() => handleMentionSelect(e.officialEmail)}
+                                  className="w-full text-left px-3 py-2 hover:bg-gray-100 flex flex-col"
+                                >
+                                  <span className="text-sm font-semibold text-gray-900">{e.firstName} {e.lastName}</span>
+                                  <span className="text-xs text-gray-500">{e.officialEmail}</span>
+                                </button>
+                              ))
+                            }
+                          </div>
+                        )}
+                      </div>
                       <div className="flex justify-end">
                         <button
                           onClick={handleAddComment}

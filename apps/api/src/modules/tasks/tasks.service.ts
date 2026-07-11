@@ -163,6 +163,28 @@ export class TasksService {
     return comment;
   }
 
+  async markMentionsAsRead(taskId: string, employeeId: string, email: string): Promise<void> {
+    // Only update comments that mention this user and haven't been viewed by them yet
+    // Since updateMany doesn't easily filter by "not in array", we fetch then update, or just push.
+    // Pushing an existing value might duplicate it, but it's fine for a simple viewedBy array,
+    // or we can just fetch and update.
+    const comments = await (this.prisma as any).taskComment.findMany({
+      where: {
+        taskId,
+        content: { contains: `@${email}` }
+      }
+    });
+
+    for (const comment of comments) {
+      if (!comment.viewedBy.includes(employeeId)) {
+        await (this.prisma as any).taskComment.update({
+          where: { id: comment.id },
+          data: { viewedBy: { push: employeeId } }
+        });
+      }
+    }
+  }
+
   async addAction(taskId: string, actorId: string, type: string, notes?: string): Promise<any> {
     const task = await this.getTask(taskId);
     const action = await this.tasksRepo.addAction(taskId, actorId, type, notes);

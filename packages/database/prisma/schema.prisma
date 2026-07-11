@@ -1568,6 +1568,7 @@ model TaskComment {
   content   String
   category  CommentCategory @default(COMMENT)
   createdAt DateTime        @default(now())
+  viewedBy  String[]        @default([])
   updatedAt DateTime        @updatedAt
 
   task   Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)

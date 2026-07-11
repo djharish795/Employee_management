@@ -17,13 +17,31 @@ export class TasksController {
   @Permissions(Permission.READ_OWN_PROFILE)
   async getMyTasks(@CurrentUser() user: any): Promise<any> {
     const employeeId = user.employeeId;
-    return this.tasksService.getMyTasks(employeeId);
+    const tasks = await this.tasksService.getMyTasks(employeeId);
+    
+    // Attach isMentioned flag based on mentions in comments
+    const userEmail = user.email;
+    return tasks.map((task: any) => {
+      const isMentioned = task.comments?.some((comment: any) => 
+        comment.content?.includes(`@${userEmail}`) && !(comment.viewedBy || []).includes(employeeId)
+      ) || false;
+      return { ...task, isMentioned };
+    });
   }
 
   @Get("project/:projectId")
   @Permissions(Permission.READ_OWN_PROFILE)
-  async getProjectTasks(@Param("projectId") projectId: string): Promise<any> {
-    return this.tasksService.getProjectTasks(projectId);
+  async getProjectTasks(@Param("projectId") projectId: string, @CurrentUser() user: any): Promise<any> {
+    const tasks = await this.tasksService.getProjectTasks(projectId);
+    
+    // Attach isMentioned flag
+    const userEmail = user.email;
+    return tasks.map((task: any) => {
+      const isMentioned = task.comments?.some((comment: any) => 
+        comment.content?.includes(`@${userEmail}`) && !(comment.viewedBy || []).includes(user.employeeId)
+      ) || false;
+      return { ...task, isMentioned };
+    });
   }
 
   @Post()
@@ -50,6 +68,15 @@ export class TasksController {
     @Body() dto: { content: string, category?: string }
   ): Promise<any> {
     return this.tasksService.addComment(id, user.employeeId, dto.content, dto.category);
+  }
+
+  @Post(":id/mentions/read")
+  @Permissions(Permission.READ_OWN_PROFILE)
+  async markMentionsAsRead(
+    @Param("id") id: string,
+    @CurrentUser() user: any
+  ): Promise<void> {
+    return this.tasksService.markMentionsAsRead(id, user.employeeId, user.email);
   }
 
   @Post(":id/actions")

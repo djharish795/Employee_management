@@ -151,11 +151,18 @@ export function TaskKanbanBoard({ initialTasks, projectId, onTaskUpdated }: { in
                           ? format(new Date(task.createdAt), "MMM d, yyyy")
                           : ""}
                       </span>
-                      {task.assignee && (
-                        <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
-                          {task.assignee.firstName[0]}
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {(task as any).isMentioned && (
+                          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-600 border border-red-200" title="You were mentioned in a comment">
+                            <span className="text-sm font-bold">@</span>
+                          </div>
+                        )}
+                        {task.assignee && (
+                          <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+                            {task.assignee.firstName[0]}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                   );

@@ -80,9 +80,13 @@ export const tasksApi = {
     return response.data;
   },
 
-  addComment: async (taskId: string, content: string, category?: string): Promise<TaskComment> => {
+  addComment: async (taskId: string, content: string, category: string = "COMMENT"): Promise<TaskComment> => {
     const response = await apiClient.post(`${API_BASE_URL}/${taskId}/comments`, { content, category });
     return response.data;
+  },
+
+  markMentionsAsRead: async (taskId: string): Promise<void> => {
+    await apiClient.post(`${API_BASE_URL}/${taskId}/mentions/read`);
   },
 
   addAction: async (taskId: string, type: string, notes?: string): Promise<TaskAction> => {

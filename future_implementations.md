@@ -52,3 +52,35 @@ This document captures advanced, enterprise-grade features for the Tasks and Wor
   * Allow defining conditional rules (e.g., *"A task cannot be moved from QA to DONE unless it has a sign-off comment from a Manager"*).
   * Allow automations (e.g., *"When a task moves to QA, automatically re-assign it to the QA Lead"*).
   * Prevent unauthorized dragging across the Kanban board.
+
+---
+
+# Future Implementations: Enterprise Attendance Features
+
+This section captures rigorous, MNC-level (Infosys, Deloitte, Wipro style) attendance policies for future phases.
+
+## 1. Shift & Roster Management (The "Wipro/TCS" Shift Rule)
+* **Concept:** Move from a "one-size-fits-all" day to explicit employee shifts.
+* **Feature:**
+  * Add a `Shift` model (e.g., "UK Shift: 2PM-11PM") with a `gracePeriodMinutes` field.
+  * Assign employees to specific shifts.
+  * **Rule Engine:** Auto-flag check-ins after `shift.startTime + gracePeriodMinutes` as `LATE`.
+  * **Auto-Penalty:** A scheduled background job auto-converts 3 `LATE` marks in a month into 1 `HALF_DAY` (deducting leave or pay).
+
+## 2. The 9-Hour Mandate & Swipe Deficits (The "Infosys" Rule)
+* **Concept:** Strict enforcement of physical presence hours.
+* **Feature:**
+  * **Rule Engine:** Nightly Cron Job audits daily records. If `totalWorkHours < 9` and no leave/regularization exists, status downgrades to `HALF_DAY` or `ABSENT`.
+  * **Comp-Off Generation:** Working >10 hours on a Weekend/Holiday automatically generates a `Compensatory Off` leave balance.
+
+## 3. Timesheet to Attendance Reconciliation (The "Deloitte" Rule)
+* **Concept:** Physical presence must map to billable project hours.
+* **Feature:**
+  * Add a `Timesheet` model where employees log exactly what projects they worked on for their 9 hours.
+  * **Enforcement:** If `Timesheet Logged Hours != Attendance Swipe Hours`, block timesheet submission and freeze weekly payroll processing until corrected.
+
+## 4. Hardware Biometric API Webhook
+* **Concept:** True enterprise relies on physical turnstiles, not web buttons.
+* **Feature:**
+  * Create a secure, API-Key protected `POST /api/v1/attendance/hardware-sync` endpoint.
+  * Allow physical RFID/Biometric scanners to push swipe data directly to the database, overriding manual web check-ins.

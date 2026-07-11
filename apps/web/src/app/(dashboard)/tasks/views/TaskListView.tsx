@@ -64,7 +64,14 @@ export function TaskListView({ tasks, onTaskClick, isGlobal }: { tasks: Task[], 
                     {task.issueKey || "TASK"}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900">
-                    <div className="max-w-xs truncate" title={task.title}>{task.title}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="max-w-xs truncate" title={task.title}>{task.title}</div>
+                      {(task as any).isMentioned && (
+                        <div className="flex shrink-0 items-center justify-center w-5 h-5 rounded-full bg-red-100 text-red-600 border border-red-200" title="You were mentioned in a comment">
+                          <span className="text-xs font-bold">@</span>
+                        </div>
+                      )}
+                    </div>
                   </td>
                   {isGlobal && (
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
