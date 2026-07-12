@@ -19,9 +19,21 @@ export class LeavesController {
     return this.leaveService.getApprovals(approverId);
   }
 
+  @Get('my')
+  getMyLeaves(@Req() req: any): Promise<unknown> {
+    // Assuming JwtAuthGuard adds user info to req.user
+    const employeeId = req.user?.id || req.query.employeeId;
+    return this.leaveService.getMyLeaves(employeeId);
+  }
+
   @Post('apply')
   applyLeave(@Body() data: ApplyLeaveDto): Promise<unknown> {
     return this.leaveService.applyLeave(data);
+  }
+
+  @Post('calculate')
+  calculateLeave(@Body() data: ApplyLeaveDto): Promise<unknown> {
+    return this.leaveService.calculateLeave(data);
   }
 
   @Post(':id/approve')

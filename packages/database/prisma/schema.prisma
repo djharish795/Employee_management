@@ -317,6 +317,8 @@ model LeaveRequest {
   startDate          DateTime           @db.Date
   status             LeaveRequestStatus @default(PENDING)
   totalDays          Decimal            @db.Decimal(4, 1)
+  paidDays           Decimal            @default(0) @db.Decimal(4, 1)
+  unpaidDays         Decimal            @default(0) @db.Decimal(4, 1)
   workflowInstanceId String?
   approvalQueue      Json?
   currentStep        Int                @default(0)
