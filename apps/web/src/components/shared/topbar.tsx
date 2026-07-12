@@ -270,9 +270,60 @@ export function Topbar() {
       {/* Right Actions */}
       <div className="flex items-center gap-3 sm:gap-6 ml-auto">
         <div className="flex items-center gap-2 sm:gap-4 text-slate-600 dark:text-slate-400">
-          <button onClick={() => { }} className="hover:text-slate-900 dark:hover:text-white transition-colors focus:outline-none">
-            <Bell className="w-5 h-5" />
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="relative hover:text-slate-900 dark:hover:text-white transition-colors focus:outline-none">
+                <Bell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-slate-950">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-80 p-0 rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 z-50">
+              <div className="flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Notifications</h3>
+                {unreadCount > 0 && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); markAllAsRead(); }}
+                    className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                  >
+                    Mark all as read
+                  </button>
+                )}
+              </div>
+              <div className="max-h-[300px] overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="p-6 text-center">
+                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">No notifications yet.</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800">
+                    {notifications.map((notif: any) => (
+                      <button
+                        key={notif.id}
+                        onClick={() => { if (!notif.isRead) markAsRead(notif.id); }}
+                        className={`w-full text-left p-4 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors flex gap-3 ${!notif.isRead ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm ${!notif.isRead ? 'font-bold text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-300'}`}>
+                            {notif.message || notif.title}
+                          </p>
+                          <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1.5">
+                            {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
+                            {!notif.isRead && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                            )}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <button onClick={() => { }} className="hidden sm:block hover:text-slate-900 dark:hover:text-white transition-colors focus:outline-none">
             <HelpCircle className="w-5 h-5" />
           </button>

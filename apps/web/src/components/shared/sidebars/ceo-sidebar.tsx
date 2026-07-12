@@ -95,8 +95,6 @@ const getNavGroups = (role: string, unreadCount: number) => {
               { title: 'My Attendance', href: '/attendance' }
             ]
           },
-          { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
-          { title: 'Connect', icon: MessageSquare, href: '/connect' },
         ]
       },
       {

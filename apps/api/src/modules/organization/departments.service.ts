@@ -46,6 +46,18 @@ export class DepartmentsService {
     return createPaginatedResponse(data, total, page, limit);
   }
 
+  async getDesignations() {
+    const data = await this.prisma.designation.findMany({
+      orderBy: { title: "asc" },
+      include: {
+        department: {
+          select: { id: true, name: true, code: true }
+        }
+      }
+    });
+    return { data };
+  }
+
   async getDepartmentById(id: string): Promise<Department> {
     const department = await this.prisma.department.findUnique({
       where: { id },

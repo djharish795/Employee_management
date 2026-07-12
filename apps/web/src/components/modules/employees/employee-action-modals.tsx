@@ -18,9 +18,12 @@ interface EmployeeActionModalsProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (action: EmployeeActionType, employeeId: string, payload?: any) => void;
+  departments?: any[];
+  designations?: any[];
+  managers?: Employee[];
 }
 
-export function EmployeeActionModals({ actionType, employee, isOpen, onClose, onSuccess }: EmployeeActionModalsProps) {
+export function EmployeeActionModals({ actionType, employee, isOpen, onClose, onSuccess, departments = [], designations = [], managers = [] }: EmployeeActionModalsProps) {
   // Temporary local state for form fields
   const [manager, setManager] = useState("");
   const [department, setDepartment] = useState("");
@@ -106,11 +109,17 @@ export function EmployeeActionModals({ actionType, employee, isOpen, onClose, on
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Department</label>
-                  <Input value={department} onChange={(e) => setDepartment(e.target.value)} required className="h-9 text-sm font-medium" />
+                  <select value={department} onChange={(e) => setDepartment(e.target.value)} required className="w-full h-9 rounded-md border border-slate-300 text-sm px-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-900/20">
+                    <option value="">Select Department</option>
+                    {departments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Designation</label>
-                  <Input value={designation} onChange={(e) => setDesignation(e.target.value)} required className="h-9 text-sm font-medium" />
+                  <select value={designation} onChange={(e) => setDesignation(e.target.value)} required className="w-full h-9 rounded-md border border-slate-300 text-sm px-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-900/20">
+                    <option value="">Select Designation</option>
+                    {designations.map((d: any) => <option key={d.id} value={d.id}>{d.title}</option>)}
+                  </select>
                 </div>
               </div>
             </div>
@@ -145,14 +154,18 @@ export function EmployeeActionModals({ actionType, employee, isOpen, onClose, on
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Manager ID</label>
-              <Input 
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Manager</label>
+              <select
                 value={manager} 
                 onChange={(e) => setManager(e.target.value)}
                 required
-                placeholder="Enter Manager Employee ID (e.g. NPR/TR/001)"
-                className="h-10 text-sm font-medium"
-              />
+                className="w-full h-10 rounded-md border border-slate-300 text-sm px-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-900/20"
+              >
+                <option value="">Select Manager</option>
+                {managers.filter(m => m.id !== employee.id).map((m: any) => (
+                  <option key={m.id} value={m.id}>{m.name} ({m.employeeId || m.id})</option>
+                ))}
+              </select>
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Effective Date</label>
@@ -181,8 +194,11 @@ export function EmployeeActionModals({ actionType, employee, isOpen, onClose, on
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">New Department ID</label>
-              <Input required value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="e.g. Engineering" className="h-10 text-sm font-medium" />
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">New Department</label>
+              <select required value={department} onChange={(e) => setDepartment(e.target.value)} className="w-full h-10 rounded-md border border-slate-300 text-sm px-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-900/20">
+                <option value="">Select Department</option>
+                {departments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Reason for Transfer</label>
@@ -212,7 +228,10 @@ export function EmployeeActionModals({ actionType, employee, isOpen, onClose, on
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">New Designation</label>
-              <Input required value={designation} onChange={(e) => setDesignation(e.target.value)} placeholder="e.g. Senior Software Engineer" className="h-10 text-sm font-medium" />
+              <select required value={designation} onChange={(e) => setDesignation(e.target.value)} className="w-full h-10 rounded-md border border-slate-300 text-sm px-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-900/20">
+                <option value="">Select Designation</option>
+                {designations.map((d: any) => <option key={d.id} value={d.id}>{d.title}</option>)}
+              </select>
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Reason</label>

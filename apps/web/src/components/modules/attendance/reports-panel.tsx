@@ -133,7 +133,7 @@ export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
           {/* Simple Vector Graph */}
           <div className="h-44 flex items-end justify-between gap-4 pt-6 px-4">
             {metrics.lateTrends.map((item, idx) => (
-              <div key={idx} className="flex-1 flex flex-col items-center gap-2 group cursor-pointer">
+              <div key={idx} className="relative flex-1 flex flex-col items-center gap-2 group cursor-pointer">
                 {/* count bubble */}
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-[9px] font-bold px-1.5 py-0.5 rounded absolute -translate-y-12 z-20 shadow">
                   {item.count} Lates

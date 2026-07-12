@@ -14,6 +14,9 @@ import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { createS3Client } from "../../common/utils/s3.util";
 
+import { NotificationsService } from "../notifications/notifications.service";
+import { NotificationType } from "@naprocs/database";
+
 @Injectable()
 export class EmployeesService {
   private readonly logger = new Logger(EmployeesService.name);
@@ -23,7 +26,8 @@ export class EmployeesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
-    private readonly rbacService: RbacService
+    private readonly rbacService: RbacService,
+    private readonly notificationsService: NotificationsService
   ) {
     this.s3 = createS3Client();
     this.bucketName = (process.env.AWS_S3_BUCKET || "naprocs-ems-documents").trim();
@@ -499,6 +503,18 @@ export class EmployeesService {
       }
     }
 
+    // Trigger Notification for the updated employee
+    try {
+      await this.notificationsService.createNotification(
+        updatedEmployee.id,
+        "Profile Updated",
+        "Your profile information has been updated by Human Resources or Management.",
+        NotificationType.SYSTEM_ALERT
+      );
+    } catch (e) {
+      this.logger.warn(`Failed to send update notification to employee ${updatedEmployee.id}: ${e}`);
+    }
+
     return updatedEmployee;
   }
 
@@ -537,6 +553,17 @@ export class EmployeesService {
       where: { id: employeeId },
       data: { reportingManagerId: newManagerId || null }
     });
+
+    try {
+      await this.notificationsService.createNotification(
+        employeeId,
+        "Manager Reassigned",
+        "Your reporting manager has been updated.",
+        NotificationType.SYSTEM_ALERT
+      );
+    } catch (e) {
+      this.logger.warn(`Failed to send manager reassignment notification to employee ${employeeId}: ${e}`);
+    }
   }
 
   async getCtoTeam(): Promise<any> {
