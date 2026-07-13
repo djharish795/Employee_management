@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-
-
+import { jwtVerify } from 'jose';
 
 // Roles that may act as approvers in the Leave Approvals queue
 const leaveApproverRoles = new Set(['HR', 'CHRO', 'MANAGER', 'TEAM_LEAD', 'CTO', 'SUPER_ADMIN', 'IT']);
@@ -21,13 +20,11 @@ const protectedRoutes = [
 // Role-specific dashboard namespaces (cross-role isolation)
 const roleNamespaces = ['/employee', '/admin', '/executive', '/cto', '/finance', '/hr'];
 
-// Security Note (Backend Dependency):
-// JWT verification cannot safely occur inside the frontend middleware without the signing secret
-// or relying on a backend session endpoint. 
-// Do NOT trust unverified decoded JWT payloads for authorization.
-// Role-based route guards are currently deferred to the React frontend (usePermissions)
-// which hydrates its state from a secure backend endpoint.
-export function middleware(request: NextRequest) {
+// Ensure this matches the backend JWT secret
+const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-for-dev-12345';
+const secretKey = new TextEncoder().encode(JWT_SECRET);
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Always pass through Next.js internals and static files
@@ -36,8 +33,21 @@ export function middleware(request: NextRequest) {
   }
 
   const token = request.cookies.get('token')?.value;
-  const role = request.cookies.get('role')?.value?.toUpperCase() || 'EMPLOYEE';
+  let role = 'EMPLOYEE';
+  let isVerified = false;
 
+  if (token) {
+    try {
+      const { payload } = await jwtVerify(token, secretKey);
+      if (payload && typeof payload.role === 'string') {
+        role = payload.role.toUpperCase();
+        isVerified = true;
+      }
+    } catch (err) {
+      console.warn("Invalid JWT in middleware", err);
+      // Fall through to unverified state
+    }
+  }
 
   // ─── Resolve Target Dashboard ────────────────────────────────────────────────
   let targetDashboard = '/employee/dashboard';
@@ -53,11 +63,12 @@ export function middleware(request: NextRequest) {
   }
 
   // ─── Redirect authenticated users away from /login ───────────────────────
-  if (token && pathname.startsWith('/login')) {
+  if (isVerified && pathname.startsWith('/login')) {
     return NextResponse.redirect(new URL(targetDashboard, request.url));
   }
 
   // ─── Enforce authentication on protected routes ───────────────────────────
+
   const isProtected = protectedRoutes.some(r => pathname === r || pathname.startsWith(`${r}/`));
   if (isProtected && !token) {
     return NextResponse.redirect(new URL('/login', request.url));

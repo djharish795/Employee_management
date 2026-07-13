@@ -33,10 +33,7 @@ const getNavGroups = (role: string, unreadCount: number) => {
           { title: 'Dashboard', icon: LayoutDashboard, href: '/executive/dashboard' },
           { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
           { title: 'Connect', icon: MessageSquare, href: '/connect' },
-          { title: 'Organisation', icon: Network, href: '/ceo/organisation' },
           { title: 'Org Chart', icon: Network, href: '/org-chart' },
-          { title: 'Succession Planning', icon: Users, href: '/ceo/succession-planning' },
-          { title: 'Reports', icon: BarChart3, href: '/ceo/reports' },
         ]
       },
       {
@@ -62,6 +59,8 @@ const getNavGroups = (role: string, unreadCount: number) => {
           { title: 'Payroll', icon: Calendar, locked: true },
           { title: 'Recruitment', icon: UserPlus, locked: true },
           { title: 'Performance', icon: BarChart3, locked: true },
+          { title: 'Succession Planning', icon: Users, locked: true },
+          { title: 'Reports / Analytics', icon: BarChart3, locked: true },
           { title: 'Workforce Analytics', icon: BarChart3, locked: true },
         ]
       },

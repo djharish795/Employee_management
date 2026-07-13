@@ -22,7 +22,7 @@ export function NewTaskModal({
   userRole?: string | null;
   isQa?: boolean;
 }) {
-  const defaultType = isQa ? "BUG" : (userRole === 'TEAM_LEAD' && !['MANAGER', 'CTO', 'CEO', 'SUPER_ADMIN'].includes(userRole || '')) ? "DAILY_TASK" : "TASK";
+  const defaultType = isQa ? "BUG" : (userRole === 'TEAM_LEAD' && !['MANAGER', 'CTO', 'SUPER_ADMIN'].includes(userRole || '')) ? "DAILY_TASK" : "TASK";
 
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -77,8 +77,8 @@ export function NewTaskModal({
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
             >
-              {/* Show everything to managers or CTO/CEO */}
-              {['MANAGER', 'CTO', 'CEO', 'SUPER_ADMIN'].includes(userRole || '') ? (
+              {/* Show everything to managers or CTO */}
+              {['MANAGER', 'CTO', 'SUPER_ADMIN'].includes(userRole || '') ? (
                 <>
                   <option value="TASK">Task</option>
                   <option value="STORY">Story</option>
