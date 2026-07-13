@@ -126,6 +126,21 @@ export default function EmployeeDirectory() {
     enabled: !!accessToken,
   });
 
+  const fetchDesignations = async () => {
+    const url = process.env.NEXT_PUBLIC_API_URL!;
+    const res = await fetch(`${url}/departments/all-designations`, {
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
+    });
+    if (!res.ok) return { data: [] };
+    return res.json();
+  };
+
+  const { data: designationsData } = useQuery({
+    queryKey: ["designations", accessToken],
+    queryFn: fetchDesignations,
+    enabled: !!accessToken,
+  });
+
   if (isError) {
     console.error("Employee fetch error:", error);
   }
@@ -604,6 +619,9 @@ export default function EmployeeDirectory() {
         isOpen={actionModalState.isOpen}
         onClose={() => setActionModalState({ isOpen: false, type: null, employee: null })}
         onSuccess={handleActionSuccess}
+        departments={departmentsData?.data || []}
+        designations={designationsData?.data || []}
+        managers={rawEmployees}
       />
     </div>
   );

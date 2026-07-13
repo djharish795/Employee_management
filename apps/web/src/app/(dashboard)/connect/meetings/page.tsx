@@ -3,10 +3,12 @@
 import React, { useState, useEffect } from "react";
 import { Video, Clock, Calendar as CalendarIcon, Users, ExternalLink, FileText, ArrowRight } from "lucide-react";
 import { connectApi } from "@/lib/api/connect";
+import { MeetDetailsModal } from "@/components/modules/connect/meet-details-modal";
 
 export default function MeetingsPage() {
   const [meetings, setMeetings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedMeeting, setSelectedMeeting] = useState<any>(null);
 
   const loadMeetings = async () => {
     try {
@@ -30,6 +32,12 @@ export default function MeetingsPage() {
     const s = new Date(start).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     const e = new Date(end).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     return `${s} - ${e}`;
+  };
+
+  const isExpired = (endTimeStr: string) => {
+    const endTime = new Date(endTimeStr);
+    const expireTime = new Date(endTime.getTime() + 3 * 60000); // 3 minutes grace period
+    return new Date() > expireTime;
   };
 
   const getPlatformName = (link: string | null | undefined) => {
@@ -74,6 +82,7 @@ export default function MeetingsPage() {
     }));
 
   return (
+    <>
     <div className="max-w-4xl mx-auto pb-10">
       
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
@@ -104,7 +113,11 @@ export default function MeetingsPage() {
                 const isSoon = section.title === "Today" && (startTime.getTime() - new Date().getTime()) < (60 * 60 * 1000) && (startTime.getTime() > new Date().getTime());
                 
                 return (
-                <div key={meeting.id} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div 
+                  key={meeting.id} 
+                  onClick={() => setSelectedMeeting(meeting)}
+                  className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row md:items-center justify-between gap-6 cursor-pointer group hover:border-slate-300"
+                >
                   
                   {/* Left: Info */}
                   <div className="space-y-3">
@@ -114,7 +127,7 @@ export default function MeetingsPage() {
                       </span>
                       <span className="text-xs font-bold text-slate-400 flex items-center gap-1.5"><Video className="w-3.5 h-3.5" /> {getPlatformName(meeting.meetLink)}</span>
                     </div>
-                    <h4 className="text-lg font-bold text-slate-900">{meeting.title}</h4>
+                    <h4 className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{meeting.title}</h4>
                     <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-slate-500">
                       <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {formatTime(meeting.startTime, meeting.endTime)}</span>
                       <span className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5" /> {
@@ -130,10 +143,17 @@ export default function MeetingsPage() {
 
                   {/* Right: Actions */}
                   <div className="flex flex-wrap md:flex-nowrap items-center gap-2">
-                    {meeting.meetLink && (
-                      <button onClick={() => window.open(meeting.meetLink, '_blank')} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2">
+                    {!isExpired(meeting.endTime) && meeting.meetLink ? (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); window.open(meeting.meetLink, '_blank'); }} 
+                        className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2"
+                      >
                         Join Meet <ArrowRight className="w-4 h-4" />
                       </button>
+                    ) : (
+                      <span className="px-4 py-2 bg-slate-100 text-slate-500 rounded-xl text-xs font-bold uppercase tracking-wider">
+                        Meeting Ended
+                      </span>
                     )}
                   </div>
 
@@ -145,5 +165,12 @@ export default function MeetingsPage() {
       </div>
 
     </div>
+      
+      <MeetDetailsModal 
+        meeting={selectedMeeting}
+        isOpen={!!selectedMeeting}
+        onClose={() => setSelectedMeeting(null)}
+      />
+    </>
   );
 }

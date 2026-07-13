@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Body, UseGuards, Query, Ip, Patch, Param } from "@nestjs/common";
 import { AttendanceService } from "./attendance.service";
+import { AttendanceCronService } from "./attendance.cron";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RbacGuard } from "../../common/guards/rbac.guard";
 import { Permissions } from "../../common/decorators/permissions.decorator";
@@ -10,12 +11,23 @@ import { PunchDto } from "./dto/punch.dto";
 @Controller("attendance")
 @UseGuards(JwtAuthGuard, RbacGuard)
 export class AttendanceController {
-  constructor(private readonly attendanceService: AttendanceService) {}
+  constructor(
+    private readonly attendanceService: AttendanceService,
+    private readonly cronService: AttendanceCronService
+  ) {}
 
   @Get("today")
   @Permissions(Permission.READ_OWN_PROFILE)
   async getTodayStatus(@CurrentUser() user: any) {
     return this.attendanceService.getTodayStatus(user.employeeId);
+  }
+
+  // TEST ENDPOINT ONLY - REMOVE IN PRODUCTION
+  @Post("test-auto-checkout")
+  @Permissions(Permission.WRITE_EMPLOYEES)
+  async triggerAutoCheckout() {
+    await this.cronService.forceAutoCheckout();
+    return { success: true, message: "Auto-checkout triggered successfully" };
   }
 
   @Post("punch")

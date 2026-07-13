@@ -12,7 +12,9 @@ import { useAuthStore } from '@/store/auth';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const storeRole = useAuthStore((state) => state.role);
+  const isTeamLead = useAuthStore((state) => state.isTeamLead);
 
   const [activeRole, setActiveRole] = React.useState(() => {
     if (typeof document !== 'undefined') {
@@ -54,7 +56,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const renderSidebar = () => {
     if (activeRole === 'CAM') return <CamSidebar />;
     if (activeRole === 'OE') return <OeSidebar />;
-    if (activeRole === 'TEAM_LEAD') return <TeamLeadSidebar />;
+    if (activeRole === 'TEAM_LEAD' || (isTeamLead && pathname?.startsWith('/team-lead'))) {
+      return <TeamLeadSidebar />;
+    }
     if (isPrivileged) return <CeoSidebar />;
     return <EmployeeSidebar />;
   };

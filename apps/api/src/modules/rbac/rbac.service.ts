@@ -39,10 +39,12 @@ export class RbacService {
       Permission.READ_EMPLOYEES,
       Permission.WRITE_EMPLOYEES,
       Permission.READ_AUDIT,
+      Permission.MANAGE_PROJECTS,
     ],
     [UserRole.CTO]: [
       Permission.READ_EMPLOYEES,
       Permission.READ_AUDIT,
+      Permission.MANAGE_PROJECTS,
     ],
     [UserRole.COO]: [
       Permission.READ_EMPLOYEES,
@@ -70,6 +72,7 @@ export class RbacService {
     return Array.from(new Set([
       ...basePerms,
       Permission.READ_OWN_PROFILE,
+      Permission.WRITE_OWN_PROFILE,
     ]));
   }
 
@@ -78,6 +81,6 @@ export class RbacService {
     if (!requiredPermissions || requiredPermissions.length === 0) {
       return true;
     }
-    return requiredPermissions.every((perm) => rolePerms.includes(perm));
+    return requiredPermissions.some((perm) => rolePerms.includes(perm));
   }
 }

@@ -24,6 +24,11 @@ export class DepartmentsController {
     return this.departmentsService.getDepartments(params);
   }
 
+  @Get("all-designations")
+  getDesignations() {
+    return this.departmentsService.getDesignations();
+  }
+
   @Get("dashboard")
   @UseGuards(JwtAuthGuard, RbacGuard)
   @Permissions(Permission.READ_EMPLOYEES)

@@ -19,6 +19,7 @@ export default function LeavesLayout({ children, activeRole }: LeavesLayoutProps
     const items = [
       { title: "Dashboard", href: "/leaves", icon: LayoutDashboard },
       { title: "Apply Leave", href: "/leaves/apply", icon: Send },
+      { title: "My Requests", href: "/leaves/history", icon: FileCheck },
       { title: "Leave Approvals", href: "/leaves/approvals", icon: FileCheck },
       { title: "Leave Calendar", href: "/leaves/calendar", icon: Calendar },
       { title: "Leave Policies", href: "/leaves/policies", icon: BookOpen },

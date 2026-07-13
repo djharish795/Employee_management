@@ -29,7 +29,9 @@ export function EmployeeCard({
 }) {
   return (
     <div 
-      className={`w-64 bg-white border border-slate-200 shadow-sm rounded-xl p-4 flex flex-col items-center relative group hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer ${canManageHierarchy ? 'cursor-grab active:cursor-grabbing' : ''}`}
+      className={`w-64 bg-white border shadow-sm rounded-xl p-4 flex flex-col items-center relative group transition-all cursor-pointer 
+        ${node.isVacant ? 'border-dashed border-slate-300 opacity-80 hover:border-slate-400' : 'border-slate-200 hover:border-indigo-300 hover:shadow-md'} 
+        ${canManageHierarchy ? 'cursor-grab active:cursor-grabbing' : ''}`}
       onClick={() => onSelect?.(node)}
       draggable={canManageHierarchy}
       onDragStart={(e) => onDragStart?.(e, node.id)}
@@ -56,7 +58,7 @@ export function EmployeeCard({
       </div>
 
       <div className="text-center w-full">
-        <h3 className="text-sm font-bold text-slate-900 truncate px-2">{node.name}</h3>
+        <h3 className={`text-sm font-bold truncate px-2 ${node.isVacant ? 'text-slate-400' : 'text-slate-900'}`}>{node.name}</h3>
         <p className="text-[11px] font-semibold text-slate-500 mt-0.5 truncate">{node.designation}</p>
       </div>
 

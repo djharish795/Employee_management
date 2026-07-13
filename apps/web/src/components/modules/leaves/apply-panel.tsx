@@ -111,11 +111,12 @@ export default function ApplyPanel({ activeRole }: ApplyPanelProps) {
       if (!employeeId) throw new Error("No employee ID.");
       return applyLeave({
         employeeId,
-        leaveTypeId: leaveTypeCode,
+        leaveTypeIds: [leaveTypeCode],
         startDate,
         endDate,
         reason: `${leaveReason}${emergencyPhone ? ` | Emergency: ${emergencyPhone}` : ""}${delegateName ? ` | Delegate: ${delegateName}` : ""}`,
         isHalfDay: isHalfDayType,
+        halfDaySession: isHalfDayType ? "FIRST_DAY" : null
       });
     },
     onSuccess: () => {

@@ -1,15 +1,15 @@
-import { DeviceDetails } from "../store/auth";
+import { DeviceDetails } from "../store/auth";
 
 export interface LoginResponse {
   mfaRequired: boolean;
   challengeId?: string;
-  method?: "EMAIL_OTP" | "TOTP";
+  method?: "EMAIL_OTP";
   token?: string;
   refreshToken?: string;
   role?: string;
   redirectPath?: string;
   employeeId?: string | null;
-  employeeStatus?: string;
+  isTeamLead?: boolean;
 }
 
 export interface VerifyMFAResponse {
@@ -21,7 +21,7 @@ export interface VerifyMFAResponse {
   unknownDevice?: boolean;
   deviceDetails?: DeviceDetails;
   employeeId?: string | null;
-  employeeStatus?: string;
+  isTeamLead?: boolean;
 }
 
 export class AuthService {

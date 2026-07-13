@@ -17,20 +17,76 @@ export class TasksController {
   @Permissions(Permission.READ_OWN_PROFILE)
   async getMyTasks(@CurrentUser() user: any): Promise<any> {
     const employeeId = user.employeeId;
-    return this.tasksService.getMyTasks(employeeId);
+    const tasks = await this.tasksService.getMyTasks(employeeId);
+    
+    // Attach isMentioned flag based on mentions in comments
+    const userEmail = user.email;
+    return tasks.map((task: any) => {
+      const isMentioned = task.comments?.some((comment: any) => 
+        comment.content?.includes(`@${userEmail}`) && !(comment.viewedBy || []).includes(employeeId)
+      ) || false;
+      return { ...task, isMentioned };
+    });
+  }
+
+  @Get("project/:projectId")
+  @Permissions(Permission.READ_OWN_PROFILE)
+  async getProjectTasks(@Param("projectId") projectId: string, @CurrentUser() user: any): Promise<any> {
+    const tasks = await this.tasksService.getProjectTasks(projectId);
+    
+    // Attach isMentioned flag
+    const userEmail = user.email;
+    return tasks.map((task: any) => {
+      const isMentioned = task.comments?.some((comment: any) => 
+        comment.content?.includes(`@${userEmail}`) && !(comment.viewedBy || []).includes(user.employeeId)
+      ) || false;
+      return { ...task, isMentioned };
+    });
   }
 
   @Post()
   @Permissions(Permission.WRITE_OWN_PROFILE)
   async createTask(@CurrentUser() user: any, @Body() dto: any): Promise<any> {
-    const employeeId = user.employeeId;
-    return this.tasksService.createTask(employeeId, dto);
+    return this.tasksService.createTask(user, dto);
   }
 
-  @Patch(":id/status")
+  @Patch(":id")
   @Permissions(Permission.WRITE_OWN_PROFILE)
-  async updateStatus(@Param("id") id: string, @Body("status") status: TaskStatus): Promise<any> {
-    return this.tasksService.updateTaskStatus(id, status);
+  async updateTask(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body() dto: any
+  ): Promise<any> {
+    return this.tasksService.updateTask(id, user, dto);
+  }
+
+  @Post(":id/comments")
+  @Permissions(Permission.WRITE_OWN_PROFILE)
+  async addComment(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body() dto: { content: string, category?: string }
+  ): Promise<any> {
+    return this.tasksService.addComment(id, user.employeeId, dto.content, dto.category);
+  }
+
+  @Post(":id/mentions/read")
+  @Permissions(Permission.READ_OWN_PROFILE)
+  async markMentionsAsRead(
+    @Param("id") id: string,
+    @CurrentUser() user: any
+  ): Promise<void> {
+    return this.tasksService.markMentionsAsRead(id, user.employeeId, user.email);
+  }
+
+  @Post(":id/actions")
+  @Permissions(Permission.MANAGE_PROJECTS)
+  async addAction(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body() dto: { type: string; notes?: string }
+  ): Promise<any> {
+    return this.tasksService.addAction(id, user.employeeId, dto.type, dto.notes);
   }
 
   @Delete(":id")

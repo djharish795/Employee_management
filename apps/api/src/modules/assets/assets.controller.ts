@@ -102,6 +102,20 @@ export class AssetsController {
     return this.assetsService.getRecentActivity(user.role as UserRole, user.employeeId);
   }
 
+  // CTO view (tech asset overview)
+  @Get("cto/overview")
+  @Permissions(Permission.READ_EMPLOYEES)
+  async getCtoAssetsOverview(@CurrentUser() user: any) {
+    return this.assetsService.getCtoAssets(user.role as UserRole);
+  }
+
+  // CTO view (legacy backwards compat)
+  @Get("cto")
+  @Permissions(Permission.READ_EMPLOYEES)
+  async getCtoAssets(@CurrentUser() user: any) {
+    return this.assetsService.getCtoAssets(user.role as UserRole);
+  }
+
   // Single asset detail
   @Get(":id")
   @Permissions(Permission.READ_EMPLOYEES)
@@ -157,12 +171,6 @@ export class AssetsController {
     return this.assetsService.returnAsset(user.role as UserRole, assetId, returnedCondition);
   }
 
-  // CTO view (tech asset overview)
-  @Get("cto/overview")
-  @Permissions(Permission.READ_EMPLOYEES)
-  async getCtoAssets(@CurrentUser() user: any) {
-    return this.assetsService.getCtoAssets(user.role as UserRole);
-  }
 }
 
 // ─── Asset Requests Controller ────────────────────────────────────────────
@@ -198,19 +206,4 @@ export class AssetRequestsController {
     return this.assetsService.respondToRequest(user.role as UserRole, id, user.employeeId, dto);
   }
 }
-
-// ─── CTO Controller (kept for backwards compat with cto.ts API client) ────
-// Triggers restart again
-// Triggers restart
-
-@Controller("assets")
-@UseGuards(JwtAuthGuard, RbacGuard)
-export class CtoAssetsController {
-  constructor(private readonly assetsService: AssetsService) { }
-
-  @Get("cto")
-  @Permissions(Permission.READ_EMPLOYEES)
-  async getCtoAssets(@CurrentUser() user: any) {
-    return this.assetsService.getCtoAssets(user.role as UserRole);
-  }
-}
+

@@ -95,17 +95,67 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
   return (
     <div className="space-y-6">
 
-      {/* ── Top KPI Cards ─────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Available Balance */}
+      {/* ── Global Summary Cards ──────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Total Allocated (Yearly) */}
+        <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow-lg relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10">
+            <BookOpen className="w-16 h-16 text-white" />
+          </div>
+          <div className="relative z-10">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Allocated (Yearly)</p>
+            <p className={`text-3xl font-black mt-1 ${isLoading ? "text-slate-600" : "text-white"}`}>
+              {isLoading ? "..." : kpiQuery.data?.totalLeaves ? `${kpiQuery.data.totalLeaves} Days` : "--"}
+            </p>
+            <p className="text-[11px] font-semibold text-slate-400 mt-1">Your entire yearly allowance</p>
+          </div>
+        </div>
+
+        {/* Used Leaves */}
+        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
+          <div>
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Used Leaves</p>
+            <p className={`text-3xl font-black mt-1 ${isLoading ? "text-slate-300" : "text-slate-800"}`}>
+              {isLoading ? "..." : kpiQuery.data?.usedLeaves !== undefined ? `${kpiQuery.data.usedLeaves} Days` : "--"}
+            </p>
+            <p className="text-[11px] font-semibold text-slate-500 mt-1">Total taken this year</p>
+          </div>
+        </div>
+
+        {/* Currently Active (Accrued) */}
+        <div className="bg-emerald-50 border border-emerald-100 p-5 rounded-xl shadow-sm">
+          <div>
+            <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Currently Active</p>
+            <p className={`text-3xl font-black mt-1 ${isLoading ? "text-emerald-300" : "text-emerald-700"}`}>
+              {isLoading ? "..." : kpiQuery.data?.availableLeaves !== undefined ? `${kpiQuery.data.availableLeaves} Days` : "--"}
+            </p>
+            <p className="text-[11px] font-semibold text-emerald-600/70 mt-1">Accrued & ready to use right now</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Detailed Breakdown Cards ──────────────────────────────────────── */}
+      <h4 className="text-sm font-bold text-slate-700 mb-2 mt-8 border-b border-slate-100 pb-2">Leave Breakdown</h4>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        
+        {/* Full-Day Available */}
         <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Available Balance</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Full-Day Available</p>
               <p className={`text-xl font-bold mt-1 ${isLoading ? "text-slate-300" : "text-emerald-600"}`}>
-                {isLoading ? "..." : kpi ? `${kpi.available} Days` : "-- Days"}
+                {isLoading ? "..." : kpi ? `${kpi.available} Days` : "--"}
               </p>
-              <p className="text-[10px] font-semibold text-slate-500 mt-1">Ready for time-off</p>
+              <p className="text-[10px] font-semibold text-slate-500 mt-1">
+                {isLoading ? "..." : (() => {
+                  const clFull = kpiQuery.data?.details.find((d: any) => d.leaveType.code === "CL_FULL");
+                  if (!clFull) return "Ready for time-off";
+                  const yearly = Number(clFull.yearlyAllocated) || 0;
+                  const currentAllocated = Number(clFull.allocated) || 0;
+                  const remainingToAccrue = Math.max(0, yearly - currentAllocated);
+                  return `Out of ${yearly} yearly limit (${remainingToAccrue} remaining to accrue)`;
+                })()}
+              </p>
             </div>
             <div className="w-8 h-8 flex-shrink-0 rounded-lg bg-emerald-50 flex items-center justify-center">
               <CheckCircle2 className="w-4 h-4 text-emerald-500" />
@@ -113,18 +163,82 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
           </div>
         </div>
 
-        {/* Half-Day Balance */}
+        {/* Half-Day Available */}
         <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Half Days</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Half-Day Available</p>
               <p className={`text-xl font-bold mt-1 ${isLoading ? "text-slate-300" : "text-indigo-600"}`}>
-                {isLoading ? "..." : halfDayBalance ? `${halfDayBalance.available} / ${halfDayBalance.allocated}` : "--"}
+                {isLoading ? "..." : halfDayBalance ? `${halfDayBalance.available} Days` : "--"}
               </p>
-              <p className="text-[10px] font-semibold text-slate-500 mt-1">Half-day entitlement</p>
+              <p className="text-[10px] font-semibold text-slate-500 mt-1">
+                {isLoading ? "..." : (() => {
+                  const clHalf = kpiQuery.data?.details.find((d: any) => d.leaveType.code === "CL_HALF");
+                  if (!clHalf) return "Half-day entitlement";
+                  const yearly = Number(clHalf.yearlyAllocated) || 0;
+                  const used = Number(clHalf.used) || 0;
+                  // Total instances they can ever use this year is yearly (e.g. 6). Remaining is 6 - used - available.
+                  const remainingToAccrue = Math.max(0, yearly - used - Number(halfDayBalance?.available || 0));
+                  return `Out of ${yearly} yearly limit (${remainingToAccrue} remaining to accrue)`;
+                })()}
+              </p>
             </div>
             <div className="w-8 h-8 flex-shrink-0 rounded-lg bg-indigo-50 flex items-center justify-center">
               <Clock className="w-4 h-4 text-indigo-500" />
+            </div>
+          </div>
+        </div>
+
+        {/* Optional Leaves */}
+        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Optional Leaves</p>
+              <p className={`text-xl font-bold mt-1 ${isLoading ? "text-slate-300" : "text-purple-600"}`}>
+                {isLoading ? "..." : (() => {
+                  if (!kpiQuery.data) return "--";
+                  const opt = kpiQuery.data.details.find((d: any) => d.leaveType.code === "OPTIONAL");
+                  if (!opt) return "0 Days";
+                  const avail = Number(opt.allocated) + Number(opt.carriedOver) - Number(opt.used) - Number(opt.pending);
+                  return `${avail} Days`;
+                })()}
+              </p>
+              <p className="text-[10px] font-semibold text-slate-500 mt-1">Available holidays</p>
+            </div>
+            <div className="w-8 h-8 flex-shrink-0 rounded-lg bg-purple-50 flex items-center justify-center">
+              <BookOpen className="w-4 h-4 text-purple-500" />
+            </div>
+          </div>
+        </div>
+
+        {/* Pending Approval */}
+        <div className="bg-white border border-amber-200 p-5 rounded-xl shadow-sm bg-amber-50/30">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Pending Approval</p>
+              <p className={`text-xl font-bold mt-1 ${isLoading ? "text-amber-300" : "text-amber-600"}`}>
+                {isLoading ? "..." : kpi ? `${kpi.pending} Days` : "--"}
+              </p>
+              <p className="text-[10px] font-semibold text-amber-700/70 mt-1">Locks available balance</p>
+            </div>
+            <div className="w-8 h-8 flex-shrink-0 rounded-lg bg-amber-100 flex items-center justify-center">
+              <AlertCircle className="w-4 h-4 text-amber-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Actually Deducted */}
+        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Actually Deducted</p>
+              <p className={`text-xl font-bold mt-1 ${isLoading ? "text-slate-300" : "text-slate-800"}`}>
+                {isLoading ? "..." : kpi ? `${kpi.used} Days` : "--"}
+              </p>
+              <p className="text-[10px] font-semibold text-slate-500 mt-1">Approved & deducted (Full days)</p>
+            </div>
+            <div className="w-8 h-8 flex-shrink-0 rounded-lg bg-slate-100 flex items-center justify-center">
+              <Calendar className="w-4 h-4 text-slate-500" />
             </div>
           </div>
         </div>
@@ -143,22 +257,6 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
             </div>
             <div className={`w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center ${wfhThisMonth.used >= wfhThisMonth.max ? "bg-rose-50" : "bg-sky-50"}`}>
               <Home className={`w-4 h-4 ${wfhThisMonth.used >= wfhThisMonth.max ? "text-rose-500" : "text-sky-500"}`} />
-            </div>
-          </div>
-        </div>
-
-        {/* Leave Used */}
-        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Leave Used</p>
-              <p className={`text-xl font-bold mt-1 ${isLoading ? "text-slate-300" : "text-slate-700"}`}>
-                {isLoading ? "..." : kpi ? `${kpi.used} Days` : "-- Days"}
-              </p>
-              <p className="text-[10px] font-semibold text-slate-500 mt-1">Since Jan 1, {new Date().getFullYear()}</p>
-            </div>
-            <div className="w-8 h-8 flex-shrink-0 rounded-lg bg-slate-100 flex items-center justify-center">
-              <Calendar className="w-4 h-4 text-slate-500" />
             </div>
           </div>
         </div>

@@ -3,7 +3,6 @@ import {
   AssetsController,
   AssetsKpiController,
   AssetRequestsController,
-  CtoAssetsController,
 } from "./assets.controller";
 import { AssetsService } from "./assets.service";
 import { AssetsRepository } from "./assets.repository";
@@ -17,7 +16,6 @@ import { AuditModule } from "../audit/audit.module";
     AssetsKpiController,
     AssetRequestsController,
     AssetsController,
-    CtoAssetsController,
   ],
   providers: [AssetsService, AssetsRepository],
   exports: [AssetsService],

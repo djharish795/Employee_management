@@ -1,0 +1,215 @@
+import {
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from "@nestjs/common";
+import * as bcrypt from "bcrypt";
+import { PrismaService } from "../../prisma/prisma.service";
+import { MfaService } from "./mfa.service";
+import { TokenService } from "./token.service";
+import { RedisService } from "../../redis/redis.service";
+import { UserRole } from "@naprocs/types";
+import { LoginDto } from "./dto/login.dto";
+import { MfaVerifyDto } from "./dto/mfa-verify.dto";
+
+@Injectable()
+export class AuthService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mfa: MfaService,
+    private readonly tokens: TokenService,
+    private readonly redis: RedisService,
+  ) {}
+
+  async login(dto: LoginDto) {
+    const email = dto.email.trim().toLowerCase();
+
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      include: { employee: true },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException("Invalid email or password.");
+    }
+
+    if (user.status === "SUSPENDED") {
+      throw new ForbiddenException("Your account is suspended. Contact HR.");
+    }
+
+    if (user.status !== "ACTIVE") {
+      throw new ForbiddenException("Your account is not active.");
+    }
+
+    const passwordValid = await bcrypt.compare(dto.password, user.passwordHash);
+    if (!passwordValid) {
+      throw new UnauthorizedException("Invalid email or password.");
+    }
+
+<<<<<<< HEAD
+    // --- MFA TEMPORARILY BYPASSED FOR TESTING ---
+    // const challenge = await this.mfa.createEmailOtpChallenge(user.id, user.email);
+    //
+    // return {
+    //   mfaRequired: true,
+    //   challengeId: challenge.challengeId,
+    //   method: challenge.method,
+    // };
+
+    let isTeamLead = false;
+    if (user.employeeId) {
+      const tlAssignment = await this.prisma.projectAssignment.findFirst({
+        where: { employeeId: user.employeeId, projectRole: 'TL' },
+      });
+      if (tlAssignment) isTeamLead = true;
+    }
+
+    const issued = await this.tokens.issueTokens({
+      userId: user.id,
+      email: user.email,
+      role: isTeamLead && user.role === UserRole.EMPLOYEE ? UserRole.TEAM_LEAD : (user.role as UserRole),
+      employeeId: user.employeeId ?? undefined,
+    });
+=======
+    const challenge = await this.mfa.createEmailOtpChallenge(user.id, user.email);
+>>>>>>> origin/developer
+
+
+
+    return {
+<<<<<<< HEAD
+      mfaRequired: false,
+      token: issued.accessToken,
+      refreshToken: issued.refreshToken,
+      role: issued.role,
+      redirectPath: issued.redirectPath,
+      employeeId: user.employeeId ?? null,
+      isTeamLead,
+=======
+      mfaRequired: true,
+      challengeId: challenge.challengeId,
+      method: challenge.method,
+>>>>>>> origin/developer
+    };
+  }
+
+  async verifyMfa(dto: MfaVerifyDto) {
+    const challenge = await this.mfa.verifyChallenge(dto.challengeId, dto.code);
+    if (!challenge) {
+      throw new UnauthorizedException("Invalid or expired verification code.");
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: challenge.userId },
+      include: { employee: true },
+    });
+
+    if (!user || user.status !== "ACTIVE") {
+      throw new ForbiddenException("Account is not allowed to sign in.");
+    }
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+
+    let isTeamLead = false;
+    if (user.employeeId) {
+      const tlAssignment = await this.prisma.projectAssignment.findFirst({
+        where: { employeeId: user.employeeId, projectRole: 'TL' },
+      });
+      if (tlAssignment) isTeamLead = true;
+    }
+
+    const issued = await this.tokens.issueTokens({
+      userId: user.id,
+      email: user.email,
+      role: isTeamLead && user.role === UserRole.EMPLOYEE ? UserRole.TEAM_LEAD : (user.role as UserRole),
+      employeeId: user.employeeId ?? undefined,
+    });
+
+
+
+    return {
+      success: true,
+      token: issued.accessToken,
+      refreshToken: issued.refreshToken,
+      role: issued.role,
+      redirectPath: issued.redirectPath,
+      employeeId: user.employeeId ?? null,
+      isTeamLead,
+      unknownDevice: false,
+    };
+  }
+
+  async trustDevice(challengeId: string) {
+    // Device trust is persisted in a later iteration; acknowledge for UI flow.
+    void challengeId;
+    return { success: true };
+  }
+
+  async refreshAuthToken(refreshToken: string) {
+    if (!refreshToken) {
+      throw new UnauthorizedException("Refresh token is required.");
+    }
+
+    const refreshKey = `auth:refresh:${refreshToken}`;
+    const sessionData = await this.redis.getJson<{ userId: string; email: string; role: string }>(refreshKey);
+
+    if (!sessionData) {
+      throw new UnauthorizedException("Invalid or expired refresh token.");
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: sessionData.userId },
+      include: { employee: true },
+    });
+
+    if (!user || user.status !== "ACTIVE") {
+      await this.redis.del(refreshKey);
+      throw new ForbiddenException("Account is not allowed to sign in.");
+    }
+
+    // Revoke old token family (basic rotation)
+    await this.redis.del(refreshKey);
+    await this.redis.del(`auth:session:${user.id}:${refreshToken}`);
+
+    let isTeamLead = false;
+    if (user.employeeId) {
+      const tlAssignment = await this.prisma.projectAssignment.findFirst({
+        where: { employeeId: user.employeeId, projectRole: 'TL' },
+      });
+      if (tlAssignment) isTeamLead = true;
+    }
+
+    const issued = await this.tokens.issueTokens({
+      userId: user.id,
+      email: user.email,
+      role: isTeamLead && user.role === UserRole.EMPLOYEE ? UserRole.TEAM_LEAD : (user.role as UserRole),
+      employeeId: user.employeeId ?? undefined,
+    });
+
+<<<<<<< HEAD
+
+=======
+    let finalRedirectPath = issued.redirectPath;
+    if (user.employee?.status === "ONBOARDING") {
+      finalRedirectPath = "/employee/onboarding";
+    }
+>>>>>>> origin/developer
+
+    return {
+      success: true,
+      token: issued.accessToken,
+      refreshToken: issued.refreshToken,
+      role: issued.role,
+      redirectPath: finalRedirectPath,
+      employeeId: user.employeeId ?? null,
+<<<<<<< HEAD
+      isTeamLead,
+=======
+      employeeStatus: user.employee?.status ?? null,
+>>>>>>> origin/developer
+    };
+  }
+}

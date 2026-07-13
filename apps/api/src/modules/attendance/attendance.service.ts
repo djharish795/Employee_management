@@ -223,11 +223,22 @@ export class AttendanceService {
       const m = zoned.getMinutes();
       const isLate = (h > 10 || (h === 10 && m > 15));
 
-      // Threshold: 9 hours = 32400 seconds for early checkout
+      const approvedHalfDay = await this.prisma.leaveRequest.findFirst({
+        where: {
+          employeeId,
+          startDate: { lte: shiftDate },
+          endDate: { gte: shiftDate },
+          status: 'APPROVED',
+          isHalfDay: true
+        }
+      });
+      
+      const thresholdSeconds = approvedHalfDay ? 16200 : 32400; // 4.5 hours or 9 hours
+
       let finalStatus = "PRESENT";
-      if (state.offset < 32400) {
+      if (state.offset < thresholdSeconds) {
         finalStatus = "EARLY_CHECKOUT";
-      } else if (isLate) {
+      } else if (isLate && !approvedHalfDay) {
         finalStatus = "LATE";
       } else if (existingRecord?.status === "WFH") {
         finalStatus = "WFH";

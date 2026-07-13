@@ -13,8 +13,9 @@ interface SelectTimeStepProps {
 }
 
 export function SelectTimeStep({ data, updateData, onNext, onCancel }: SelectTimeStepProps) {
-  const employeeName = data.employeeId === "2" ? "Lokesh" : "Anita Menon";
-  const employeeRole = data.employeeId === "2" ? "Chief Technology Officer" : "Senior Engineering Manager";
+  const [employeeName, setEmployeeName] = useState("Loading...");
+  const [employeeRole, setEmployeeRole] = useState("...");
+  const [employeeInitial, setEmployeeInitial] = useState("?");
 
   const meetingTypes = [
     "Quick Sync", "One-on-One", "Technical Discussion", 
@@ -53,6 +54,19 @@ export function SelectTimeStep({ data, updateData, onNext, onCancel }: SelectTim
         const now = new Date().getTime();
         
         setEmployeeTimezone(targetTimezone);
+
+        // Fetch employee details
+        try {
+          const { apiClient } = await import("@/lib/api/client");
+          const empRes = await apiClient.get(`/employees/${data.employeeId}`);
+          if (empRes.data) {
+            setEmployeeName(`${empRes.data.firstName} ${empRes.data.lastName || ''}`.trim());
+            setEmployeeRole(empRes.data.designation?.title || "Employee");
+            setEmployeeInitial((empRes.data.firstName?.[0] || "?").toUpperCase());
+          }
+        } catch (e) {
+          console.error("Failed to load employee details", e);
+        }
 
         // Generate 30-min slots from 10:00 AM to 6:00 PM
         const slots: { time: string; available: boolean }[] = [];
@@ -110,7 +124,7 @@ export function SelectTimeStep({ data, updateData, onNext, onCancel }: SelectTim
 
         <div className="bg-white border border-slate-100 rounded-[20px] p-6 shadow-sm">
           <div className="w-14 h-14 rounded-full bg-slate-900 text-white flex items-center justify-center text-xl font-bold mb-4">
-            {employeeName.charAt(0)}
+            {employeeInitial}
           </div>
           <h2 className="text-xl font-bold text-slate-900 mb-1">{employeeName}</h2>
           <p className="text-[13px] font-medium text-slate-500">{employeeRole}</p>
