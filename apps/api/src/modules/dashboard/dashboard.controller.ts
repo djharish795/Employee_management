@@ -13,7 +13,7 @@ import { RbacPermissions } from '../../common/rbac/rbac.config';
 @UseGuards(JwtAuthGuard, RbacGuard)
 @Permissions(Permission.READ_EMPLOYEES)
 export class DashboardController {
-  constructor(private readonly dashboardService: DashboardService) {}
+  constructor(private readonly dashboardService: DashboardService) { }
 
   @Get("metrics")
   getMetrics() {

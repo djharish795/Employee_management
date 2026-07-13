@@ -50,10 +50,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [router]);
 
-  // Determine which sidebar to show
+  // Determine which sidebar to show (Hooks must be called before early returns!)
   const { isExecutive, canManageOrg, canManageEmployees, isAdmin } = usePermissions();
   const isPrivileged = isExecutive || canManageOrg || canManageEmployees || isAdmin;
-  
+
   if (!mounted) return null;
   
   const renderSidebar = () => {

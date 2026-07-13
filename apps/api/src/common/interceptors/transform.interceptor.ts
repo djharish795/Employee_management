@@ -29,8 +29,8 @@ export class TransformInterceptor<T>
           return res;
         }
 
-        // If the service already returned our standardized format, don't wrap it again
-        if (res && res.success !== undefined && (res.data !== undefined || res.message !== undefined)) {
+        // If the service already returned a custom format with a success flag, don't wrap it again
+        if (res && res.success !== undefined) {
           return res;
         }
 

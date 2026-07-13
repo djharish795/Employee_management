@@ -32,7 +32,6 @@ import { NotificationsModule } from "./modules/notifications/notifications.modul
 import { SearchModule } from './modules/search/search.module';
 import { LifecycleModule } from "./modules/lifecycle/lifecycle.module";
 import { ProjectsModule } from './modules/projects/projects.module';
-import { TransformInterceptor } from "./common/interceptors/transform.interceptor";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
 
 @Module({
@@ -85,10 +84,6 @@ import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
     ProjectsModule,
   ],
   providers: [
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: TransformInterceptor,
-    },
     {
       provide: APP_FILTER,
       useClass: AllExceptionsFilter,
