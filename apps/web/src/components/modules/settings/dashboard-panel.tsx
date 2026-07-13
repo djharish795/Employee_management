@@ -1,16 +1,15 @@
-import { usePermissions } from "@/hooks/use-permissions";
 "use client";
-
+import { usePermissions } from "@/hooks/use-permissions";
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { 
-  Users, Shield, Workflow, Plug, FileCheck, ArrowUpRight, CheckCircle2, AlertTriangle, ScrollText 
+import {
+  Users, Shield, Workflow, Plug, FileCheck, ArrowUpRight, CheckCircle2, AlertTriangle, ScrollText
 } from "lucide-react";
 import Link from "next/link";
 import { SettingsRole, SettingsKPIs } from "@/types/settings";
 
 interface DashboardPanelProps {
-  
+
 }
 
 const RECENT_CHANGES = [
@@ -39,10 +38,10 @@ export default function SettingsDashboardPanel() {
 
   return (
     <div className="space-y-6">
-      
+
       {/* ── KPI Cards ──────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        
+
         <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <div className="w-9 h-9 bg-slate-100 text-slate-900 rounded-xl flex items-center justify-center">
@@ -98,7 +97,7 @@ export default function SettingsDashboardPanel() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         {/* ── Recent Configuration Changes ───────────────────────────────── */}
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col h-[400px]">

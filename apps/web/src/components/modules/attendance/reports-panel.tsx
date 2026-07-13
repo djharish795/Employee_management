@@ -1,5 +1,5 @@
-import { usePermissions } from "@/hooks/use-permissions";
 "use client";
+import { usePermissions } from "@/hooks/use-permissions";
 
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -97,7 +97,7 @@ export default function ReportsPanel() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        
+
         {/* Department Attendance Comparison */}
         <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm space-y-4">
           <div className="flex justify-between items-center border-b border-slate-100 pb-2">

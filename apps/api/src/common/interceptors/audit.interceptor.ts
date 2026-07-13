@@ -22,7 +22,7 @@ export class AuditInterceptor implements NestInterceptor {
           const requestId = request.headers["x-request-id"] as string;
           
           const resource = request.route?.path || request.url;
-          const resourceId = request.params?.id;
+          const resourceId = request.params?.id || "N/A";
 
           const maskedBody = this.maskPii(body);
 

@@ -1,5 +1,5 @@
-import { usePermissions } from "@/hooks/use-permissions";
 "use client";
+import { usePermissions } from "@/hooks/use-permissions";
 
 import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -47,7 +47,7 @@ export default function RegularizationPanel() {
   });
 
   const actionMutation = useMutation({
-    mutationFn: (args: { id: string, action: "APPROVE" | "REJECT", approver: "MANAGER" | "HR" }) => 
+    mutationFn: (args: { id: string, action: "APPROVE" | "REJECT", approver: "MANAGER" | "HR" }) =>
       actionRegularization(args.id, args.action, args.approver),
     onSuccess: () => {
       refetch();
@@ -151,13 +151,12 @@ export default function RegularizationPanel() {
                           </div>
                           <ArrowRight className="w-3 h-3 text-slate-300" />
                           <div
-                            className={`flex items-center gap-1 font-bold ${
-                              req.managerStatus === "APPROVED"
+                            className={`flex items-center gap-1 font-bold ${req.managerStatus === "APPROVED"
                                 ? "text-emerald-600"
                                 : req.managerStatus === "REJECTED"
-                                ? "text-rose-600"
-                                : "text-amber-500"
-                            }`}
+                                  ? "text-rose-600"
+                                  : "text-amber-500"
+                              }`}
                           >
                             {req.managerStatus === "APPROVED" ? (
                               <CheckCircle2 className="w-3.5 h-3.5" />
@@ -170,13 +169,12 @@ export default function RegularizationPanel() {
                           </div>
                           <ArrowRight className="w-3 h-3 text-slate-300" />
                           <div
-                            className={`flex items-center gap-1 font-bold ${
-                              req.hrStatus === "APPROVED"
+                            className={`flex items-center gap-1 font-bold ${req.hrStatus === "APPROVED"
                                 ? "text-emerald-600"
                                 : req.hrStatus === "REJECTED"
-                                ? "text-rose-600"
-                                : "text-amber-500"
-                            }`}
+                                  ? "text-rose-600"
+                                  : "text-amber-500"
+                              }`}
                           >
                             {req.hrStatus === "APPROVED" ? (
                               <CheckCircle2 className="w-3.5 h-3.5" />
@@ -241,7 +239,7 @@ export default function RegularizationPanel() {
                   </span> of <span className="font-bold text-slate-900">{filteredRequests.length}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button 
+                  <button
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
                     className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold border border-slate-200 rounded-lg bg-white shadow-sm transition-all text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -250,7 +248,7 @@ export default function RegularizationPanel() {
                   <button className="flex items-center justify-center w-8 h-8 text-xs font-bold bg-slate-900 text-white rounded-lg shadow-sm">
                     {currentPage}
                   </button>
-                  <button 
+                  <button
                     onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredRequests.length / itemsPerPage), p + 1))}
                     disabled={currentPage === Math.ceil(filteredRequests.length / itemsPerPage)}
                     className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 bg-white shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed">

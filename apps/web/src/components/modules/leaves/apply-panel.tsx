@@ -1,5 +1,6 @@
-import { usePermissions } from "@/hooks/use-permissions";
 "use client";
+import { usePermissions } from "@/hooks/use-permissions";
+
 
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -450,7 +451,7 @@ export default function ApplyPanel() {
                     {(wfhHistory ?? []).slice(0, 4).map(w => {
                       const badge = w.status === "APPROVED" ? "text-emerald-700 bg-emerald-50 border-emerald-100"
                         : w.status === "PENDING" ? "text-amber-700 bg-amber-50 border-amber-100"
-                        : "text-rose-700 bg-rose-50 border-rose-100";
+                          : "text-rose-700 bg-rose-50 border-rose-100";
                       return (
                         <div key={w.id} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg">
                           <div>

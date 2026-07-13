@@ -1,5 +1,5 @@
-import { usePermissions } from "@/hooks/use-permissions";
 "use client";
+import { usePermissions } from "@/hooks/use-permissions";
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -36,13 +36,13 @@ export default function DashboardPanel() {
     queryFn: fetchRegularizations,
   });
 
-  const pendingRequests = regularizations.filter(req => 
+  const pendingRequests = regularizations.filter(req =>
     (activeRole === "MANAGER" && req.managerStatus === "PENDING") ||
     ((activeRole === "HR" || activeRole === "ADMIN") && req.hrStatus === "PENDING")
   );
 
   const actionMutation = useMutation({
-    mutationFn: (args: { id: string, action: "APPROVE" | "REJECT", approver: "MANAGER" | "HR" }) => 
+    mutationFn: (args: { id: string, action: "APPROVE" | "REJECT", approver: "MANAGER" | "HR" }) =>
       actionRegularization(args.id, args.action, args.approver),
     onSuccess: () => {
       refetchRegs();
@@ -59,7 +59,7 @@ export default function DashboardPanel() {
   // Local clock state that ticks based on backend offset
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const [breakSecondsElapsed, setBreakSecondsElapsed] = useState(0);
-  
+
   // Mini Calendar State
   const [calendarDate, setCalendarDate] = useState(new Date());
 
@@ -116,7 +116,7 @@ export default function DashboardPanel() {
     onSuccess: (newData) => {
       // Instantly update local state with backend response for zero-latency refresh
       queryClient.setQueryData(["attendanceStatus"], newData);
-      
+
       // Refresh logs and kpis in the background
       queryClient.invalidateQueries({ queryKey: ["attendanceLogs"] });
       queryClient.invalidateQueries({ queryKey: ["attendanceKpis"] });
@@ -144,10 +144,10 @@ export default function DashboardPanel() {
   const todayLog = logs.find((log) => new Date(log.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) === todayDateStr);
 
   const checkInDisplay = todayLog?.checkIn ? new Date(todayLog.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--:--";
-  const breakDisplay = punchState === "BREAK" && statusData 
-    ? new Date(statusData.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-    : (todayLog?.totalBreakSeconds && todayLog.totalBreakSeconds > 0) 
-      ? `${Math.ceil(todayLog.totalBreakSeconds / 60)} mins` 
+  const breakDisplay = punchState === "BREAK" && statusData
+    ? new Date(statusData.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : (todayLog?.totalBreakSeconds && todayLog.totalBreakSeconds > 0)
+      ? `${Math.ceil(todayLog.totalBreakSeconds / 60)} mins`
       : "--:--";
   let expectedCheckOutStr = "--:--";
   if (!todayLog?.checkOut && todayLog?.checkIn) {
@@ -162,7 +162,7 @@ export default function DashboardPanel() {
   const timelineEvents = useMemo(() => {
     const events = [];
     const shiftMs = 9 * 60 * 60 * 1000; // 9 hours
-    
+
     if (todayLog?.checkIn) {
       const checkInTime = new Date(todayLog.checkIn).getTime();
       events.push({
@@ -180,7 +180,7 @@ export default function DashboardPanel() {
             const bEnd = b.end ? new Date(b.end).getTime() : Date.now();
             const durationMs = bEnd - bStart;
             const durationMins = Math.max(1, Math.round(durationMs / 60000));
-            
+
             let durationStr = `${durationMins} min`;
             if (durationMins >= 60) {
               const hrs = Math.floor(durationMins / 60);
@@ -219,7 +219,7 @@ export default function DashboardPanel() {
         });
       }
     }
-    
+
     // Check-in at 0, Check-out at 100. Sort inner markers by timestamp.
     return events.sort((a, b) => {
       if (a.type === "CHECK_IN") return -1;
@@ -234,12 +234,12 @@ export default function DashboardPanel() {
     if (!todayLog?.checkIn) return 0;
     const checkInTime = new Date(todayLog.checkIn).getTime();
     const shiftMs = 9 * 60 * 60 * 1000;
-    
+
     if (todayLog?.checkOut) {
       const checkOutTime = new Date(todayLog.checkOut).getTime();
       return Math.min(100, Math.max(0, ((checkOutTime - checkInTime) / shiftMs) * 100));
     }
-    
+
     const now = Date.now();
     return Math.min(100, Math.max(0, ((now - checkInTime) / shiftMs) * 100));
   }, [todayLog, secondsElapsed]);
@@ -249,7 +249,7 @@ export default function DashboardPanel() {
     if (!todayLog?.checkIn) return segments;
     const checkInTime = new Date(todayLog.checkIn).getTime();
     const shiftMs = 9 * 60 * 60 * 1000;
-    
+
     let lastTime = checkInTime;
 
     if (todayLog?.breakHistory && Array.isArray(todayLog.breakHistory)) {
@@ -277,13 +277,13 @@ export default function DashboardPanel() {
 
     // Final work segment
     const finalEndTime = todayLog?.checkOut ? new Date(todayLog.checkOut).getTime() : Date.now();
-    
+
     if (punchState === "IN" || punchState === "OUT" || todayLog?.checkOut) {
-       segments.push({
-         type: "WORK",
-         start: Math.min(100, Math.max(0, ((lastTime - checkInTime) / shiftMs) * 100)),
-         end: Math.min(100, Math.max(0, ((finalEndTime - checkInTime) / shiftMs) * 100))
-       });
+      segments.push({
+        type: "WORK",
+        start: Math.min(100, Math.max(0, ((lastTime - checkInTime) / shiftMs) * 100)),
+        end: Math.min(100, Math.max(0, ((finalEndTime - checkInTime) / shiftMs) * 100))
+      });
     }
 
     return segments;
@@ -303,14 +303,14 @@ export default function DashboardPanel() {
       const date = new Date(startOfWeek);
       date.setDate(startOfWeek.getDate() + idx);
       const dateStr = date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-      
+
       const dayLog = logs.find((l: any) => new Date(l.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) === dateStr);
-      
+
       let hours = 0;
       if (dayLog && typeof dayLog.hoursWorked === 'number') {
         hours = dayLog.hoursWorked;
       }
-      
+
       const isToday = new Date().toDateString() === date.toDateString();
       if (isToday && secondsElapsed > 0 && !dayLog?.checkOut) {
         hours = secondsElapsed / 3600;
@@ -402,14 +402,13 @@ export default function DashboardPanel() {
             <div className="relative mb-16 px-6 mt-16">
               {/* Tracker lines */}
               <div className="absolute top-2 left-0 right-0 h-1 bg-slate-100 rounded-full -translate-y-1/2" />
-              
+
               {/* Progress Segments */}
               {timelineSegments.map((seg, i) => (
                 <div
                   key={`seg-${i}`}
-                  className={`absolute top-2 h-1 rounded-full -translate-y-1/2 transition-all duration-1000 ease-linear ${
-                    seg.type === "WORK" ? "bg-slate-900" : "bg-amber-400"
-                  }`}
+                  className={`absolute top-2 h-1 rounded-full -translate-y-1/2 transition-all duration-1000 ease-linear ${seg.type === "WORK" ? "bg-slate-900" : "bg-amber-400"
+                    }`}
                   style={{
                     left: `${seg.start}%`,
                     width: `${seg.end - seg.start}%`,
@@ -431,11 +430,11 @@ export default function DashboardPanel() {
                   }
 
                   const isBreak = ev.type.includes("BREAK");
-                  
+
                   // Calculate break index for 4-level alternating positions
                   let breakIndex = 0;
                   if (isBreak) {
-                     breakIndex = arr.slice(0, i).filter(e => e.type.includes("BREAK")).length;
+                    breakIndex = arr.slice(0, i).filter(e => e.type.includes("BREAK")).length;
                   }
 
                   // CheckIn/CheckOut always below (top-6). Breaks stagger across 4 levels.
@@ -443,13 +442,13 @@ export default function DashboardPanel() {
                   const labelPosition = isBreak ? positions[breakIndex % 4] : "top-6";
 
                   return (
-                    <div 
-                      key={i} 
+                    <div
+                      key={i}
                       className="absolute flex flex-col items-center group -translate-x-1/2"
                       style={{ left: `${ev.position}%`, top: "-4px" }}
                     >
                       <div className={`w-4 h-4 rounded-full border-[3px] border-white shadow-sm z-10 transition-all ${bgColor} ring-4 ${ringColor}`} />
-                      
+
                       {/* Hover Tooltip */}
                       <div className="absolute top-6 flex flex-col items-center opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 border border-slate-700 shadow-lg rounded p-2 z-20 w-max pointer-events-none">
                         <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">{ev.label}</span>
@@ -586,7 +585,7 @@ export default function DashboardPanel() {
                   const formattedCheckIn = log.checkIn ? new Date(log.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
                   const formattedCheckOut = log.checkOut ? new Date(log.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
                   const formattedHours = typeof log.hoursWorked === 'number' ? `${log.hoursWorked.toFixed(1)}h` : log.hoursWorked;
-                  
+
                   let formattedBreak = "—";
                   if (log.totalBreakSeconds && log.totalBreakSeconds > 0) {
                     const breakMins = Math.round(log.totalBreakSeconds / 60);
@@ -647,13 +646,13 @@ export default function DashboardPanel() {
                 {calendarDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
               </h3>
               <div className="flex items-center gap-1">
-                <button 
+                <button
                   onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1))}
                   className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <button 
+                <button
                   onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1))}
                   className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-colors"
                 >
@@ -674,18 +673,18 @@ export default function DashboardPanel() {
                 const firstDayOfMonth = new Date(year, month, 1).getDay();
                 // Adjust to make Monday the first day of the week (0=Mon, 6=Sun)
                 const startOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
-                
+
                 const cells = [];
                 // Empty offset items
                 for (let i = 0; i < startOffset; i++) {
                   cells.push(<div key={`empty-${i}`} className="p-1.5 opacity-30 text-slate-400"></div>);
                 }
-                
+
                 // Actual days
                 for (let day = 1; day <= daysInMonth; day++) {
                   const dateStr = new Date(year, month, day).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
                   const dayLog = logs.find((l: any) => new Date(l.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) === dateStr);
-                  
+
                   let bgClass = "bg-transparent text-slate-700 hover:bg-slate-100";
                   if (dayLog) {
                     if (dayLog.status === "PRESENT") bgClass = "bg-emerald-100 text-emerald-700 font-bold hover:bg-emerald-200";
@@ -713,13 +712,13 @@ export default function DashboardPanel() {
                     </div>
                   );
                 }
-                
+
                 // Fill remaining
                 const remaining = Math.ceil((startOffset + daysInMonth) / 7) * 7 - (startOffset + daysInMonth);
                 for (let i = 0; i < remaining; i++) {
                   cells.push(<div key={`end-empty-${i}`} className="p-1.5 opacity-30 text-slate-400"></div>);
                 }
-                
+
                 return cells;
               })()}
             </div>
@@ -750,14 +749,14 @@ export default function DashboardPanel() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <button 
+                        <button
                           onClick={() => actionMutation.mutate({ id: req.id, action: "REJECT", approver: activeRole === "MANAGER" ? "MANAGER" : "HR" })}
                           disabled={actionMutation.isPending}
                           className="flex-1 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-600 text-[10px] font-bold rounded-md transition-colors"
                         >
                           Reject
                         </button>
-                        <button 
+                        <button
                           onClick={() => actionMutation.mutate({ id: req.id, action: "APPROVE", approver: activeRole === "MANAGER" ? "MANAGER" : "HR" })}
                           disabled={actionMutation.isPending}
                           className="flex-1 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-bold rounded-md transition-colors"

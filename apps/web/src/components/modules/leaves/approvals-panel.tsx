@@ -1,5 +1,6 @@
-import { usePermissions } from "@/hooks/use-permissions";
 "use client";
+import { usePermissions } from "@/hooks/use-permissions";
+
 
 import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -33,7 +34,7 @@ export default function ApprovalsPanel() {
         const parsed = JSON.parse(raw);
         return parsed?.state?.employeeId ?? null;
       }
-    } catch {}
+    } catch { }
     return null;
   }, []);
 
@@ -88,9 +89,8 @@ export default function ApprovalsPanel() {
           <button
             key={tab.name}
             onClick={() => setActiveTab(tab.name)}
-            className={`pb-3 text-sm font-bold whitespace-nowrap transition-colors relative ${
-              activeTab === tab.name ? "text-slate-900" : "text-slate-500 hover:text-slate-700"
-            }`}
+            className={`pb-3 text-sm font-bold whitespace-nowrap transition-colors relative ${activeTab === tab.name ? "text-slate-900" : "text-slate-500 hover:text-slate-700"
+              }`}
           >
             {tab.name} {tab.count > 0 && <span className={activeTab === tab.name ? "" : "opacity-80"}>({tab.count})</span>}
             {activeTab === tab.name && (
@@ -119,7 +119,7 @@ export default function ApprovalsPanel() {
         <div className="space-y-4">
           {filtered.map((req) => (
             <div key={req.id} className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 space-y-5">
-              
+
               {/* Card Top */}
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-3">
@@ -169,13 +169,12 @@ export default function ApprovalsPanel() {
                     <React.Fragment key={idx}>
                       <ArrowRight className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
                       <span
-                        className={`px-2 py-1 rounded-full flex items-center gap-1 whitespace-nowrap ${
-                          step.status === "APPROVED"
+                        className={`px-2 py-1 rounded-full flex items-center gap-1 whitespace-nowrap ${step.status === "APPROVED"
                             ? "bg-green-100 text-green-800"
                             : step.status === "REJECTED"
-                            ? "bg-red-100 text-red-800"
-                            : "bg-orange-100 text-orange-800"
-                        }`}
+                              ? "bg-red-100 text-red-800"
+                              : "bg-orange-100 text-orange-800"
+                          }`}
                       >
                         {step.status === "APPROVED" && <Check className="w-3 h-3" />}
                         {step.status === "REJECTED" && <X className="w-3 h-3" />}
@@ -217,11 +216,11 @@ export default function ApprovalsPanel() {
               {rejectId === req.id && (
                 <div className="pt-3 flex gap-2">
                   <button onClick={() => setRejectId(null)} className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-lg">Cancel</button>
-                  <button 
+                  <button
                     onClick={() => rejectMutation.mutate({ leaveId: req.id })}
                     className="px-3 py-1.5 text-xs font-bold bg-rose-600 text-white rounded-lg hover:bg-rose-700 flex items-center gap-2"
                   >
-                    {rejectMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin"/> : "Confirm Rejection"}
+                    {rejectMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Confirm Rejection"}
                   </button>
                 </div>
               )}

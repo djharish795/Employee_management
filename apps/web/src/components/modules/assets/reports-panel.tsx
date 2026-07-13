@@ -1,6 +1,5 @@
-import { usePermissions } from "@/hooks/use-permissions";
 "use client";
-
+import { usePermissions } from "@/hooks/use-permissions";
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -16,7 +15,7 @@ import { assetsApi } from "@/lib/api/assets";
 import { AssetRole } from "@/types/assets";
 
 interface ReportsPanelProps {
-  
+
 }
 
 const DEPT_ASSET_DATA = [
