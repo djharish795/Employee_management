@@ -50,11 +50,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [router]);
 
-  if (!mounted) return null;
-
   // Determine which sidebar to show
   const { isExecutive, canManageOrg, canManageEmployees, isAdmin } = usePermissions();
   const isPrivileged = isExecutive || canManageOrg || canManageEmployees || isAdmin;
+  
+  if (!mounted) return null;
   
   const renderSidebar = () => {
     if (activeRole === 'CAM') return <CamSidebar />;
