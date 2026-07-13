@@ -18,7 +18,7 @@ const fmtDate = (iso: string) => {
 
 export default function ApprovalsPanel({ activeRole }: ApprovalsPanelProps) {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("Pending HR approval");
+  const [activeTab, setActiveTab] = useState("Pending My Approval");
   const [rejectId, setRejectId] = useState<string | null>(null);
 
   // Derive approverId
@@ -42,7 +42,7 @@ export default function ApprovalsPanel({ activeRole }: ApprovalsPanelProps) {
 
   const filtered = useMemo(() => {
     let result = [...requests];
-    if (activeTab === "Pending HR approval") result = result.filter((r) => r.status === "PENDING");
+    if (activeTab === "Pending My Approval") result = result.filter((r) => r.status === "PENDING");
     if (activeTab === "Approved this month") result = result.filter((r) => r.status === "APPROVED");
     if (activeTab === "Rejected") result = result.filter((r) => r.status === "REJECTED");
     return result;
@@ -62,7 +62,7 @@ export default function ApprovalsPanel({ activeRole }: ApprovalsPanelProps) {
   });
 
   const tabs = [
-    { name: "Pending HR approval", count: requests.filter((r) => r.status === "PENDING").length },
+    { name: "Pending My Approval", count: requests.filter((r) => r.status === "PENDING").length },
     { name: "Approved this month", count: requests.filter((r) => r.status === "APPROVED").length },
     { name: "Rejected", count: requests.filter((r) => r.status === "REJECTED").length },
     { name: "All requests", count: requests.length },
@@ -75,7 +75,7 @@ export default function ApprovalsPanel({ activeRole }: ApprovalsPanelProps) {
         <h2 className="text-xl font-bold text-slate-900">Leave Approval Queue</h2>
         <div className="bg-blue-50 text-blue-800 text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-2">
           <Info className="w-4 h-4 text-blue-600" />
-          Final HR approval — requests already approved by the employee&apos;s manager
+          Review and manage leave requests pending your approval
         </div>
       </div>
 
@@ -137,7 +137,7 @@ export default function ApprovalsPanel({ activeRole }: ApprovalsPanelProps) {
                   </div>
                 </div>
                 <div className="px-3 py-1 bg-orange-100 text-orange-800 text-[10px] font-bold rounded-full uppercase tracking-wide">
-                  PENDING HR APPROVAL
+                  PENDING MY APPROVAL
                 </div>
               </div>
 

@@ -10,22 +10,8 @@ export const fetchCtoAssets = async (): Promise<any> => {
   return data.data ? data.data : data;
 };
 
-export const fetchCtoLeaves = async (): Promise<any> => {
-  const { data } = await apiClient.get('/leaves/cto');
-  return data.data ? data.data : data;
-};
-
 export const fetchCtoTeam = async (): Promise<any> => {
   const { data } = await apiClient.get('/employees/cto-team');
   return data.data ? data.data : data;
 };
 
-export const approveLeave = async (id: string): Promise<any> => {
-  const { data } = await apiClient.post(`/leaves/${id}/approve`);
-  return data.data ? data.data : data;
-};
-
-export const rejectLeave = async (id: string, reason: string): Promise<any> => {
-  const { data } = await apiClient.post(`/leaves/${id}/reject`, { reason });
-  return data.data ? data.data : data;
-};

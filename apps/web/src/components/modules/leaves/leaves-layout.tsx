@@ -26,10 +26,8 @@ export default function LeavesLayout({ children, activeRole }: LeavesLayoutProps
     ];
 
     return items.filter((item) => {
-      // Employees and CEO cannot see the approval review tab
-      // CEO has read-only access on their Executive Dashboard instead
       if (item.href === "/leaves/approvals") {
-        return !["EMPLOYEE", "CEO"].includes(activeRole);
+        return activeRole !== "EMPLOYEE";
       }
       // Employee cannot apply leave for others — only for themselves
       return true;

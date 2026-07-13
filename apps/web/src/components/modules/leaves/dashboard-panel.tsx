@@ -51,8 +51,27 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
   // ── Computed leave KPIs ───────────────────────────────────────────────────
   const kpi = useMemo(() => {
     if (!kpiQuery.data) return null;
-    const { totalLeaves, usedLeaves, pendingLeaves, availableLeaves } = kpiQuery.data;
-    return { available: availableLeaves, used: usedLeaves, pending: pendingLeaves, total: totalLeaves };
+    const { totalLeaves, usedLeaves, pendingLeaves, availableLeaves, details } = kpiQuery.data;
+
+    // Fallback if isPaidLeave is not available from API
+    const isPaidDefined = details.length > 0 && details[0].leaveType.isPaidLeave !== undefined;
+
+    const usedPaid = details
+      .filter(d => isPaidDefined ? d.leaveType.isPaidLeave : d.leaveType.code !== "LOP")
+      .reduce((sum, d) => sum + Number(d.used), 0);
+
+    const usedUnpaid = details
+      .filter(d => isPaidDefined ? d.leaveType.isPaidLeave === false : d.leaveType.code === "LOP")
+      .reduce((sum, d) => sum + Number(d.used), 0);
+
+    return {
+      available: availableLeaves,
+      used: usedLeaves,
+      pending: pendingLeaves,
+      total: totalLeaves,
+      usedPaid,
+      usedUnpaid
+    };
   }, [kpiQuery.data]);
 
   // ── Half-day specific balance ─────────────────────────────────────────────
@@ -64,9 +83,11 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
     return { available, allocated: Number(hd.allocated) };
   }, [kpiQuery.data]);
 
+  const maxWfh = activeRole === "CEO" ? 5 : activeRole === "MANAGER" || activeRole === "HR" ? 2 : 1;
+
   // ── WFH this month ────────────────────────────────────────────────────────
   const wfhThisMonth = useMemo(() => {
-    if (!wfhQuery.data) return { used: 0, pending: 0, max: 1 };
+    if (!wfhQuery.data) return { used: 0, pending: 0, max: maxWfh };
     const now = new Date();
     const thisMonthWfh = wfhQuery.data.filter(w => {
       const d = new Date(w.date);
@@ -74,8 +95,8 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
     });
     const used = thisMonthWfh.filter(w => w.status === "APPROVED").length;
     const pending = thisMonthWfh.filter(w => w.status === "PENDING").length;
-    return { used, pending, max: 1 };
-  }, [wfhQuery.data]);
+    return { used, pending, max: maxWfh };
+  }, [wfhQuery.data, maxWfh]);
 
   // ── Recent leave requests ─────────────────────────────────────────────────
   const recentRequests = useMemo(() => {
@@ -137,14 +158,19 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
       {/* ── Detailed Breakdown Cards ──────────────────────────────────────── */}
       <h4 className="text-sm font-bold text-slate-700 mb-2 mt-8 border-b border-slate-100 pb-2">Leave Breakdown</h4>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        
+
         {/* Full-Day Available */}
         <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
           <div className="flex items-start justify-between gap-2">
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Full-Day Available</p>
               <p className={`text-xl font-bold mt-1 ${isLoading ? "text-slate-300" : "text-emerald-600"}`}>
-                {isLoading ? "..." : kpi ? `${kpi.available} Days` : "--"}
+                {isLoading ? "..." : kpiQuery.data ? (() => {
+                  const clFull = kpiQuery.data.details.find((d: any) => d.leaveType.code === "CL_FULL");
+                  if (!clFull) return "0 Days";
+                  const available = Number(clFull.allocated) + Number(clFull.carriedOver) - Number(clFull.used) - Number(clFull.pending);
+                  return `${available} Days`;
+                })() : "--"}
               </p>
               <p className="text-[10px] font-semibold text-slate-500 mt-1">
                 {isLoading ? "..." : (() => {
@@ -227,15 +253,26 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
           </div>
         </div>
 
-        {/* Actually Deducted */}
+        {/* Used Paid vs Unpaid Breakdown */}
         <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
           <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Actually Deducted</p>
-              <p className={`text-xl font-bold mt-1 ${isLoading ? "text-slate-300" : "text-slate-800"}`}>
-                {isLoading ? "..." : kpi ? `${kpi.used} Days` : "--"}
-              </p>
-              <p className="text-[10px] font-semibold text-slate-500 mt-1">Approved & deducted (Full days)</p>
+            <div className="w-full">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Used Leaves Breakdown</p>
+              <div className="flex items-center gap-4 mt-1">
+                <div>
+                  <p className={`text-xl font-bold ${isLoading ? "text-slate-300" : "text-emerald-600"}`}>
+                    {isLoading ? "..." : kpi ? `${kpi.usedPaid} Days` : "--"}
+                  </p>
+                  <p className="text-[10px] font-semibold text-slate-500 mt-0.5">Paid Leave</p>
+                </div>
+                <div className="w-px h-8 bg-slate-200"></div>
+                <div>
+                  <p className={`text-xl font-bold ${isLoading ? "text-slate-300" : "text-rose-600"}`}>
+                    {isLoading ? "..." : kpi ? `${kpi.usedUnpaid} Days` : "--"}
+                  </p>
+                  <p className="text-[10px] font-semibold text-slate-500 mt-0.5">Unpaid Leave</p>
+                </div>
+              </div>
             </div>
             <div className="w-8 h-8 flex-shrink-0 rounded-lg bg-slate-100 flex items-center justify-center">
               <Calendar className="w-4 h-4 text-slate-500" />
@@ -252,7 +289,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                 {wfhQuery.isLoading ? "..." : `${wfhThisMonth.used} / ${wfhThisMonth.max}`}
               </p>
               <p className="text-[10px] font-semibold text-slate-500 mt-1">
-                {wfhThisMonth.pending > 0 ? `${wfhThisMonth.pending} pending` : "Max 1 per month"}
+                {wfhThisMonth.pending > 0 ? `${wfhThisMonth.pending} pending` : `Max ${wfhThisMonth.max} per month`}
               </p>
             </div>
             <div className={`w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center ${wfhThisMonth.used >= wfhThisMonth.max ? "bg-rose-50" : "bg-sky-50"}`}>
@@ -316,8 +353,8 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                       req.status === "APPROVED"
                         ? "text-emerald-700 bg-emerald-50 border border-emerald-100"
                         : req.status === "PENDING"
-                        ? "text-amber-700 bg-amber-50 border border-amber-100"
-                        : "text-rose-700 bg-rose-50 border border-rose-100";
+                          ? "text-amber-700 bg-amber-50 border border-amber-100"
+                          : "text-rose-700 bg-rose-50 border border-rose-100";
                     const empName = req.employee
                       ? `${req.employee.firstName} ${req.employee.lastName}`
                       : "Employee";
@@ -349,7 +386,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
               <div className="p-4 border-b border-slate-100 bg-slate-50/20 flex justify-between items-center">
                 <h3 className="text-sm font-bold text-slate-900">My WFH Requests</h3>
                 <span className="text-[10px] font-bold px-2 py-0.5 bg-sky-100 text-sky-700 rounded-full border border-sky-200">
-                  Max 1/month
+                  Max {wfhThisMonth.max}/month
                 </span>
               </div>
               <div className="divide-y divide-slate-100">
@@ -358,8 +395,8 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
                     wfh.status === "APPROVED"
                       ? "text-emerald-700 bg-emerald-50 border border-emerald-100"
                       : wfh.status === "PENDING"
-                      ? "text-amber-700 bg-amber-50 border border-amber-100"
-                      : "text-rose-700 bg-rose-50 border border-rose-100";
+                        ? "text-amber-700 bg-amber-50 border border-amber-100"
+                        : "text-rose-700 bg-rose-50 border border-rose-100";
                   return (
                     <div key={wfh.id} className="px-5 py-3.5 flex items-center justify-between text-xs font-semibold">
                       <div className="flex items-center gap-3">
@@ -518,7 +555,7 @@ export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
               )}
               <div className="flex justify-between py-1.5">
                 <span className="text-slate-400">Policy</span>
-                <span className="font-bold text-slate-500">Max 1/month per employee</span>
+                <span className="font-bold text-slate-500">Max {wfhThisMonth.max}/month for your role</span>
               </div>
             </div>
             {wfhThisMonth.used < wfhThisMonth.max && (

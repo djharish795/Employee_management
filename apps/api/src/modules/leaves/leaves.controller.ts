@@ -56,8 +56,10 @@ export class LeavesController {
     return this.leaveService.getCalendar();
   }
 
-  @Get('cto')
-  getCtoLeaves(): Promise<unknown> {
-    return this.leaveService.getCtoLeaves();
+  @Get('debug-leaves')
+  async debugLeaves(): Promise<unknown> {
+    return this.leaveService['prisma'].leaveRequest.findMany({ include: { employee: true } });
   }
+
+
 }
