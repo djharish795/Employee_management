@@ -10,7 +10,7 @@ export interface CreateAuditLogData {
   oldValue?: any;
   requestId?: string;
   resource: string;
-  resourceId: string;
+  resourceId?: string;
   userAgent?: string;
 }
 
@@ -29,7 +29,7 @@ export class AuditRepository {
         oldValue: data.oldValue ? data.oldValue : undefined,
         requestId: data.requestId || "unknown",
         resource: data.resource,
-        resourceId: data.resourceId,
+        resourceId: data.resourceId || "N/A",
         userAgent: data.userAgent,
       },
     });

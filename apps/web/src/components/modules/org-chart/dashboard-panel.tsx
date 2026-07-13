@@ -1,17 +1,16 @@
-import { usePermissions } from "@/hooks/use-permissions";
 "use client";
-
+import { usePermissions } from "@/hooks/use-permissions";
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { 
-  Users, Building2, UserCircle, GitFork, UserPlus, ArrowRight, Network 
+import {
+  Users, Building2, UserCircle, GitFork, UserPlus, ArrowRight, Network
 } from "lucide-react";
 import Link from "next/link";
 import { OrgRole } from "@/types/org-chart";
 import { apiClient } from "@/lib/api/client";
 
 interface OrgDashboardPanelProps {
-  
+
 }
 
 
@@ -21,7 +20,7 @@ export default function OrgDashboardPanel() {
   const activeRole = role as any;
   const isEmployee = activeRole === "EMPLOYEE";
   const isManager = activeRole === "MANAGER";
-  
+
   const { data: stats, isLoading } = useQuery({
     queryKey: ["orgStats"],
     queryFn: async () => {
@@ -44,7 +43,7 @@ export default function OrgDashboardPanel() {
   const mStruct = stats.managementStructure;
   const totalMStruct = mStruct.cLevel + mStruct.directors + mStruct.managers + mStruct.individualContributors;
   const calcPercent = (val: number) => totalMStruct > 0 ? Math.round((val / totalMStruct) * 100) : 0;
-  
+
   const managementDistribution = [
     { title: "Individual Contributors", percent: calcPercent(mStruct.individualContributors), color: "bg-sky-400", count: mStruct.individualContributors },
     { title: "Managers", percent: calcPercent(mStruct.managers), color: "bg-indigo-400", count: mStruct.managers },
@@ -202,13 +201,12 @@ export default function OrgDashboardPanel() {
               <div className="space-y-3">
                 {stats.notifications && stats.notifications.length > 0 ? (
                   stats.notifications.map((notif: any, idx: number) => (
-                    <div 
-                      key={idx} 
-                      className={`bg-white border p-3 rounded-lg shadow-sm border-l-4 ${
-                        notif.type === 'warning' 
-                          ? 'border-amber-200 border-l-amber-500' 
+                    <div
+                      key={idx}
+                      className={`bg-white border p-3 rounded-lg shadow-sm border-l-4 ${notif.type === 'warning'
+                          ? 'border-amber-200 border-l-amber-500'
                           : 'border-slate-200 border-l-blue-500'
-                      }`}
+                        }`}
                     >
                       <div className={`text-xs font-bold ${notif.type === 'warning' ? 'text-amber-900' : 'text-slate-900'}`}>
                         {notif.title}

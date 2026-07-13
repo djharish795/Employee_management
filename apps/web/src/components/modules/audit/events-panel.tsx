@@ -1,18 +1,19 @@
-import { usePermissions } from "@/hooks/use-permissions";
 "use client";
 
+import { usePermissions } from "@/hooks/use-permissions";
+
 import React, { useState, useMemo } from "react";
-import { 
-  useReactTable, getCoreRowModel, getPaginationRowModel, getFilteredRowModel, 
+import {
+  useReactTable, getCoreRowModel, getPaginationRowModel, getFilteredRowModel,
   ColumnDef, flexRender, getSortedRowModel
 } from "@tanstack/react-table";
-import { 
+import {
   Search, Filter, Download, ChevronLeft, ChevronRight, SlidersHorizontal, ArrowUpDown
 } from "lucide-react";
 import { AuditRole, AuditEvent } from "@/types/audit";
 
 interface EventsExplorerPanelProps {
-  
+
 }
 
 const ALL_MOCK_EVENTS: AuditEvent[] = [
@@ -99,12 +100,12 @@ export default function EventsExplorerPanel() {
 
   const filteredData = useMemo(() => {
     let data = [...ALL_MOCK_EVENTS];
-    
+
     // Role-based visibility
     if (activeRole === "HR") {
       data = data.filter(d => ["EMPLOYEES", "ORG", "LEAVES", "ATTENDANCE"].includes(d.module));
     }
-    
+
     // UI Filters
     if (moduleFilter) data = data.filter(d => d.module === moduleFilter);
     if (statusFilter) data = data.filter(d => d.status === statusFilter);
@@ -195,14 +196,12 @@ export default function EventsExplorerPanel() {
       cell: ({ row }) => {
         const s = row.original.status;
         return (
-          <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md w-max border ${
-            s === "SUCCESS" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-            s === "FAILED" ? "bg-rose-50 text-rose-700 border-rose-200" :
-            "bg-amber-50 text-amber-700 border-amber-200"
-          }`}>
-            <div className={`w-1.5 h-1.5 rounded-full ${
-              s === "SUCCESS" ? "bg-emerald-500" : s === "FAILED" ? "bg-rose-500" : "bg-amber-500"
-            }`} />
+          <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md w-max border ${s === "SUCCESS" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+              s === "FAILED" ? "bg-rose-50 text-rose-700 border-rose-200" :
+                "bg-amber-50 text-amber-700 border-amber-200"
+            }`}>
+            <div className={`w-1.5 h-1.5 rounded-full ${s === "SUCCESS" ? "bg-emerald-500" : s === "FAILED" ? "bg-rose-500" : "bg-amber-500"
+              }`} />
             <span className="text-[10px] font-bold uppercase tracking-wider">{s}</span>
           </div>
         );
@@ -223,24 +222,24 @@ export default function EventsExplorerPanel() {
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col h-[700px]">
-      
+
       {/* ── Toolbar ──────────────────────────────────────────────────────── */}
       <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex flex-wrap gap-4 items-center justify-between z-10">
         <div className="flex items-center gap-3 flex-1">
           <div className="relative min-w-[250px] max-w-sm">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input 
+            <input
               value={globalFilter}
               onChange={(e) => setGlobalFilter(e.target.value)}
-              type="text" 
-              placeholder="Search actor, target, IP..." 
+              type="text"
+              placeholder="Search actor, target, IP..."
               className="w-full h-9 pl-9 pr-3 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
             />
           </div>
-          
+
           <div className="h-9 flex items-center bg-white border border-slate-200 rounded-lg px-1 shadow-sm">
-            <select 
-              value={moduleFilter} 
+            <select
+              value={moduleFilter}
               onChange={e => setModuleFilter(e.target.value)}
               className="h-full bg-transparent text-xs font-semibold text-slate-700 focus:outline-none px-2 cursor-pointer border-r border-slate-100"
             >
@@ -250,8 +249,8 @@ export default function EventsExplorerPanel() {
               <option value="ORG">Organization</option>
               <option value="LEAVES">Leaves</option>
             </select>
-            <select 
-              value={statusFilter} 
+            <select
+              value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
               className="h-full bg-transparent text-xs font-semibold text-slate-700 focus:outline-none px-2 cursor-pointer"
             >
@@ -314,15 +313,15 @@ export default function EventsExplorerPanel() {
           Showing <span className="text-slate-900 font-bold">{table.getRowModel().rows.length}</span> of <span className="text-slate-900 font-bold">{filteredData.length}</span> events
         </div>
         <div className="flex items-center gap-2">
-          <button 
-            onClick={() => table.previousPage()} 
+          <button
+            onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
             className="p-1.5 border border-slate-200 rounded hover:bg-slate-50 disabled:opacity-50 text-slate-600 transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <button 
-            onClick={() => table.nextPage()} 
+          <button
+            onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
             className="p-1.5 border border-slate-200 rounded hover:bg-slate-50 disabled:opacity-50 text-slate-600 transition-colors"
           >
