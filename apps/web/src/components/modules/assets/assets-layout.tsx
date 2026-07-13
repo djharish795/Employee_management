@@ -86,26 +86,28 @@ export default function AssetsLayout({ children, activeRole, onRoleChange }: Ass
                     <span className="text-violet-600 font-bold">{effectiveRole}</span>
                     <ChevronDown className="w-3 h-3 text-slate-400" />
                   </button>
-                  <div className="absolute left-0 mt-1.5 w-44 bg-white border border-slate-200 rounded-lg shadow-lg py-1 hidden group-hover:block z-50">
-                    <div className="px-3 py-1 text-[9px] font-bold text-slate-400 uppercase border-b border-slate-100">
-                      Toggle Role View
+                  <div className="absolute left-0 top-full pt-1.5 w-44 hidden group-hover:block z-50">
+                    <div className="bg-white border border-slate-200 rounded-lg shadow-lg py-1">
+                      <div className="px-3 py-1 text-[9px] font-bold text-slate-400 uppercase border-b border-slate-100">
+                        Toggle Role View
+                      </div>
+                      {ALL_ROLES.map((role) => (
+                        <button
+                          key={role}
+                          onClick={() => onRoleChange(role)}
+                          className={`w-full text-left px-3.5 py-2 text-xs font-medium hover:bg-slate-50 flex items-center justify-between ${
+                            effectiveRole === role
+                              ? "text-violet-600 bg-violet-50/50 font-bold"
+                              : "text-slate-600"
+                          }`}
+                        >
+                          {role}
+                          {effectiveRole === role && (
+                            <Check className="w-3.5 h-3.5 text-violet-600" />
+                          )}
+                        </button>
+                      ))}
                     </div>
-                    {ALL_ROLES.map((role) => (
-                      <button
-                        key={role}
-                        onClick={() => onRoleChange(role)}
-                        className={`w-full text-left px-3.5 py-2 text-xs font-medium hover:bg-slate-50 flex items-center justify-between ${
-                          effectiveRole === role
-                            ? "text-violet-600 bg-violet-50/50 font-bold"
-                            : "text-slate-600"
-                        }`}
-                      >
-                        {role}
-                        {effectiveRole === role && (
-                          <Check className="w-3.5 h-3.5 text-violet-600" />
-                        )}
-                      </button>
-                    ))}
                   </div>
                 </div>
               )}

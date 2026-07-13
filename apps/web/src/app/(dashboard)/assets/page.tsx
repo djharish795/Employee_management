@@ -12,12 +12,6 @@ export default function AssetsDashboardPage() {
   const isEmployeeLevel = ["EMPLOYEE", "MANAGER", "TEAM_LEAD"].includes(currentUserRole);
   const effectiveRole = isEmployeeLevel ? "EMPLOYEE" : activeRole;
 
-  useEffect(() => {
-    if (currentUserRole) {
-      setActiveRole(currentUserRole as any);
-    }
-  }, [currentUserRole, setActiveRole]);
-
   return (
     <AssetsLayout activeRole={effectiveRole as any} onRoleChange={setActiveRole}>
       <DashboardPanel activeRole={effectiveRole as any} />

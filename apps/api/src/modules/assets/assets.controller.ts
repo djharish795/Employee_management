@@ -25,6 +25,7 @@ import { CreateAssetRequestDto, RespondAssetRequestDto } from "./dto/asset-reque
 
 @Controller("assets/kpis")
 @UseGuards(JwtAuthGuard, RbacGuard)
+@Permissions(Permission.READ_EMPLOYEES)
 export class AssetsKpiController {
   constructor(private readonly assetsService: AssetsService) { }
 

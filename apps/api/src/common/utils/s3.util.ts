@@ -1,4 +1,5 @@
 import { S3Client } from "@aws-sdk/client-s3";
+import { InternalServerErrorException } from "@nestjs/common";
 
 /**
  * Creates a fresh S3Client reading credentials directly from process.env.
@@ -11,7 +12,7 @@ import { S3Client } from "@aws-sdk/client-s3";
  */
 export const createS3Client = (): S3Client => {
   const regionRaw = process.env.AWS_REGION;
-  if (!regionRaw) throw new Error("AWS_REGION is not defined in environment");
+  if (!regionRaw) throw new InternalServerErrorException("AWS_REGION is not defined in environment");
   const region = regionRaw.trim();
   const accessKeyId = (process.env.AWS_ACCESS_KEY_ID || "").trim();
   const secretAccessKey = (process.env.AWS_SECRET_ACCESS_KEY || "").trim();

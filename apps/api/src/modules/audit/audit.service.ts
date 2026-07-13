@@ -1,63 +1,110 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { PrismaService } from "../../prisma/prisma.service";
+import { AuditRepository, CreateAuditLogData } from "./audit.repository";
 
-export interface CreateAuditLogDto {
-  action: string;
+export interface BaseAuditParams {
+  moduleName: string;
+  entityId: string;
+  metadata?: any;
+  /** Placeholder for future userId integration. Do not use for now per constraints. */
   actorId?: string;
-  deviceId?: string;
-  ipAddress?: string;
-  newValue?: any;
+}
+
+export interface UpdateAuditParams extends BaseAuditParams {
   oldValue?: any;
-  requestId?: string;
-  resource: string;
-  resourceId?: string;
-  userAgent?: string;
+  newValue?: any;
 }
 
 @Injectable()
 export class AuditService {
   private readonly logger = new Logger(AuditService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly auditRepository: AuditRepository) {}
 
-  async createLog(data: CreateAuditLogDto): Promise<void> {
+  /**
+   * Internal generic logging function.
+   * Fails gracefully to never block a business process.
+   */
+  async createLog(data: CreateAuditLogData): Promise<void> {
     try {
-      await this.prisma.auditLog.create({
-        data: {
-          action: data.action,
-          actorId: data.actorId,
-          deviceId: data.deviceId,
-          ipAddress: data.ipAddress,
-          newValue: data.newValue ? data.newValue : undefined,
-          oldValue: data.oldValue ? data.oldValue : undefined,
-          requestId: data.requestId || "unknown",
-          resource: data.resource,
-          resourceId: data.resourceId || "N/A",
-          userAgent: data.userAgent,
-        },
-      });
+      await this.auditRepository.create(data);
     } catch (error: any) {
-      // Gracefully handle logging failures, never break business requests
       this.logger.error(`Failed to create audit log: ${error.message}`, error.stack);
     }
   }
 
-  async getRecentEvents(limit: number = 50, offset: number = 0) {
-    const events = await this.prisma.auditLog.findMany({
-      take: limit,
-      skip: offset,
-      orderBy: { performedAt: "desc" },
-      include: {
-        actor: {
-          select: {
-            id: true,
-            preferredName: true,
-            personalEmail: true,
-            designation: { select: { title: true } },
-          },
-        },
-      },
+  /**
+   * Logs a CREATE action for an entity.
+   */
+  async logCreate(params: BaseAuditParams): Promise<void> {
+    return this.createLog({
+      action: "CREATE",
+      actorId: params.actorId, // Placeholder for future use
+      resource: params.moduleName,
+      resourceId: params.entityId,
+      newValue: params.metadata,
+      requestId: "SYS", // Can be replaced by request context later
     });
+  }
+
+  /**
+   * Logs an UPDATE action for an entity.
+   */
+  async logUpdate(params: UpdateAuditParams): Promise<void> {
+    return this.createLog({
+      action: "UPDATE",
+      actorId: params.actorId, // Placeholder for future use
+      resource: params.moduleName,
+      resourceId: params.entityId,
+      oldValue: params.oldValue,
+      newValue: params.newValue || params.metadata,
+      requestId: "SYS", // Can be replaced by request context later
+    });
+  }
+
+  /**
+   * Logs a DELETE action for an entity.
+   */
+  async logDelete(params: BaseAuditParams): Promise<void> {
+    return this.createLog({
+      action: "DELETE",
+      actorId: params.actorId, // Placeholder for future use
+      resource: params.moduleName,
+      resourceId: params.entityId,
+      oldValue: params.metadata,
+      requestId: "SYS",
+    });
+  }
+
+  /**
+   * Logs a VIEW action for an entity or list.
+   */
+  async logView(params: BaseAuditParams): Promise<void> {
+    return this.createLog({
+      action: "VIEW",
+      actorId: params.actorId, // Placeholder for future use
+      resource: params.moduleName,
+      resourceId: params.entityId,
+      newValue: params.metadata,
+      requestId: "SYS",
+    });
+  }
+
+  /**
+   * Logs an EXPORT action (e.g., downloading CSV/PDF).
+   */
+  async logExport(params: BaseAuditParams): Promise<void> {
+    return this.createLog({
+      action: "EXPORT",
+      actorId: params.actorId, // Placeholder for future use
+      resource: params.moduleName,
+      resourceId: params.entityId,
+      newValue: params.metadata,
+      requestId: "SYS",
+    });
+  }
+
+  async getRecentEvents(limit: number = 50, offset: number = 0) {
+    const events = await this.auditRepository.getRecentEvents(limit, offset);
 
     return events.map((e) => ({
       id: e.id,
@@ -87,18 +134,10 @@ export class AuditService {
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     const [totalEvents, failedLogins, dataExports, policyViolations] = await Promise.all([
-      this.prisma.auditLog.count({
-        where: { performedAt: { gte: oneDayAgo } },
-      }),
-      this.prisma.auditLog.count({
-        where: { performedAt: { gte: oneDayAgo }, action: { contains: "LOGIN_FAILED" } },
-      }),
-      this.prisma.auditLog.count({
-        where: { performedAt: { gte: oneDayAgo }, action: { contains: "DATA_EXPORTED" } },
-      }),
-      this.prisma.auditLog.count({
-        where: { performedAt: { gte: oneDayAgo }, action: { contains: "VIOLATION" } },
-      }),
+      this.auditRepository.countEventsSince(oneDayAgo),
+      this.auditRepository.countEventsSince(oneDayAgo, "LOGIN_FAILED"),
+      this.auditRepository.countEventsSince(oneDayAgo, "DATA_EXPORTED"),
+      this.auditRepository.countEventsSince(oneDayAgo, "VIOLATION"),
     ]);
 
     return {

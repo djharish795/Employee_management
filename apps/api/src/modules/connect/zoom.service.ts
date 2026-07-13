@@ -1,4 +1,4 @@
-import { Injectable, Logger, ServiceUnavailableException } from "@nestjs/common";
+import { Injectable, Logger, ServiceUnavailableException, InternalServerErrorException } from "@nestjs/common";
 
 @Injectable()
 export class ZoomService {
@@ -30,7 +30,7 @@ export class ZoomService {
 
       if (!response.ok) {
         const errText = await response.text();
-        throw new Error(`Zoom auth failed: ${response.status} ${errText}`);
+        throw new InternalServerErrorException(`Zoom auth failed: ${response.status} ${errText}`);
       }
 
       const data = await response.json() as { access_token: string, expires_in: number };
@@ -76,7 +76,7 @@ export class ZoomService {
 
       if (!response.ok) {
         const errText = await response.text();
-        throw new Error(`Failed to create Zoom meeting: ${errText}`);
+        throw new InternalServerErrorException(`Failed to create Zoom meeting: ${errText}`);
       }
 
       const data = await response.json() as { id: number, join_url: string };

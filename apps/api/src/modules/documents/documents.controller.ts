@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Query, UseGuards } from "@nestjs/common";
+import { Controller, Post, Get, Body, Query, UseGuards, BadRequestException } from "@nestjs/common";
 import { DocumentsService } from "./documents.service";
 
 @Controller("documents")
@@ -9,7 +9,7 @@ export class DocumentsController {
   @Post("upload-url")
   async getUploadUrl(@Body() body: { fileName: string; contentType: string }) {
     if (!body.fileName || !body.contentType) {
-      throw new Error("fileName and contentType are required");
+      throw new BadRequestException("fileName and contentType are required");
     }
     const result = await this.documentsService.generateUploadUrl(body.fileName, body.contentType);
     return {
@@ -21,7 +21,7 @@ export class DocumentsController {
   @Get("view-url")
   async getDownloadUrl(@Query("objectKey") objectKey: string) {
     if (!objectKey) {
-      throw new Error("objectKey query parameter is required");
+      throw new BadRequestException("objectKey query parameter is required");
     }
     const url = await this.documentsService.generateDownloadUrl(objectKey);
     return {

@@ -5,6 +5,7 @@ import { CreateEmployeeDto } from "./dto/create-employee.dto";
 import { UpdateEmployeeDto } from "./dto/update-employee.dto";
 import { getPaginationOptions, createPaginatedResponse, PaginationParams, PaginatedResult } from "../../common/utils/pagination.util";
 import { Employee, UserRole } from "@naprocs/database";
+import { EmployeeResponseDto, mapToEmployeeResponseDto } from "./dto/employee-response.dto";
 import { Permission } from "@naprocs/types";
 import * as bcrypt from "bcrypt";
 import { encryptData } from "../../common/utils/encrypt.util";
@@ -33,7 +34,24 @@ export class EmployeesService {
     this.bucketName = (process.env.AWS_S3_BUCKET || "naprocs-ems-documents").trim();
   }
 
-  async createEmployee(dto: CreateEmployeeDto): Promise<Employee> {
+  /**
+   * Helper to generate a pre-signed S3 URL for employee photos if a raw object key is present.
+   */
+  private async enrichWithSignedPhotoUrl(employee: any): Promise<void> {
+    if (employee?.photoUrl && !employee.photoUrl.startsWith("http")) {
+      try {
+        const command = new GetObjectCommand({
+          Bucket: this.bucketName,
+          Key: employee.photoUrl,
+        });
+        employee.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
+      } catch (error) {
+        this.logger.error(`Failed to sign photo URL for employee ${employee.id}:`, error);
+      }
+    }
+  }
+
+  async createEmployee(dto: CreateEmployeeDto): Promise<EmployeeResponseDto> {
     return this.prisma.$transaction(async (tx) => {
       // 1. Check uniqueness of officialEmail
       const existingEmail = await tx.employee.findUnique({
@@ -140,19 +158,9 @@ export class EmployeesService {
         });
       }
 
-      if (employee.photoUrl && !employee.photoUrl.startsWith("http")) {
-        try {
-          const command = new GetObjectCommand({
-            Bucket: this.bucketName,
-            Key: employee.photoUrl,
-          });
-          employee.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
-        } catch (error) {
-          this.logger.error(`Failed to sign URL for employee ${employee.id}:`, error);
-        }
-      }
+      await this.enrichWithSignedPhotoUrl(employee);
 
-      return employee;
+      return mapToEmployeeResponseDto(employee);
     });
   }
 
@@ -181,7 +189,7 @@ export class EmployeesService {
     return draftData || {};
   }
 
-  async completeOnboarding(draftId: string): Promise<Employee> {
+  async completeOnboarding(draftId: string): Promise<EmployeeResponseDto> {
     if (!draftId) throw new ConflictException("draftId is required");
 
     const redisKey = `employee_draft:${draftId}`;
@@ -201,7 +209,7 @@ export class EmployeesService {
     return employee;
   }
 
-  async getEmployees(params: PaginationParams): Promise<PaginatedResult<Employee>> {
+  async getEmployees(params: PaginationParams): Promise<PaginatedResult<EmployeeResponseDto>> {
     const { skip, take, page, limit } = getPaginationOptions(params);
 
     const [data, total] = await Promise.all([
@@ -223,23 +231,13 @@ export class EmployeesService {
 
     // Enhance employees with signed photo URLs
     await Promise.all(data.map(async (emp) => {
-      if (emp.photoUrl && !emp.photoUrl.startsWith("http")) {
-        try {
-          const command = new GetObjectCommand({
-            Bucket: this.bucketName,
-            Key: emp.photoUrl,
-          });
-          emp.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
-        } catch (error) {
-          this.logger.error(`Failed to sign URL for employee ${emp.id}:`, error);
-        }
-      }
+      await this.enrichWithSignedPhotoUrl(emp);
     }));
 
-    return createPaginatedResponse(data, total, page, limit);
+    return createPaginatedResponse(data.map(mapToEmployeeResponseDto), total, page, limit);
   }
 
-  async getEmployeeById(id: string, currentUser?: any): Promise<Employee> {
+  async getEmployeeById(id: string, currentUser?: any): Promise<EmployeeResponseDto> {
     const employee = await this.prisma.employee.findUnique({
       where: { id },
       include: {
@@ -293,36 +291,14 @@ export class EmployeesService {
       }
     }
 
-    if (employee.photoUrl && !employee.photoUrl.startsWith("http")) {
-      try {
-        const command = new GetObjectCommand({
-          Bucket: this.bucketName,
-          Key: employee.photoUrl,
-        });
-        employee.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
-      } catch (error) {
-        console.error(`Failed to sign URL for employee ${employee.id}:`, error);
-      }
-    }
+    await this.enrichWithSignedPhotoUrl(employee);
 
     const empWithRels = employee as any;
     if (empWithRels.subordinates && empWithRels.subordinates.length > 0) {
-      await Promise.all(empWithRels.subordinates.map(async (sub: any) => {
-        if (sub.photoUrl && !sub.photoUrl.startsWith("http")) {
-          try {
-            const subCommand = new GetObjectCommand({
-              Bucket: this.bucketName,
-              Key: sub.photoUrl,
-            });
-            sub.photoUrl = await getSignedUrl(this.s3, subCommand, { expiresIn: 900 });
-          } catch (e) {
-            this.logger.error(`Failed to sign URL for sub ${sub.id}:`, e);
-          }
-        }
-      }));
+      await Promise.all(empWithRels.subordinates.map((sub: any) => this.enrichWithSignedPhotoUrl(sub)));
     }
 
-    return employee;
+    return mapToEmployeeResponseDto(employee);
   }
 
   async getOrgChart() {
@@ -343,19 +319,7 @@ export class EmployeesService {
       }
     });
 
-    await Promise.all(employees.map(async (emp) => {
-      if (emp.photoUrl && !emp.photoUrl.startsWith("http")) {
-        try {
-          const command = new GetObjectCommand({
-            Bucket: this.bucketName,
-            Key: emp.photoUrl,
-          });
-          emp.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
-        } catch (e) {
-          this.logger.error(`Failed to sign URL for org chart emp ${emp.id}:`, e);
-        }
-      }
-    }));
+    await Promise.all(employees.map((emp) => this.enrichWithSignedPhotoUrl(emp)));
 
     return employees;
   }
@@ -432,7 +396,7 @@ export class EmployeesService {
     };
   }
 
-  async updateEmployee(id: string, dto: UpdateEmployeeDto, currentUser?: any): Promise<Employee> {
+  async updateEmployee(id: string, dto: UpdateEmployeeDto, currentUser?: any): Promise<EmployeeResponseDto> {
     // Verify the employee exists (also validates read access if we pass currentUser)
     const employee = await this.getEmployeeById(id, currentUser);
 
@@ -491,17 +455,7 @@ export class EmployeesService {
       data: updateData,
     });
 
-    if (updatedEmployee.photoUrl && !updatedEmployee.photoUrl.startsWith("http")) {
-      try {
-        const command = new GetObjectCommand({
-          Bucket: this.bucketName,
-          Key: updatedEmployee.photoUrl,
-        });
-        updatedEmployee.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
-      } catch (error) {
-        this.logger.error(`Failed to sign URL for employee ${updatedEmployee.id}:`, error);
-      }
-    }
+    await this.enrichWithSignedPhotoUrl(updatedEmployee);
 
     // Trigger Notification for the updated employee
     try {
@@ -515,7 +469,7 @@ export class EmployeesService {
       this.logger.warn(`Failed to send update notification to employee ${updatedEmployee.id}: ${e}`);
     }
 
-    return updatedEmployee;
+    return mapToEmployeeResponseDto(updatedEmployee);
   }
 
   async reassignManager(employeeId: string, newManagerId: string): Promise<void> {
