@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
+import { RbacGroups, RbacRoles } from "../../common/rbac/rbac.config";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AssetStatus, AssetCategory } from "@naprocs/database";
 import { CreateAssetDto } from "./dto/create-asset.dto";
@@ -35,9 +36,8 @@ export class AssetsRepository {
       ];
     }
 
-    const privilegedRoles = ["SUPER_ADMIN", "IT", "HR", "CHRO", "CEO", "CTO"];
-    if (!privilegedRoles.includes(role)) {
-      if (role === "MANAGER" || role === "TEAM_LEAD") {
+    if (!RbacGroups.ASSET_PRIVILEGED.includes(role as any)) {
+      if (RbacGroups.ASSET_MANAGERS.includes(role as any)) {
         where.currentHolder = {
           OR: [
             { id: userId },

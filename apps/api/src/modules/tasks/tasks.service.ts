@@ -1,15 +1,20 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
+import { RbacGroups, RbacRoles } from '../../common/rbac/rbac.config';
 import { TasksRepository } from "./tasks.repository";
 import { TaskStatus, TaskPriority, NotificationType } from "@naprocs/database";
 import { PrismaService } from "../../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { AuditService } from "../audit/audit.service";
 
 @Injectable()
 export class TasksService {
+  private readonly logger = new Logger(TasksService.name);
+
   constructor(
     private readonly tasksRepo: TasksRepository,
     private readonly prisma: PrismaService,
-    private readonly notificationsService: NotificationsService
+    private readonly notificationsService: NotificationsService,
+    private readonly auditService: AuditService,
   ) { }
 
   async getMyTasks(employeeId: string): Promise<any> {
@@ -21,7 +26,7 @@ export class TasksService {
   }
 
   async createTask(user: any, dto: any): Promise<any> {
-    console.log("Creating task...", { user, dto });
+    this.logger.debug("Creating task...", { user, dto });
     const creatorId = user.employeeId;
 
     // RBAC Check: Only Team Leads, Managers, QA, and higher can create tasks
@@ -31,19 +36,19 @@ export class TasksService {
     });
     
     const isQa = employee && (employee.department?.name === 'QA' || employee.designation?.title?.includes('QA'));
-    const isLeadOrManager = ['TEAM_LEAD', 'MANAGER', 'CTO', 'CEO', 'SUPER_ADMIN'].includes(user.role);
+    const isLeadOrManager = RbacGroups.LEAD_OR_MANAGER.includes(user.role as any);
     
     if (!isLeadOrManager && !isQa) {
       throw new ForbiddenException("You do not have permission to create tasks. Standard members can only comment.");
     }
 
-    const isManagerOrHigher = ['MANAGER', 'CTO', 'CEO', 'SUPER_ADMIN'].includes(user.role);
+    const isManagerOrHigher = RbacGroups.MANAGER_OR_HIGHER.includes(user.role as any);
 
-    if (user.role === 'TEAM_LEAD' && !isManagerOrHigher && !['DAILY_TASK', 'WEEKLY_TASK_SHEET'].includes(dto.type)) {
+    if (user.role === RbacRoles.TEAM_LEAD && !isManagerOrHigher && !['DAILY_TASK', 'WEEKLY_TASK_SHEET'].includes(dto.type)) {
       throw new ForbiddenException("Team Leads can only create Daily Tasks and Weekly Task Sheets.");
     }
 
-    if (isQa && !isManagerOrHigher && user.role !== 'TEAM_LEAD' && dto.type !== 'BUG') {
+    if (isQa && !isManagerOrHigher && user.role !== RbacRoles.TEAM_LEAD && dto.type !== 'BUG') {
       throw new ForbiddenException("QA Engineers can only create Bug tasks.");
     }
 
@@ -98,6 +103,14 @@ export class TasksService {
       );
     }
     
+    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
+    this.auditService.logCreate({
+      moduleName: 'Tasks',
+      entityId: task.id,
+      actorId: 'unknown',
+      metadata: { title: task.title, status: task.status }
+    });
+
     return task;
   }
 
@@ -111,7 +124,18 @@ export class TasksService {
       }
     }
 
-    return this.tasksRepo.updateTask(taskId, dto);
+    const updatedTask = await this.tasksRepo.updateTask(taskId, dto);
+
+    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
+    this.auditService.logUpdate({
+      moduleName: 'Tasks',
+      entityId: taskId,
+      actorId: 'unknown',
+      oldValue: { status: task.status },
+      newValue: dto
+    });
+
+    return updatedTask;
   }
 
   async getTask(taskId: string): Promise<any> {
@@ -207,6 +231,16 @@ export class TasksService {
     if (task.creatorId !== employeeId && task.assigneeId !== employeeId) {
       throw new NotFoundException("Task not found"); // Masking forbidden as not found
     }
-    return this.tasksRepo.deleteTask(taskId);
+    const result = await this.tasksRepo.deleteTask(taskId);
+    
+    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
+    this.auditService.logDelete({
+      moduleName: 'Tasks',
+      entityId: taskId,
+      actorId: 'unknown',
+      metadata: { title: task.title }
+    });
+
+    return result;
   }
 }

@@ -9,6 +9,8 @@ import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { WorkflowType, WorkflowInstanceStatus } from "@naprocs/database";
 import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
 import { deployWorkflowSchema } from "@naprocs/schemas";
+import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
+import { RbacPermissions } from '../../common/rbac/rbac.config';
 
 @Controller("hr/workflows")
 @UseGuards(JwtAuthGuard, RbacGuard)
@@ -18,6 +20,7 @@ export class WorkflowsController {
     private readonly workflowEngineService: WorkflowEngineService
   ) {}
 
+  @RequirePermissions(RbacPermissions.WORKFLOWS_READ)
   @Get("config")
   @Permissions(Permission.READ_EMPLOYEES) // Only HR or above
   async getConfig(): Promise<any> {

@@ -45,23 +45,31 @@ export class AttendanceCronService {
       });
       const punchedInEmployeeIds = new Set(todayRecords.map(r => r.employeeId));
 
-      let markedLeaveCount = 0;
-      for (const emp of activeEmployees) {
-        if (!punchedInEmployeeIds.has(emp.id) && leaveEmployeeIds.has(emp.id)) {
-          await this.prisma.attendanceRecord.upsert({
-            where: { employeeId_date: { employeeId: emp.id, date: today } },
-            update: { status: 'ON_LEAVE' },
-            create: {
-              employeeId: emp.id,
-              date: today,
-              status: 'ON_LEAVE',
-              workHours: 0,
-              isRegularized: false
-            }
-          });
-          markedLeaveCount++;
+      const missingLeaveEmpIds = activeEmployees
+        .filter(emp => !punchedInEmployeeIds.has(emp.id) && leaveEmployeeIds.has(emp.id))
+        .map(emp => emp.id);
+
+      if (missingLeaveEmpIds.length > 0) {
+        const { chunkArray } = await import('../../common/constants/db-batch.constants');
+        const chunks = chunkArray(missingLeaveEmpIds);
+        
+        for (const chunk of chunks) {
+          await Promise.all(chunk.map(empId => 
+            this.prisma.attendanceRecord.upsert({
+              where: { employeeId_date: { employeeId: empId, date: today } },
+              update: { status: 'ON_LEAVE' },
+              create: {
+                employeeId: empId,
+                date: today,
+                status: 'ON_LEAVE',
+                workHours: 0,
+                isRegularized: false
+              }
+            })
+          ));
         }
       }
+      let markedLeaveCount = missingLeaveEmpIds.length;
 
       this.logger.log(`Marked ${markedLeaveCount} employees as ON_LEAVE.`);
 
@@ -69,25 +77,30 @@ export class AttendanceCronService {
         where: { checkInTime: { not: null }, checkOutTime: null, date: today }
       });
 
-      for (const record of openRecords) {
-        const midnight = new Date(record.date);
-        midnight.setUTCHours(23, 59, 59, 999);
-        const checkInTime = record.checkInTime!.getTime();
-        const checkOutTime = midnight.getTime();
-        const totalElapsedSeconds = Math.floor((checkOutTime - checkInTime) / 1000) - (record.totalBreakSeconds || 0);
-        const workHours = Math.max(0, totalElapsedSeconds / 3600);
+      const { chunkArray } = await import('../../common/constants/db-batch.constants');
+      const recordChunks = chunkArray(openRecords);
 
-        await this.prisma.attendanceRecord.update({
-          where: { id: record.id },
-          data: {
-            checkOutTime: midnight,
-            workHours: Number(workHours.toFixed(2)),
-            isRegularized: false,
-            notes: (record.notes ? record.notes + "\n" : "") + "System Auto-Checkout at midnight. Requires HR Regularization."
-          }
-        });
-        const redisKey = `attendance_state:${record.employeeId}`;
-        await this.redis.del(redisKey);
+      for (const chunk of recordChunks) {
+        await Promise.all(chunk.map(async (record) => {
+          const midnight = new Date(record.date);
+          midnight.setUTCHours(23, 59, 59, 999);
+          const checkInTime = record.checkInTime!.getTime();
+          const checkOutTime = midnight.getTime();
+          const totalElapsedSeconds = Math.floor((checkOutTime - checkInTime) / 1000) - (record.totalBreakSeconds || 0);
+          const workHours = Math.max(0, totalElapsedSeconds / 3600);
+
+          await this.prisma.attendanceRecord.update({
+            where: { id: record.id },
+            data: {
+              checkOutTime: midnight,
+              workHours: Number(workHours.toFixed(2)),
+              isRegularized: false,
+              notes: (record.notes ? record.notes + "\n" : "") + "System Auto-Checkout at midnight. Requires HR Regularization."
+            }
+          });
+          const redisKey = `attendance_state:${record.employeeId}`;
+          await this.redis.del(redisKey);
+        }));
       }
       this.logger.log(`Auto-checked out ${openRecords.length} employees.`);
       this.logger.log("Midnight job completed.");

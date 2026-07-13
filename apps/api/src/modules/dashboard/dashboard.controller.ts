@@ -6,6 +6,8 @@ import { RbacGuard } from "../../common/guards/rbac.guard";
 import { Permissions } from "../../common/decorators/permissions.decorator";
 import { Permission } from "@naprocs/types";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
+import { RbacPermissions } from '../../common/rbac/rbac.config';
 
 @Controller("dashboard")
 @UseGuards(JwtAuthGuard, RbacGuard)
@@ -18,16 +20,19 @@ export class DashboardController {
     return this.dashboardService.getMetrics();
   }
 
+  @RequirePermissions(RbacPermissions.DASHBOARD_VIEW)
   @Get("hr-overview")
   getHrOverview() {
     return this.dashboardService.getHrOverview();
   }
 
+  @RequirePermissions(RbacPermissions.DASHBOARD_VIEW)
   @Get("cto-overview")
   getCtoOverview() {
     return this.dashboardService.getCtoOverview();
   }
 
+  @RequirePermissions(RbacPermissions.DASHBOARD_VIEW)
   @Get("export-report")
   async exportReport(@Res() res: Response) {
     const csvContent = await this.dashboardService.generateExportReport();
@@ -36,6 +41,7 @@ export class DashboardController {
     return res.send(csvContent);
   }
 
+  @RequirePermissions(RbacPermissions.DASHBOARD_VIEW)
   @Get("cto-export")
   async ctoExport(@Res() res: Response) {
     const csvContent = await this.dashboardService.generateCtoExportReport();

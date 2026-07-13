@@ -1,6 +1,8 @@
 import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, UseInterceptors } from "@nestjs/common";
 import { OffboardingService } from "./offboarding.service";
 import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
+import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
+import { RbacPermissions } from '../../common/rbac/rbac.config';
 import { 
   initiateOffboardingSchema, 
   updateOffboardingSchema, 
@@ -22,6 +24,7 @@ import { AuditInterceptor } from "../../common/interceptors/audit.interceptor";
 export class LifecycleController {
   constructor(private readonly offboardingService: OffboardingService) {}
 
+  @RequirePermissions(RbacPermissions.EMPLOYEES_UPDATE)
   @Post()
   @Permissions(Permission.WRITE_EMPLOYEES)
   async initiate(

@@ -10,6 +10,8 @@ import {
   UseGuards,
   UseInterceptors,
 } from "@nestjs/common";
+import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
+import { RbacPermissions } from '../../common/rbac/rbac.config';
 import { KnowledgeService } from "./knowledge.service";
 import { CreateKnowledgeDocDto } from "./dto/create-knowledge.dto";
 import { UpdateKnowledgeDocDto } from "./dto/update-knowledge.dto";
@@ -27,6 +29,7 @@ import { AuditInterceptor } from "../../common/interceptors/audit.interceptor";
 export class KnowledgeController {
   constructor(private readonly knowledgeService: KnowledgeService) { }
 
+  @RequirePermissions(RbacPermissions.KNOWLEDGE_CREATE)
   @Post()
   @Permissions(Permission.WRITE_EMPLOYEES)
   async create(

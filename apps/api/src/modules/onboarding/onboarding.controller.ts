@@ -6,12 +6,15 @@ import { Permissions } from '../../common/decorators/permissions.decorator';
 import { Permission } from '@naprocs/types';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { initiateOnboardingSchema } from '@naprocs/schemas';
+import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
+import { RbacPermissions } from '../../common/rbac/rbac.config';
 
 @Controller('onboarding')
 @UseGuards(JwtAuthGuard, RbacGuard)
 export class OnboardingController {
   constructor(private readonly onboardingService: OnboardingService) {}
 
+  @RequirePermissions(RbacPermissions.DASHBOARD_VIEW)
   @Get('dashboard')
   @Permissions(Permission.WRITE_EMPLOYEES) // Basic permission for HR access
   getDashboardMetrics(): Promise<any> {

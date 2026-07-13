@@ -1,5 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { AuditRepository, CreateAuditLogData } from "./audit.repository";
+import { AuditAction } from "./audit.constants";
 
 export interface BaseAuditParams {
   moduleName: string;
@@ -37,7 +38,7 @@ export class AuditService {
    */
   async logCreate(params: BaseAuditParams): Promise<void> {
     return this.createLog({
-      action: "CREATE",
+      action: AuditAction.CREATE,
       actorId: params.actorId, // Placeholder for future use
       resource: params.moduleName,
       resourceId: params.entityId,
@@ -51,7 +52,7 @@ export class AuditService {
    */
   async logUpdate(params: UpdateAuditParams): Promise<void> {
     return this.createLog({
-      action: "UPDATE",
+      action: AuditAction.UPDATE,
       actorId: params.actorId, // Placeholder for future use
       resource: params.moduleName,
       resourceId: params.entityId,
@@ -66,7 +67,7 @@ export class AuditService {
    */
   async logDelete(params: BaseAuditParams): Promise<void> {
     return this.createLog({
-      action: "DELETE",
+      action: AuditAction.DELETE,
       actorId: params.actorId, // Placeholder for future use
       resource: params.moduleName,
       resourceId: params.entityId,
@@ -80,7 +81,7 @@ export class AuditService {
    */
   async logView(params: BaseAuditParams): Promise<void> {
     return this.createLog({
-      action: "VIEW",
+      action: AuditAction.VIEW,
       actorId: params.actorId, // Placeholder for future use
       resource: params.moduleName,
       resourceId: params.entityId,
@@ -94,7 +95,35 @@ export class AuditService {
    */
   async logExport(params: BaseAuditParams): Promise<void> {
     return this.createLog({
-      action: "EXPORT",
+      action: AuditAction.EXPORT,
+      actorId: params.actorId, // Placeholder for future use
+      resource: params.moduleName,
+      resourceId: params.entityId,
+      newValue: params.metadata,
+      requestId: "SYS",
+    });
+  }
+
+  /**
+   * Logs an APPROVE action for an entity workflow.
+   */
+  async logApprove(params: BaseAuditParams): Promise<void> {
+    return this.createLog({
+      action: AuditAction.APPROVE,
+      actorId: params.actorId, // Placeholder for future use
+      resource: params.moduleName,
+      resourceId: params.entityId,
+      newValue: params.metadata,
+      requestId: "SYS",
+    });
+  }
+
+  /**
+   * Logs a REJECT action for an entity workflow.
+   */
+  async logReject(params: BaseAuditParams): Promise<void> {
+    return this.createLog({
+      action: AuditAction.REJECT,
       actorId: params.actorId, // Placeholder for future use
       resource: params.moduleName,
       resourceId: params.entityId,

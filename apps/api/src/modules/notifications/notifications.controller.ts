@@ -6,12 +6,15 @@ import { Permissions } from '../../common/decorators/permissions.decorator';
 import { Permission } from '@naprocs/types';
 import { NotificationType } from '@naprocs/database';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
+import { RbacPermissions } from '../../common/rbac/rbac.config';
 
 @Controller('notifications')
 @UseGuards(JwtAuthGuard, RbacGuard)
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
+  @RequirePermissions(RbacPermissions.NOTIFICATIONS_READ)
   @Get()
   @Permissions(Permission.READ_OWN_PROFILE)
   async getNotifications(@CurrentUser() user: any): Promise<any> {

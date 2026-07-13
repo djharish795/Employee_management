@@ -5,12 +5,15 @@ import { SuccessionPlan } from '@naprocs/database';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
 import { Permissions } from '../../common/decorators/permissions.decorator';
+import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
+import { RbacPermissions } from '../../common/rbac/rbac.config';
 
 @Controller('succession')
 @UseGuards(JwtAuthGuard, RbacGuard)
 export class SuccessionController {
   constructor(private readonly successionService: SuccessionService) {}
 
+  @RequirePermissions(RbacPermissions.TALENT_READ)
   @Get()
   @Permissions(Permission.READ_EMPLOYEES)
   findAll() {

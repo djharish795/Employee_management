@@ -10,12 +10,15 @@ import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RbacGuard } from "../../common/guards/rbac.guard";
 import { Permissions } from "../../common/decorators/permissions.decorator";
 import { Permission } from "@naprocs/types";
+import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
+import { RbacPermissions } from '../../common/rbac/rbac.config';
 
 @Controller("connect")
 @UseGuards(JwtAuthGuard, RbacGuard)
 export class ConnectController {
   constructor(private readonly connectService: ConnectService) {}
 
+  @RequirePermissions(RbacPermissions.CONNECT_MANAGE)
   @Post("request")
   @Permissions(Permission.WRITE_OWN_PROFILE) // Any employee can create a meet
   async requestMeet(@Req() req: Request, @Body() dto: CreateMeetRequestDto) {

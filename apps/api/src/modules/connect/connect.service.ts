@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from "@nestjs/common";
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException, Logger } from "@nestjs/common";
 import { ConnectRepository } from "./connect.repository";
 import { ZoomService } from "./zoom.service";
 import { EmailService } from "../notifications/email.service";
@@ -7,9 +7,12 @@ import { RescheduleMeetDto } from "./dto/reschedule-meet.dto";
 import { MeetStatus, MeetType, TaskStatus } from "@naprocs/database";
 import { PrismaService } from "../../prisma/prisma.service";
 import { TasksService } from "../tasks/tasks.service";
+import { RbacRoles } from "../../common/rbac/rbac.config";
 
 @Injectable()
 export class ConnectService {
+  private readonly logger = new Logger(ConnectService.name);
+
   constructor(
     private readonly repository: ConnectRepository,
     private readonly zoomService: ZoomService,
@@ -211,7 +214,7 @@ export class ConnectService {
           item.taskId = task.id; // Save reference back to the JSON
         } else {
           // Update existing task status
-          await this.tasksService.updateTask(item.taskId, { id: 'SYSTEM', role: 'SUPER_ADMIN' }, { status: item.completed ? TaskStatus.DONE : TaskStatus.TODO });
+          await this.tasksService.updateTask(item.taskId, { id: 'SYSTEM', role: RbacRoles.SUPER_ADMIN }, { status: item.completed ? TaskStatus.DONE : TaskStatus.TODO });
         }
       }
     }
@@ -230,7 +233,9 @@ export class ConnectService {
   private async notifyParticipant(employeeId: string, title: string, body: string, email: string | null, template: string, context: any) {
     // 1. Send Email if email exists
     if (email) {
-      await this.emailService.sendEmail(email, title, template, context).catch(e => console.error("Email error:", e));
+      await this.emailService.sendEmail(email, title, template, context).catch((e: any) => {
+        this.logger.error(`Email error sending meet link to ${email}:`, e.stack || e);
+      });
     }
 
     // 2. Send System Notification
@@ -246,8 +251,8 @@ export class ConnectService {
           }
         });
       }
-    } catch (e) {
-      console.error("Failed to send system notification:", e);
+    } catch (e: any) {
+      this.logger.error(`Failed to send system notification to ${employeeId}:`, e.stack || e);
     }
   }
 

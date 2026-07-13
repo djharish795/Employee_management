@@ -292,27 +292,37 @@ export class OffboardingService {
       // Check if asset recovery returnedAt should be updated on AssetAssignment model
       if (dto.assetChecklist) {
         const existingAssets: ChecklistItem[] = (existing.assetChecklist as any) || [];
+        const newlyCompletedIds: string[] = [];
+
         for (const item of dto.assetChecklist) {
           const prev = existingAssets.find(a => a.id === item.id);
           if (item.status === "completed" && prev && prev.status !== "completed") {
-            try {
-              const assignment = await tx.assetAssignment.findUnique({ where: { id: String(item.id) } });
-              if (assignment) {
-                await tx.assetAssignment.update({
-                  where: { id: String(item.id) },
-                  data: {
-                    returnedAt: new Date(),
-                    returnedCondition: "GOOD"
-                  }
-                });
-                await tx.asset.update({
-                  where: { id: assignment.assetId },
-                  data: { status: "AVAILABLE" }
-                });
+            newlyCompletedIds.push(String(item.id));
+          }
+        }
+
+        if (newlyCompletedIds.length > 0) {
+          const assignments = await tx.assetAssignment.findMany({
+            where: { id: { in: newlyCompletedIds } },
+            select: { id: true, assetId: true }
+          });
+          
+          const validAssignmentIds = assignments.map(a => a.id);
+          const assetIds = assignments.map(a => a.assetId);
+
+          if (validAssignmentIds.length > 0) {
+            await tx.assetAssignment.updateMany({
+              where: { id: { in: validAssignmentIds } },
+              data: {
+                returnedAt: new Date(),
+                returnedCondition: "GOOD"
               }
-            } catch (e) {
-              // Custom asset checklist items ignore DB log
-            }
+            });
+
+            await tx.asset.updateMany({
+              where: { id: { in: assetIds } },
+              data: { status: "AVAILABLE" }
+            });
           }
         }
       }

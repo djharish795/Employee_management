@@ -25,3 +25,24 @@ export const createS3Client = (): S3Client => {
 
   return new S3Client(config);
 };
+
+/**
+ * Generates a 15-minute presigned URL to securely view/download a file.
+ * Access ONLY via pre-signed URLs (15-min expiry) as per AGENTS.md.
+ */
+export async function generatePresignedDownloadUrl(
+  s3: S3Client,
+  bucketName: string,
+  objectKey: string,
+  expiresIn = 900
+): Promise<string> {
+  const { GetObjectCommand } = await import("@aws-sdk/client-s3");
+  const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
+
+  const command = new GetObjectCommand({
+    Bucket: bucketName,
+    Key: objectKey,
+  });
+
+  return getSignedUrl(s3, command, { expiresIn });
+}

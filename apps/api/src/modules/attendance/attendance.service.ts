@@ -1,12 +1,16 @@
-import { Injectable, BadRequestException, ForbiddenException } from "@nestjs/common";
+import { Injectable, BadRequestException, ForbiddenException, NotFoundException, Logger } from "@nestjs/common";
+import { RbacGroups } from "../../common/rbac/rbac.config";
 import { RedisService } from "../../redis/redis.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import { PunchDto } from "./dto/punch.dto";
 import { AttendanceStatus } from "@naprocs/database";
 import { toZonedTime } from "date-fns-tz";
+import { isLateArrival, parseBreakHistory, PRESENT_STATUSES, PRESENT_WITH_LATE_STATUSES } from "./attendance.constants";
 
 @Injectable()
 export class AttendanceService {
+  private readonly logger = new Logger(AttendanceService.name);
+
   constructor(
     private readonly redis: RedisService,
     private readonly prisma: PrismaService,
@@ -105,13 +109,7 @@ export class AttendanceService {
           where: { employeeId_date: { employeeId, date: shiftDate } }
         });
 
-        let breakHistory: any[] = [];
-        if (record && (record as any).breakHistory) {
-          try {
-            breakHistory = typeof (record as any).breakHistory === "string" ? JSON.parse((record as any).breakHistory as string) : ((record as any).breakHistory as any[]);
-          } catch (e) { }
-        }
-        if (!Array.isArray(breakHistory)) breakHistory = [];
+        let breakHistory: any[] = parseBreakHistory(record ? (record as any).breakHistory : null);
 
         if (breakHistory.length > 0 && breakHistory[breakHistory.length - 1].end === null) {
           breakHistory[breakHistory.length - 1].end = new Date(now).toISOString();
@@ -119,14 +117,14 @@ export class AttendanceService {
           breakHistory.push({ start: new Date(state.startTime).toISOString(), end: new Date(now).toISOString() });
         }
 
-        await this.prisma.attendanceRecord.update({
-          where: { employeeId_date: { employeeId, date: shiftDate } },
+        await this.prisma.attendanceRecord.updateMany({
+          where: { employeeId, date: shiftDate, currentBreakStartTime: { not: null } },
           data: {
             totalBreakSeconds: { increment: breakElapsed },
             currentBreakStartTime: null,
             breakHistory: breakHistory as any
           } as any
-        }).catch(() => { }); // Ignore if DB record doesn't exist yet (edge case)
+        });
       }
 
       state.state = "IN";
@@ -136,10 +134,7 @@ export class AttendanceService {
       let initialStatus = "PRESENT";
       if (isFirstPunch) {
         const checkInTime = new Date(now);
-        const zoned = toZonedTime(checkInTime, 'Asia/Kolkata');
-        const h = zoned.getHours();
-        const m = zoned.getMinutes();
-        if (h > 10 || (h === 10 && m > 15)) {
+        if (isLateArrival(checkInTime)) {
           initialStatus = "LATE";
         }
       }
@@ -180,20 +175,14 @@ export class AttendanceService {
         where: { employeeId_date: { employeeId, date: shiftDate } }
       });
 
-      let breakHistory: any[] = [];
-      if (record && (record as any).breakHistory) {
-        try {
-          breakHistory = typeof (record as any).breakHistory === "string" ? JSON.parse((record as any).breakHistory as string) : ((record as any).breakHistory as any[]);
-        } catch (e) { }
-      }
-      if (!Array.isArray(breakHistory)) breakHistory = [];
+      let breakHistory: any[] = parseBreakHistory(record ? (record as any).breakHistory : null);
 
       breakHistory.push({ start: new Date(now).toISOString(), end: null });
 
-      await this.prisma.attendanceRecord.update({
-        where: { employeeId_date: { employeeId, date: shiftDate } },
+      await this.prisma.attendanceRecord.updateMany({
+        where: { employeeId, date: shiftDate, currentBreakStartTime: null },
         data: { currentBreakStartTime: new Date(now), breakHistory: breakHistory as any } as any
-      }).catch(() => { });
+      });
 
       return state;
     }
@@ -213,15 +202,12 @@ export class AttendanceService {
       await this.redis.setJson(key, state, 60 * 60 * 24);
 
       const workHoursDecimal = state.offset / 3600;
-      
+
       const existingRecord = await this.prisma.attendanceRecord.findUnique({
         where: { employeeId_date: { employeeId, date: shiftDate } }
       });
       const checkInTime = existingRecord?.checkInTime || new Date(state.startTime);
-      const zoned = toZonedTime(checkInTime, 'Asia/Kolkata');
-      const h = zoned.getHours();
-      const m = zoned.getMinutes();
-      const isLate = (h > 10 || (h === 10 && m > 15));
+      const isLate = isLateArrival(checkInTime);
 
       const approvedHalfDay = await this.prisma.leaveRequest.findFirst({
         where: {
@@ -232,7 +218,7 @@ export class AttendanceService {
           isHalfDay: true
         }
       });
-      
+
       const thresholdSeconds = approvedHalfDay ? 16200 : 32400; // 4.5 hours or 9 hours
 
       let finalStatus = "PRESENT";
@@ -268,7 +254,7 @@ export class AttendanceService {
           overtime: overtimeDecimal,
         }
       }).catch(err => {
-        console.error(`Check-out upsert failed for employee ${employeeId}:`, err);
+        this.logger.error(`Check-out upsert failed for employee ${employeeId}:`, err.stack || err);
       });
 
       return state;
@@ -303,7 +289,7 @@ export class AttendanceService {
       status: record.status,
       remarks: record.notes || "",
       totalBreakSeconds: record.totalBreakSeconds || 0,
-      breakHistory: typeof (record as any).breakHistory === "string" ? JSON.parse((record as any).breakHistory as string) : ((record as any).breakHistory || [])
+      breakHistory: parseBreakHistory((record as any).breakHistory)
     }));
 
     return { data: mappedData, total, page, limit };
@@ -320,7 +306,7 @@ export class AttendanceService {
     const todayRecord = await this.prisma.attendanceRecord.findUnique({
       where: { employeeId_date: { employeeId, date: today } },
     });
-    const presentToday = todayRecord && ["PRESENT", "WFH", "HALF_DAY", "EARLY_CHECKOUT"].includes(todayRecord.status) ? 1 : 0;
+    const presentToday = todayRecord && (PRESENT_STATUSES as readonly string[]).includes(todayRecord.status) ? 1 : 0;
 
     // 2. Avg Work Hours this month
     const monthlyRecords = await this.prisma.attendanceRecord.findMany({
@@ -342,7 +328,7 @@ export class AttendanceService {
         totalHours += Number(record.workHours);
       }
       const statusStr = record.status as string;
-      if (["PRESENT", "WFH", "HALF_DAY", "LATE", "EARLY_CHECKOUT"].includes(statusStr)) {
+      if ((PRESENT_WITH_LATE_STATUSES as readonly string[]).includes(statusStr)) {
         daysPresent += (statusStr === "HALF_DAY" || statusStr === "EARLY_CHECKOUT") ? 0.5 : 1;
       }
       if (statusStr === "LATE") lateArrivals++;
@@ -432,13 +418,13 @@ export class AttendanceService {
     let lateCount = 0;
     let presentCount = 0;
     const activeEmployees = new Set<string>();
-    
+
     // Department stats
     const deptStats: Record<string, { present: number, total: number, fte: Set<string> }> = {};
 
     monthlyRecords.forEach(record => {
       activeEmployees.add(record.employeeId);
-      
+
       const deptName = record.employee?.department?.name || "Others";
       if (!deptStats[deptName]) {
         deptStats[deptName] = { present: 0, total: 0, fte: new Set() };
@@ -453,17 +439,14 @@ export class AttendanceService {
       const checkInTime = record.checkInTime;
       let isLate = false;
       if (checkInTime) {
-        const zoned = toZonedTime(checkInTime, 'Asia/Kolkata');
-        const h = zoned.getHours();
-        const m = zoned.getMinutes();
-        if (h > 10 || (h === 10 && m > 15)) isLate = true;
+        if (isLateArrival(checkInTime)) isLate = true;
       }
 
       if (isLate) {
         lateCount++;
         presentCount++;
         deptStats[deptName].present++;
-      } else if (["PRESENT", "WFH", "HALF_DAY", "EARLY_CHECKOUT"].includes(statusStr)) {
+      } else if ((PRESENT_STATUSES as readonly string[]).includes(statusStr)) {
         presentCount += (statusStr === "HALF_DAY" || statusStr === "EARLY_CHECKOUT") ? 0.5 : 1;
         deptStats[deptName].present += (statusStr === "HALF_DAY" || statusStr === "EARLY_CHECKOUT") ? 0.5 : 1;
       }
@@ -495,7 +478,7 @@ export class AttendanceService {
 
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const lateTrendsMap: Record<string, number> = {};
-    
+
     // Initialize last 6 months with 0
     for (let i = 0; i < 6; i++) {
       const d = new Date(sixMonthsAgo);
@@ -506,10 +489,7 @@ export class AttendanceService {
     sixMonthRecords.forEach(record => {
       let isLate = false;
       if (record.checkInTime) {
-        const zoned = toZonedTime(record.checkInTime, 'Asia/Kolkata');
-        const h = zoned.getHours();
-        const m = zoned.getMinutes();
-        if (h > 10 || (h === 10 && m > 15)) isLate = true;
+        if (isLateArrival(record.checkInTime)) isLate = true;
       }
 
       if (isLate) {
@@ -541,7 +521,7 @@ export class AttendanceService {
     let today = this.getTodayUTC();
     if (dateStr) {
       today = new Date(dateStr);
-      today.setUTCHours(0,0,0,0);
+      today.setUTCHours(0, 0, 0, 0);
     }
 
     // Get all employees with their departments
@@ -581,7 +561,7 @@ export class AttendanceService {
 
     let present = 0;
     let lateArrivals = 0;
-    
+
     // Group records by employeeId for easy lookup
     const recordMap = new Map();
     todayRecords.forEach(r => recordMap.set(r.employeeId, r));
@@ -602,22 +582,19 @@ export class AttendanceService {
       deptStats[deptId].total++;
 
       const record = recordMap.get(emp.id);
-      
+
       let isPresent = false;
       let isLate = false;
-      
+
       if (record) {
         const status = record.status as string;
-        if (["PRESENT", "HALF_DAY", "EARLY_CHECKOUT", "WFH"].includes(status)) {
+        if ((PRESENT_STATUSES as readonly string[]).includes(status)) {
           isPresent = true;
         }
 
         // Check for late arrival
         if (record.checkInTime) {
-          const zoned = toZonedTime(record.checkInTime, 'Asia/Kolkata');
-          const h = zoned.getHours();
-          const m = zoned.getMinutes();
-          if (h > 10 || (h === 10 && m > 15)) {
+          if (isLateArrival(record.checkInTime)) {
             isLate = true;
           }
         }
@@ -628,7 +605,7 @@ export class AttendanceService {
       if (isPresent) {
         present++;
         deptStats[deptId].present++;
-        
+
         presentEmployees.push({
           id: `pr-${emp.id}`,
           name: `${emp.firstName} ${emp.lastName}`,
@@ -636,7 +613,7 @@ export class AttendanceService {
           status: 'PRESENT',
           initials
         });
-        
+
         if (isLate) {
           lateArrivals++;
           exceptions.push({
@@ -653,7 +630,7 @@ export class AttendanceService {
         if (isOnLeave) {
           onLeave++;
         } else {
-           exceptions.push({
+          exceptions.push({
             id: `ex-${emp.id}`,
             name: `${emp.firstName} ${emp.lastName}`,
             department: deptName,
@@ -675,7 +652,7 @@ export class AttendanceService {
     sixMonthsAgo.setUTCDate(1);
 
     const pastRecords = await this.prisma.attendanceRecord.findMany({
-      where: { 
+      where: {
         date: { gte: sixMonthsAgo, lte: today },
         employeeId: { in: employees.map(e => e.id) }
       },
@@ -693,7 +670,7 @@ export class AttendanceService {
       const stat = monthStats.get(monthStr)!;
       stat.total++;
       const statusStr = r.status as string;
-      if (["PRESENT", "HALF_DAY", "EARLY_CHECKOUT", "WFH"].includes(statusStr)) {
+      if ((PRESENT_STATUSES as readonly string[]).includes(statusStr)) {
         stat.present++;
       }
     });
@@ -777,9 +754,9 @@ export class AttendanceService {
       const hoursWorked = record.workHours ? Number(record.workHours) : "--";
       let statusStr = record.status;
       if (statusStr === "PRESENT" && Number(hoursWorked) < 9) {
-         if (record.checkOutTime) {
-            statusStr = "EARLY_CHECKOUT" as any;
-         }
+        if (record.checkOutTime) {
+          statusStr = "EARLY_CHECKOUT" as any;
+        }
       }
 
       return {
@@ -832,7 +809,7 @@ export class AttendanceService {
 
   async actionRegularization(id: string, action: "APPROVE" | "REJECT", currentUser: any) {
     const statusVal = action === "APPROVE" ? "APPROVED" : "REJECTED";
-    
+
     const request = await this.prisma.regularizationRequest.findUnique({
       where: { id },
       include: { employee: true }
@@ -844,7 +821,7 @@ export class AttendanceService {
 
     let approverRole: "MANAGER" | "HR" | null = null;
 
-    if (["HR", "CHRO", "CEO", "SUPER_ADMIN", "IT", "FINANCE"].includes(currentUser.role)) {
+    if (RbacGroups.ATTENDANCE_ADMINS.includes(currentUser.role as any)) {
       approverRole = "HR";
     } else if (request.employee.reportingManagerId === currentUser.employeeId) {
       approverRole = "MANAGER";

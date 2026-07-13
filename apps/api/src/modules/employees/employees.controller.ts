@@ -13,6 +13,8 @@ import { AuditInterceptor } from "../../common/interceptors/audit.interceptor";
 import { Permissions } from "../../common/decorators/permissions.decorator";
 import { Permission } from "@naprocs/types";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
+import { RbacPermissions } from '../../common/rbac/rbac.config';
 
 @Controller("employees")
 @UseGuards(JwtAuthGuard, RbacGuard)
@@ -20,6 +22,7 @@ import { CurrentUser } from "../../common/decorators/current-user.decorator";
 export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) { }
 
+  @RequirePermissions(RbacPermissions.EMPLOYEES_UPDATE)
   @Post("onboarding/draft/step")
   @Permissions(Permission.WRITE_EMPLOYEES)
   async saveOnboardingStep(@Body() body: OnboardingDraftStepDto) {

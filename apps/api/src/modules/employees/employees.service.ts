@@ -11,9 +11,8 @@ import * as bcrypt from "bcrypt";
 import { encryptData } from "../../common/utils/encrypt.util";
 import { RedisService } from "../../redis/redis.service";
 import { v4 as uuidv4 } from "uuid";
-import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { createS3Client } from "../../common/utils/s3.util";
+import { S3Client } from "@aws-sdk/client-s3";
+import { createS3Client, generatePresignedDownloadUrl } from "../../common/utils/s3.util";
 
 import { NotificationsService } from "../notifications/notifications.service";
 import { NotificationType } from "@naprocs/database";
@@ -40,11 +39,7 @@ export class EmployeesService {
   private async enrichWithSignedPhotoUrl(employee: any): Promise<void> {
     if (employee?.photoUrl && !employee.photoUrl.startsWith("http")) {
       try {
-        const command = new GetObjectCommand({
-          Bucket: this.bucketName,
-          Key: employee.photoUrl,
-        });
-        employee.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
+        employee.photoUrl = await generatePresignedDownloadUrl(this.s3, this.bucketName, employee.photoUrl);
       } catch (error) {
         this.logger.error(`Failed to sign photo URL for employee ${employee.id}:`, error);
       }

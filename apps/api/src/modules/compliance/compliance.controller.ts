@@ -10,6 +10,8 @@ import { Permission } from "@naprocs/types";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { PrismaService } from "../../prisma/prisma.service";
 import { DataErasureRequest, ConsentLog, GrievanceCase } from "@naprocs/database";
+import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
+import { RbacPermissions } from '../../common/rbac/rbac.config';
 
 @Controller("compliance")
 @UseGuards(JwtAuthGuard, RbacGuard)
@@ -22,6 +24,7 @@ export class ComplianceController {
     private prisma: PrismaService
   ) {}
 
+  @RequirePermissions(RbacPermissions.COMPLIANCE_READ)
   @Get("dashboard")
   @Permissions(Permission.READ_EMPLOYEES, Permission.READ_AUDIT)
   async getDashboardStats() {

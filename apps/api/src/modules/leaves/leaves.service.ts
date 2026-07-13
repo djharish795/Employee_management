@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { RbacRoles, RbacGroups } from '../../common/rbac/rbac.config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ApplyLeaveDto } from './dto/apply-leave.dto';
 import { WorkflowEngineService } from '../workflows/workflow-engine.service';
+import { AuditService } from '../audit/audit.service';
+import { resolveWorkflowRole, DesignationRoleMap, WorkflowRole } from '../../common/constants/workflow-roles.constants';
 
 export interface ApprovalQueueItem {
   role: string;
@@ -16,7 +19,8 @@ export class LeavesService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly workflowEngine: WorkflowEngineService
+    private readonly workflowEngine: WorkflowEngineService,
+    private readonly auditService: AuditService
   ) { }
 
   async getLeavesKPI(employeeId: string): Promise<unknown> {
@@ -112,7 +116,24 @@ export class LeavesService {
 
     const deptCode = employee.department?.code || '';
     if (deptCode === 'HR') return 'HRE';
+
     return 'EMPLOYEE';
+  }
+
+  /**
+   * Helper to fetch a leave balance for a given request within a transaction.
+   */
+  private async getLeaveBalance(tx: any, leave: { employeeId: string; leaveTypeId: string; startDate: Date }) {
+    const currentYear = new Date(leave.startDate).getFullYear();
+    return tx.leaveBalance.findUnique({
+      where: {
+        employeeId_leaveTypeId_year: {
+          employeeId: leave.employeeId,
+          leaveTypeId: leave.leaveTypeId,
+          year: currentYear
+        }
+      }
+    });
   }
 
   private determineQueue(employee: { department?: { code?: string } | null, designation?: { title?: string } | null, employeeId?: string, reportingManagerId?: string | null }): ApprovalQueueItem[] {
@@ -267,7 +288,8 @@ export class LeavesService {
 
       if (daysForThisType <= 0) continue;
 
-      let balance = await this.prisma.leaveBalance.findUnique({
+    const leave = await this.prisma.$transaction(async (tx) => {
+      let balance = await tx.leaveBalance.findUnique({
         where: {
           employeeId_leaveTypeId_year: {
             employeeId: employee.id,
@@ -278,7 +300,7 @@ export class LeavesService {
       });
 
       if (!balance) {
-        balance = await this.prisma.leaveBalance.create({
+        balance = await tx.leaveBalance.create({
           data: {
             employeeId: employee.id,
             leaveTypeId: leaveType.id,
@@ -312,7 +334,7 @@ export class LeavesService {
         const startOfMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
         const endOfMonth = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
 
-        const monthlyLeaves = await this.prisma.leaveRequest.aggregate({
+        const monthlyLeaves = await tx.leaveRequest.aggregate({
           where: {
             employeeId: employee.id,
             leaveTypeId: leaveType.id,
@@ -359,34 +381,40 @@ export class LeavesService {
         isReqHalfDay = true;
       }
 
-      const leave = await this.prisma.$transaction(async (tx) => {
-        const newLeave = await tx.leaveRequest.create({
-          data: {
-            employeeId: employee.id,
-            leaveTypeId: leaveType.id,
-            startDate: reqStartDate,
-            endDate: reqEndDate,
-            reason: data.reason,
-            totalDays: daysForThisType,
-            paidDays,
-            unpaidDays,
-            status: 'PENDING',
-            attachmentUrl: data.attachmentUrl,
-            isHalfDay: isReqHalfDay,
-            isEmergency,
-            ...({ approvalQueue: approvalQueue as unknown as object, currentStep: 0 })
-          }
-        });
-
-        await tx.leaveBalance.update({
-          where: { id: balance.id },
-          data: { pending: { increment: paidDays } }
-        });
-
-        return newLeave;
+      const newLeave = await tx.leaveRequest.create({
+        data: {
+          employeeId: employee.id,
+          leaveTypeId: leaveType.id,
+          startDate: reqStartDate,
+          endDate: reqEndDate,
+          reason: data.reason,
+          totalDays: daysForThisType,
+          paidDays,
+          unpaidDays,
+          status: 'PENDING',
+          attachmentUrl: data.attachmentUrl,
+          isHalfDay: isReqHalfDay,
+          isEmergency,
+          ...({ approvalQueue: approvalQueue as unknown as object, currentStep: 0 })
+        }
       });
 
+      await tx.leaveBalance.update({
+        where: { id: balance.id },
+        data: { pending: { increment: paidDays } }
+      });
+
+      return newLeave;
+    });
+
       createdLeaves.push(leave);
+
+      this.auditService.logCreate({
+        moduleName: 'Leaves',
+        entityId: leave.id,
+        actorId: data.employeeId,
+        metadata: { leaveTypeId: leaveType.id, startDate: leave.startDate, endDate: leave.endDate }
+      });
 
       try {
         await this.workflowEngine.startWorkflow('LEAVE', leave.id, employee.id, {
@@ -533,62 +561,57 @@ export class LeavesService {
   }
 
   async approveLeave(leaveId: string, approverId: string): Promise<unknown> {
-    const leave = await this.prisma.leaveRequest.findUnique({ where: { id: leaveId } });
-    if (!leave) throw new NotFoundException('Leave not found');
-    if (leave.status !== 'PENDING') throw new BadRequestException('Leave is not pending');
+    const { withRetry } = await import('../../common/utils/retry.util');
+    return withRetry(async () => {
+      const leave = await this.prisma.leaveRequest.findUnique({ where: { id: leaveId } });
+      if (!leave) throw new NotFoundException('Leave not found');
+      if (leave.status !== 'PENDING') throw new BadRequestException('Leave is not pending');
 
-    const approver = await this.prisma.employee.findUnique({
-      where: { id: approverId },
-      include: { department: true, designation: true }
-    });
-    if (!approver) throw new NotFoundException('Approver not found');
-
-    const approverRole = this.getRoleForEmployee(approver);
-    const leaveData = leave as typeof leave & { approvalQueue?: unknown, currentStep: number };
-    const queue = leaveData.approvalQueue as unknown as ApprovalQueueItem[];
-
-    // OR override logic
-    if (approverRole === 'OR' || approverRole === 'CEO') {
-      queue.forEach(q => {
-        if (q.status === 'PENDING') {
-          q.status = 'APPROVED';
-          q.approverId = approverId;
-          q.actedAt = new Date();
-        }
+      const approver = await this.prisma.employee.findUnique({
+        where: { id: approverId },
+        include: { department: true, designation: true }
       });
+      if (!approver) throw new NotFoundException('Approver not found');
 
-      await this.prisma.$transaction(async (tx) => {
-        await tx.leaveRequest.update({
-          where: { id: leaveId },
-          data: {
-            status: 'APPROVED',
-            approvedAt: new Date(),
-            approverId,
-            ...({ approvalQueue: queue as unknown as object, currentStep: queue.length })
+      const approverRole = this.getRoleForEmployee(approver);
+      const leaveData = leave as typeof leave & { approvalQueue?: unknown, currentStep: number };
+      const queue = leaveData.approvalQueue as unknown as ApprovalQueueItem[];
+
+      // OR override logic
+      if (approverRole === 'OR' || approverRole === 'CEO') {
+        queue.forEach(q => {
+          if (q.status === 'PENDING') {
+            q.status = 'APPROVED';
+            q.approverId = approverId;
+            q.actedAt = new Date();
           }
         });
 
-        const currentYear = new Date(leave.startDate).getFullYear();
-        const balance = await tx.leaveBalance.findUnique({
-          where: {
-            employeeId_leaveTypeId_year: {
-              employeeId: leave.employeeId,
-              leaveTypeId: leave.leaveTypeId,
-              year: currentYear
-            }
-          }
-        });
-
-        if (balance) {
-          await tx.leaveBalance.update({
-            where: { id: balance.id },
+        await this.prisma.$transaction(async (tx) => {
+          const updateResult = await tx.leaveRequest.updateMany({
+            where: { id: leaveId, status: 'PENDING' },
             data: {
-              pending: { decrement: leave.totalDays },
-              used: { increment: leave.totalDays }
+              status: 'APPROVED',
+              approvedAt: new Date(),
+              approverId,
+              ...({ approvalQueue: queue as unknown as object, currentStep: queue.length })
             }
           });
-        }
-      });
+          
+          if (updateResult.count === 0) throw new Error("ConcurrencyConflict");
+
+          const balance = await this.getLeaveBalance(tx, leave);
+
+          if (balance) {
+            await tx.leaveBalance.update({
+              where: { id: balance.id },
+              data: {
+                pending: { decrement: leave.totalDays },
+                used: { increment: leave.totalDays }
+              }
+            });
+          }
+        });
 
       return { message: 'Leave Approved Successfully via Override' };
     }
@@ -612,45 +635,47 @@ export class LeavesService {
     currentStep.approverId = approverId;
     currentStep.actedAt = new Date();
 
-    const nextStepIndex = currentStepIndex + 1;
-    const isFinished = nextStepIndex >= queue.length;
+      const nextStepIndex = currentStepIndex + 1;
+      const isFinished = nextStepIndex >= queue.length;
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.leaveRequest.update({
-        where: { id: leaveId },
-        data: {
-          status: isFinished ? 'APPROVED' : 'PENDING',
-          approvedAt: isFinished ? new Date() : null,
-          approverId: isFinished ? approverId : null,
-          ...({ approvalQueue: queue as unknown as object, currentStep: nextStepIndex })
+      await this.prisma.$transaction(async (tx) => {
+        const updateResult = await tx.leaveRequest.updateMany({
+          where: { id: leaveId, status: 'PENDING' },
+          data: {
+            status: isFinished ? 'APPROVED' : 'PENDING',
+            approvedAt: isFinished ? new Date() : null,
+            approverId: isFinished ? approverId : null,
+            ...({ approvalQueue: queue as unknown as object, currentStep: nextStepIndex })
+          }
+        });
+        
+        if (updateResult.count === 0) throw new Error("ConcurrencyConflict");
+
+        if (isFinished) {
+          const balance = await this.getLeaveBalance(tx, leave);
+
+          if (balance) {
+            await tx.leaveBalance.update({
+              where: { id: balance.id },
+              data: {
+                pending: { decrement: (leave as any).paidDays || 0 },
+                used: { increment: (leave as any).paidDays || 0 }
+              }
+            });
+          }
         }
       });
 
-      if (isFinished) {
-        const currentYear = new Date(leave.startDate).getFullYear();
-        const balance = await tx.leaveBalance.findUnique({
-          where: {
-            employeeId_leaveTypeId_year: {
-              employeeId: leave.employeeId,
-              leaveTypeId: leave.leaveTypeId,
-              year: currentYear
-            }
-          }
-        });
+      // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
+      this.auditService.logApprove({
+        moduleName: 'Leaves',
+        entityId: leaveId,
+        actorId: 'unknown',
+        metadata: { approverId }
+      });
 
-        if (balance) {
-          await tx.leaveBalance.update({
-            where: { id: balance.id },
-            data: {
-              pending: { decrement: (leave as any).paidDays || 0 },
-              used: { increment: (leave as any).paidDays || 0 }
-            }
-          });
-        }
-      }
+      return { message: isFinished ? 'Leave Approved Successfully' : `Leave Approved by ${approverRole}, pending next step.` };
     });
-
-    return { message: isFinished ? 'Leave Approved Successfully' : `Leave Approved by ${approverRole}, pending next step.` };
   }
 
   async rejectLeave(leaveId: string, approverId: string, reason: string): Promise<unknown> {
@@ -688,16 +713,7 @@ export class LeavesService {
           }
         });
 
-        const currentYear = new Date(leave.startDate).getFullYear();
-        const balance = await tx.leaveBalance.findUnique({
-          where: {
-            employeeId_leaveTypeId_year: {
-              employeeId: leave.employeeId,
-              leaveTypeId: leave.leaveTypeId,
-              year: currentYear
-            }
-          }
-        });
+        const balance = await this.getLeaveBalance(tx, leave);
 
         if (balance) {
           await tx.leaveBalance.update({
@@ -705,6 +721,14 @@ export class LeavesService {
             data: { pending: { decrement: leave.paidDays } }
           });
         }
+      });
+
+      // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
+      this.auditService.logReject({
+        moduleName: 'Leaves',
+        entityId: leaveId,
+        actorId: 'unknown',
+        metadata: { approverId, reason, override: true }
       });
 
       return { message: 'Leave Rejected Successfully via Override' };
@@ -739,16 +763,7 @@ export class LeavesService {
         }
       });
 
-      const currentYear = new Date(leave.startDate).getFullYear();
-      const balance = await tx.leaveBalance.findUnique({
-        where: {
-          employeeId_leaveTypeId_year: {
-            employeeId: leave.employeeId,
-            leaveTypeId: leave.leaveTypeId,
-            year: currentYear
-          }
-        }
-      });
+      const balance = await this.getLeaveBalance(tx, leave);
 
       if (balance) {
         await tx.leaveBalance.update({
@@ -756,6 +771,14 @@ export class LeavesService {
           data: { pending: { decrement: leave.paidDays } }
         });
       }
+    });
+
+    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
+    this.auditService.logReject({
+      moduleName: 'Leaves',
+      entityId: leaveId,
+      actorId: 'unknown',
+      metadata: { approverId, reason }
     });
 
     return { message: 'Leave Rejected Successfully' };
@@ -771,12 +794,12 @@ export class LeavesService {
       where: { isActive: true }
     });
 
-    let accruedCount = 0;
+    const ops: any[] = [];
 
     for (const emp of employees) {
       for (const lt of leaveTypes) {
         if (lt.code === 'CL_FULL') {
-          await this.prisma.leaveBalance.upsert({
+          ops.push(this.prisma.leaveBalance.upsert({
             where: {
               employeeId_leaveTypeId_year: {
                 employeeId: emp.id,
@@ -796,10 +819,9 @@ export class LeavesService {
               pending: 0,
               used: 0
             }
-          });
-          accruedCount++;
+          }));
         } else if (lt.code === 'CL_HALF') {
-          await this.prisma.leaveBalance.upsert({
+          ops.push(this.prisma.leaveBalance.upsert({
             where: {
               employeeId_leaveTypeId_year: {
                 employeeId: emp.id,
@@ -820,12 +842,19 @@ export class LeavesService {
               pending: 0,
               used: 0
             }
-          });
-          accruedCount++;
+          }));
         }
       }
     }
 
+    const { chunkArray } = await import('../../common/constants/db-batch.constants');
+    const opChunks = chunkArray(ops);
+
+    for (const chunk of opChunks) {
+      await this.prisma.$transaction(chunk);
+    }
+
+    const accruedCount = ops.length;
     return { message: `Monthly leave accrued successfully for ${accruedCount} balances.` };
   }
 
@@ -840,7 +869,7 @@ export class LeavesService {
       }
     });
 
-    let carriedOverCount = 0;
+    const ops: any[] = [];
 
     for (const pb of previousBalances) {
       const remaining = Number(pb.allocated) + Number(pb.carriedOver) - Number(pb.used) - Number(pb.pending);
@@ -848,7 +877,7 @@ export class LeavesService {
         // Max 7 days carry forward
         const carryForwardAmount = Math.min(remaining, 7);
 
-        await this.prisma.leaveBalance.upsert({
+        ops.push(this.prisma.leaveBalance.upsert({
           where: {
             employeeId_leaveTypeId_year: {
               employeeId: pb.employeeId,
@@ -868,11 +897,18 @@ export class LeavesService {
             pending: 0,
             used: 0
           }
-        });
-        carriedOverCount++;
+        }));
       }
     }
 
+    const { chunkArray } = await import('../../common/constants/db-batch.constants');
+    const opChunks = chunkArray(ops);
+
+    for (const chunk of opChunks) {
+      await this.prisma.$transaction(chunk);
+    }
+
+    const carriedOverCount = ops.length;
     return { message: `Successfully carried forward leaves for ${carriedOverCount} employees.` };
   }
 

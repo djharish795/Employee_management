@@ -4,6 +4,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
 import { EmailService } from "../notifications/email.service";
 import { WorkflowType, WorkflowInstanceStatus } from "@naprocs/database";
+import { RbacRoles, RbacGroups } from "../../common/rbac/rbac.config";
 
 @Injectable()
 export class WorkflowEngineService {
@@ -68,7 +69,7 @@ export class WorkflowEngineService {
     const role = step.assigneeRole;
     let recipientEmail = 'hr@naprocs.in'; // fallback
 
-    if (role === 'MANAGER') {
+    if (role === RbacRoles.MANAGER) {
       const manager = (instance.initiatedBy as any).department?.head;
       if (manager && manager.officialEmail) {
         recipientEmail = manager.officialEmail;
@@ -97,142 +98,167 @@ export class WorkflowEngineService {
   }
 
   async processApproval(instanceId: string, action: "APPROVE" | "REJECT", actorId: string, notes?: string): Promise<any> {
-    const instance = await this.prisma.workflowInstance.findUnique({
-      where: { id: instanceId },
-      include: {
-        workflow: true,
-        initiatedBy: {
-          include: { department: true }
+    const { withRetry } = await import('../../common/utils/retry.util');
+    return withRetry(async () => {
+      const instance = await this.prisma.workflowInstance.findUnique({
+        where: { id: instanceId },
+        include: {
+          workflow: true,
+          initiatedBy: {
+            include: { department: true }
+          }
+        }
+      });
+
+      if (!instance) {
+        throw new NotFoundException("Workflow instance not found");
+      }
+
+      if (instance.status !== "PENDING") {
+        throw new BadRequestException(`Workflow instance is already ${instance.status}`);
+      }
+
+      const steps = instance.workflow.steps as any[];
+      const currentStep = steps[instance.currentStepIndex];
+
+      // Authorization Check
+      if (actorId !== "SYSTEM") {
+        const actorEmployee = await this.prisma.employee.findUnique({
+          where: { id: actorId },
+          include: { user: true }
+        });
+        if (!actorEmployee || !actorEmployee.user) {
+          throw new ForbiddenException("Invalid actor");
+        }
+
+        const assigneeRole = currentStep.assigneeRole;
+        let isAuthorized = false;
+
+        if (assigneeRole === "MANAGER") {
+          isAuthorized = (instance.initiatedBy as any).department?.headId === actorId;
+        } else {
+          isAuthorized = actorEmployee.user.role === assigneeRole;
+        }
+
+        // HR can always override or approve
+        if (RbacGroups.HR_OR_SUPER_ADMIN.includes(actorEmployee.user.role as any)) {
+          isAuthorized = true;
+        }
+
+        if (!isAuthorized) {
+          throw new ForbiddenException(`You are not authorized to ${action.toLowerCase()} this step. Required: ${assigneeRole}`);
         }
       }
-    });
 
-    if (!instance) {
-      throw new NotFoundException("Workflow instance not found");
-    }
+      if (action === "REJECT") {
+        const updateResult = await this.prisma.workflowInstance.updateMany({
+          where: { id: instanceId, status: "PENDING", currentStepIndex: instance.currentStepIndex },
+          data: { status: "REJECTED" }
+        });
+        
+        if (updateResult.count === 0) {
+          throw new Error("ConcurrencyConflict");
+        }
 
-    if (instance.status !== "PENDING") {
-      throw new BadRequestException(`Workflow instance is already ${instance.status}`);
-    }
+        const updated = await this.prisma.workflowInstance.findUnique({ where: { id: instanceId } });
 
-    const steps = instance.workflow.steps as any[];
-    const currentStep = steps[instance.currentStepIndex];
+        await this.auditService.createLog({
+          action: "WORKFLOW_REJECTED",
+          actorId,
+          resource: "WorkflowInstance",
+          resourceId: instanceId,
+          newValue: { stepIndex: instance.currentStepIndex, stepTitle: currentStep.title, notes }
+        });
 
-    // Authorization Check
-    if (actorId !== "SYSTEM") {
-      const actorEmployee = await this.prisma.employee.findUnique({
-        where: { id: actorId },
-        include: { user: true }
+        await this.executeRejectionHook(instance, notes);
+
+        return updated;
+      }
+
+      // Action is APPROVE
+      const nextStepIndex = instance.currentStepIndex + 1;
+      const isFinalStep = nextStepIndex >= steps.length;
+
+      const updateResult = await this.prisma.workflowInstance.updateMany({
+        where: { id: instanceId, status: "PENDING", currentStepIndex: instance.currentStepIndex },
+        data: {
+          currentStepIndex: isFinalStep ? instance.currentStepIndex : nextStepIndex,
+          status: isFinalStep ? "APPROVED" : "PENDING"
+        }
       });
-      if (!actorEmployee || !actorEmployee.user) {
-        throw new ForbiddenException("Invalid actor");
+      
+      if (updateResult.count === 0) {
+        throw new Error("ConcurrencyConflict");
       }
+      
+      const updated = await this.prisma.workflowInstance.findUnique({ where: { id: instanceId } });
 
-      const assigneeRole = currentStep.assigneeRole;
-      let isAuthorized = false;
-
-      if (assigneeRole === "MANAGER") {
-        isAuthorized = (instance.initiatedBy as any).department?.headId === actorId;
-      } else {
-        isAuthorized = actorEmployee.user.role === assigneeRole;
-      }
-
-      // HR can always override or approve
-      if (actorEmployee.user.role === "HR" || actorEmployee.user.role === "SUPER_ADMIN") {
-        isAuthorized = true;
-      }
-
-      if (!isAuthorized) {
-        throw new ForbiddenException(`You are not authorized to ${action.toLowerCase()} this step. Required: ${assigneeRole}`);
-      }
-    }
-
-    if (action === "REJECT") {
-      const updated = await this.prisma.workflowInstance.update({
-        where: { id: instanceId },
-        data: { status: "REJECTED" }
-      });
       await this.auditService.createLog({
-        action: "WORKFLOW_REJECTED",
+        action: "WORKFLOW_APPROVED",
         actorId,
         resource: "WorkflowInstance",
         resourceId: instanceId,
         newValue: { stepIndex: instance.currentStepIndex, stepTitle: currentStep.title, notes }
       });
 
-      await this.executeRejectionHook(instance, notes);
+      if (isFinalStep) {
+        await this.auditService.createLog({
+          action: "WORKFLOW_COMPLETED",
+          actorId: "SYSTEM",
+          resource: "WorkflowInstance",
+          resourceId: instanceId,
+          newValue: { status: "APPROVED" }
+        });
+        await this.executeFinalApprovalHook(instance);
+      } else {
+        await this.notifyAssignee(instanceId, steps[nextStepIndex]);
+      }
 
       return updated;
-    }
-
-    // Action is APPROVE
-    const nextStepIndex = instance.currentStepIndex + 1;
-    const isFinalStep = nextStepIndex >= steps.length;
-
-    const updated = await this.prisma.workflowInstance.update({
-      where: { id: instanceId },
-      data: {
-        currentStepIndex: isFinalStep ? instance.currentStepIndex : nextStepIndex,
-        status: isFinalStep ? "APPROVED" : "PENDING"
-      }
     });
-
-    await this.auditService.createLog({
-      action: "WORKFLOW_APPROVED",
-      actorId,
-      resource: "WorkflowInstance",
-      resourceId: instanceId,
-      newValue: { stepIndex: instance.currentStepIndex, stepTitle: currentStep.title, notes }
-    });
-
-    if (isFinalStep) {
-      await this.auditService.createLog({
-        action: "WORKFLOW_COMPLETED",
-        actorId: "SYSTEM",
-        resource: "WorkflowInstance",
-        resourceId: instanceId,
-        newValue: { status: "APPROVED" }
-      });
-      await this.executeFinalApprovalHook(instance);
-    } else {
-      await this.notifyAssignee(instanceId, steps[nextStepIndex]);
-    }
-
-    return updated;
   }
 
   async forceStatusUpdate(instanceId: string, status: WorkflowInstanceStatus, actorId: string): Promise<any> {
-    const instance = await this.prisma.workflowInstance.findUnique({
-      where: { id: instanceId },
-      include: { workflow: true }
+    const { withRetry } = await import('../../common/utils/retry.util');
+    return withRetry(async () => {
+      const instance = await this.prisma.workflowInstance.findUnique({
+        where: { id: instanceId },
+        include: { workflow: true }
+      });
+
+      if (!instance) throw new NotFoundException("Workflow instance not found");
+
+      // Only act if status actually changes
+      if (instance.status === status) return instance;
+
+      const updateResult = await this.prisma.workflowInstance.updateMany({
+        where: { id: instanceId, status: instance.status },
+        data: { status }
+      });
+      
+      if (updateResult.count === 0) {
+        throw new Error("ConcurrencyConflict");
+      }
+      
+      const updated = await this.prisma.workflowInstance.findUnique({ where: { id: instanceId } });
+
+      await this.auditService.createLog({
+        action: "WORKFLOW_FORCE_UPDATED",
+        actorId,
+        resource: "WorkflowInstance",
+        resourceId: instanceId,
+        newValue: { previousStatus: instance.status, newStatus: status }
+      });
+
+      // Execute hooks based on forced status
+      if (status === "APPROVED" || status === ("COMPLETED" as any)) {
+        await this.executeFinalApprovalHook(instance);
+      } else if (status === "REJECTED" || status === "CANCELLED") {
+        await this.executeRejectionHook(instance, "Forced via HR Kanban Board");
+      }
+
+      return updated;
     });
-
-    if (!instance) throw new NotFoundException("Workflow instance not found");
-
-    // Only act if status actually changes
-    if (instance.status === status) return instance;
-
-    const updated = await this.prisma.workflowInstance.update({
-      where: { id: instanceId },
-      data: { status }
-    });
-
-    await this.auditService.createLog({
-      action: "WORKFLOW_FORCE_UPDATED",
-      actorId,
-      resource: "WorkflowInstance",
-      resourceId: instanceId,
-      newValue: { previousStatus: instance.status, newStatus: status }
-    });
-
-    // Execute hooks based on forced status
-    if (status === "APPROVED" || status === ("COMPLETED" as any)) {
-      await this.executeFinalApprovalHook(instance);
-    } else if (status === "REJECTED" || status === "CANCELLED") {
-      await this.executeRejectionHook(instance, "Forced via HR Kanban Board");
-    }
-
-    return updated;
   }
 
   @Cron(CronExpression.EVERY_HOUR)
@@ -272,7 +298,7 @@ export class WorkflowEngineService {
           });
           // Notify HR
           const hrUsers = await this.prisma.user.findMany({
-            where: { role: "HR" },
+            where: { role: RbacRoles.HR },
             include: { employee: true }
           });
           const hrEmails = hrUsers.map(u => u.employee?.officialEmail).filter(Boolean);

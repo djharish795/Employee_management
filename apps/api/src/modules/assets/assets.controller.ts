@@ -9,6 +9,8 @@ import {
   Query,
   UseGuards,
 } from "@nestjs/common";
+import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
+import { RbacPermissions } from '../../common/rbac/rbac.config';
 import { AssetsService } from "./assets.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RbacGuard } from "../../common/guards/rbac.guard";
@@ -34,16 +36,19 @@ export class AssetsKpiController {
     return this.assetsService.getSummaryKPIs(user.role as UserRole);
   }
 
+  @RequirePermissions(RbacPermissions.ASSETS_READ)
   @Get("categories")
   async getCategories(@CurrentUser() user: any) {
     return this.assetsService.getCategoryBreakdown(user.role as UserRole);
   }
 
+  @RequirePermissions(RbacPermissions.ASSETS_READ)
   @Get("financials")
   async getFinancials(@CurrentUser() user: any) {
     return this.assetsService.getFinancialSummary(user.role as UserRole);
   }
 
+  @RequirePermissions(RbacPermissions.ASSETS_READ)
   @Get("trends")
   async getTrends(
     @CurrentUser() user: any,
@@ -68,6 +73,7 @@ export class AssetsController {
   constructor(private readonly assetsService: AssetsService) { }
 
   // My active assets
+  @RequirePermissions(RbacPermissions.ASSETS_READ)
   @Get("my")
   @Permissions(Permission.READ_OWN_PROFILE)
   async findMyAssets(@CurrentUser() user: any) {
@@ -189,6 +195,7 @@ export class AssetRequestsController {
     return this.assetsService.findRequests(user.role as UserRole, user.employeeId, status);
   }
 
+  @RequirePermissions(RbacPermissions.ASSETS_CREATE)
   @Post()
   async createRequest(
     @CurrentUser() user: any,
@@ -197,6 +204,7 @@ export class AssetRequestsController {
     return this.assetsService.createRequest(user.employeeId, dto);
   }
 
+  @RequirePermissions(RbacPermissions.ASSETS_ALLOCATE)
   @Patch(":id/respond")
   @Permissions(Permission.READ_EMPLOYEES)
   async respondToRequest(

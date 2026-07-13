@@ -7,6 +7,8 @@ import { Permissions } from "../../common/decorators/permissions.decorator";
 import { Permission } from "@naprocs/types";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { PunchDto } from "./dto/punch.dto";
+import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
+import { RbacPermissions } from '../../common/rbac/rbac.config';
 
 @Controller("attendance")
 @UseGuards(JwtAuthGuard, RbacGuard)
@@ -16,6 +18,7 @@ export class AttendanceController {
     private readonly cronService: AttendanceCronService
   ) {}
 
+  @RequirePermissions(RbacPermissions.ATTENDANCE_READ)
   @Get("today")
   @Permissions(Permission.READ_OWN_PROFILE)
   async getTodayStatus(@CurrentUser() user: any) {

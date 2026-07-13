@@ -1,10 +1,17 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
+import { RbacGroups } from '../../common/rbac/rbac.config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProjectRole, ProjectStatus } from '@naprocs/database';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class ProjectsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(ProjectsService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: AuditService,
+  ) {}
 
   async createProject(data: { name: string; description?: string; key?: string }) {
     let projectKey = data.key;
@@ -14,7 +21,7 @@ export class ProjectsService {
       projectKey = `${baseKey}-${randomSuffix}`;
     }
 
-    return this.prisma.project.create({
+    const project = await this.prisma.project.create({
       data: {
         name: data.name,
         description: data.description,
@@ -22,10 +29,20 @@ export class ProjectsService {
         status: ProjectStatus.ACTIVE,
       },
     });
+
+    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
+    await this.auditService.logCreate({
+      moduleName: 'Projects',
+      entityId: project.id,
+      actorId: 'unknown',
+      metadata: { name: project.name }
+    });
+
+    return project;
   }
 
   async getAllProjects(user?: any) {
-    const isAdmin = user && ['SUPER_ADMIN', 'CTO', 'CEO'].includes(user.role);
+    const isAdmin = user && RbacGroups.GLOBAL_ADMINS.includes(user.role as any);
     
     return this.prisma.project.findMany({
       where: isAdmin ? undefined : {
@@ -50,9 +67,19 @@ export class ProjectsService {
       where: { projectId },
     });
     // Delete project
-    return this.prisma.project.delete({
+    const project = await this.prisma.project.delete({
       where: { id: projectId },
     });
+
+    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
+    await this.auditService.logDelete({
+      moduleName: 'Projects',
+      entityId: projectId,
+      actorId: 'unknown',
+      metadata: { name: project.name }
+    });
+
+    return project;
   }
 
   async completeProject(projectId: string, signatureName: string) {
@@ -95,7 +122,7 @@ export class ProjectsService {
 
   async assignMember(projectId: string, employeeId: string, projectRole: ProjectRole, requestingUser: any) {
     // RBAC Check
-    const hasGlobalPerm = requestingUser && ['SUPER_ADMIN', 'CTO', 'CEO'].includes(requestingUser.role);
+    const hasGlobalPerm = requestingUser && RbacGroups.GLOBAL_ADMINS.includes(requestingUser.role as any);
     if (!hasGlobalPerm) {
       const assignment = await this.prisma.projectAssignment.findFirst({
         where: { 
@@ -114,7 +141,7 @@ export class ProjectsService {
     if (!employee) throw new NotFoundException('Employee not found');
 
     // Upsert assignment to handle re-assignment or updating role without crashing
-    return this.prisma.projectAssignment.upsert({
+    const assignment = await this.prisma.projectAssignment.upsert({
       where: {
         projectId_employeeId: {
           projectId,
@@ -131,11 +158,21 @@ export class ProjectsService {
         projectRole,
       }
     });
+
+    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
+    await this.auditService.logUpdate({
+      moduleName: 'Projects',
+      entityId: projectId,
+      actorId: 'unknown',
+      metadata: { action: 'ASSIGN_MEMBER', employeeId, role: projectRole }
+    });
+
+    return assignment;
   }
 
   async releaseMember(projectId: string, employeeId: string, requestingUser: any) {
     // RBAC Check
-    const hasGlobalPerm = requestingUser && ['SUPER_ADMIN', 'CTO', 'CEO'].includes(requestingUser.role);
+    const hasGlobalPerm = requestingUser && RbacGroups.GLOBAL_ADMINS.includes(requestingUser.role as any);
     if (!hasGlobalPerm) {
       const assignment = await this.prisma.projectAssignment.findFirst({
         where: { 
@@ -147,7 +184,7 @@ export class ProjectsService {
       if (!assignment) throw new ForbiddenException("You must be a Team Lead or Manager of this project to release members.");
     }
 
-    return this.prisma.projectAssignment.update({
+    const release = await this.prisma.projectAssignment.update({
       where: {
         projectId_employeeId: {
           projectId,
@@ -158,6 +195,16 @@ export class ProjectsService {
         releasedAt: new Date(),
       }
     });
+
+    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
+    await this.auditService.logUpdate({
+      moduleName: 'Projects',
+      entityId: projectId,
+      actorId: 'unknown',
+      metadata: { action: 'RELEASE_MEMBER', employeeId }
+    });
+
+    return release;
   }
 
   async createSprint(projectId: string, data: { name: string; startDate: string; endDate: string }) {

@@ -1,10 +1,16 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
+import { RbacRoles, RbacGroups } from '../../common/rbac/rbac.config';
+import { resolveWorkflowRole, WorkflowRole } from '../../common/constants/workflow-roles.constants';
 import { ApprovalQueueItem } from '../leaves/leaves.service';
 
 @Injectable()
 export class WfhService {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: AuditService,
+  ) { }
 
   async getMyWfh(employeeId: string): Promise<unknown> {
     return this.prisma.workFromHomeRequest.findMany({
@@ -25,66 +31,86 @@ export class WfhService {
     const startOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
     const endOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0);
 
-    // 1. Employee limit: Max 1 WFH per month
-    const employeeWfhCount = await this.prisma.workFromHomeRequest.count({
-      where: {
-        employeeId: employee.id,
-        status: { in: ['APPROVED', 'PENDING'] },
-        date: { gte: startOfMonth, lte: endOfMonth }
-      }
-    });
-
-    if (employeeWfhCount >= 1) {
-      throw new BadRequestException('You can only avail a maximum of 1 Work From Home day per month.');
-    }
-
-    // 2. Project limit: Max 3 WFH per team/project per month
-    const projectIds = employee.projectAssignments.map(p => p.projectId);
-
-    if (projectIds.length > 0) {
-      for (const pid of projectIds) {
-        const projectAssignments = await this.prisma.projectAssignment.findMany({
-          where: { projectId: pid },
-          select: { employeeId: true }
-        });
-
-        const teamMemberIds = projectAssignments.map(pa => pa.employeeId);
-
-        const projectWfhCount = await this.prisma.workFromHomeRequest.count({
-          where: {
-            employeeId: { in: teamMemberIds },
-            status: { in: ['APPROVED', 'PENDING'] },
-            date: { gte: startOfMonth, lte: endOfMonth }
-          }
-        });
-
-        if (projectWfhCount >= 3) {
-          throw new BadRequestException('Your project team has already reached the maximum of 3 Work From Home days this month.');
+    const wfhRequest = await this.prisma.$transaction(async (tx) => {
+      // 1. Employee limit: Max 1 WFH per month
+      const employeeWfhCount = await tx.workFromHomeRequest.count({
+        where: {
+          employeeId: employee.id,
+          status: { in: ['APPROVED', 'PENDING'] },
+          date: { gte: startOfMonth, lte: endOfMonth }
         }
+      });
+
+      if (employeeWfhCount >= 1) {
+        throw new BadRequestException('You can only avail a maximum of 1 Work From Home day per month.');
       }
-    }
 
-    // Check if WFH or Leave already exists for this date
-    const existingWfh = await this.prisma.workFromHomeRequest.findFirst({
-        where: { employeeId: employee.id, date: targetDate, status: { not: 'REJECTED' } }
-    });
-    if (existingWfh) throw new BadRequestException('A WFH request already exists for this date.');
+      // 2. Project limit: Max 3 WFH per team/project per month
+      const projectIds = employee.projectAssignments.map(p => p.projectId);
 
-    const approvalQueue = [
-      { role: 'TR', status: 'PENDING' },
-      { role: 'HR', status: 'PENDING' }
-    ];
+      if (projectIds.length > 0) {
+        const allProjectAssignments = await tx.projectAssignment.findMany({
+          where: { projectId: { in: projectIds } },
+          select: { projectId: true, employeeId: true }
+        });
 
-    return this.prisma.workFromHomeRequest.create({
-      data: {
-        employeeId: employee.id,
-        date: targetDate,
-        reason,
-        status: 'PENDING',
-        approvalQueue: approvalQueue as any,
-        currentStep: 0
+        const teamMembersByProject = new Map<string, string[]>();
+        for (const pa of allProjectAssignments) {
+          if (!teamMembersByProject.has(pa.projectId)) {
+            teamMembersByProject.set(pa.projectId, []);
+          }
+          teamMembersByProject.get(pa.projectId)!.push(pa.employeeId);
+        }
+
+        await Promise.all(
+          Array.from(teamMembersByProject.entries()).map(async ([pid, teamMemberIds]) => {
+            const projectWfhCount = await tx.workFromHomeRequest.count({
+              where: {
+                employeeId: { in: teamMemberIds },
+                status: { in: ['APPROVED', 'PENDING'] },
+                date: { gte: startOfMonth, lte: endOfMonth }
+              }
+            });
+
+            if (projectWfhCount >= 3) {
+              throw new BadRequestException('Your project team has already reached the maximum of 3 Work From Home days this month.');
+            }
+          })
+        );
       }
+
+      // Check if WFH or Leave already exists for this date
+      const existingWfh = await tx.workFromHomeRequest.findFirst({
+          where: { employeeId: employee.id, date: targetDate, status: { not: 'REJECTED' } }
+      });
+      if (existingWfh) throw new BadRequestException('A WFH request already exists for this date.');
+
+      const approvalQueue = [
+        { role: RbacRoles.TR, status: 'PENDING' },
+        { role: RbacRoles.HR, status: 'PENDING' }
+      ];
+
+      return tx.workFromHomeRequest.create({
+        data: {
+          employeeId: employee.id,
+          date: targetDate,
+          reason,
+          status: 'PENDING',
+          approvalQueue: approvalQueue as any,
+          currentStep: 0
+        }
+      });
     });
+
+    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
+    this.auditService.logCreate({
+      moduleName: 'WFH',
+      entityId: wfhRequest.id,
+      actorId: 'unknown',
+      metadata: { date, reason }
+    });
+
+    return wfhRequest;
   }
 
   async getApprovals(approverId: string): Promise<unknown> {
@@ -95,17 +121,8 @@ export class WfhService {
     
     if (!approver) throw new NotFoundException('Approver not found');
     
-    // Quick role determine
-    const deptCode = approver.department?.code || '';
-    const designTitle = approver.designation?.title || '';
-    const empId = approver.employeeId || '';
-    let role = 'EMPLOYEE';
-    if (deptCode === 'HR' || empId.includes('/HR/')) role = 'HR';
-    else if (deptCode === 'OR' || deptCode === 'OPS' || empId.includes('/OR/')) role = 'OR';
-    else if (deptCode === 'AR' || deptCode === 'ADMIN' || empId.includes('/AR/')) role = 'AR';
-    else if (designTitle === 'CTO') role = 'CTO';
-    else if (designTitle === 'CEO') role = 'CEO';
-    else if (designTitle.includes('Lead') || designTitle.includes('Manager') || designTitle === 'TR' || empId.includes('/TR/')) role = 'TR';
+    // Resolve the approver's workflow role from centralized mappings
+    const role = resolveWorkflowRole(approver);
 
     const requests = await this.prisma.workFromHomeRequest.findMany({
       where: { status: 'PENDING' },
@@ -133,22 +150,15 @@ export class WfhService {
     });
     if (!approver) throw new NotFoundException('Approver not found');
 
-    const deptCode = approver.department?.code || '';
-    const designTitle = approver.designation?.title || '';
-    const empId = approver.employeeId || '';
-    let approverRole = 'EMPLOYEE';
-    if (deptCode === 'HR' || empId.includes('/HR/')) approverRole = 'HR';
-    else if (deptCode === 'OR' || deptCode === 'OPS' || empId.includes('/OR/')) approverRole = 'OR';
-    else if (deptCode === 'AR' || deptCode === 'ADMIN' || empId.includes('/AR/')) approverRole = 'AR';
-    else if (designTitle === 'CTO') approverRole = 'CTO';
-    else if (designTitle === 'CEO') approverRole = 'CEO';
-    else if (designTitle.includes('Lead') || designTitle.includes('Manager') || designTitle === 'TR' || empId.includes('/TR/')) approverRole = 'TR';
+    // Resolve the approver's workflow role from centralized mappings
+    const approverRole = resolveWorkflowRole(approver);
 
     const wfhData = wfh as typeof wfh & { approvalQueue?: unknown, currentStep: number };
     const queue = wfhData.approvalQueue as unknown as ApprovalQueueItem[];
     
     // OR override logic
-    if (approverRole === 'OR' || approverRole === 'CEO') {
+    // TODO: Replace with permission-based check once RBAC guards are active
+    if ((RbacGroups.APPROVAL_OVERRIDERS as readonly string[]).includes(approverRole)) {
       queue.forEach(q => {
         if (q.status === 'PENDING') {
           q.status = 'APPROVED';
@@ -184,6 +194,14 @@ export class WfhService {
             }
         });
       });
+      // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
+      this.auditService.logApprove({
+        moduleName: 'WFH',
+        entityId: wfhId,
+        actorId: 'unknown',
+        metadata: { approverId, override: true }
+      });
+
       return { message: 'WFH Approved Successfully via Override' };
     }
 
@@ -229,6 +247,14 @@ export class WfhService {
       }
     });
 
+    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
+    this.auditService.logApprove({
+      moduleName: 'WFH',
+      entityId: wfhId,
+      actorId: 'unknown',
+      metadata: { approverId }
+    });
+
     return { message: isFinished ? 'WFH Approved Successfully' : `WFH Approved by ${approverRole}, pending next step.` };
   }
 
@@ -243,21 +269,14 @@ export class WfhService {
     });
     if (!approver) throw new NotFoundException('Approver not found');
 
-    const deptCode = approver.department?.code || '';
-    const designTitle = approver.designation?.title || '';
-    const empId = approver.employeeId || '';
-    let approverRole = 'EMPLOYEE';
-    if (deptCode === 'HR' || empId.includes('/HR/')) approverRole = 'HR';
-    else if (deptCode === 'OR' || deptCode === 'OPS' || empId.includes('/OR/')) approverRole = 'OR';
-    else if (deptCode === 'AR' || deptCode === 'ADMIN' || empId.includes('/AR/')) approverRole = 'AR';
-    else if (designTitle === 'CTO') approverRole = 'CTO';
-    else if (designTitle === 'CEO') approverRole = 'CEO';
-    else if (designTitle.includes('Lead') || designTitle.includes('Manager') || designTitle === 'TR' || empId.includes('/TR/')) approverRole = 'TR';
+    // Resolve the approver's workflow role from centralized mappings
+    const approverRole = resolveWorkflowRole(approver);
 
     const wfhData = wfh as typeof wfh & { approvalQueue?: unknown, currentStep: number };
     const queue = wfhData.approvalQueue as unknown as ApprovalQueueItem[];
     
-    if (approverRole === 'OR' || approverRole === 'CEO') {
+    // TODO: Replace with permission-based check once RBAC guards are active
+    if ((RbacGroups.APPROVAL_OVERRIDERS as readonly string[]).includes(approverRole)) {
       queue.forEach(q => {
         if (q.status === 'PENDING') {
           q.status = 'REJECTED';
@@ -272,6 +291,14 @@ export class WfhService {
           ...({ approvalQueue: queue as unknown as object, currentStep: queue.length })
         }
       });
+      // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
+      this.auditService.logReject({
+        moduleName: 'WFH',
+        entityId: wfhId,
+        actorId: 'unknown',
+        metadata: { approverId, reason, override: true }
+      });
+
       return { message: 'WFH Rejected Successfully via Override' };
     }
 
@@ -291,6 +318,14 @@ export class WfhService {
         status: 'REJECTED',
         ...({ approvalQueue: queue as unknown as object, currentStep: currentStepIndex + 1 })
       }
+    });
+
+    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
+    this.auditService.logReject({
+      moduleName: 'WFH',
+      entityId: wfhId,
+      actorId: 'unknown',
+      metadata: { approverId, reason }
     });
 
     return { message: 'WFH Rejected Successfully' };

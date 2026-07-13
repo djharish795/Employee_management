@@ -1,8 +1,7 @@
 import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { PutObjectCommand, GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { createS3Client } from '../../common/utils/s3.util';
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { createS3Client, generatePresignedDownloadUrl } from '../../common/utils/s3.util';
 import { v4 as uuidv4 } from 'uuid';
 import * as ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
@@ -85,12 +84,7 @@ export class ReportsService {
 
     if (!report) throw new NotFoundException('Report not found');
 
-    const command = new GetObjectCommand({
-      Bucket: this.bucketName,
-      Key: report.s3Key,
-    });
-
-    const url = await getSignedUrl(this.s3, command, { expiresIn: 900 });
+    const url = await generatePresignedDownloadUrl(this.s3, this.bucketName, report.s3Key);
     return { url };
   }
 

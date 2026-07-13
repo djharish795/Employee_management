@@ -7,12 +7,15 @@ import { Permissions } from "../../common/decorators/permissions.decorator";
 import { Permission } from "@naprocs/types";
 import { TaskStatus } from "@naprocs/database";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
+import { RbacPermissions } from '../../common/rbac/rbac.config';
 
 @Controller("tasks")
 @UseGuards(JwtAuthGuard, RbacGuard)
 export class TasksController {
   constructor(private readonly tasksService: TasksService) { }
 
+  @RequirePermissions(RbacPermissions.TASKS_READ)
   @Get()
   @Permissions(Permission.READ_OWN_PROFILE)
   async getMyTasks(@CurrentUser() user: any): Promise<any> {

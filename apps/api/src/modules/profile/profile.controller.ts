@@ -8,6 +8,8 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { AuditInterceptor } from '../../common/interceptors/audit.interceptor';
+import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
+import { RbacPermissions } from '../../common/rbac/rbac.config';
 
 @Controller('profile')
 @UseGuards(JwtAuthGuard, RbacGuard)
@@ -15,6 +17,7 @@ import { AuditInterceptor } from '../../common/interceptors/audit.interceptor';
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) { }
 
+  @RequirePermissions(RbacPermissions.PROFILE_READ)
   @Get('me')
   @Permissions(Permission.READ_OWN_PROFILE)
   getMyProfile(@CurrentUser() user: any): Promise<any> {

@@ -9,6 +9,8 @@ import { RequiresPhase } from '../../common/decorators/requires-phase.decorator'
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Request as ExpressRequest } from 'express';
 import { IsString, IsOptional, IsEnum } from 'class-validator';
+import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
+import { RbacPermissions } from '../../common/rbac/rbac.config';
 
 export class CreateProjectDto {
   @IsString()
@@ -43,6 +45,7 @@ export class ReleaseMemberDto {
 export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
+  @RequirePermissions(RbacPermissions.PROJECTS_CREATE)
   @Post()
   @Permissions(Permission.MANAGE_PROJECTS)
   createProject(@Body() data: CreateProjectDto) {

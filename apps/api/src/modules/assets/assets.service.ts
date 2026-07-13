@@ -4,6 +4,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from "@nestjs/common";
+import { RbacGroups, RbacRoles } from "../../common/rbac/rbac.config";
 import { AssetsRepository } from "./assets.repository";
 import { UserRole } from "@naprocs/types";
 import { AssetStatus, AssetCategory } from "@naprocs/database";
@@ -25,37 +26,19 @@ export class AssetsService {
   // ─── Role guards ─────────────────────────────────────────────────────────
 
   private validateKPIRole(role: UserRole) {
-    const allowedRoles = [
-      UserRole.SUPER_ADMIN,
-      UserRole.CEO,
-      UserRole.CTO,
-      UserRole.CHRO,
-      UserRole.HR,
-      UserRole.IT,
-    ];
-    if (!allowedRoles.includes(role)) {
+    if (!RbacGroups.ASSET_VIEWERS.includes(role as any)) {
       throw new ForbiddenException("Insufficient permissions to view assets KPIs");
     }
   }
 
   private validateFinancialRole(role: UserRole) {
-    const allowedRoles = [
-      UserRole.SUPER_ADMIN,
-      UserRole.CEO,
-      UserRole.CFO,
-      UserRole.FINANCE,
-      UserRole.IT,
-      UserRole.HR,
-      UserRole.CHRO,
-    ];
-    if (!allowedRoles.includes(role)) {
+    if (!RbacGroups.ASSET_FINANCIAL_VIEWERS.includes(role as any)) {
       throw new ForbiddenException("Insufficient permissions to view assets financial KPIs");
     }
   }
 
   private validateWriteRole(role: UserRole) {
-    const allowedRoles = [UserRole.SUPER_ADMIN, UserRole.IT, UserRole.HR];
-    if (!allowedRoles.includes(role)) {
+    if (!RbacGroups.ASSET_WRITERS.includes(role as any)) {
       throw new ForbiddenException("Only IT Admin, Super Admin, or HR can manage assets");
     }
   }
@@ -85,11 +68,12 @@ export class AssetsService {
   async create(role: UserRole, dto: CreateAssetDto): Promise<any> {
     this.validateWriteRole(role);
     const asset = await this.assetsRepository.create(dto);
-    await this.auditService.createLog({
-      action: "ASSET_CREATED",
-      resource: "Asset",
-      resourceId: asset.id,
-      newValue: dto,
+    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
+    await this.auditService.logCreate({
+      moduleName: "Asset",
+      entityId: asset.id,
+      actorId: "unknown",
+      metadata: dto,
     });
     return asset;
   }
@@ -99,10 +83,11 @@ export class AssetsService {
     const asset = await this.assetsRepository.findById(id);
     if (!asset) throw new NotFoundException(`Asset ${id} not found`);
     const updated = await this.assetsRepository.update(id, dto);
-    await this.auditService.createLog({
-      action: "ASSET_UPDATED",
-      resource: "Asset",
-      resourceId: id,
+    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
+    await this.auditService.logUpdate({
+      moduleName: "Asset",
+      entityId: id,
+      actorId: "unknown",
       oldValue: asset,
       newValue: dto,
     });
@@ -117,11 +102,12 @@ export class AssetsService {
       throw new BadRequestException("Cannot delete an asset that is currently assigned");
     }
     const result = await this.assetsRepository.delete(id);
-    await this.auditService.createLog({
-      action: "ASSET_DELETED",
-      resource: "Asset",
-      resourceId: id,
-      oldValue: asset,
+    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
+    await this.auditService.logDelete({
+      moduleName: "Asset",
+      entityId: id,
+      actorId: "unknown",
+      metadata: asset,
     });
     return result;
   }
@@ -137,12 +123,12 @@ export class AssetsService {
       throw new BadRequestException(`Cannot assign an asset with status ${asset.status}`);
     }
     const result = await this.assetsRepository.assign(assetId, dto.employeeId, dto.assignedById, dto.notes);
-    await this.auditService.createLog({
-      action: "ASSET_ASSIGNED",
+    // TODO: Replace dto.assignedById with authenticated userId once JWT is implemented
+    await this.auditService.logUpdate({
+      moduleName: "Asset",
+      entityId: assetId,
       actorId: dto.assignedById,
-      resource: "Asset",
-      resourceId: assetId,
-      newValue: { employeeId: dto.employeeId, notes: dto.notes },
+      metadata: { action: 'ASSIGNED', employeeId: dto.employeeId, notes: dto.notes },
     });
     return result;
   }
@@ -155,11 +141,12 @@ export class AssetsService {
       throw new BadRequestException("Asset is not currently assigned");
     }
     const result = await this.assetsRepository.returnAsset(assetId, returnedCondition);
-    await this.auditService.createLog({
-      action: "ASSET_RETURNED",
-      resource: "Asset",
-      resourceId: assetId,
-      newValue: { returnedCondition },
+    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
+    await this.auditService.logUpdate({
+      moduleName: "Asset",
+      entityId: assetId,
+      actorId: 'unknown',
+      metadata: { action: 'RETURNED', returnedCondition },
     });
     return result;
   }
@@ -168,7 +155,7 @@ export class AssetsService {
 
   async findRequests(role: UserRole, employeeId: string, statusFilter?: string): Promise<any> {
     // Employees see only their own requests; IT/Admins see all
-    const isPrivileged = [UserRole.SUPER_ADMIN, UserRole.IT, UserRole.HR, UserRole.CHRO, UserRole.CEO].includes(role);
+    const isPrivileged = RbacGroups.ASSET_PRIVILEGED.includes(role as any);
     const resolvedEmployeeId = isPrivileged ? undefined : employeeId;
     return this.assetsRepository.findRequests({ status: statusFilter, employeeId: resolvedEmployeeId });
   }
@@ -248,7 +235,7 @@ export class AssetsService {
   }
 
   async getRecentActivity(role: UserRole, employeeId: string): Promise<any> {
-    const isPrivileged = [UserRole.SUPER_ADMIN, UserRole.IT, UserRole.HR, UserRole.CHRO, UserRole.CEO].includes(role);
+    const isPrivileged = RbacGroups.ASSET_PRIVILEGED.includes(role as any);
     const resolvedEmployeeId = isPrivileged ? undefined : employeeId;
     return this.assetsRepository.getRecentActivity(15, resolvedEmployeeId);
   }
