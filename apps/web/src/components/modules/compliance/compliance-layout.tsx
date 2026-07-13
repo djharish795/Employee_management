@@ -65,6 +65,7 @@ export default function ComplianceLayout({ children }: ComplianceLayoutProps) {
                 Compliance & Governance
               </h1>
 
+
             </div>
             <p className="text-sm font-medium text-slate-500 mt-2">{subtitle}</p>
           </div>

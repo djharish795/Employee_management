@@ -17,8 +17,10 @@ import { RecentNotificationsWidget } from '@/components/shared/recent-notificati
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
+import { useAuthStore } from "@/store/auth";
 
 export default function HrDashboardPage() {
+  const employeeId = useAuthStore(state => state.employeeId);
   const [refreshKey, setRefreshKey] = useState(0);
   const queryClient = useQueryClient();
   const today = new Date();
@@ -34,14 +36,14 @@ export default function HrDashboardPage() {
 
   const handleApprove = async (id: string) => {
     try {
-      await apiClient.post(`/leaves/${id}/approve`, { approverId: 'hr-admin' }); // In a real app we'd pass current user ID
+      await apiClient.post(`/leaves/${id}/approve`, { approverId: employeeId });
       queryClient.invalidateQueries({ queryKey: ['hr-overview'] });
     } catch (e) { console.error(e); }
   };
 
   const handleReject = async (id: string) => {
     try {
-      await apiClient.post(`/leaves/${id}/reject`, { approverId: 'hr-admin', reason: 'Rejected by HR' });
+      await apiClient.post(`/leaves/${id}/reject`, { approverId: employeeId, reason: 'Rejected by HR' });
       queryClient.invalidateQueries({ queryKey: ['hr-overview'] });
     } catch (e) { console.error(e); }
   };

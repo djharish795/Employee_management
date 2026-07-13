@@ -5,6 +5,7 @@ import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RbacGuard } from "../../common/guards/rbac.guard";
 import { Permissions } from "../../common/decorators/permissions.decorator";
 import { Permission } from "@naprocs/types";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
 
 @Controller("dashboard")
 @UseGuards(JwtAuthGuard, RbacGuard)
@@ -41,5 +42,11 @@ export class DashboardController {
     res.header('Content-Type', 'text/csv');
     res.attachment(`engineering-report-${new Date().toISOString().split('T')[0]}.csv`);
     return res.send(csvContent);
+  }
+
+  @Get("team-lead-overview")
+  @Permissions(Permission.READ_TEAM_PROFILES)
+  getTeamLeadOverview(@CurrentUser() user: any) {
+    return this.dashboardService.getTeamLeadOverview(user);
   }
 }

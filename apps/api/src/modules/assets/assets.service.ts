@@ -45,6 +45,8 @@ export class AssetsService {
       UserRole.CFO,
       UserRole.FINANCE,
       UserRole.IT,
+      UserRole.HR,
+      UserRole.CHRO,
     ];
     if (!allowedRoles.includes(role)) {
       throw new ForbiddenException("Insufficient permissions to view assets financial KPIs");

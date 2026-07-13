@@ -67,10 +67,14 @@ export class AttendanceController {
   }
 
   @Get("summary-today")
-  @Permissions(Permission.READ_EMPLOYEES)
-  async getSummaryToday(@Query('date') date?: string, @Query('departmentId') departmentId?: string) {
+  @Permissions(Permission.READ_EMPLOYEES, Permission.READ_TEAM_PROFILES)
+  async getSummaryToday(
+    @Query('date') date?: string,
+    @Query('departmentId') departmentId?: string,
+    @CurrentUser() user?: any
+  ) {
     try {
-      return await this.attendanceService.getSummaryToday(date, departmentId);
+      return await this.attendanceService.getSummaryToday(date, departmentId, user);
     } catch (e: any) {
       const { BadRequestException } = require('@nestjs/common');
       throw new BadRequestException(e.message + "\n" + e.stack);
@@ -78,9 +82,9 @@ export class AttendanceController {
   }
 
   @Get("all-logs")
-  @Permissions(Permission.READ_EMPLOYEES)
-  async getAllLogs(@Query() query: any) {
-    return this.attendanceService.getAllLogs(query);
+  @Permissions(Permission.READ_EMPLOYEES, Permission.READ_TEAM_PROFILES)
+  async getAllLogs(@Query() query: any, @CurrentUser() user?: any) {
+    return this.attendanceService.getAllLogs(query, user);
   }
 
   @Get("regularizations")

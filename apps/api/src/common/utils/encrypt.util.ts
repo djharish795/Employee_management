@@ -1,4 +1,5 @@
 import * as crypto from 'crypto';
+import { InternalServerErrorException } from '@nestjs/common';
 
 const ALGORITHM = 'aes-256-gcm';
 
@@ -7,7 +8,7 @@ const ALGORITHM = 'aes-256-gcm';
 const getEncryptionKey = (): Buffer => {
   const secret = process.env.ENCRYPTION_KEY;
   if (!secret) {
-    throw new Error('FATAL: ENCRYPTION_KEY environment variable is required for AES-256 encryption.');
+    throw new InternalServerErrorException('FATAL: ENCRYPTION_KEY environment variable is required for AES-256 encryption.');
   }
   // If the secret is exactly 32 chars, use it. If not, hash it to 32 bytes.
   if (Buffer.from(secret).length === 32) {
@@ -38,7 +39,7 @@ export function decryptData(encryptedText: string): string {
   try {
     const parts = encryptedText.split(':');
     if (parts.length !== 3) {
-      throw new Error('Invalid encrypted text format');
+      throw new InternalServerErrorException('Invalid encrypted text format');
     }
     
     const iv = Buffer.from(parts[0], 'hex');

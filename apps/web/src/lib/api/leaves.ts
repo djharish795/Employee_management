@@ -32,7 +32,7 @@ export interface ApiLeaveKpi {
     used: number;
     pending: number;
     carriedOver: number;
-    leaveType: { name: string; code: string };
+    leaveType: { name: string; code: string; isPaidLeave?: boolean };
     year: number;
   }>;
 }

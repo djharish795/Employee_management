@@ -1,4 +1,4 @@
-import { Injectable, Logger, ConflictException } from '@nestjs/common';
+import { Injectable, Logger, ConflictException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { encryptData } from '../../common/utils/encrypt.util';
 import * as bcrypt from 'bcrypt';
@@ -231,7 +231,7 @@ export class OnboardingService {
       } catch (err: any) {
         if (err.code === 'P2002' && err.meta?.target?.includes('employeeId')) {
           retries++;
-          if (retries >= 5) throw new Error("Failed to generate unique employee ID after 5 attempts");
+          if (retries >= 5) throw new InternalServerErrorException("Failed to generate unique employee ID after 5 attempts");
           continue;
         }
         throw err;
@@ -239,7 +239,7 @@ export class OnboardingService {
     }
 
     if (!result) {
-      throw new Error("Failed to create employee and initiate onboarding");
+      throw new InternalServerErrorException("Failed to create employee and initiate onboarding");
     }
 
     this.logger.log(`Created new employee ${result.employee.employeeId} with temporary password`);
@@ -279,7 +279,7 @@ export class OnboardingService {
     });
 
     if (!session) {
-      throw new Error('Onboarding session not found for this employee');
+      throw new NotFoundException('Onboarding session not found for this employee');
     }
 
     return session;
@@ -294,7 +294,7 @@ export class OnboardingService {
     });
     
     if (!task || task.session.employeeId !== employeeId) {
-      throw new Error('Task not found or does not belong to you');
+      throw new NotFoundException('Task not found or does not belong to you');
     }
 
     return this.db.onboardingTask.update({
@@ -315,7 +315,7 @@ export class OnboardingService {
     });
 
     if (!session) {
-      throw new Error(`Session ${id} not found`);
+      throw new NotFoundException(`Session ${id} not found`);
     }
 
     return session;
@@ -381,7 +381,7 @@ export class OnboardingService {
 
   async toggleAssignedTaskStatus(taskId: string, isCompleted: boolean, actor: any): Promise<any> {
     const task = await this.db.onboardingTask.findUnique({ where: { id: taskId }, include: { session: true } });
-    if (!task) throw new Error('Task not found');
+    if (!task) throw new NotFoundException('Task not found');
 
     const roleMatches = (actor.role === task.assignedTo.toUpperCase());
     const isOwner = (task.assignedTo === 'Employee' && actor.employeeId === task.session.employeeId);
@@ -397,7 +397,7 @@ export class OnboardingService {
       where: { id: sessionId },
       include: { tasks: true, employee: true }
     });
-    if (!session) throw new Error('Session not found');
+    if (!session) throw new NotFoundException('Session not found');
 
     const pendingTasks = session.tasks.filter(t => !t.isCompleted);
     if (pendingTasks.length === 0) return;
@@ -424,7 +424,7 @@ export class OnboardingService {
       where: { id: sessionId },
       include: { employee: true }
     });
-    if (!session) throw new Error('Session not found');
+    if (!session) throw new NotFoundException('Session not found');
 
     const title = `Welcome Call: ${session.employee.firstName} ${session.employee.lastName}`;
     const description = `Welcome call for new joiner ${session.employee.firstName}`;
@@ -459,7 +459,7 @@ export class OnboardingService {
       where: { id: sessionId },
       include: { tasks: true }
     });
-    if (!session) throw new Error('Session not found');
+    if (!session) throw new NotFoundException('Session not found');
 
     // Cancel zoom meeting if scheduled
     const welcomeTask = session.tasks.find(t => t.title === 'Welcome Call Event ID');

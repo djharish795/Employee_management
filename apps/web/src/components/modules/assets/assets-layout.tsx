@@ -79,6 +79,7 @@ export default function AssetsLayout({ children }: AssetsLayoutProps) {
                 Asset Management
               </h1>
 
+
             </div>
             <p className="text-sm font-medium text-slate-500 mt-1">{subtitle}</p>
           </div>

@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 
 @Injectable()
@@ -359,5 +359,223 @@ export class DashboardService {
       csv += `"${team.name}","${team.leadName}","${team.members}","${team.avgExperience}","${team.openRoles}"\n`;
     }
     return csv;
+  }
+
+  async getTeamLeadOverview(user: any): Promise<any> {
+    const employeeId = user.employeeId;
+    if (!employeeId) throw new BadRequestException("Employee ID is required");
+
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    // 1. Get subordinates
+    const subordinates = await this.prisma.employee.findMany({
+      where: { reportingManagerId: employeeId, status: { not: "EXITED" } },
+      include: {
+        department: true,
+        designation: true,
+        projectAssignments: {
+          where: { releasedAt: null },
+          include: { project: true }
+        }
+      }
+    });
+
+    const directReportsCount = subordinates.length;
+
+    // 2. Attendance Stats for Subordinates Today
+    const subIds = subordinates.map(s => s.id);
+    const todayRecords = await this.prisma.attendanceRecord.findMany({
+      where: {
+        date: today,
+        employeeId: { in: subIds }
+      }
+    });
+
+    // Check leaves today for subordinates
+    const todayLeaves = await this.prisma.leaveRequest.findMany({
+      where: {
+        employeeId: { in: subIds },
+        startDate: { lte: today },
+        endDate: { gte: today },
+        status: "APPROVED"
+      },
+      include: { leaveType: true }
+    });
+
+    let presentTodayCount = 0;
+    const recordMap = new Map(todayRecords.map(r => [r.employeeId, r]));
+    const leaveMap = new Map(todayLeaves.map(l => [l.employeeId, l]));
+
+    // Format Team Today List
+    // Fetch all active tasks assigned to subordinates
+    const activeTasks = await this.prisma.task.findMany({
+      where: {
+        assigneeId: { in: subIds },
+        status: "IN_PROGRESS"
+      },
+      orderBy: { createdAt: "desc" }
+    });
+    const taskMap = new Map();
+    activeTasks.forEach(t => {
+      if (!taskMap.has(t.assigneeId)) {
+        taskMap.set(t.assigneeId, t);
+      }
+    });
+
+    const teamToday = subordinates.map(sub => {
+      const record = recordMap.get(sub.id);
+      const leave = leaveMap.get(sub.id);
+      
+      let status = "ABSENT";
+      let statusClass = "bg-rose-50 text-rose-600 border-rose-100";
+      let time = "—";
+      let isDimmed = false;
+
+      if (record) {
+        const recordStatus = record.status as string;
+        if (["PRESENT", "HALF_DAY", "EARLY_CHECKOUT", "WFH"].includes(recordStatus)) {
+          status = "Present";
+          statusClass = "bg-emerald-50 text-emerald-700 border-emerald-100";
+          presentTodayCount++;
+        } else if (recordStatus === "LATE") {
+          status = "Late";
+          statusClass = "bg-orange-50 text-orange-600 border-orange-100";
+          presentTodayCount++;
+        }
+        if (record.checkInTime) {
+          time = record.checkInTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+        }
+      } else if (leave) {
+        status = "On leave";
+        statusClass = "bg-slate-100 text-slate-500 border-slate-200";
+        isDimmed = true;
+      }
+
+      const activeTask = taskMap.get(sub.id);
+      const initials = `${sub.firstName.charAt(0)}${sub.lastName.charAt(0)}`.toUpperCase();
+
+      return {
+        id: sub.id,
+        initials,
+        name: `${sub.firstName} ${sub.lastName}`,
+        bgClass: sub.gender === "FEMALE" ? "bg-rose-100 text-rose-700" : "bg-blue-100 text-blue-700",
+        status,
+        statusClass,
+        time,
+        task: activeTask ? activeTask.title : "—",
+        isDimmed
+      };
+    });
+
+    const presentTodayPercentage = directReportsCount > 0 ? Math.round((presentTodayCount / directReportsCount) * 100) : 0;
+
+    // 3. Pending Approvals Count (Leaves where user.employeeId is the current approver)
+    const pendingLeaveRequests = await this.prisma.leaveRequest.findMany({
+      where: { status: "PENDING" },
+      include: { employee: true, leaveType: true }
+    });
+
+    // Resolve user role
+    const tlEmployee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      include: { department: true, designation: true }
+    });
+    const tlDesignation = tlEmployee?.designation?.title || "";
+    const deptCode = tlEmployee?.department?.code || "";
+    let tlRole = tlDesignation;
+    if (!['TR', 'TS', 'TL', 'QA', 'QE', 'HRE', 'CTO', 'CEO'].includes(tlRole)) {
+      if (deptCode === 'HR') tlRole = 'HRE';
+      else tlRole = 'EMPLOYEE';
+    }
+
+    const pendingApprovals = pendingLeaveRequests.filter((req: any) => {
+      if (!req.approvalQueue) return false;
+      const queue = req.approvalQueue as any[];
+      const currentStep = queue[req.currentStep];
+      return currentStep && currentStep.role === tlRole && currentStep.status === "PENDING";
+    }).map((req: any) => {
+      return {
+        id: req.id,
+        name: `${req.employee.firstName} ${req.employee.lastName}`,
+        type: `${req.leaveType.name} • ${req.totalDays} days`,
+        status: "Pending"
+      };
+    });
+
+    const pendingApprovalsCount = pendingApprovals.length;
+
+    // 4. Tasks In Progress Count
+    const tlProjectAssignments = await this.prisma.projectAssignment.findMany({
+      where: { employeeId: employeeId, releasedAt: null }
+    });
+    const projectIds = tlProjectAssignments.map(pa => pa.projectId);
+
+    const tasksInProgressCount = await this.prisma.task.count({
+      where: {
+        status: "IN_PROGRESS",
+        OR: [
+          { assigneeId: { in: subIds } },
+          { projectId: { in: projectIds } }
+        ]
+      }
+    });
+
+    // 5. Task Board Snapshot
+    const snapshotTasks = await this.prisma.task.findMany({
+      where: {
+        OR: [
+          { assigneeId: { in: subIds } },
+          { projectId: { in: projectIds } }
+        ],
+        status: { in: ["TODO", "IN_PROGRESS", "BLOCKED"] }
+      },
+      include: { assignee: true, project: true },
+      orderBy: { updatedAt: "desc" }
+    });
+
+    const tasksTodo = snapshotTasks.filter(t => t.status === "TODO").slice(0, 3).map(t => ({
+      id: t.id,
+      title: t.title,
+      tag: t.type
+    }));
+
+    const tasksInProgress = snapshotTasks.filter(t => t.status === "IN_PROGRESS").slice(0, 3).map(t => {
+      const assigneeInitials = t.assignee ? `${t.assignee.firstName.charAt(0)}${t.assignee.lastName.charAt(0)}`.toUpperCase() : "—";
+      return {
+        id: t.id,
+        title: t.title,
+        tag: t.type,
+        assignee: assigneeInitials,
+        tagColor: t.type === "BUG" ? "bg-rose-50 text-rose-600 border-rose-100" : "bg-blue-50 text-blue-600 border-blue-100"
+      };
+    });
+
+    const tasksBlocked = snapshotTasks.filter(t => t.status === "BLOCKED").slice(0, 3).map(t => {
+      const dateBlocked = t.updatedAt.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+      return {
+        id: t.id,
+        title: t.title,
+        tag: t.type,
+        dateBlocked
+      };
+    });
+
+    return {
+      kpiData: {
+        directReportsCount,
+        presentTodayCount,
+        presentTodayPercentage,
+        pendingApprovalsCount,
+        tasksInProgressCount
+      },
+      teamToday,
+      pendingApprovals,
+      taskBoardSnapshot: {
+        todo: tasksTodo,
+        inProgress: tasksInProgress,
+        blocked: tasksBlocked
+      }
+    };
   }
 }

@@ -14,7 +14,7 @@ interface LeavesLayoutProps {
 }
 
 export default function LeavesLayout({ children }: LeavesLayoutProps) {
-  const { role } = usePermissions();
+  const { role, canManageLeaves } = usePermissions();
   const activeRole = role as any;
   const pathname = usePathname();
 
@@ -29,10 +29,8 @@ export default function LeavesLayout({ children }: LeavesLayoutProps) {
     ];
 
     return items.filter((item) => {
-      // Employees and CEO cannot see the approval review tab
-      // CEO has read-only access on their Executive Dashboard instead
       if (item.href === "/leaves/approvals") {
-        const { canManageLeaves } = usePermissions(); return canManageLeaves;
+        return canManageLeaves;
       }
       // Employee cannot apply leave for others — only for themselves
       return true;
