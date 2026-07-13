@@ -7,6 +7,7 @@ import { EmployeeSidebar } from '@/components/shared/sidebars/employee-sidebar';
 import { TeamLeadSidebar } from '@/components/shared/sidebars/team-lead-sidebar';
 import { CamSidebar } from '@/components/shared/sidebars/cam-sidebar';
 import { OeSidebar } from '@/components/shared/sidebars/oe-sidebar';
+import { OmSidebar } from '@/components/shared/sidebars/om-sidebar';
 import { Topbar } from '@/components/shared/topbar';
 import { useAuthStore } from '@/store/auth';
 
@@ -56,6 +57,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const renderSidebar = () => {
     if (activeRole === 'CAM') return <CamSidebar />;
     if (activeRole === 'OE') return <OeSidebar />;
+    if (activeRole === 'OM') return <OmSidebar />;
     if (activeRole === 'TEAM_LEAD' || (isTeamLead && pathname?.startsWith('/team-lead'))) {
       return <TeamLeadSidebar />;
     }

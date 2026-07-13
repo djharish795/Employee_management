@@ -14,6 +14,7 @@ export enum UserRole {
   IT = "IT",
   CAM = "CAM",
   OE = "OE",
+  OM = "OM",
 }
 
 export const ROLE_DASHBOARD_PATH: Record<UserRole, string> = {
@@ -32,6 +33,7 @@ export const ROLE_DASHBOARD_PATH: Record<UserRole, string> = {
   [UserRole.IT]: "/admin/dashboard",
   [UserRole.CAM]: "/cam/scheduler",
   [UserRole.OE]: "/oe/dashboard",
+  [UserRole.OM]: "/om/dashboard",
 };
 
 export function getDashboardPathForRole(role: string): string {

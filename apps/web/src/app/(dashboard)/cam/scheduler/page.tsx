@@ -242,7 +242,7 @@ export default function CamSchedulerPage() {
             <div className="space-y-3">
               <div className="bg-white dark:bg-slate-900 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden">
+                  <div className="relative w-10 h-10 rounded-full bg-slate-200 overflow-hidden">
                     <Image src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Elena" className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
                   </div>
                   <div>
@@ -262,7 +262,7 @@ export default function CamSchedulerPage() {
 
               <div className="bg-white dark:bg-slate-900 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden">
+                  <div className="relative w-10 h-10 rounded-full bg-slate-200 overflow-hidden">
                     <Image src="https://i.pravatar.cc/150?u=a042581f4e29026024d" alt="David" className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
                   </div>
                   <div>

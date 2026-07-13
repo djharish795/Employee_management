@@ -1152,6 +1152,7 @@ enum UserRole {
   IT
   CAM
   OE
+  OM
 }
 
 enum UserStatus {
