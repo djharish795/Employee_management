@@ -89,6 +89,16 @@ export class TasksController {
     return this.tasksService.addAction(id, user.employeeId, dto.type, dto.notes);
   }
 
+  @Patch(":id/status")
+  @Permissions(Permission.WRITE_OWN_PROFILE)
+  async updateStatus(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body() dto: { status: TaskStatus }
+  ): Promise<any> {
+    return this.tasksService.updateTask(id, user, { status: dto.status });
+  }
+
   @Delete(":id")
   @Permissions(Permission.WRITE_OWN_PROFILE)
   async deleteTask(@CurrentUser() user: any, @Param("id") id: string): Promise<any> {

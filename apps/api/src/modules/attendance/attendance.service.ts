@@ -537,7 +537,7 @@ export class AttendanceService {
     };
   }
 
-  async getSummaryToday(dateStr?: string, filterDepartmentId?: string) {
+  async getSummaryToday(dateStr?: string, filterDepartmentId?: string, user?: any) {
     let today = this.getTodayUTC();
     if (dateStr) {
       today = new Date(dateStr);
@@ -548,6 +548,15 @@ export class AttendanceService {
     let employeeWhere: any = {};
     if (filterDepartmentId && filterDepartmentId !== 'all') {
       employeeWhere.departmentId = filterDepartmentId;
+    }
+
+    // Filter to only direct reports if the user is a Team Lead/Manager without global admin permissions
+    const isTeamLeadOnly = user && 
+      !['SUPER_ADMIN', 'CTO', 'CEO', 'HR', 'CHRO'].includes(user.role) &&
+      ['TEAM_LEAD', 'MANAGER'].includes(user.role);
+
+    if (isTeamLeadOnly && user.employeeId) {
+      employeeWhere.reportingManagerId = user.employeeId;
     }
 
     const employees = await this.prisma.employee.findMany({
@@ -718,19 +727,48 @@ export class AttendanceService {
     };
   }
 
-  async getAllLogs(query: any) {
+  async getAllLogs(query: any, user?: any) {
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 20;
     const skip = (page - 1) * limit;
 
+    const where: any = {};
+    
+    // Filter to only direct reports if the user is a Team Lead/Manager without global admin permissions
+    const isTeamLeadOnly = user && 
+      !['SUPER_ADMIN', 'CTO', 'CEO', 'HR', 'CHRO'].includes(user.role) &&
+      ['TEAM_LEAD', 'MANAGER'].includes(user.role);
+
+    if (isTeamLeadOnly && user.employeeId) {
+      where.employee = { reportingManagerId: user.employeeId };
+    }
+
+    if (query.startDate || query.endDate) {
+      where.date = {};
+      if (query.startDate) {
+        where.date.gte = new Date(query.startDate);
+      }
+      if (query.endDate) {
+        where.date.lte = new Date(query.endDate);
+      }
+    } else if (query.month && query.year) {
+      const year = Number(query.year);
+      const month = Number(query.month) - 1; // 0-indexed
+      where.date = {
+        gte: new Date(year, month, 1),
+        lte: new Date(year, month + 1, 0, 23, 59, 59)
+      };
+    }
+
     const [records, total] = await Promise.all([
       this.prisma.attendanceRecord.findMany({
+        where,
         skip,
         take: limit,
         orderBy: { date: "desc" },
         include: { employee: { select: { firstName: true, lastName: true } } }
       }),
-      this.prisma.attendanceRecord.count(),
+      this.prisma.attendanceRecord.count({ where }),
     ]);
 
     const data = records.map(record => {

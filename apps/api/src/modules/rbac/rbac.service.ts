@@ -64,6 +64,9 @@ export class RbacService {
     [UserRole.OE]: [
       Permission.READ_EMPLOYEES,
     ],
+    [UserRole.OM]: [
+      Permission.READ_EMPLOYEES,
+    ],
   };
 
   getPermissionsForRole(role: UserRole): Permission[] {
