@@ -1,5 +1,6 @@
 "use client";
 
+import { usePermissions } from "@/hooks/use-permissions";
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -9,10 +10,12 @@ type LeavesRole = "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
 
 interface LeavesLayoutProps {
   children: React.ReactNode;
-  activeRole: LeavesRole;
+  
 }
 
-export default function LeavesLayout({ children, activeRole }: LeavesLayoutProps) {
+export default function LeavesLayout({ children }: LeavesLayoutProps) {
+  const { role } = usePermissions();
+  const activeRole = role as any;
   const pathname = usePathname();
 
   const navItems = React.useMemo(() => {
@@ -29,7 +32,7 @@ export default function LeavesLayout({ children, activeRole }: LeavesLayoutProps
       // Employees and CEO cannot see the approval review tab
       // CEO has read-only access on their Executive Dashboard instead
       if (item.href === "/leaves/approvals") {
-        return !["EMPLOYEE", "CEO"].includes(activeRole);
+        const { canManageLeaves } = usePermissions(); return canManageLeaves;
       }
       // Employee cannot apply leave for others — only for themselves
       return true;
@@ -54,7 +57,7 @@ export default function LeavesLayout({ children, activeRole }: LeavesLayoutProps
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Leave Management</h1>
               <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-full border border-slate-200 uppercase tracking-wide">
-                {roleLabel[activeRole]}
+                {roleLabel[activeRole as LeavesRole] || "Employee"}
               </span>
             </div>
             <p className="text-sm font-medium text-slate-500 mt-1">

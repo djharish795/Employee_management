@@ -1,5 +1,6 @@
 "use client";
 
+import { usePermissions } from "@/hooks/use-permissions";
 import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { assetsApi } from "@/lib/api/assets";
@@ -21,7 +22,7 @@ import { AssetCategory, AssetRequest, AssetRole } from "@/types/assets";
 import { FulfillRequestDialog } from "./asset-action-dialogs";
 
 interface RequestsPanelProps {
-  activeRole: AssetRole;
+  
 }
 
 
@@ -58,10 +59,12 @@ const PRIORITY_COLORS: Record<string, string> = {
 
 const STORAGE_KEY = "naprocs_asset_requests"; // kept for legacy cleanup only
 
-export default function RequestsPanel({ activeRole }: RequestsPanelProps) {
+export default function RequestsPanel() {
+  const { role } = usePermissions();
+  const activeRole = role as any;
   const queryClient = useQueryClient();
   const isEmployee = activeRole === "EMPLOYEE";
-  const canApprove = ["IT_ADMIN", "ADMIN", "HR"].includes(activeRole);
+  const { isAdmin: canApprove } = usePermissions();
 
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
@@ -154,7 +157,7 @@ export default function RequestsPanel({ activeRole }: RequestsPanelProps) {
             </p>
           )}
         </div>
-        {(isEmployee || ["MANAGER", "HR"].includes(activeRole)) && (
+        {true && (
           <button
             onClick={() => setShowForm((v) => !v)}
             className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"

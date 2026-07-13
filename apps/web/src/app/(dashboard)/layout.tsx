@@ -1,5 +1,6 @@
 "use client";
 
+import { usePermissions } from "@/hooks/use-permissions";
 import React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { CeoSidebar } from '@/components/shared/sidebars/ceo-sidebar';
@@ -52,7 +53,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!mounted) return null;
 
   // Determine which sidebar to show
-  const isPrivileged = ['CEO', 'COO', 'CTO', 'CFO', 'HR', 'SUPER_ADMIN', 'FINANCE', 'MANAGER', 'IT'].includes(activeRole);
+  const { isExecutive, canManageOrg, canManageEmployees, isAdmin } = usePermissions();
+  const isPrivileged = isExecutive || canManageOrg || canManageEmployees || isAdmin;
   
   const renderSidebar = () => {
     if (activeRole === 'CAM') return <CamSidebar />;

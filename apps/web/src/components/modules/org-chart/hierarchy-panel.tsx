@@ -11,9 +11,10 @@ import { apiClient } from "@/lib/api/client";
 import html2canvas from "html2canvas";
 import toast from "react-hot-toast";
 import Image from "next/image";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface HierarchyPanelProps {
-  activeRole: OrgRole;
+  
 }
 
 
@@ -41,7 +42,7 @@ function buildTree(employees: OrgEmployee[], rootId: string | null = null): OrgT
     });
 }
 
-export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
+export default function HierarchyPanel() {
   const [zoom, setZoom] = useState(1);
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({
     "EMP-100": true,
@@ -113,7 +114,8 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
 
   const { refetch } = useQuery({ queryKey: ["orgTree"] });
 
-  const canManageHierarchy = activeRole === "HR" || activeRole === "CEO" || activeRole === "ADMIN";
+  const { canManageOrg, isExecutive } = usePermissions();
+  const canManageHierarchy = canManageOrg || isExecutive;
 
   const toggleNode = (id: string) => {
     setExpandedNodes(prev => ({ ...prev, [id]: !prev[id] }));

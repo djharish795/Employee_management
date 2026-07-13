@@ -1,3 +1,4 @@
+import { usePermissions } from "@/hooks/use-permissions";
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -14,7 +15,9 @@ interface ApplyPanelProps {
 
 type ActiveTab = "leave" | "wfh";
 
-export default function ApplyPanel({ activeRole }: ApplyPanelProps) {
+export default function ApplyPanel() {
+  const { role } = usePermissions();
+  const activeRole = role as any;
   const queryClient = useQueryClient();
   const { employeeId } = useAuthStore();
   const searchParams = useSearchParams();

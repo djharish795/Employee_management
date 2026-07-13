@@ -1,3 +1,4 @@
+import { usePermissions } from "@/hooks/use-permissions";
 "use client";
 
 import React from "react";
@@ -14,7 +15,7 @@ import {
 import { AssetRole } from "@/types/assets";
 
 interface ReportsPanelProps {
-  activeRole: AssetRole;
+  
 }
 
 const DEPT_ASSET_DATA = [
@@ -46,7 +47,7 @@ const CATEGORY_BREAKDOWN = [
   { category: "Other", total: 16, assigned: 10, available: 5, maintenance: 1, color: "bg-slate-400" },
 ];
 
-export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
+export default function ReportsPanel() {
   const { data: reportData } = useQuery({
     queryKey: ["assetReports"],
     queryFn: async () => ({

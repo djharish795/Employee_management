@@ -1,5 +1,6 @@
 "use client";
 
+import { usePermissions } from "@/hooks/use-permissions";
 import React, { useState, useMemo } from "react";
 import { 
   useReactTable, getCoreRowModel, getPaginationRowModel, getFilteredRowModel, 
@@ -11,7 +12,7 @@ import {
 import { ComplianceRole, ConsentRecord } from "@/types/compliance";
 
 interface ConsentsPanelProps {
-  activeRole: ComplianceRole;
+  
 }
 
 const MOCK_CONSENTS: ConsentRecord[] = [
@@ -63,7 +64,7 @@ const MOCK_CONSENTS: ConsentRecord[] = [
   }
 ];
 
-export default function ConsentsPanel({ activeRole }: ConsentsPanelProps) {
+export default function ConsentsPanel() {
   const [globalFilter, setGlobalFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -71,7 +72,7 @@ export default function ConsentsPanel({ activeRole }: ConsentsPanelProps) {
 
   // If role is CEO, they really shouldn't be managing granular consent records.
   // We allow viewing, but maybe with a persistent PII mask they cannot toggle.
-  const isPrivileged = ["COMPLIANCE_OFFICER", "ADMIN", "HR", "LEGAL"].includes(activeRole);
+  const { canManageCompliance: isPrivileged } = usePermissions();
   const canToggleMask = isPrivileged;
 
   const filteredData = useMemo(() => {

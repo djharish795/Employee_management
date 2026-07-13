@@ -10,8 +10,8 @@ export default function LeaveCalendarPage() {
   const activeRole = role.toUpperCase() as "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
 
   return (
-    <LeavesLayout activeRole={activeRole}>
-      <CalendarPanel activeRole={activeRole} />
+    <LeavesLayout >
+      <CalendarPanel  />
     </LeavesLayout>
   );
 }

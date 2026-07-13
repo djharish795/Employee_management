@@ -10,13 +10,13 @@ import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import Image from "next/image";
 
+import { usePermissions } from "@/hooks/use-permissions";
+
 interface ProfileHeaderProps {
   profile: FullEmployeeProfile;
-  activeRole: DirectoryRole;
-  onRoleChange: (role: DirectoryRole) => void;
 }
 
-export default function ProfileHeader({ profile, activeRole, onRoleChange }: ProfileHeaderProps) {
+export default function ProfileHeader({ profile }: ProfileHeaderProps) {
   const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [avatarHovered, setAvatarHovered] = useState(false);
@@ -35,10 +35,10 @@ export default function ProfileHeader({ profile, activeRole, onRoleChange }: Pro
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Gating visibility based on roles
-  const canEdit = activeRole === "ADMIN" || activeRole === "HR";
-  const canAssignAssets = activeRole === "ADMIN" || activeRole === "HR";
-  const canGenerateReport = activeRole === "ADMIN" || activeRole === "HR" || activeRole === "CEO" || activeRole === "FINANCE";
+  const { canManageEmployees } = usePermissions();
+  const canEdit = canManageEmployees;
+  const canAssignAssets = canManageEmployees;
+  const canGenerateReport = canManageEmployees;
 
   // Handle photo file selection — shows local preview (actual upload will be wired by backend team)
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -197,36 +197,6 @@ export default function ProfileHeader({ profile, activeRole, onRoleChange }: Pro
 
         {/* Actions Row */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full xl:w-auto">
-          {/* Click-based Role Switcher Dropdown */}
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setIsDropdownOpen((prev) => !prev)}
-              className="flex items-center justify-between gap-1.5 px-3 py-2 bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-lg transition-all shadow-sm w-full"
-            >
-              <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-700 animate-pulse" />
-                Active View: <span className="text-slate-900 font-bold">{activeRole}</span>
-              </span>
-              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 ml-1 transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : ""}`} />
-            </button>
-            {isDropdownOpen && (
-              <div className="absolute right-0 mt-1.5 w-44 bg-white border border-slate-200 rounded-lg shadow-xl py-1 z-[100]">
-                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">Test Role View</div>
-                {(["ADMIN", "HR", "CEO", "MANAGER", "EMPLOYEE", "FINANCE", "CTO"] as DirectoryRole[]).map((role) => (
-                  <button
-                    key={role}
-                    onClick={() => { onRoleChange(role); setIsDropdownOpen(false); }}
-                    className={`w-full text-left px-3.5 py-2 text-xs font-medium hover:bg-slate-50 flex items-center justify-between transition-colors ${
-                      activeRole === role ? "text-slate-900 bg-slate-100/50 font-bold" : "text-slate-600"
-                    }`}
-                  >
-                    {role}
-                    {activeRole === role && <Check className="w-3.5 h-3.5 text-slate-900" />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
 
           {/* Quick Action Buttons — wrap on small screens */}
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">

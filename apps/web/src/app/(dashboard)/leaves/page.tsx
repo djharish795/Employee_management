@@ -30,8 +30,8 @@ export default function LeavesDashboardPage() {
   })();
 
   return (
-    <LeavesLayout activeRole={leavePanelRole}>
-      <DashboardPanel activeRole={leavePanelRole} />
+    <LeavesLayout >
+      <DashboardPanel  />
     </LeavesLayout>
   );
 }

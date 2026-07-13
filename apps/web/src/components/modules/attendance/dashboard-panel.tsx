@@ -1,3 +1,4 @@
+import { usePermissions } from "@/hooks/use-permissions";
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
@@ -12,7 +13,9 @@ interface DashboardPanelProps {
   activeRole: "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
 }
 
-export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
+export default function DashboardPanel() {
+  const { role } = usePermissions();
+  const activeRole = role as any;
   const queryClient = useQueryClient();
 
   // Fetch Attendance logs list via React Query

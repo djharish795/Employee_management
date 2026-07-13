@@ -1,3 +1,4 @@
+import { usePermissions } from "@/hooks/use-permissions";
 "use client";
 
 import React from "react";
@@ -9,7 +10,9 @@ interface ReportsPanelProps {
   activeRole: "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
 }
 
-export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
+export default function ReportsPanel() {
+  const { role } = usePermissions();
+  const activeRole = role as any;
   // Gating access checks
   if (activeRole === "EMPLOYEE") {
     return (

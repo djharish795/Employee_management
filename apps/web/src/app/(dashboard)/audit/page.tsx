@@ -3,14 +3,14 @@
 import React from "react";
 import AuditLayout from "@/components/modules/audit/audit-layout";
 import AuditDashboardPanel from "@/components/modules/audit/dashboard-panel";
-import { useAuditTestStore } from "@/store/audit-test";
+import { usePermissions } from "@/hooks/use-permissions";
 
 export default function AuditDashboardPage() {
-  const { activeRole, setActiveRole } = useAuditTestStore();
+  const { role: activeRole } = usePermissions();
 
   return (
-    <AuditLayout activeRole={activeRole} onRoleChange={setActiveRole}>
-      <AuditDashboardPanel activeRole={activeRole} />
+    <AuditLayout  >
+      <AuditDashboardPanel  />
     </AuditLayout>
   );
 }

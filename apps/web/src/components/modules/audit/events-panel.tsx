@@ -1,3 +1,4 @@
+import { usePermissions } from "@/hooks/use-permissions";
 "use client";
 
 import React, { useState, useMemo } from "react";
@@ -11,7 +12,7 @@ import {
 import { AuditRole, AuditEvent } from "@/types/audit";
 
 interface EventsExplorerPanelProps {
-  activeRole: AuditRole;
+  
 }
 
 const ALL_MOCK_EVENTS: AuditEvent[] = [
@@ -89,7 +90,9 @@ const ALL_MOCK_EVENTS: AuditEvent[] = [
   }
 ];
 
-export default function EventsExplorerPanel({ activeRole }: EventsExplorerPanelProps) {
+export default function EventsExplorerPanel() {
+  const { role } = usePermissions();
+  const activeRole = role as any;
   const [globalFilter, setGlobalFilter] = useState("");
   const [moduleFilter, setModuleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");

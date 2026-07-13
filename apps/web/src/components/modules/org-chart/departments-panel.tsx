@@ -1,3 +1,4 @@
+import { usePermissions } from "@/hooks/use-permissions";
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
@@ -7,13 +8,15 @@ import { Building2, Users, Briefcase, Plus, MoreHorizontal, Edit2, Trash2, UserC
 import { OrgRole, DepartmentNode } from "@/types/org-chart";
 
 interface DepartmentsPanelProps {
-  activeRole: OrgRole;
+  
 }
 import { fetchDepartments, updateDepartment } from "@/lib/api/organization";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 
-export default function DepartmentsPanel({ activeRole }: DepartmentsPanelProps) {
+export default function DepartmentsPanel() {
+  const { role } = usePermissions();
+  const activeRole = role as any;
   const canManage = activeRole === "ADMIN" || activeRole === "HR";
   const queryClient = useQueryClient();
 

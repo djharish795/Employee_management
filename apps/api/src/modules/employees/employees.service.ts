@@ -306,6 +306,18 @@ export class EmployeesService {
     }
 
     const empWithRels = employee as any;
+    
+    const hasGlobalWrite = currentUser && currentUser.role && this.rbacService.hasPermission(currentUser.role, [Permission.WRITE_EMPLOYEES]);
+    const isOwner = currentUser && currentUser.employeeId === id;
+    if (!hasGlobalWrite && !isOwner) {
+      delete empWithRels.aadhaar;
+      delete empWithRels.pan;
+      delete empWithRels.passport;
+      delete empWithRels.bankAccountEnc;
+      delete empWithRels.voterId;
+      delete empWithRels.drivingLicence;
+    }
+
     if (empWithRels.subordinates && empWithRels.subordinates.length > 0) {
       await Promise.all(empWithRels.subordinates.map(async (sub: any) => {
         if (sub.photoUrl && !sub.photoUrl.startsWith("http")) {

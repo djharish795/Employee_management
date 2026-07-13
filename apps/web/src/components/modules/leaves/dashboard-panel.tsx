@@ -1,3 +1,4 @@
+import { usePermissions } from "@/hooks/use-permissions";
 "use client";
 
 import React, { useMemo } from "react";
@@ -18,7 +19,9 @@ interface DashboardPanelProps {
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
-export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
+export default function DashboardPanel() {
+  const { role } = usePermissions();
+  const activeRole = role as any;
   const { employeeId } = useAuthStore();
   const isEmployee = activeRole === "EMPLOYEE";
 

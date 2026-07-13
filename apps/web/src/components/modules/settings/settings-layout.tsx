@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { usePermissions } from "@/hooks/use-permissions";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
@@ -10,13 +11,14 @@ import { SettingsRole } from "@/types/settings";
 
 interface SettingsLayoutProps {
   children: React.ReactNode;
-  activeRole: SettingsRole;
-  onRoleChange: (role: SettingsRole) => void;
+  
 }
 
 const ALL_ROLES: SettingsRole[] = ["SUPER_ADMIN", "ADMIN", "HR_ADMIN", "IT_ADMIN", "COMPLIANCE_OFFICER"];
 
-export default function SettingsLayout({ children, activeRole, onRoleChange }: SettingsLayoutProps) {
+export default function SettingsLayout({ children }: SettingsLayoutProps) {
+  const { role } = usePermissions();
+  const activeRole = role as any;
   const pathname = usePathname();
 
   const navItems = React.useMemo(() => {
@@ -95,36 +97,6 @@ export default function SettingsLayout({ children, activeRole, onRoleChange }: S
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Dev Role Switcher */}
-            <div className="relative inline-block text-left group">
-              <button className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-lg transition-all shadow-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                Admin Role:{" "}
-                <span className="text-indigo-600 font-bold">{activeRole.replace('_', ' ')}</span>
-                <ChevronDown className="w-3 h-3 text-slate-400 ml-1" />
-              </button>
-              <div className="absolute right-0 mt-1 w-56 bg-white border border-slate-200 rounded-lg shadow-xl py-1 hidden group-hover:block z-50">
-                <div className="px-3 py-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 bg-slate-50 rounded-t-lg">
-                  Simulate Admin Context
-                </div>
-                {ALL_ROLES.map((role) => (
-                  <button
-                    key={role}
-                    onClick={() => onRoleChange(role)}
-                    className={`w-full text-left px-3.5 py-2.5 text-xs font-semibold hover:bg-slate-50 flex items-center justify-between transition-colors ${
-                      activeRole === role
-                        ? "text-indigo-600 bg-indigo-50/50"
-                        : "text-slate-600"
-                    }`}
-                  >
-                    {role.replace('_', ' ')}
-                    {activeRole === role && (
-                      <Check className="w-3.5 h-3.5 text-indigo-600" />
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         </header>
 

@@ -1,3 +1,4 @@
+import { usePermissions } from "@/hooks/use-permissions";
 "use client";
 
 import React from "react";
@@ -5,7 +6,7 @@ import { BarChart3, TrendingUp, PieChart, Download, ArrowUpRight } from "lucide-
 import { ComplianceRole } from "@/types/compliance";
 
 interface ReportsPanelProps {
-  activeRole: ComplianceRole;
+  
 }
 
 const DEPT_SCORES = [
@@ -16,7 +17,7 @@ const DEPT_SCORES = [
   { dept: "Operations", score: 96, policies: 98, consents: 94 },
 ];
 
-export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
+export default function ReportsPanel() {
   return (
     <div className="space-y-6">
       

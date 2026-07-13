@@ -23,13 +23,15 @@ import {
 } from "lucide-react";
 import { FullEmployeeProfile, DirectoryRole } from "@/types/employees";
 import Image from "next/image";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface ProfileTabsProps {
   profile: FullEmployeeProfile;
-  activeRole: DirectoryRole;
 }
 
-export default function ProfileTabs({ profile, activeRole }: ProfileTabsProps) {
+export default function ProfileTabs({ profile }: ProfileTabsProps) {
+  const { role } = usePermissions();
+  const activeRole = role as DirectoryRole;
   const [activeTab, setActiveTab] = useState<string>("Overview");
 
   // Determine Tab Visibility based on Role Matrix

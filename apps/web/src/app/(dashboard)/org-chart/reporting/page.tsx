@@ -3,14 +3,14 @@
 import React from "react";
 import OrgLayout from "@/components/modules/org-chart/org-layout";
 import ReportingPanel from "@/components/modules/org-chart/reporting-panel";
-import { useOrgTestStore } from "@/store/org-test";
+import { usePermissions } from "@/hooks/use-permissions";
 
 export default function OrgReportingPage() {
-  const { activeRole, setActiveRole } = useOrgTestStore();
+  const { role: activeRole } = usePermissions();
 
   return (
-    <OrgLayout activeRole={activeRole} onRoleChange={setActiveRole}>
-      <ReportingPanel activeRole={activeRole} />
+    <OrgLayout  >
+      <ReportingPanel  />
     </OrgLayout>
   );
 }

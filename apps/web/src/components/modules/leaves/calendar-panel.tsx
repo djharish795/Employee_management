@@ -1,3 +1,4 @@
+import { usePermissions } from "@/hooks/use-permissions";
 "use client";
 
 import React, { useState, useMemo } from "react";
@@ -10,7 +11,9 @@ interface CalendarPanelProps {
   activeRole: "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
 }
 
-export default function CalendarPanel({ activeRole }: CalendarPanelProps) {
+export default function CalendarPanel() {
+  const { role } = usePermissions();
+  const activeRole = role as any;
   // Calendar state
   const [currentDate, setCurrentDate] = useState(() => {
     const d = new Date();

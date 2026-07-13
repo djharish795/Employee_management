@@ -4,11 +4,9 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Scale, FileCheck, ShieldAlert, Inbox, ScrollText, ArrowUpRight, ArrowDownRight, CheckCircle2, AlertTriangle, AlertCircle, PieChart } from "lucide-react";
 import Link from "next/link";
-import { ComplianceRole, ComplianceKPIs } from "@/types/compliance";
+import { ComplianceKPIs } from "@/types/compliance";
+import { usePermissions } from "@/hooks/use-permissions";
 
-interface DashboardPanelProps {
-  activeRole: ComplianceRole;
-}
 
 const RECENT_ACTIVITIES = [
   { id: 1, title: "Data Deletion Request Fulfilled", user: "John Doe", time: "2 hours ago", status: "success" },
@@ -17,11 +15,12 @@ const RECENT_ACTIVITIES = [
   { id: 4, title: "Data Access Request Received", user: "Alex T.", time: "1 day ago", status: "pending" },
 ];
 
-export default function ComplianceDashboardPanel({ activeRole }: DashboardPanelProps) {
-  const isPrivileged = ["COMPLIANCE_OFFICER", "ADMIN", "LEGAL", "CEO"].includes(activeRole);
+export default function ComplianceDashboardPanel() {
+  const { canManageCompliance, role } = usePermissions();
+  const isPrivileged = canManageCompliance;
 
   const { data: kpis } = useQuery<ComplianceKPIs>({
-    queryKey: ["complianceKPIs", activeRole],
+    queryKey: ["complianceKPIs", role],
     queryFn: async () => ({
       complianceScore: 94,
       activeConsents: 8420,

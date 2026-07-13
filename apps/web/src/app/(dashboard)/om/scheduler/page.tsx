@@ -1,4 +1,3 @@
-"use client";
 
 import CamSchedulerPage from "../../cam/scheduler/page";
 

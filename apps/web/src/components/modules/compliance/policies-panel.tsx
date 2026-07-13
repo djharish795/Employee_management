@@ -1,12 +1,13 @@
 "use client";
 
+import { usePermissions } from "@/hooks/use-permissions";
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { BookOpen, Search, Filter, Plus, FileText, CheckCircle2, History, Users, MoreVertical, X } from "lucide-react";
 import { ComplianceRole, PolicyRecord } from "@/types/compliance";
 
 interface PoliciesPanelProps {
-  activeRole: ComplianceRole;
+  
 }
 
 const MOCK_POLICIES: PolicyRecord[] = [
@@ -66,11 +67,11 @@ const MOCK_POLICIES: PolicyRecord[] = [
   }
 ];
 
-export default function PoliciesPanel({ activeRole }: PoliciesPanelProps) {
+export default function PoliciesPanel() {
   const [selectedPolicy, setSelectedPolicy] = useState<PolicyRecord | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const canManagePolicies = ["COMPLIANCE_OFFICER", "ADMIN", "LEGAL"].includes(activeRole);
+  const { canManageCompliance: canManagePolicies } = usePermissions();
 
   const { data: policies } = useQuery({
     queryKey: ["policies"],

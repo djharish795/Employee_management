@@ -1,4 +1,3 @@
-"use client";
 
 import CamReportsPage from "../../cam/reports/page";
 

@@ -1,3 +1,4 @@
+import { usePermissions } from "@/hooks/use-permissions";
 "use client";
 
 import React, { useState, useMemo } from "react";
@@ -11,7 +12,9 @@ interface RegularizationPanelProps {
 
 import { fetchRegularizations, submitRegularization, actionRegularization } from "@/lib/api/attendance";
 
-export default function RegularizationPanel({ activeRole }: RegularizationPanelProps) {
+export default function RegularizationPanel() {
+  const { role } = usePermissions();
+  const activeRole = role as any;
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
 

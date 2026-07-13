@@ -27,8 +27,8 @@ export default function AttendanceDashboardPage() {
   })();
 
   return (
-    <AttendanceLayout activeRole={attendancePanelRole}>
-      <DashboardPanel activeRole={attendancePanelRole} />
+    <AttendanceLayout >
+      <DashboardPanel  />
     </AttendanceLayout>
   );
 }

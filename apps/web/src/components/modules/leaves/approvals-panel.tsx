@@ -1,3 +1,4 @@
+import { usePermissions } from "@/hooks/use-permissions";
 "use client";
 
 import React, { useState, useMemo } from "react";
@@ -16,7 +17,9 @@ const fmtDate = (iso: string) => {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 };
 
-export default function ApprovalsPanel({ activeRole }: ApprovalsPanelProps) {
+export default function ApprovalsPanel() {
+  const { role } = usePermissions();
+  const activeRole = role as any;
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("Pending HR approval");
   const [rejectId, setRejectId] = useState<string | null>(null);

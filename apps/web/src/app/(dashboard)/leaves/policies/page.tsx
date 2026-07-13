@@ -10,7 +10,7 @@ export default function LeavePoliciesPage() {
   const activeRole = role.toUpperCase() as "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
 
   return (
-    <LeavesLayout activeRole={activeRole}>
+    <LeavesLayout >
       <PoliciesPanel />
     </LeavesLayout>
   );

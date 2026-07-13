@@ -8,13 +8,17 @@ import { apiClient } from "@/lib/api/client";
 import { useAuthStore } from "@/store/auth";
 import Link from "next/link";
 import Image from "next/image";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface ReportingPanelProps {
-  activeRole: string;
+  
 }
 
-export default function ReportingPanel({ activeRole }: ReportingPanelProps) {
-  const isPrivileged = ["ADMIN", "HR", "CEO", "CTO", "SUPER_ADMIN"].includes(activeRole);
+export default function ReportingPanel() {
+  const { role } = usePermissions();
+  const activeRole = role as any;
+  const { canManageOrg, isExecutive } = usePermissions();
+  const isPrivileged = canManageOrg || isExecutive;
 
   const { data: employees = [], isLoading } = useQuery<OrgEmployee[]>({
     queryKey: ["org-chart-flat-reporting"],

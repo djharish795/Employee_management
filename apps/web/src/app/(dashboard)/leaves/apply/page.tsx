@@ -405,7 +405,7 @@ export default function ApplyLeavePage() {
   };
 
   return (
-    <LeavesLayout activeRole={activeRole}>
+    <LeavesLayout >
       {renderPageContent()}
     </LeavesLayout>
   );

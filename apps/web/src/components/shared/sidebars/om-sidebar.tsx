@@ -10,7 +10,7 @@ import { useAuthStore } from '@/store/auth';
 
 export function OmSidebar() {
   const pathname = usePathname();
-  const { user, logout } = useAuthStore();
+  const logout = useAuthStore((state) => state.clearSession);
 
   const navGroups = [
     {
@@ -42,6 +42,8 @@ export function OmSidebar() {
     }
   ];
 
+  type NavItem = { title: string; icon: any; href?: string; action?: () => void };
+
   return (
     <div className="w-[280px] h-full bg-[#1e2330] text-slate-300 flex flex-col border-r border-[#2a3040]">
       {/* Header */}
@@ -63,9 +65,9 @@ export function OmSidebar() {
           {navGroups.map((group, idx) => (
             <div key={idx}>
               <div className="space-y-1">
-                {group.items.map((item, i) => {
+                {(group.items as NavItem[]).map((item, i) => {
                   const Icon = item.icon;
-                  const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);
+                  const isActive = item.href && (pathname === item.href || pathname?.startsWith(`${item.href}/`));
                   
                   if (item.action) {
                     return (

@@ -1,3 +1,4 @@
+import { usePermissions } from "@/hooks/use-permissions";
 "use client";
 
 import React from "react";
@@ -7,13 +8,15 @@ import Link from "next/link";
 import { AuditRole, AuditDashboardKPIs, AuditEvent } from "@/types/audit";
 
 interface DashboardPanelProps {
-  activeRole: AuditRole;
+  
 }
 
 import { fetchAuditEvents, fetchAuditMetrics } from "@/lib/api/audit";
 import { Loader2 } from "lucide-react";
 
-export default function AuditDashboardPanel({ activeRole }: DashboardPanelProps) {
+export default function AuditDashboardPanel() {
+  const { role } = usePermissions();
+  const activeRole = role as any;
   const isPrivileged = activeRole === "ADMIN" || activeRole === "IT_ADMIN" || activeRole === "COMPLIANCE_OFFICER";
 
   const { data: kpis, isLoading: isLoadingKPIs, error } = useQuery<AuditDashboardKPIs>({

@@ -10,8 +10,8 @@ export default function AttendanceRegularizationPage() {
   const activeRole = role.toUpperCase() as "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
 
   return (
-    <AttendanceLayout activeRole={activeRole}>
-      <RegularizationPanel activeRole={activeRole} />
+    <AttendanceLayout >
+      <RegularizationPanel  />
     </AttendanceLayout>
   );
 }

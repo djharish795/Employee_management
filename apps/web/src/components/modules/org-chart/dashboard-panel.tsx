@@ -1,3 +1,4 @@
+import { usePermissions } from "@/hooks/use-permissions";
 "use client";
 
 import React from "react";
@@ -10,12 +11,14 @@ import { OrgRole } from "@/types/org-chart";
 import { apiClient } from "@/lib/api/client";
 
 interface OrgDashboardPanelProps {
-  activeRole: OrgRole;
+  
 }
 
 
 
-export default function OrgDashboardPanel({ activeRole }: OrgDashboardPanelProps) {
+export default function OrgDashboardPanel() {
+  const { role } = usePermissions();
+  const activeRole = role as any;
   const isEmployee = activeRole === "EMPLOYEE";
   const isManager = activeRole === "MANAGER";
   

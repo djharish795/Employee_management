@@ -35,7 +35,7 @@ export default function MyLeavesHistoryPage() {
   });
 
   return (
-    <LeavesLayout activeRole={leavePanelRole}>
+    <LeavesLayout >
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50/20">
           <div>

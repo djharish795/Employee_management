@@ -1,3 +1,4 @@
+import { usePermissions } from "@/hooks/use-permissions";
 "use client";
 
 import React from "react";
@@ -6,7 +7,7 @@ import { AuditRole, AuditEvent } from "@/types/audit";
 import Image from "next/image";
 
 interface UserActivityPanelProps {
-  activeRole: AuditRole;
+  
 }
 
 const USER_TIMELINE: Partial<AuditEvent>[] = [
@@ -66,7 +67,7 @@ function getIconForAction(action: string) {
   }
 }
 
-export default function UserActivityPanel({ activeRole }: UserActivityPanelProps) {
+export default function UserActivityPanel() {
   return (
     <div className="flex flex-col lg:flex-row gap-6">
       

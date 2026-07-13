@@ -1,5 +1,6 @@
 "use client";
 
+import { usePermissions } from "@/hooks/use-permissions";
 import React from "react";
 import OrgLayout from "@/components/modules/org-chart/org-layout";
 import OrgDashboardPanel from "@/components/modules/org-chart/dashboard-panel";
@@ -11,7 +12,8 @@ export default function OrgChartDashboardPage() {
   const activeRole = useAuthStore((state) => state.role) || "EMPLOYEE";
   const router = useRouter();
 
-  const isRestrictedRole = ["EMPLOYEE", "MANAGER", "TEAM_LEAD", "IT"].includes(activeRole);
+  const { isExecutive, canManageOrg } = usePermissions();
+  const isRestrictedRole = !(isExecutive || canManageOrg);
 
   useEffect(() => {
     if (isRestrictedRole) {
@@ -22,8 +24,8 @@ export default function OrgChartDashboardPage() {
   if (isRestrictedRole) return null;
 
   return (
-    <OrgLayout activeRole={activeRole as any} onRoleChange={() => {}}>
-      <OrgDashboardPanel activeRole={activeRole as any} />
+    <OrgLayout >
+      <OrgDashboardPanel  />
     </OrgLayout>
   );
 }

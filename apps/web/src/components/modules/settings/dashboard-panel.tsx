@@ -1,3 +1,4 @@
+import { usePermissions } from "@/hooks/use-permissions";
 "use client";
 
 import React from "react";
@@ -9,7 +10,7 @@ import Link from "next/link";
 import { SettingsRole, SettingsKPIs } from "@/types/settings";
 
 interface DashboardPanelProps {
-  activeRole: SettingsRole;
+  
 }
 
 const RECENT_CHANGES = [
@@ -19,7 +20,9 @@ const RECENT_CHANGES = [
   { id: 4, action: "Connected Slack Integration", actor: "IT Admin (john.d)", time: "1 day ago", type: "integration" },
 ];
 
-export default function SettingsDashboardPanel({ activeRole }: DashboardPanelProps) {
+export default function SettingsDashboardPanel() {
+  const { role } = usePermissions();
+  const activeRole = role as any;
   const { data: kpis } = useQuery<SettingsKPIs>({
     queryKey: ["settingsKPIs", activeRole],
     queryFn: async () => ({

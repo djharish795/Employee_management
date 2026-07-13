@@ -21,6 +21,23 @@ const protectedRoutes = [
 // Role-specific dashboard namespaces (cross-role isolation)
 const roleNamespaces = ['/employee', '/admin', '/executive', '/cto', '/finance', '/hr'];
 
+function decodeJwtPayload(token: string) {
+  try {
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return null;
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
+  }
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -30,7 +47,15 @@ export function middleware(request: NextRequest) {
   }
 
   const token = request.cookies.get('token')?.value;
-  const rawRole = request.cookies.get('role')?.value?.toUpperCase() ?? '';
+  let rawRole = '';
+  
+  if (token) {
+    const payload = decodeJwtPayload(token);
+    if (payload && payload.role) {
+      rawRole = payload.role.toUpperCase();
+    }
+  }
+  
   const role = rawRole || 'EMPLOYEE';
 
   // ─── Resolve Target Dashboard ────────────────────────────────────────────────
@@ -87,6 +112,26 @@ export function middleware(request: NextRequest) {
     // 5. Admin panel — SUPER_ADMIN and IT only
     if (pathname.startsWith('/admin') && !['SUPER_ADMIN', 'IT'].includes(role)) {
       return NextResponse.redirect(new URL('/access-restricted', request.url));
+    }
+
+    // 6. Settings - Admin & HR mostly, except own profile (but settings module is global config here)
+    if (pathname.startsWith('/settings') && !['SUPER_ADMIN', 'IT', 'HR', 'CHRO'].includes(role)) {
+      return NextResponse.redirect(new URL('/access-restricted', request.url));
+    }
+
+    // 7. Compliance - Manager, Finance, CTO, IT have no access to compliance dashboard per matrix
+    if (pathname.startsWith('/compliance') && ['MANAGER', 'FINANCE', 'CTO', 'IT'].includes(role)) {
+       return NextResponse.redirect(new URL('/access-restricted', request.url));
+    }
+
+    // 8. Attendance - Finance and IT have no access
+    if (pathname.startsWith('/attendance') && ['FINANCE', 'IT'].includes(role)) {
+       return NextResponse.redirect(new URL('/access-restricted', request.url));
+    }
+
+    // 9. Leaves - Finance and IT have no access
+    if (pathname.startsWith('/leaves') && ['FINANCE', 'IT'].includes(role)) {
+       return NextResponse.redirect(new URL('/access-restricted', request.url));
     }
 
     // ─── Strict cross-role namespace isolation ───────────────────────────────
