@@ -1,10 +1,8 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
-import { RbacRoles, RbacGroups } from '../../common/rbac/rbac.config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ApplyLeaveDto } from './dto/apply-leave.dto';
 import { WorkflowEngineService } from '../workflows/workflow-engine.service';
 import { AuditService } from '../audit/audit.service';
-import { resolveWorkflowRole, DesignationRoleMap, WorkflowRole } from '../../common/constants/workflow-roles.constants';
 
 export interface ApprovalQueueItem {
   role: string;
@@ -612,6 +610,14 @@ export class LeavesService {
             });
           }
         });
+
+      // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
+      this.auditService.logApprove({
+        moduleName: 'Leaves',
+        entityId: leaveId,
+        actorId: 'unknown',
+        metadata: { approverId, override: true }
+      });
 
       return { message: 'Leave Approved Successfully via Override' };
     }

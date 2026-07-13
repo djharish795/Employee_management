@@ -177,10 +177,7 @@ export class AssetsService {
   }
 
   async respondToRequest(role: UserRole, instanceId: string, respondedById: string, dto: RespondAssetRequestDto): Promise<any> {
-    const allowedRoles = [UserRole.SUPER_ADMIN, UserRole.IT, UserRole.HR];
-    if (!allowedRoles.includes(role)) {
-      throw new ForbiddenException("Only IT Admin or HR can approve or reject asset requests");
-    }
+    this.validateWriteRole(role);
     // Using WorkflowEngineService processApproval which expects "APPROVE" | "REJECT" and notes
     const action = dto.status === "APPROVED" ? "APPROVE" : "REJECT";
     return this.workflowEngine.processApproval(instanceId, action, respondedById, dto.notes);
