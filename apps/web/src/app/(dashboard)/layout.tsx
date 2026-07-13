@@ -18,13 +18,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const storeRole = useAuthStore((state) => state.role);
   const isTeamLead = useAuthStore((state) => state.isTeamLead);
 
-  const [activeRole, setActiveRole] = React.useState(() => {
-    if (typeof document !== 'undefined') {
-      const cookieRole = document.cookie.match(new RegExp('(^| )role=([^;]+)'))?.[2] ?? null;
-      return (storeRole || cookieRole)?.toUpperCase() ?? 'EMPLOYEE';
-    }
-    return storeRole?.toUpperCase() ?? 'EMPLOYEE';
-  });
+  const [activeRole, setActiveRole] = React.useState(storeRole?.toUpperCase() ?? 'EMPLOYEE');
+  const [isVerifying, setIsVerifying] = React.useState(true);
+
+  React.useEffect(() => {
+    // Session Hydration: Fetch verified role from backend
+    // This replaces the insecure reliance on localStorage/cookies
+    const verifySession = async () => {
+      try {
+        const { fetchMyProfile } = await import('@/lib/api/profile');
+        const profile = await fetchMyProfile();
+        if (profile?.user?.role) {
+          const verifiedRole = profile.user.role.toUpperCase();
+          useAuthStore.getState().setAuthSession({
+            accessToken: useAuthStore.getState().accessToken || '',
+            refreshToken: useAuthStore.getState().refreshToken || '',
+            role: verifiedRole,
+            employeeId: profile.id,
+            isTeamLead: profile.user.isTeamLead || false,
+          });
+          setActiveRole(verifiedRole);
+        }
+      } catch (e) {
+        console.error("Session verification failed", e);
+        // Fallback or force logout could go here
+      } finally {
+        setIsVerifying(false);
+      }
+    };
+    verifySession();
+  }, []);
 
   React.useEffect(() => {
     if (storeRole) {

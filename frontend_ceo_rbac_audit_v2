@@ -1,0 +1,41 @@
+# Frontend RBAC Audit: CEO Role (Post-Refactor Update)
+
+## 1. Role Definition & Storage
+| Element | Location | Notes / Risk |
+|---|---|---|
+| **Role Types** | `src/types/*.ts` | CEO is hardcoded in types for Org, Compliance, Audit, and Assets. |
+| **Auth Store** | `src/store/auth.ts` | The role is stored in `localStorage` under the `auth-storage` key. |
+| **Session Cookie** | `middleware.ts:49` | The role is extracted from a JWT stored in the `token` cookie. |
+| **Cookie Setter** | `src/components/auth/login-form.tsx:102` | `document.cookie = \`token=${res.token}; path=/; max-age=86400; SameSite=Strict\`;` |
+
+## 2. Access Map (CEO Scope)
+| Component / Route | Scope | Evidence |
+|---|---|---|
+| **Executive Dashboard** | Full Access | `middleware.ts:64`: Routes CEO to `/executive/dashboard`. |
+| **Navigation Sidebar**| Full Access | `ceo-sidebar.tsx`: Grants access to Organisation, Succession Planning, Reports. |
+| **Tasks** | Global View | `NewTaskModal.tsx:81`: CEO sees all task types. |
+| **Compliance** | View Only | `requests-panel.tsx:55`: "CEO shouldn't be processing requests. They can view, but no actions." |
+
+## 3. Middleware / Guard Logic
+| Guard | File | Description & Integrity |
+|---|---|---|
+| **Route Protection** | `middleware.ts` | The Next.js middleware reads the `token` cookie and routes the user based on the role. **Integrity:** Broken (see Critical Findings). |
+| **Component Gates** | `usePermissions()` | `src/hooks/use-permissions.ts` checks `useAuthStore` to hide/show buttons and modules. **Integrity:** Broken (relies on editable localStorage). |
+
+## 4. UI vs Backend Inconsistencies (Gaps)
+| UI Restriction | Backend Reality | Evidence |
+|---|---|---|
+| **Identity Documents** | The UI specifically hides the Identity Documents tab from the CEO (`profile-tabs.tsx:51`). | **Bypassable:** The backend `RbacService` grants `WRITE_EMPLOYEES` to the CEO, giving them full CRUD access to employee profiles anyway. |
+| **Compliance Requests** | The UI restricts the CEO to "view only" for compliance requests (`requests-panel.tsx`). | **Bypassable:** The backend groups CEO into `COMPLIANCE_ADMINS`, granting them full write access if they bypass the UI. |
+
+---
+
+# Critical Findings 🚨
+
+### [Critical] Middleware Fake JWT Forgery (Unverified Decoding)
+**Location:** `middleware.ts:24-35` (`decodeJwtPayload`)
+**Risk:** The frontend middleware determines the user's route (e.g., `/executive/dashboard`) by extracting the `token` cookie and decoding it via a simple Base64 decode (`atob`). **It does not cryptographically verify the JWT signature.** Because the `token` cookie is set via client-side JavaScript (`document.cookie`) and is not `HttpOnly`, an attacker can simply craft a fake JWT with `{"role": "CEO"}`, update their cookie in the browser console, and instantly bypass the middleware route protections to access CEO-only pages.
+
+### [High] LocalStorage Role Tampering (Cosmetic Component Gates)
+**Location:** `src/store/auth.ts` and `src/hooks/use-permissions.ts`
+**Risk:** The entire UI component gating system (showing/hiding buttons, admin panels, approval queues) relies on `useAuthStore`, which is persisted in `localStorage`. Any user can open Chrome DevTools, edit `localStorage.getItem("auth-storage")`, and change their role to `"CEO"`. This instantly tricks the `usePermissions` hook into granting them client-side access to all executive UI components, forms, and approval screens. Combined with the backend IDOR vulnerabilities, this gives them full graphical access to exploit the system.

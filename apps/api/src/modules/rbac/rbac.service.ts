@@ -37,7 +37,6 @@ export class RbacService {
     ],
     [UserRole.CEO]: [
       Permission.READ_EMPLOYEES,
-      Permission.WRITE_EMPLOYEES,
       Permission.READ_AUDIT,
       Permission.MANAGE_PROJECTS,
     ],

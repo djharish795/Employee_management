@@ -228,7 +228,7 @@ export const RbacGroups = {
   ASSET_FINANCIAL_VIEWERS: [RbacRoles.SUPER_ADMIN, RbacRoles.CEO, RbacRoles.FINANCE, RbacRoles.IT, RbacRoles.HR, RbacRoles.CHRO], // Note: CFO mapped to FINANCE
   ASSET_WRITERS: [RbacRoles.SUPER_ADMIN, RbacRoles.IT, RbacRoles.HR],
   ASSET_MANAGERS: [RbacRoles.MANAGER, RbacRoles.TEAM_LEAD],
-  COMPLIANCE_ADMINS: [RbacRoles.SUPER_ADMIN, RbacRoles.CEO, RbacRoles.HR, RbacRoles.COMPLIANCE_OFFICER, RbacRoles.LEGAL],
+  COMPLIANCE_ADMINS: [RbacRoles.SUPER_ADMIN, RbacRoles.HR, RbacRoles.COMPLIANCE_OFFICER, RbacRoles.LEGAL],
   KNOWLEDGE_WRITERS: [RbacRoles.SUPER_ADMIN, RbacRoles.CEO, RbacRoles.CTO, RbacRoles.COO, RbacRoles.OPERATIONS_HEAD, RbacRoles.CHRO, RbacRoles.HR, RbacRoles.IT],
   ATTENDANCE_ADMINS: [RbacRoles.HR, RbacRoles.CHRO, RbacRoles.CEO, RbacRoles.SUPER_ADMIN, RbacRoles.IT, RbacRoles.FINANCE],
   HR_OR_SUPER_ADMIN: [RbacRoles.HR, RbacRoles.SUPER_ADMIN],

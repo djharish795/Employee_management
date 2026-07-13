@@ -21,23 +21,12 @@ const protectedRoutes = [
 // Role-specific dashboard namespaces (cross-role isolation)
 const roleNamespaces = ['/employee', '/admin', '/executive', '/cto', '/finance', '/hr'];
 
-function decodeJwtPayload(token: string) {
-  try {
-    const base64Url = token.split('.')[1];
-    if (!base64Url) return null;
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
-    return JSON.parse(jsonPayload);
-  } catch (e) {
-    return null;
-  }
-}
-
+// Security Note (Backend Dependency):
+// JWT verification cannot safely occur inside the frontend middleware without the signing secret
+// or relying on a backend session endpoint. 
+// Do NOT trust unverified decoded JWT payloads for authorization.
+// Role-based route guards are currently deferred to the React frontend (usePermissions)
+// which hydrates its state from a secure backend endpoint.
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -47,16 +36,8 @@ export function middleware(request: NextRequest) {
   }
 
   const token = request.cookies.get('token')?.value;
-  let rawRole = '';
-  
-  if (token) {
-    const payload = decodeJwtPayload(token);
-    if (payload && payload.role) {
-      rawRole = payload.role.toUpperCase();
-    }
-  }
-  
-  const role = rawRole || 'EMPLOYEE';
+  const role = request.cookies.get('role')?.value?.toUpperCase() || 'EMPLOYEE';
+
 
   // ─── Resolve Target Dashboard ────────────────────────────────────────────────
   let targetDashboard = '/employee/dashboard';

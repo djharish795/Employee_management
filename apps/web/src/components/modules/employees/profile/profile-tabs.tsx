@@ -30,7 +30,7 @@ interface ProfileTabsProps {
 }
 
 export default function ProfileTabs({ profile }: ProfileTabsProps) {
-  const { role } = usePermissions();
+  const { role, isExecutive } = usePermissions();
   const activeRole = role as DirectoryRole;
   const [activeTab, setActiveTab] = useState<string>("Overview");
 
@@ -48,9 +48,9 @@ export default function ProfileTabs({ profile }: ProfileTabsProps) {
     ];
 
     return tabs.filter((tab) => {
-      // CEO and Manager cannot see personal Identity Documents tab for security / privacy boundaries
+      // Executives and Managers cannot see personal Identity Documents tab for security / privacy boundaries
       if (tab.name === "Documents") {
-        return activeRole !== "CEO" && activeRole !== "MANAGER";
+        return !isExecutive && activeRole !== "MANAGER";
       }
       // Managers do not see compliance checks for non-direct reports, Finance doesn't see compliance
       if (tab.name === "Compliance") {
