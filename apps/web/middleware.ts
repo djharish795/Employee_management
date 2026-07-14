@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-
-
+import { jwtVerify } from 'jose';
 
 // Roles that may act as approvers in the Leave Approvals queue
 const leaveApproverRoles = new Set(['HR', 'CHRO', 'MANAGER', 'TEAM_LEAD', 'CTO', 'SUPER_ADMIN', 'IT']);
@@ -15,13 +14,17 @@ const protectedRoutes = [
   '/employees', '/attendance', '/leaves', '/assets', '/compliance',
   '/audit', '/onboarding', '/offboarding', '/knowledge', '/workflows',
   '/recruitment', '/payroll', '/performance', '/org-chart', '/settings',
-  '/connect'
+  '/connect', '/cam', '/oe', '/om', '/team-lead'
 ];
 
 // Role-specific dashboard namespaces (cross-role isolation)
-const roleNamespaces = ['/employee', '/admin', '/executive', '/cto', '/finance', '/hr'];
+const roleNamespaces = ['/employee', '/admin', '/executive', '/cto', '/finance', '/hr', '/cam', '/oe', '/om', '/team-lead'];
 
-export function middleware(request: NextRequest) {
+// Ensure this matches the backend JWT secret
+const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-for-dev-12345';
+const secretKey = new TextEncoder().encode(JWT_SECRET);
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Always pass through Next.js internals and static files
@@ -30,16 +33,33 @@ export function middleware(request: NextRequest) {
   }
 
   const token = request.cookies.get('token')?.value;
-  const rawRole = request.cookies.get('role')?.value?.toUpperCase() ?? '';
-  const role = rawRole || 'EMPLOYEE';
+  let role = 'EMPLOYEE';
+  let isVerified = false;
+
+  if (token) {
+    try {
+      const { payload } = await jwtVerify(token, secretKey);
+      if (payload && typeof payload.role === 'string') {
+        role = payload.role.toUpperCase();
+        isVerified = true;
+      }
+    } catch (err) {
+      console.warn("Invalid JWT in middleware", err);
+      // Fall through to unverified state
+    }
+  }
 
   // ─── Resolve Target Dashboard ────────────────────────────────────────────────
   let targetDashboard = '/employee/dashboard';
   if (['SUPER_ADMIN', 'IT'].includes(role)) targetDashboard = '/admin/dashboard';
-  else if (['CEO', 'COO'].includes(role)) targetDashboard = '/executive/dashboard';
+  else if (['CEO', 'COO', 'OPERATIONS_HEAD'].includes(role)) targetDashboard = '/executive/dashboard';
   else if (role === 'CTO') targetDashboard = '/cto/dashboard';
   else if (['CFO', 'FINANCE'].includes(role)) targetDashboard = '/finance/dashboard';
   else if (['CHRO', 'HR'].includes(role)) targetDashboard = '/hr/dashboard';
+  else if (role === 'TEAM_LEAD') targetDashboard = '/team-lead/dashboard';
+  else if (role === 'CAM') targetDashboard = '/cam/dashboard';
+  else if (role === 'OE') targetDashboard = '/oe/dashboard';
+  else if (role === 'OM') targetDashboard = '/om/dashboard';
 
   const employeeStatus = request.cookies.get('employeeStatus')?.value;
   if (employeeStatus === 'ONBOARDING') {
@@ -47,11 +67,12 @@ export function middleware(request: NextRequest) {
   }
 
   // ─── Redirect authenticated users away from /login ───────────────────────
-  if (token && pathname.startsWith('/login')) {
+  if (isVerified && pathname.startsWith('/login')) {
     return NextResponse.redirect(new URL(targetDashboard, request.url));
   }
 
   // ─── Enforce authentication on protected routes ───────────────────────────
+
   const isProtected = protectedRoutes.some(r => pathname === r || pathname.startsWith(`${r}/`));
   if (isProtected && !token) {
     return NextResponse.redirect(new URL('/login', request.url));
@@ -87,6 +108,26 @@ export function middleware(request: NextRequest) {
     // 5. Admin panel — SUPER_ADMIN and IT only
     if (pathname.startsWith('/admin') && !['SUPER_ADMIN', 'IT'].includes(role)) {
       return NextResponse.redirect(new URL('/access-restricted', request.url));
+    }
+
+    // 6. Settings - Admin & HR mostly, except own profile (but settings module is global config here)
+    if (pathname.startsWith('/settings') && !['SUPER_ADMIN', 'IT', 'HR', 'CHRO'].includes(role)) {
+      return NextResponse.redirect(new URL('/access-restricted', request.url));
+    }
+
+    // 7. Compliance - Manager, Finance, CTO, IT have no access to compliance dashboard per matrix
+    if (pathname.startsWith('/compliance') && ['MANAGER', 'FINANCE', 'CTO', 'IT'].includes(role)) {
+       return NextResponse.redirect(new URL('/access-restricted', request.url));
+    }
+
+    // 8. Attendance - Finance and IT have no access
+    if (pathname.startsWith('/attendance') && ['FINANCE', 'IT'].includes(role)) {
+       return NextResponse.redirect(new URL('/access-restricted', request.url));
+    }
+
+    // 9. Leaves - Finance and IT have no access
+    if (pathname.startsWith('/leaves') && ['FINANCE', 'IT'].includes(role)) {
+       return NextResponse.redirect(new URL('/access-restricted', request.url));
     }
 
     // ─── Strict cross-role namespace isolation ───────────────────────────────

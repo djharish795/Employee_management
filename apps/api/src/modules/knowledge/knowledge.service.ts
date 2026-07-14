@@ -1,4 +1,5 @@
 import { Injectable, ForbiddenException, BadRequestException, NotFoundException } from "@nestjs/common";
+import { RbacGroups } from "../../common/rbac/rbac.config";
 import { KnowledgeRepository } from "./knowledge.repository";
 import { SearchService } from "./search.service";
 import { CreateKnowledgeDocDto } from "./dto/create-knowledge.dto";
@@ -8,24 +9,13 @@ import { UserRole } from "@naprocs/types";
 
 @Injectable()
 export class KnowledgeService {
-  private readonly allowedWriteRoles = [
-    UserRole.SUPER_ADMIN,
-    UserRole.CEO,
-    UserRole.CTO,
-    UserRole.COO,
-    UserRole.OPERATIONS_HEAD,
-    UserRole.CHRO,
-    UserRole.HR,
-    UserRole.IT,
-  ];
-
   constructor(
     private readonly knowledgeRepository: KnowledgeRepository,
     private readonly searchService: SearchService,
   ) {}
 
   private hasWriteAccess(role: UserRole): boolean {
-    return this.allowedWriteRoles.includes(role);
+    return RbacGroups.KNOWLEDGE_WRITERS.includes(role as any);
   }
 
   private validateWriteAccess(role: UserRole) {

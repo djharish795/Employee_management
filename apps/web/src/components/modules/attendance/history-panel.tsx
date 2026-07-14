@@ -84,7 +84,8 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
         (log) =>
           log.displayDate.toLowerCase().includes(q) ||
           log.remarks.toLowerCase().includes(q) ||
-          log.status.toLowerCase().includes(q)
+          log.status.toLowerCase().includes(q) ||
+          ((log as any).employeeName && (log as any).employeeName.toLowerCase().includes(q))
       );
     }
 
@@ -158,7 +159,7 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Search history remarks..."
+              placeholder="Search name, remarks, or date..."
               value={filterSearch}
               onChange={(e) => setFilterSearch(e.target.value)}
               className="w-full h-10 pl-9 pr-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 transition-all font-semibold text-slate-700"

@@ -1,15 +1,16 @@
 "use client";
 
+import { usePermissions } from "@/hooks/use-permissions";
 import React from "react";
 import { Bell, Mail, Smartphone, Edit3, MessageSquare } from "lucide-react";
 import { SettingsRole } from "@/types/settings";
 
 interface NotificationsPanelProps {
-  activeRole: SettingsRole;
+  
 }
 
-export default function NotificationsPanel({ activeRole }: NotificationsPanelProps) {
-  const canManage = ["SUPER_ADMIN", "ADMIN", "HR_ADMIN", "IT_ADMIN"].includes(activeRole);
+export default function NotificationsPanel() {
+  const { canManageSettings: canManage } = usePermissions();
 
   return (
     <div className="space-y-6">

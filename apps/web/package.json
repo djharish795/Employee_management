@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.10",
     "@hookform/resolvers": "^3.3.4",
     "@naprocs/schemas": "workspace:^",
     "@naprocs/types": "workspace:^",
@@ -21,6 +22,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "html2canvas": "^1.4.1",
+    "jose": "^6.2.3",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
     "lucide-react": "^0.363.0",

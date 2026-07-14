@@ -19,10 +19,9 @@ export class AuthService {
     private readonly mfa: MfaService,
     private readonly tokens: TokenService,
     private readonly redis: RedisService,
-  ) {}
+  ) { }
 
   async login(dto: LoginDto) {
-    console.log(`Login attempt for email: ${dto.email}, password length: ${dto.password?.length}`);
     const email = dto.email.trim().toLowerCase();
 
     const user = await this.prisma.user.findUnique({
@@ -47,19 +46,23 @@ export class AuthService {
       throw new UnauthorizedException("Invalid email or password.");
     }
 
-    // --- MFA TEMPORARILY BYPASSED FOR TESTING ---
-    // const challenge = await this.mfa.createEmailOtpChallenge(user.id, user.email);
-    //
-    // return {
-    //   mfaRequired: true,
-    //   challengeId: challenge.challengeId,
-    //   method: challenge.method,
-    // };
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+
+    let isTeamLead = false;
+    if (user.employeeId) {
+      const tlAssignment = await this.prisma.projectAssignment.findFirst({
+        where: { employeeId: user.employeeId, projectRole: 'TL' },
+      });
+      if (tlAssignment) isTeamLead = true;
+    }
 
     const issued = await this.tokens.issueTokens({
       userId: user.id,
       email: user.email,
-      role: user.role as UserRole,
+      role: isTeamLead && user.role === 'EMPLOYEE' ? 'TEAM_LEAD' : (user.role as any),
       employeeId: user.employeeId ?? undefined,
     });
 
@@ -69,15 +72,16 @@ export class AuthService {
     }
 
     return {
+      success: true,
       mfaRequired: false,
       token: issued.accessToken,
       refreshToken: issued.refreshToken,
       role: issued.role,
       redirectPath: finalRedirectPath,
       employeeId: user.employeeId ?? null,
+      isTeamLead,
       employeeStatus: user.employee?.status ?? null,
     };
-    // ---------------------------------------------
   }
 
   async verifyMfa(dto: MfaVerifyDto) {
@@ -150,10 +154,18 @@ export class AuthService {
     await this.redis.del(refreshKey);
     await this.redis.del(`auth:session:${user.id}:${refreshToken}`);
 
+    let isTeamLead = false;
+    if (user.employeeId) {
+      const tlAssignment = await this.prisma.projectAssignment.findFirst({
+        where: { employeeId: user.employeeId, projectRole: 'TL' },
+      });
+      if (tlAssignment) isTeamLead = true;
+    }
+
     const issued = await this.tokens.issueTokens({
       userId: user.id,
       email: user.email,
-      role: user.role as UserRole,
+      role: isTeamLead && user.role === 'EMPLOYEE' ? 'TEAM_LEAD' : (user.role as any),
       employeeId: user.employeeId ?? undefined,
     });
 
@@ -169,6 +181,7 @@ export class AuthService {
       role: issued.role,
       redirectPath: finalRedirectPath,
       employeeId: user.employeeId ?? null,
+      isTeamLead,
       employeeStatus: user.employee?.status ?? null,
     };
   }

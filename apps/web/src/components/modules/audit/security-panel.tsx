@@ -3,9 +3,10 @@
 import React from "react";
 import { ShieldAlert, Fingerprint, Lock, AlertTriangle, AlertOctagon } from "lucide-react";
 import { AuditRole } from "@/types/audit";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface SecurityEventsPanelProps {
-  activeRole: AuditRole;
+  
 }
 
 const THREAT_FEED = [
@@ -55,10 +56,11 @@ const THREAT_FEED = [
   }
 ];
 
-export default function SecurityEventsPanel({ activeRole }: SecurityEventsPanelProps) {
+export default function SecurityEventsPanel() {
+  const { role } = usePermissions();
   // HR and CEO shouldn't be dealing with raw security events in this view, 
   // but if they navigate here somehow via URL, we show an access message.
-  if (activeRole === "HR" || activeRole === "CEO") {
+  if (role === "HR" || role === "CEO") {
     return (
       <div className="flex flex-col items-center justify-center h-[600px] bg-white border border-slate-200 rounded-xl shadow-sm">
         <Lock className="w-12 h-12 text-slate-300 mb-4" />

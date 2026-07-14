@@ -35,6 +35,7 @@ const roleDashboardMap: Record<string, string> = {
   HR: "/hr/dashboard",
   TEAM_LEAD: "/team-lead/dashboard",
   CAM: "/cam/dashboard",
+  OE: "/oe/dashboard",
 };
 
 // ---------- Inline design tokens (from HTML) ----------
@@ -96,12 +97,11 @@ export const LoginForm: React.FC = () => {
           refreshToken: res.refreshToken,
           role,
           employeeId: res.employeeId ?? null,
+          isTeamLead: res.isTeamLead ?? false,
         });
-        document.cookie = `token=${res.token}; path=/; max-age=86400; SameSite=Strict`;
-        document.cookie = `role=${role}; path=/; max-age=86400; SameSite=Strict`;
-        if (res.employeeStatus) {
-          document.cookie = `employeeStatus=${res.employeeStatus}; path=/; max-age=86400; SameSite=Strict`;
-        }
+        // Security Note: The backend AuthController MUST set HttpOnly Secure SameSite cookies
+        // for the session token. Do not set them via client-side JavaScript.
+        // See V2 Security Audit (Backend Dependencies).
         router.push(res.redirectPath ?? "/employee/dashboard");
       } else {
         throw new Error("Authentication failed: Missing secure tokens in server response.");

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Param, Patch, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Param, Patch, Req, Ip } from '@nestjs/common';
 import { OnboardingService } from './onboarding.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
@@ -6,12 +6,15 @@ import { Permissions } from '../../common/decorators/permissions.decorator';
 import { Permission } from '@naprocs/types';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { initiateOnboardingSchema } from '@naprocs/schemas';
+import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
+import { RbacPermissions } from '../../common/rbac/rbac.config';
 
 @Controller('onboarding')
 @UseGuards(JwtAuthGuard, RbacGuard)
 export class OnboardingController {
   constructor(private readonly onboardingService: OnboardingService) {}
 
+  @RequirePermissions(RbacPermissions.DASHBOARD_VIEW)
   @Get('dashboard')
   @Permissions(Permission.WRITE_EMPLOYEES) // Basic permission for HR access
   getDashboardMetrics(): Promise<any> {
@@ -22,9 +25,10 @@ export class OnboardingController {
   @Permissions(Permission.WRITE_EMPLOYEES)
   initiateOnboarding(
     @Body(new ZodValidationPipe(initiateOnboardingSchema)) data: any,
-    @Req() req: any
+    @Req() req: any,
+    @Ip() ip: string
   ) {
-    return this.onboardingService.initiateOnboarding(data, req.user);
+    return this.onboardingService.initiateOnboarding(data, req.user, ip);
   }
 
   @Get('me')

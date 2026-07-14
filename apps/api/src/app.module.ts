@@ -1,5 +1,7 @@
 import { Module } from "@nestjs/common";
-import { ConfigModule } from "@nestjs/config";
+import { APP_FILTER, APP_INTERCEPTOR } from "@nestjs/core";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { ThrottlerModule } from "@nestjs/throttler";
 import { ScheduleModule } from "@nestjs/schedule";
 import { AuthModule } from "./modules/auth/auth.module";
 import { DocumentsModule } from "./modules/documents/documents.module";
@@ -29,11 +31,26 @@ import { DepartmentsModule } from './modules/departments/departments.module';
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { SearchModule } from './modules/search/search.module';
 import { LifecycleModule } from "./modules/lifecycle/lifecycle.module";
+import { ProjectsModule } from './modules/projects/projects.module';
+import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
+
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [".env.local", ".env"],
+    }),
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        throttlers: [
+          {
+            ttl: 60,
+            limit: 10,
+          },
+        ],
+      }),
     }),
     ScheduleModule.forRoot(),
     PrismaModule,
@@ -64,6 +81,13 @@ import { LifecycleModule } from "./modules/lifecycle/lifecycle.module";
     NotificationsModule,
     SearchModule,
     LifecycleModule,
+    ProjectsModule,
+  ],
+  providers: [
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
+    },
   ],
 })
 export class AppModule { }

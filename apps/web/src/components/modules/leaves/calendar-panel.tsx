@@ -1,5 +1,5 @@
 "use client";
-
+import { usePermissions } from "@/hooks/use-permissions";
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Loader2, AlertCircle } from "lucide-react";
@@ -10,13 +10,15 @@ interface CalendarPanelProps {
   activeRole: "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
 }
 
-export default function CalendarPanel({ activeRole }: CalendarPanelProps) {
+export default function CalendarPanel() {
+  const { role } = usePermissions();
+  const activeRole = role as any;
   // Calendar state
   const [currentDate, setCurrentDate] = useState(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
-  
+
   const [filterDept, setFilterDept] = useState("");
 
   // Queries
@@ -81,7 +83,7 @@ export default function CalendarPanel({ activeRole }: CalendarPanelProps) {
     <div className="space-y-6">
       {/* Filtering Bar */}
       <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
-        
+
         {/* Month Navigation */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
@@ -122,7 +124,7 @@ export default function CalendarPanel({ activeRole }: CalendarPanelProps) {
 
       {/* Main Calendar Card */}
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col relative">
-        
+
         {/* Loading Overlay */}
         {isLoading && (
           <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex flex-col items-center justify-center z-10 text-slate-500">
@@ -130,7 +132,7 @@ export default function CalendarPanel({ activeRole }: CalendarPanelProps) {
             <p className="text-sm font-bold text-slate-700">Syncing calendar data...</p>
           </div>
         )}
-        
+
         {/* Error State */}
         {!isLoading && hasError && (
           <div className="absolute inset-0 bg-white/95 flex flex-col items-center justify-center z-10">
@@ -154,7 +156,7 @@ export default function CalendarPanel({ activeRole }: CalendarPanelProps) {
 
         {/* Calendar Grid Body */}
         <div className="grid grid-cols-7 bg-white text-slate-700">
-          
+
           {/* Leading Blanks */}
           {Array.from({ length: startOffset }).map((_, idx) => {
             const displayDay = prevMonthDays - startOffset + idx + 1;
@@ -187,9 +189,8 @@ export default function CalendarPanel({ activeRole }: CalendarPanelProps) {
             return (
               <div
                 key={day}
-                className={`min-h-[110px] p-2.5 border-b border-r border-slate-200 text-xs flex flex-col hover:bg-slate-50/50 transition-colors ${
-                  isToday ? "bg-indigo-50/30 ring-1 ring-inset ring-indigo-100" : ""
-                }`}
+                className={`min-h-[110px] p-2.5 border-b border-r border-slate-200 text-xs flex flex-col hover:bg-slate-50/50 transition-colors ${isToday ? "bg-indigo-50/30 ring-1 ring-inset ring-indigo-100" : ""
+                  }`}
               >
                 {/* Date Number */}
                 <div className="flex justify-between items-start mb-1.5">
@@ -200,7 +201,7 @@ export default function CalendarPanel({ activeRole }: CalendarPanelProps) {
 
                 {/* Items Container */}
                 <div className="space-y-1.5 mt-1 overflow-y-auto max-h-[85px] scrollbar-hide pr-1">
-                  
+
                   {/* Render Holidays */}
                   {holidaysOnThisDay.map((holiday) => (
                     <div

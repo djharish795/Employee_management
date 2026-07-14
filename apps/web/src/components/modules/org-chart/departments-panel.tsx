@@ -1,5 +1,5 @@
 "use client";
-
+import { usePermissions } from "@/hooks/use-permissions";
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
@@ -7,12 +7,15 @@ import { Building2, Users, Briefcase, Plus, MoreHorizontal, Edit2, Trash2, UserC
 import { OrgRole, DepartmentNode } from "@/types/org-chart";
 
 interface DepartmentsPanelProps {
-  activeRole: OrgRole;
+
 }
 import { fetchDepartments, updateDepartment } from "@/lib/api/organization";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import Image from "next/image";
 
-export default function DepartmentsPanel({ activeRole }: DepartmentsPanelProps) {
+export default function DepartmentsPanel() {
+  const { role } = usePermissions();
+  const activeRole = role as any;
   const canManage = activeRole === "ADMIN" || activeRole === "HR";
   const queryClient = useQueryClient();
 
@@ -54,133 +57,133 @@ export default function DepartmentsPanel({ activeRole }: DepartmentsPanelProps) 
   return (
     <>
       <div className="space-y-6">
-      {/* Header Actions */}
-      <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
-            <Building2 className="w-5 h-5" />
+        {/* Header Actions */}
+        <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Department Overview</h2>
+              <p className="text-xs font-semibold text-slate-500">{departments?.length || 0} active departments across the organization</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-sm font-bold text-slate-900">Department Overview</h2>
-            <p className="text-xs font-semibold text-slate-500">{departments?.length || 0} active departments across the organization</p>
-          </div>
-        </div>
-        
-        {canManage && (
-          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors">
-            <Plus className="w-4 h-4" /> Add Department
-          </button>
-        )}
-      </div>
 
-      {/* Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {departments?.map((dept) => (
-          <div key={dept.id} className="bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-shadow flex flex-col overflow-hidden group">
-            {/* Dept Header */}
-            <div className="p-5 border-b border-slate-100 flex items-start justify-between bg-slate-50/50">
-              <div>
-                <h3 className="text-base font-bold text-slate-900">{dept.name}</h3>
-                <p className="text-xs font-medium text-slate-500 mt-1 line-clamp-2 pr-4">{dept.description}</p>
-              </div>
-              <div className="relative">
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMenuOpenId(menuOpenId === dept.id ? null : dept.id);
-                  }}
-                  className="text-slate-400 hover:text-slate-700 p-1 transition-colors relative z-10 bg-white rounded-md hover:bg-slate-100"
-                >
-                  <MoreHorizontal className="w-4 h-4" />
-                </button>
-                
-                {/* Dropdown Menu */}
-                {menuOpenId === dept.id && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); }} />
-                    <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-20" onClick={(e) => e.stopPropagation()}>
-                      <button 
-                        onClick={() => { setMenuOpenId(null); setSelectedDept(dept); setEditName(dept.name); setActiveModal("edit"); }}
-                        className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" /> Edit Department
-                      </button>
-                      
-                      {dept.headId ? (
-                        <>
-                          <button 
-                            onClick={() => { setMenuOpenId(null); setSelectedDept(dept); setEditHeadId(dept.headId || ""); setActiveModal("assign"); }}
-                            className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                          >
-                            <UserCheck className="w-3.5 h-3.5" /> Change Head
-                          </button>
-                          <button 
-                            onClick={() => { setMenuOpenId(null); updateMutation.mutate({ id: dept.id, data: { headId: "" } }); }}
-                            className="w-full text-left px-4 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2"
-                          >
-                            <UserX className="w-3.5 h-3.5" /> Unassign Head
-                          </button>
-                        </>
-                      ) : (
-                        <button 
-                          onClick={() => { setMenuOpenId(null); setSelectedDept(dept); setEditHeadId(""); setActiveModal("assign"); }}
+          {canManage && (
+            <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors">
+              <Plus className="w-4 h-4" /> Add Department
+            </button>
+          )}
+        </div>
+
+        {/* Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {departments?.map((dept) => (
+            <div key={dept.id} className="bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-shadow flex flex-col overflow-hidden group">
+              {/* Dept Header */}
+              <div className="p-5 border-b border-slate-100 flex items-start justify-between bg-slate-50/50">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">{dept.name}</h3>
+                  <p className="text-xs font-medium text-slate-500 mt-1 line-clamp-2 pr-4">{dept.description}</p>
+                </div>
+                <div className="relative">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMenuOpenId(menuOpenId === dept.id ? null : dept.id);
+                    }}
+                    className="text-slate-400 hover:text-slate-700 p-1 transition-colors relative z-10 bg-white rounded-md hover:bg-slate-100"
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {menuOpenId === dept.id && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); }} />
+                      <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-20" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => { setMenuOpenId(null); setSelectedDept(dept); setEditName(dept.name); setActiveModal("edit"); }}
                           className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                         >
-                          <UserCheck className="w-3.5 h-3.5" /> Assign Head
+                          <Edit2 className="w-3.5 h-3.5" /> Edit Department
                         </button>
-                      )}
-                      
-                      <div className="border-t border-slate-100 my-1"></div>
-                      <button 
-                        onClick={() => { setMenuOpenId(null); setSelectedDept(dept); setActiveModal("delete"); }}
-                        className="w-full text-left px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 flex items-center gap-2"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" /> Delete
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
 
-            {/* Metrics */}
-            <div className="grid grid-cols-2 divide-x divide-slate-100 border-b border-slate-100">
-              <div className="p-4 flex flex-col items-center justify-center text-center">
-                <Users className="w-4 h-4 text-indigo-500 mb-1.5" />
-                <div className="text-xl font-bold text-slate-900">{dept.headcount}</div>
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Headcount</div>
-              </div>
-              <div className="p-4 flex flex-col items-center justify-center text-center">
-                <Briefcase className="w-4 h-4 text-amber-500 mb-1.5" />
-                <div className="text-xl font-bold text-slate-900">{dept.openPositions}</div>
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Open Roles</div>
-              </div>
-            </div>
+                        {dept.headId ? (
+                          <>
+                            <button
+                              onClick={() => { setMenuOpenId(null); setSelectedDept(dept); setEditHeadId(dept.headId || ""); setActiveModal("assign"); }}
+                              className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                            >
+                              <UserCheck className="w-3.5 h-3.5" /> Change Head
+                            </button>
+                            <button
+                              onClick={() => { setMenuOpenId(null); updateMutation.mutate({ id: dept.id, data: { headId: "" } }); }}
+                              className="w-full text-left px-4 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2"
+                            >
+                              <UserX className="w-3.5 h-3.5" /> Unassign Head
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => { setMenuOpenId(null); setSelectedDept(dept); setEditHeadId(""); setActiveModal("assign"); }}
+                            className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                          >
+                            <UserCheck className="w-3.5 h-3.5" /> Assign Head
+                          </button>
+                        )}
 
-            {/* Footer / Department Head */}
-            <div className="p-4 bg-white mt-auto flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 text-xs font-bold border border-slate-200 overflow-hidden">
-                  {dept.head ? (
-                    <img src={dept.head.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${dept.head.name}`} alt="Head" />
-                  ) : (
-                    <Users className="w-4 h-4 text-slate-400" />
+                        <div className="border-t border-slate-100 my-1"></div>
+                        <button
+                          onClick={() => { setMenuOpenId(null); setSelectedDept(dept); setActiveModal("delete"); }}
+                          className="w-full text-left px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 flex items-center gap-2"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Delete
+                        </button>
+                      </div>
+                    </>
                   )}
                 </div>
-                <div>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Department Head</div>
-                  <div className="text-xs font-bold text-slate-900">{dept.head ? dept.head.name : "Unassigned"}</div>
+              </div>
+
+              {/* Metrics */}
+              <div className="grid grid-cols-2 divide-x divide-slate-100 border-b border-slate-100">
+                <div className="p-4 flex flex-col items-center justify-center text-center">
+                  <Users className="w-4 h-4 text-indigo-500 mb-1.5" />
+                  <div className="text-xl font-bold text-slate-900">{dept.headcount}</div>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Headcount</div>
+                </div>
+                <div className="p-4 flex flex-col items-center justify-center text-center">
+                  <Briefcase className="w-4 h-4 text-amber-500 mb-1.5" />
+                  <div className="text-xl font-bold text-slate-900">{dept.openPositions}</div>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Open Roles</div>
                 </div>
               </div>
-              
-              <Link href={`/employees?department=${encodeURIComponent(dept.name)}`} className="text-xs font-bold text-indigo-600 hover:underline">
-                View Team
-              </Link>
+
+              {/* Footer / Department Head */}
+              <div className="p-4 bg-white mt-auto flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 text-xs font-bold border border-slate-200 overflow-hidden">
+                    {dept.head ? (
+                      <Image src={dept.head.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${dept.head.name}`} alt="Head" fill style={{ objectFit: "cover" }} />
+                    ) : (
+                      <Users className="w-4 h-4 text-slate-400" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Department Head</div>
+                    <div className="text-xs font-bold text-slate-900">{dept.head ? dept.head.name : "Unassigned"}</div>
+                  </div>
+                </div>
+
+                <Link href={`/employees?department=${encodeURIComponent(dept.name)}`} className="text-xs font-bold text-indigo-600 hover:underline">
+                  View Team
+                </Link>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-    </div>
 
       {/* MODALS */}
       {activeModal && selectedDept && (
@@ -193,7 +196,7 @@ export default function DepartmentsPanel({ activeRole }: DepartmentsPanelProps) 
                 {activeModal === "assign" && "Assign Department Head"}
                 {activeModal === "delete" && "Delete Department"}
               </h3>
-              <button 
+              <button
                 onClick={() => { setActiveModal(null); setSelectedDept(null); }}
                 className="text-slate-400 hover:text-slate-700 p-1 rounded-md hover:bg-slate-100 transition-colors"
               >
@@ -244,14 +247,14 @@ export default function DepartmentsPanel({ activeRole }: DepartmentsPanelProps) 
 
             {/* Modal Footer */}
             <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
-              <button 
+              <button
                 onClick={() => { setActiveModal(null); setSelectedDept(null); }}
                 className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 bg-slate-200/30 rounded-lg transition-colors"
               >
                 Cancel
               </button>
-              <button 
-                onClick={() => { 
+              <button
+                onClick={() => {
                   if (activeModal === 'edit') {
                     updateMutation.mutate({ id: selectedDept.id, data: { name: editName } });
                   } else if (activeModal === 'assign') {

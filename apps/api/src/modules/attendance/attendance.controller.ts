@@ -1,21 +1,36 @@
 import { Controller, Get, Post, Body, UseGuards, Query, Ip, Patch, Param } from "@nestjs/common";
 import { AttendanceService } from "./attendance.service";
+import { AttendanceCronService } from "./attendance.cron";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RbacGuard } from "../../common/guards/rbac.guard";
 import { Permissions } from "../../common/decorators/permissions.decorator";
 import { Permission } from "@naprocs/types";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { PunchDto } from "./dto/punch.dto";
+import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
+import { RbacPermissions } from '../../common/rbac/rbac.config';
 
 @Controller("attendance")
 @UseGuards(JwtAuthGuard, RbacGuard)
 export class AttendanceController {
-  constructor(private readonly attendanceService: AttendanceService) {}
+  constructor(
+    private readonly attendanceService: AttendanceService,
+    private readonly cronService: AttendanceCronService
+  ) {}
 
+  @RequirePermissions(RbacPermissions.ATTENDANCE_READ)
   @Get("today")
   @Permissions(Permission.READ_OWN_PROFILE)
   async getTodayStatus(@CurrentUser() user: any) {
     return this.attendanceService.getTodayStatus(user.employeeId);
+  }
+
+  // TEST ENDPOINT ONLY - REMOVE IN PRODUCTION
+  @Post("test-auto-checkout")
+  @Permissions(Permission.WRITE_EMPLOYEES)
+  async triggerAutoCheckout() {
+    await this.cronService.forceAutoCheckout();
+    return { success: true, message: "Auto-checkout triggered successfully" };
   }
 
   @Post("punch")
@@ -55,10 +70,14 @@ export class AttendanceController {
   }
 
   @Get("summary-today")
-  @Permissions(Permission.READ_EMPLOYEES)
-  async getSummaryToday(@Query('date') date?: string, @Query('departmentId') departmentId?: string) {
+  @Permissions(Permission.READ_EMPLOYEES, Permission.READ_TEAM_PROFILES)
+  async getSummaryToday(
+    @Query('date') date?: string,
+    @Query('departmentId') departmentId?: string,
+    @CurrentUser() user?: any
+  ) {
     try {
-      return await this.attendanceService.getSummaryToday(date, departmentId);
+      return await this.attendanceService.getSummaryToday(date, departmentId, user);
     } catch (e: any) {
       const { BadRequestException } = require('@nestjs/common');
       throw new BadRequestException(e.message + "\n" + e.stack);
@@ -66,9 +85,9 @@ export class AttendanceController {
   }
 
   @Get("all-logs")
-  @Permissions(Permission.READ_EMPLOYEES)
-  async getAllLogs(@Query() query: any) {
-    return this.attendanceService.getAllLogs(query);
+  @Permissions(Permission.READ_EMPLOYEES, Permission.READ_TEAM_PROFILES)
+  async getAllLogs(@Query() query: any, @CurrentUser() user?: any) {
+    return this.attendanceService.getAllLogs(query, user);
   }
 
   @Get("regularizations")

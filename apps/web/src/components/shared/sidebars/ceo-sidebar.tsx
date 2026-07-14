@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, Calendar, ShieldCheck, History,
-  Network, BarChart3, Settings, LogOut, Menu, X, ChevronLeft, Plus,
+  Network, BarChart3, Settings, LogOut, Menu, X, ChevronLeft, Plus, FolderPlus,
   MessageSquare, CalendarCheck, UserPlus, UserMinus, BookOpen, Monitor, Lock, Bell, CheckSquare
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
@@ -31,17 +31,14 @@ const getNavGroups = (role: string, unreadCount: number) => {
         label: 'MAIN',
         items: [
           { title: 'Dashboard', icon: LayoutDashboard, href: '/executive/dashboard' },
-          { title: 'Organisation', icon: Network, href: '/ceo/organisation' },
+          { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
+          { title: 'Connect', icon: MessageSquare, href: '/connect' },
           { title: 'Org Chart', icon: Network, href: '/org-chart' },
-          { title: 'Succession Planning', icon: Users, href: '/ceo/succession-planning' },
-          { title: 'Reports', icon: BarChart3, href: '/ceo/reports' },
         ]
       },
       {
         label: 'OPERATIONS',
         items: [
-          { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
-          { title: 'Connect', icon: MessageSquare, href: '/connect' },
           { 
             title: 'Attendance', 
             icon: CalendarCheck, 
@@ -62,6 +59,8 @@ const getNavGroups = (role: string, unreadCount: number) => {
           { title: 'Payroll', icon: Calendar, locked: true },
           { title: 'Recruitment', icon: UserPlus, locked: true },
           { title: 'Performance', icon: BarChart3, locked: true },
+          { title: 'Succession Planning', icon: Users, locked: true },
+          { title: 'Reports / Analytics', icon: BarChart3, locked: true },
           { title: 'Workforce Analytics', icon: BarChart3, locked: true },
         ]
       },
@@ -80,6 +79,8 @@ const getNavGroups = (role: string, unreadCount: number) => {
         label: 'MAIN',
         items: [
           { title: 'Dashboard', icon: LayoutDashboard, href: '/cto/dashboard' },
+          { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
+          { title: 'Connect', icon: MessageSquare, href: '/connect' },
           { title: 'Engineering Team', icon: Users, href: '/cto/team' },
           { title: 'Skill Matrix', icon: Network, href: '/cto/skills' },
           { title: 'Assets', icon: Monitor, href: '/cto/assets' },
@@ -93,8 +94,6 @@ const getNavGroups = (role: string, unreadCount: number) => {
               { title: 'My Attendance', href: '/attendance' }
             ]
           },
-          { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
-          { title: 'Connect', icon: MessageSquare, href: '/connect' },
         ]
       },
       {
@@ -104,6 +103,40 @@ const getNavGroups = (role: string, unreadCount: number) => {
           { title: 'Performance', icon: BarChart3, locked: true },
           { title: 'Analytics', icon: BarChart3, locked: true },
           { title: 'Notifications', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined, href: '/notifications' },
+        ]
+      }
+    ];
+  }
+
+  if (role === 'MANAGER' || role === 'OPERATIONS_HEAD') {
+    return [
+      {
+        label: 'OPERATIONS PORTAL',
+        items: [
+          { title: 'Dashboard', icon: LayoutDashboard, href: '/employee/dashboard' },
+          { title: 'Work Reports', icon: BarChart3, href: '/om/work-reports' },
+          { title: 'Approvals', icon: CheckSquare, href: '/om/approvals' },
+          { title: 'Scheduler', icon: Calendar, href: '/cam/scheduler' },
+          { title: 'Reports', icon: BarChart3, href: '/cam/reports' },
+        ]
+      },
+      {
+        label: 'MY WORKPLACE',
+        items: [
+          { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
+          { title: 'Connect', icon: MessageSquare, href: '/connect' },
+          { title: 'Attendance', icon: CalendarCheck, href: '/attendance' },
+          { title: 'Leaves', icon: Calendar, href: '/leaves' },
+          { title: 'Assets', icon: Monitor, href: '/assets' },
+          { title: 'Knowledge Base', icon: BookOpen, href: '/knowledge' },
+          { title: 'Org Chart', icon: Network, href: '/org-chart' },
+        ]
+      },
+      {
+        label: 'OTHER',
+        items: [
+          { title: 'Notifications', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined, href: '/notifications' },
+          { title: 'Settings', icon: Settings, href: '/settings' },
         ]
       }
     ];

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { maskEmployeePii } from "../../common/utils/pii-masker.util";
+import { createS3Client, deleteFromS3 } from "../../common/utils/s3.util";
 import { ErasureRequestStatus, DataErasureRequest } from "@naprocs/database";
 
 @Injectable()
@@ -59,8 +60,39 @@ export class ErasureService {
       });
     }
 
+    // Fetch employee before masking to get their current document keys
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: request.employeeId },
+      select: { photoUrl: true, documents: true }
+    });
+
     // Action is APPROVE -> Execute PII Masking
     const fieldsErased = await maskEmployeePii(this.prisma, request.employeeId);
+
+    // Delete associated files from S3
+    if (employee) {
+      try {
+        const s3 = createS3Client();
+        const bucketName = (process.env.AWS_S3_BUCKET || "naprocs-ems-documents").trim();
+        
+        if (employee.photoUrl && !employee.photoUrl.startsWith('http')) {
+          await deleteFromS3(s3, bucketName, employee.photoUrl);
+        }
+        
+        if (employee.documents && Array.isArray(employee.documents)) {
+          for (const doc of employee.documents as any[]) {
+            if (doc && doc.s3Key) {
+              await deleteFromS3(s3, bucketName, doc.s3Key);
+            } else if (typeof doc === 'string' && !doc.startsWith('http')) {
+              await deleteFromS3(s3, bucketName, doc);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to delete S3 objects during data erasure", err);
+        // Continue erasure process even if S3 delete fails partially
+      }
+    }
 
     return this.prisma.dataErasureRequest.update({
       where: { id },

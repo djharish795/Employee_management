@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth';
 import { AddConsentModal } from '@/components/modules/compliance/add-consent-modal';
 import { Trash2 } from 'lucide-react';
+import Image from "next/image";
 
 export default function ComplianceDashboardPage() {
   const [isAddConsentOpen, setIsAddConsentOpen] = useState(false);
@@ -16,7 +17,7 @@ export default function ComplianceDashboardPage() {
     Authorization: `Bearer ${accessToken}`,
     "Content-Type": "application/json"
   });
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
 
   // Queries
   const { data: dashboardStats } = useQuery({
@@ -222,7 +223,7 @@ export default function ComplianceDashboardPage() {
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3">
                         {req.employee?.photoUrl ? (
-                          <img src={req.employee.photoUrl} alt="Employee" className="w-8 h-8 rounded-full border border-slate-200 object-cover" />
+                          <Image src={req.employee.photoUrl} alt="Employee" className="w-8 h-8 rounded-full border border-slate-200 object-cover" fill style={{ objectFit: "cover" }} />
                         ) : (
                           <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-600">
                             {req.employee?.firstName?.charAt(0) || "U"}

@@ -1,5 +1,6 @@
 "use client";
 
+import { usePermissions } from "@/hooks/use-permissions";
 import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -24,7 +25,7 @@ import { Asset, AssetActivity, AssetKPIs, AssetRole, AssetRequest } from "@/type
 import { assetsApi } from "@/lib/api/assets";
 
 interface DashboardPanelProps {
-  activeRole: AssetRole;
+  
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -89,9 +90,11 @@ const CATEGORY_DISTRIBUTION = [
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
+export default function DashboardPanel() {
+  const { role } = usePermissions();
+  const activeRole = role as any;
   const isEmployee = activeRole === "EMPLOYEE";
-  const isITOrAdmin = ["IT_ADMIN", "ADMIN"].includes(activeRole);
+  const { isAdmin: isITOrAdmin } = usePermissions();
 
   const { data: summaryKpis } = useQuery({
     queryKey: ["kpiSummary"],

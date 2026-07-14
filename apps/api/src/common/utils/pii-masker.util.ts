@@ -1,4 +1,5 @@
 import { PrismaService } from "../../prisma/prisma.service";
+import { NotFoundException } from "@nestjs/common";
 
 /**
  * Masks Personally Identifiable Information (PII) for an employee 
@@ -11,7 +12,7 @@ export async function maskEmployeePii(prisma: PrismaService, employeeId: string)
   });
 
   if (!employee) {
-    throw new Error(`Employee with ID ${employeeId} not found`);
+    throw new NotFoundException(`Employee with ID ${employeeId} not found`);
   }
 
   // PII fields to erase

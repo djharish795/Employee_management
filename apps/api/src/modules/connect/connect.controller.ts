@@ -3,17 +3,22 @@ import { ConnectService } from "./connect.service";
 import { CreateMeetRequestDto } from "./dto/create-meet-request.dto";
 import { RescheduleMeetDto } from "./dto/reschedule-meet.dto";
 import { UpdateConnectSettingsDto } from "./dto/update-connect-settings.dto";
+import { CreateMeetNoteDto } from "./dto/create-meet-note.dto";
+import { CreateMeetNoteCommentDto } from "./dto/create-meet-note-comment.dto";
 import { Request } from "express";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RbacGuard } from "../../common/guards/rbac.guard";
 import { Permissions } from "../../common/decorators/permissions.decorator";
 import { Permission } from "@naprocs/types";
+import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
+import { RbacPermissions } from '../../common/rbac/rbac.config';
 
 @Controller("connect")
 @UseGuards(JwtAuthGuard, RbacGuard)
 export class ConnectController {
   constructor(private readonly connectService: ConnectService) {}
 
+  @RequirePermissions(RbacPermissions.CONNECT_MANAGE)
   @Post("request")
   @Permissions(Permission.WRITE_OWN_PROFILE) // Any employee can create a meet
   async requestMeet(@Req() req: Request, @Body() dto: CreateMeetRequestDto) {
@@ -82,5 +87,34 @@ export class ConnectController {
   async updateSettings(@Req() req: Request, @Body() dto: UpdateConnectSettingsDto) {
     const employeeId = (req.user as any).employeeId;
     return this.connectService.updateSettings(employeeId, dto);
+  }
+
+  @Get(":id/notes")
+  @Permissions(Permission.READ_OWN_PROFILE)
+  async getNotes(@Param("id") id: string, @Req() req: Request) {
+    const employeeId = (req.user as any).employeeId;
+    return this.connectService.getNotes(id, employeeId);
+  }
+
+  @Post(":id/notes")
+  @Permissions(Permission.WRITE_OWN_PROFILE)
+  async upsertNote(
+    @Param("id") id: string,
+    @Body() dto: CreateMeetNoteDto,
+    @Req() req: Request
+  ) {
+    const employeeId = (req.user as any).employeeId;
+    return this.connectService.upsertNote(id, employeeId, dto.content);
+  }
+
+  @Post("notes/:noteId/comments")
+  @Permissions(Permission.WRITE_OWN_PROFILE)
+  async addNoteComment(
+    @Param("noteId") noteId: string,
+    @Body() dto: CreateMeetNoteCommentDto,
+    @Req() req: Request
+  ) {
+    const employeeId = (req.user as any).employeeId;
+    return this.connectService.addNoteComment(noteId, employeeId, dto.content);
   }
 }

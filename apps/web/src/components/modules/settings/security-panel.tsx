@@ -1,15 +1,16 @@
 "use client";
 
+import { usePermissions } from "@/hooks/use-permissions";
 import React from "react";
 import { ShieldAlert, KeyRound, Smartphone, Save, History, Clock } from "lucide-react";
 import { SettingsRole } from "@/types/settings";
 
 interface SecurityPanelProps {
-  activeRole: SettingsRole;
+  
 }
 
-export default function SecurityPanel({ activeRole }: SecurityPanelProps) {
-  const canManageSecurity = ["SUPER_ADMIN", "ADMIN", "IT_ADMIN"].includes(activeRole);
+export default function SecurityPanel() {
+  const { isAdmin: canManageSecurity } = usePermissions();
 
   return (
     <div className="space-y-6">

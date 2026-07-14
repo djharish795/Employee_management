@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { usePermissions } from "@/hooks/use-permissions";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, History, CheckSquare, BarChart3 } from "lucide-react";
@@ -9,10 +10,12 @@ type AttendanceRole = "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
 
 interface AttendanceLayoutProps {
   children: React.ReactNode;
-  activeRole: AttendanceRole;
+  
 }
 
-export default function AttendanceLayout({ children, activeRole }: AttendanceLayoutProps) {
+export default function AttendanceLayout({ children }: AttendanceLayoutProps) {
+  const { role } = usePermissions();
+  const activeRole = role as any;
   const pathname = usePathname();
 
   const navItems = React.useMemo(() => {
@@ -42,7 +45,7 @@ export default function AttendanceLayout({ children, activeRole }: AttendanceLay
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Attendance Management</h1>
               <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-full border border-slate-200 uppercase tracking-wide">
-                {roleLabel[activeRole]}
+                {roleLabel[activeRole as AttendanceRole] || "Employee"}
               </span>
             </div>
             <p className="text-sm font-medium text-slate-500 mt-1">

@@ -31,7 +31,7 @@ export default function CEOReportsPage() {
   const { data: recentReports, isLoading: isFetchingReports } = useQuery<ReportHistory[]>({
     queryKey: ['recent-reports'],
     queryFn: async () => {
-      const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const url = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${url}/reports`, {
         headers: { Authorization: `Bearer ${accessToken}` }
       });
@@ -42,7 +42,7 @@ export default function CEOReportsPage() {
 
   const generateReport = useMutation({
     mutationFn: async ({ type, format }: { type: string, format: string }) => {
-      const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const url = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${url}/reports/generate`, {
         method: 'POST',
         headers: { 
@@ -61,7 +61,7 @@ export default function CEOReportsPage() {
 
   const handleDownload = async (id: string, name: string, format: string) => {
     try {
-      const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const url = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${url}/reports/${id}/download`, {
         headers: { Authorization: `Bearer ${accessToken}` }
       });

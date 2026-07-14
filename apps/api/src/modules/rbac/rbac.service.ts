@@ -10,39 +10,41 @@ export class RbacService {
     ],
     [UserRole.MANAGER]: [
       Permission.READ_OWN_PROFILE,
-      Permission.WRITE_OWN_PROFILE,
       Permission.READ_TEAM_PROFILES,
     ],
     [UserRole.TEAM_LEAD]: [
       Permission.READ_OWN_PROFILE,
-      Permission.WRITE_OWN_PROFILE,
       Permission.READ_TEAM_PROFILES,
     ],
     [UserRole.HR]: [
       Permission.READ_EMPLOYEES,
       Permission.WRITE_EMPLOYEES,
       Permission.READ_AUDIT,
+      Permission.WRITE_OWN_PROFILE,
     ],
     [UserRole.CHRO]: [
       Permission.READ_EMPLOYEES,
       Permission.WRITE_EMPLOYEES,
+      Permission.WRITE_OWN_PROFILE,
     ],
     [UserRole.SUPER_ADMIN]: [
       Permission.READ_EMPLOYEES,
       Permission.WRITE_EMPLOYEES,
       Permission.READ_AUDIT,
+      Permission.WRITE_OWN_PROFILE,
     ],
     [UserRole.FINANCE]: [
       Permission.READ_EMPLOYEES,
     ],
     [UserRole.CEO]: [
       Permission.READ_EMPLOYEES,
-      Permission.WRITE_EMPLOYEES,
       Permission.READ_AUDIT,
+      Permission.MANAGE_PROJECTS,
     ],
     [UserRole.CTO]: [
       Permission.READ_EMPLOYEES,
       Permission.READ_AUDIT,
+      Permission.MANAGE_PROJECTS,
     ],
     [UserRole.COO]: [
       Permission.READ_EMPLOYEES,
@@ -59,15 +61,20 @@ export class RbacService {
     [UserRole.CAM]: [
       Permission.READ_EMPLOYEES,
     ],
+    [UserRole.OE]: [
+      Permission.READ_EMPLOYEES,
+    ],
+    [UserRole.OM]: [
+      Permission.READ_EMPLOYEES,
+    ],
   };
 
   getPermissionsForRole(role: UserRole): Permission[] {
     const basePerms = this.rolePermissions[role] || [];
-    // Universally grant own profile read/write access to all roles for testing and standard profile usage
+    // Universally grant own profile read access to all roles
     return Array.from(new Set([
       ...basePerms,
       Permission.READ_OWN_PROFILE,
-      Permission.WRITE_OWN_PROFILE,
     ]));
   }
 

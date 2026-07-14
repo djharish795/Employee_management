@@ -1,16 +1,20 @@
-import { Injectable, InternalServerErrorException } from "@nestjs/common";
-import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { Injectable, InternalServerErrorException, Logger } from "@nestjs/common";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { S3Client } from "@aws-sdk/client-s3";
-import { createS3Client } from "../../common/utils/s3.util";
+import { createS3Client, generatePresignedDownloadUrl } from "../../common/utils/s3.util";
 import { v4 as uuidv4 } from "uuid";
+import { AuditService } from "../audit/audit.service";
 
 @Injectable()
 export class DocumentsService {
+  private readonly logger = new Logger(DocumentsService.name);
   private readonly bucketName: string;
   private readonly s3: S3Client;
 
-  constructor() {
+  constructor(
+    private readonly auditService: AuditService,
+  ) {
     // Trim bucket name — dotenv does NOT strip inline comments, so raw env
     // values may include trailing " # comment" text if .env has inline comments.
     this.bucketName = (process.env.AWS_S3_BUCKET || "naprocs-ems-documents").trim();
@@ -42,15 +46,23 @@ export class DocumentsService {
       // Expires in 15 minutes (900 seconds) per AGENTS.md security rules.
       const uploadUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
 
+      // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
+      this.auditService.logCreate({
+        moduleName: 'Documents',
+        entityId: objectKey,
+        actorId: 'unknown',
+        metadata: { action: 'GENERATE_UPLOAD_URL', fileName, contentType }
+      });
+
       return { uploadUrl, objectKey };
     } catch (error: any) {
-      console.error("[DocumentsService] Error generating S3 upload URL:", {
+      this.logger.error("[DocumentsService] Error generating S3 upload URL:", {
         message: error?.message,
         code: error?.Code || error?.name,
         bucket: this.bucketName,
         // Log only first 8 chars of key for debugging without exposing the full key
         accessKeyId: (process.env.AWS_ACCESS_KEY_ID || "").trim().substring(0, 8) + "...",
-      });
+      }, error.stack || error);
       throw new InternalServerErrorException("Failed to generate document upload URL");
     }
   }
@@ -63,17 +75,22 @@ export class DocumentsService {
     if (!objectKey) return "";
 
     try {
-      const command = new GetObjectCommand({
-        Bucket: this.bucketName,
-        Key: objectKey,
+      const url = await generatePresignedDownloadUrl(this.s3, this.bucketName, objectKey);
+
+      // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
+      this.auditService.logExport({
+        moduleName: 'Documents',
+        entityId: objectKey,
+        actorId: 'unknown',
+        metadata: { action: 'GENERATE_DOWNLOAD_URL' }
       });
 
-      return await getSignedUrl(this.s3, command, { expiresIn: 900 });
+      return url;
     } catch (error: any) {
-      console.error("[DocumentsService] Error generating S3 download URL:", {
+      this.logger.error("[DocumentsService] Error generating S3 download URL:", {
         message: error?.message,
         code: error?.Code || error?.name,
-      });
+      }, error.stack || error);
       throw new InternalServerErrorException("Failed to generate document download URL");
     }
   }

@@ -3,14 +3,14 @@
 import React from "react";
 import SettingsLayout from "@/components/modules/settings/settings-layout";
 import UsersPanel from "@/components/modules/settings/users-panel";
-import { useSettingsTestStore } from "@/store/settings-test";
+import { usePermissions } from "@/hooks/use-permissions";
 
 export default function SettingsUsersPage() {
-  const { activeRole, setActiveRole } = useSettingsTestStore();
+  const { role: activeRole } = usePermissions();
 
   return (
-    <SettingsLayout activeRole={activeRole} onRoleChange={setActiveRole}>
-      <UsersPanel activeRole={activeRole} />
+    <SettingsLayout  >
+      <UsersPanel  />
     </SettingsLayout>
   );
 }

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import React, { useState } from 'react';
 import { Camera, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -7,9 +8,10 @@ import { useAuthStore } from '@/store/auth';
 interface PersonalInfoProps {
   onSave: (data: any) => void;
   initialData?: any;
+  formId?: string;
 }
 
-export function PersonalInformationForm({ onSave, initialData: incomingData }: PersonalInfoProps) {
+export function PersonalInformationForm({ onSave, initialData: incomingData, formId }: PersonalInfoProps) {
   const initialData = incomingData || {};
   const [isUploading, setIsUploading] = useState(false);
   const [photoKey, setPhotoKey] = useState<string>(initialData?.photoUrl || '');
@@ -22,7 +24,7 @@ export function PersonalInformationForm({ onSave, initialData: incomingData }: P
 
     setIsUploading(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${apiUrl}/documents/upload-url`, {
         method: "POST",
         headers: {
@@ -74,12 +76,16 @@ export function PersonalInformationForm({ onSave, initialData: incomingData }: P
     const rawData = Object.fromEntries(formData.entries());
 
     // Structure data to match backend Prisma schema expectations
+    const sanitizePhone = (val: string) => val ? val.replace(/[^\d+]/g, '') : val;
+
     const data: any = {
       ...rawData,
+      phone: sanitizePhone(rawData.phone as string),
+      alternatePhone: sanitizePhone(rawData.alternatePhone as string),
       // Group emergency contact into a JSON object
       emergencyContact: {
         name: rawData.emergencyContactName,
-        phone: rawData.emergencyContactPhone,
+        phone: sanitizePhone(rawData.emergencyContactPhone as string),
         relation: rawData.emergencyContactRelation
       }
     };
@@ -101,7 +107,7 @@ export function PersonalInformationForm({ onSave, initialData: incomingData }: P
         <CardTitle className="text-xl font-bold text-slate-800">Personal Information</CardTitle>
       </CardHeader>
       <CardContent>
-        <form id="onboarding-form" onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+        <form id={formId || "onboarding-form"} onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
           {/* Left Column */}
           <div className="space-y-6">
             <div className="space-y-1.5">
@@ -170,7 +176,7 @@ export function PersonalInformationForm({ onSave, initialData: incomingData }: P
                 <label className="w-24 h-24 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:bg-slate-100 hover:border-slate-400 transition-colors overflow-hidden relative">
                   <input type="file" accept="image/jpeg,image/png" className="hidden" onChange={handlePhotoUpload} disabled={isUploading} />
                   {previewUrl ? (
-                    <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                    <Image src={previewUrl} alt="Preview" className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
                   ) : (
                     <>
                       {isUploading ? (

@@ -13,7 +13,13 @@ const ASSET_TYPES = [
   { id: 'access', name: 'Access Card', icon: <Key className="w-5 h-5 text-slate-700" /> },
 ];
 
-export function AssetsForm({ onSave }: { onSave: (data: any) => void }) {
+interface AssetsProps {
+  onSave: (data: any) => void;
+  initialData?: any;
+  formId?: string;
+}
+
+export function AssetsForm({ onSave, initialData = {}, formId }: AssetsProps) {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -22,7 +28,7 @@ export function AssetsForm({ onSave }: { onSave: (data: any) => void }) {
   };
 
   return (
-    <form id="onboarding-form" onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <form id={formId || "onboarding-form"} onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-3 gap-6">
       
       {/* Left side: Assets Selection */}
       <div className="xl:col-span-2 space-y-6">

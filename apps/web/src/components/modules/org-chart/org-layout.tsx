@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { usePermissions } from "@/hooks/use-permissions";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Network, Building2, GitFork, ChevronDown, Check } from "lucide-react";
@@ -10,11 +11,12 @@ import { useAuthStore } from "@/store/auth";
 
 interface OrgLayoutProps {
   children: React.ReactNode;
-  activeRole: OrgRole;
-  onRoleChange: (role: OrgRole) => void;
+  
 }
 const ALL_ROLES: OrgRole[] = ["ADMIN", "HR", "CEO", "CTO", "MANAGER", "EMPLOYEE"];
-export default function OrgLayout({ children, activeRole, onRoleChange }: OrgLayoutProps) {
+export default function OrgLayout({ children }: OrgLayoutProps) {
+  const { role } = usePermissions();
+  const activeRole = role as any;
   const pathname = usePathname();
   const currentUserRole = useAuthStore((state) => state.role) || "EMPLOYEE";
   const effectiveRole = currentUserRole;

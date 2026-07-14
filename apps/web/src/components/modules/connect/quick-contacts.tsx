@@ -1,12 +1,54 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { User, Building2, Users, HeartPulse, Clock } from "lucide-react";
+import { connectApi } from "@/lib/api/connect";
 
 interface QuickContactProps {
   onSelectContact: (id: string) => void;
   employees: any[];
 }
 
+interface ContactState {
+  status: "available" | "busy";
+  nextAvailable: string;
+}
+
 export function QuickContacts({ onSelectContact, employees }: QuickContactProps) {
+  const [statuses, setStatuses] = useState<Record<string, ContactState>>({});
+
+  useEffect(() => {
+    if (!employees || employees.length === 0) return;
+    const loadStatuses = async () => {
+      const top4 = employees.slice(0, 4);
+      const newStatuses: Record<string, ContactState> = {};
+      const now = new Date();
+      
+      await Promise.all(top4.map(async (emp) => {
+        try {
+          const res = await connectApi.getAvailability(emp.id, now.toISOString());
+          const busySlots = res.data?.busySlots || [];
+          
+          let isBusy = false;
+          let nextAvailableTime = "Now";
+
+          for (const slot of busySlots) {
+            const start = new Date(slot.startTime);
+            const end = new Date(slot.endTime);
+            if (now >= start && now <= end) {
+              isBusy = true;
+              nextAvailableTime = end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              break;
+            }
+          }
+          newStatuses[emp.id] = { status: isBusy ? "busy" : "available", nextAvailable: nextAvailableTime };
+        } catch (err) {
+          newStatuses[emp.id] = { status: "available", nextAvailable: "Now" };
+        }
+      }));
+      setStatuses(newStatuses);
+    };
+    loadStatuses();
+  }, [employees]);
+
   // If no employees loaded yet, show a skeleton or nothing
   if (!employees || employees.length === 0) return null;
 
@@ -15,16 +57,19 @@ export function QuickContacts({ onSelectContact, employees }: QuickContactProps)
   const iconColors = ["text-blue-600", "text-indigo-600", "text-teal-600", "text-rose-600"];
   const iconBgs = ["bg-blue-100", "bg-indigo-100", "bg-teal-100", "bg-rose-100"];
 
-  const contacts = employees.slice(0, 4).map((emp, idx) => ({
-    id: emp.id,
-    role: emp.designation?.title || "Employee",
-    name: `${emp.firstName || ""} ${emp.lastName || ""}`.trim() || "Colleague",
-    icon: icons[idx % icons.length],
-    iconColor: iconColors[idx % iconColors.length],
-    iconBg: iconBgs[idx % iconBgs.length],
-    status: "available", // Mocking availability for now since there's no backend for this yet
-    nextAvailable: "Now",
-  }));
+  const contacts = employees.slice(0, 4).map((emp, idx) => {
+    const s = statuses[emp.id] || { status: "available", nextAvailable: "..." };
+    return {
+      id: emp.id,
+      role: emp.designation?.title || "Employee",
+      name: `${emp.firstName || ""} ${emp.lastName || ""}`.trim() || "Colleague",
+      icon: icons[idx % icons.length],
+      iconColor: iconColors[idx % iconColors.length],
+      iconBg: iconBgs[idx % iconBgs.length],
+      status: s.status,
+      nextAvailable: s.nextAvailable,
+    };
+  });
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">

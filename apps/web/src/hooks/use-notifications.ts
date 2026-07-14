@@ -24,13 +24,13 @@ export function useNotifications() {
     if (!token) return;
 
     if (!socket) {
-      socket = io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/notifications", {
+      socket = io((process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3001") + "/notifications", {
         auth: { token },
         transports: ["websocket"],
       });
 
       socket.on("connect", () => {
-        console.log("Connected to Real-time Notifications Gateway");
+        // Connected
       });
 
       socket.on("new_notification", (notification: NotificationRecord) => {

@@ -10,8 +10,8 @@ export default function AttendanceReportsPage() {
   const activeRole = role.toUpperCase() as "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
 
   return (
-    <AttendanceLayout activeRole={activeRole}>
-      <ReportsPanel activeRole={activeRole} />
+    <AttendanceLayout >
+      <ReportsPanel  />
     </AttendanceLayout>
   );
 }

@@ -26,9 +26,11 @@ import {
 } from "lucide-react";
 import { Employee, DirectoryFilters } from "@/types/employees";
 import { useAuthStore } from "@/store/auth";
+import { usePermissions } from "@/hooks/use-permissions";
 
 import { EmployeeActionModals } from "./employee-action-modals";
 import { EmployeeRowActions, EmployeeActionType } from "./employee-row-actions";
+import Image from "next/image";
 
 export default function EmployeeDirectory() {
   const queryClient = useQueryClient();
@@ -62,10 +64,11 @@ export default function EmployeeDirectory() {
     }
   }, [searchParams]);
   const accessToken = useAuthStore((state) => state.accessToken);
+  const { role } = usePermissions();
 
   // Fetch from API
   const fetchEmployees = async (): Promise<Employee[]> => {
-    const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+    const url = process.env.NEXT_PUBLIC_API_URL!;
     const res = await fetch(`${url}/employees?page=1&limit=100`, {
       headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
       cache: "no-store",
@@ -76,7 +79,7 @@ export default function EmployeeDirectory() {
       console.error("Failed to fetch employees:", res.status, errText);
       throw new Error("Failed to fetch employees");
     }
-    
+
     const responseData = await res.json();
     if (!responseData || !responseData.data || !Array.isArray(responseData.data)) {
       console.error("Invalid response format:", responseData);
@@ -111,7 +114,7 @@ export default function EmployeeDirectory() {
   });
 
   const fetchDepartments = async () => {
-    const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+    const url = process.env.NEXT_PUBLIC_API_URL!;
     const res = await fetch(`${url}/departments`, {
       headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
     });
@@ -122,6 +125,21 @@ export default function EmployeeDirectory() {
   const { data: departmentsData } = useQuery({
     queryKey: ["departments", accessToken],
     queryFn: fetchDepartments,
+    enabled: !!accessToken,
+  });
+
+  const fetchDesignations = async () => {
+    const url = process.env.NEXT_PUBLIC_API_URL!;
+    const res = await fetch(`${url}/departments/all-designations`, {
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
+    });
+    if (!res.ok) return { data: [] };
+    return res.json();
+  };
+
+  const { data: designationsData } = useQuery({
+    queryKey: ["designations", accessToken],
+    queryFn: fetchDesignations,
     enabled: !!accessToken,
   });
 
@@ -152,9 +170,9 @@ export default function EmployeeDirectory() {
     return result;
   }, [rawEmployees, filters]);
 
-  const uniqueDepartments = useMemo(() => {
+  const uniqueDepartments = useMemo<string[]>(() => {
     if (departmentsData?.data && Array.isArray(departmentsData.data)) {
-      return departmentsData.data.map((d: any) => d.name).sort();
+      return departmentsData.data.map((d: any) => d.name as string).sort();
     }
     return [];
   }, [departmentsData]);
@@ -169,18 +187,18 @@ export default function EmployeeDirectory() {
   const handleAction = (action: EmployeeActionType, employeeId: string) => {
     const employee = rawEmployees.find(e => e.id === employeeId);
     if (!employee) return;
-    
+
     if (action === "view-documents" || action === "download-pdf") {
       handleActionSuccess(action, employeeId);
       return;
     }
-    
+
     setActionModalState({ isOpen: true, type: action, employee });
   };
 
   const handleActionSuccess = async (action: EmployeeActionType, employeeId: string, payload?: any) => {
-    const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
-    const headers = { 
+    const url = process.env.NEXT_PUBLIC_API_URL!;
+    const headers = {
       "Content-Type": "application/json",
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
     };
@@ -190,17 +208,17 @@ export default function EmployeeDirectory() {
         router.push(`/employees/${employeeId}?tab=documents`);
         return;
       }
-      
+
       if (action === "download-pdf") {
         const emp = rawEmployees.find(e => e.id === employeeId);
         if (emp) {
           const doc = new jsPDF();
           doc.setFontSize(20);
           doc.text(`Employee Profile: ${emp.name}`, 14, 22);
-          
+
           doc.setFontSize(10);
           doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
-          
+
           autoTable(doc, {
             startY: 40,
             head: [["Field", "Value"]],
@@ -217,7 +235,7 @@ export default function EmployeeDirectory() {
             theme: 'grid',
             headStyles: { fillColor: [63, 131, 248] },
           });
-          
+
           doc.save(`Employee_Profile_${emp.employeeId || emp.id}.pdf`);
         }
         return;
@@ -231,12 +249,12 @@ export default function EmployeeDirectory() {
           res = await fetch(`${url}/employees/${employeeId}`, {
             method: "PATCH",
             headers,
-            body: JSON.stringify({ 
-              firstName, 
-              lastName, 
-              officialEmail: payload.email, 
-              departmentId: payload.department, 
-              designationId: payload.designation 
+            body: JSON.stringify({
+              firstName,
+              lastName,
+              officialEmail: payload.email,
+              departmentId: payload.department,
+              designationId: payload.designation
             }),
           });
           break;
@@ -290,7 +308,7 @@ export default function EmployeeDirectory() {
         try {
           const errObj = JSON.parse(errText);
           if (errObj.message) errText = Array.isArray(errObj.message) ? errObj.message.join(", ") : errObj.message;
-        } catch (e) {}
+        } catch (e) { }
         alert(`Failed to complete action: \n${errText}`);
         return;
       }
@@ -318,7 +336,7 @@ export default function EmployeeDirectory() {
             <div className="flex items-center gap-3">
               <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 relative border border-slate-200 shadow-sm overflow-hidden ${emp.avatarBg}`}>
                 {emp.photoUrl ? (
-                  <img src={emp.photoUrl} alt={emp.name} className="w-full h-full object-cover" />
+                  <Image src={emp.photoUrl} alt={emp.name} className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
                 ) : (
                   <span>{emp.initials}</span>
                 )}
@@ -413,7 +431,7 @@ export default function EmployeeDirectory() {
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 font-sans">
       <div className="p-6 md:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6">
-        
+
         {/* Top Header Row */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-transparent pt-2">
           {/* Badge */}
@@ -436,7 +454,7 @@ export default function EmployeeDirectory() {
             </div>
             {/* Filter Button */}
             <div className="relative">
-              <button 
+              <button
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
                 className="flex items-center justify-center h-10 px-4 gap-2 bg-white border border-slate-300 text-slate-700 font-bold text-sm rounded-lg hover:bg-slate-50 shadow-sm transition-colors"
               >
@@ -448,11 +466,11 @@ export default function EmployeeDirectory() {
                 <div className="absolute right-0 top-12 w-64 bg-white border border-slate-200 rounded-xl shadow-lg p-4 z-50 flex flex-col gap-4">
                   <div className="flex justify-between items-center mb-1">
                     <span className="font-bold text-slate-800 text-sm">Filters</span>
-                    <button onClick={() => setIsFilterOpen(false)} className="text-slate-400 hover:text-slate-600"><X className="w-4 h-4"/></button>
+                    <button onClick={() => setIsFilterOpen(false)} className="text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-500 uppercase">Department</label>
-                    <select 
+                    <select
                       value={filters.department}
                       onChange={(e) => setFilters(prev => ({ ...prev, department: e.target.value }))}
                       className="w-full h-9 rounded-md border border-slate-300 text-sm px-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-900/20"
@@ -465,7 +483,7 @@ export default function EmployeeDirectory() {
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-500 uppercase">Status</label>
-                    <select 
+                    <select
                       value={filters.status}
                       onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
                       className="w-full h-9 rounded-md border border-slate-300 text-sm px-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-900/20"
@@ -480,11 +498,7 @@ export default function EmployeeDirectory() {
                 </div>
               )}
             </div>
-            {/* Add Employee */}
-            <Link href="/employees/add" className="flex items-center justify-center h-10 px-4 gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-lg shadow-sm transition-colors whitespace-nowrap">
-              <Plus className="w-4 h-4" />
-              Add employee
-            </Link>
+
           </div>
         </div>
 
@@ -575,11 +589,10 @@ export default function EmployeeDirectory() {
                   <button
                     key={pageIndex}
                     onClick={() => table.setPageIndex(pageIndex)}
-                    className={`w-8 h-8 flex items-center justify-center rounded-md font-bold text-sm ${
-                      table.getState().pagination.pageIndex === pageIndex
-                        ? "bg-slate-900 text-white"
-                        : "text-slate-600 hover:bg-slate-100"
-                    }`}
+                    className={`w-8 h-8 flex items-center justify-center rounded-md font-bold text-sm ${table.getState().pagination.pageIndex === pageIndex
+                      ? "bg-slate-900 text-white"
+                      : "text-slate-600 hover:bg-slate-100"
+                      }`}
                   >
                     {pageIndex + 1}
                   </button>
@@ -603,6 +616,9 @@ export default function EmployeeDirectory() {
         isOpen={actionModalState.isOpen}
         onClose={() => setActionModalState({ isOpen: false, type: null, employee: null })}
         onSuccess={handleActionSuccess}
+        departments={departmentsData?.data || []}
+        designations={designationsData?.data || []}
+        managers={rawEmployees}
       />
     </div>
   );

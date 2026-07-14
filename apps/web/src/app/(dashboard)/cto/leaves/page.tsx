@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Search, Info, ChevronLeft, ChevronRight, Plus, Lock, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
-import { fetchCtoLeaves, approveLeave, rejectLeave } from '@/lib/api/cto';
+import { fetchApprovals, approveLeave, rejectLeave } from '@/lib/api/leaves';
 
 // ─── Interfaces (No Hardcoded Mock Data) ─────────────────────────────────────────
 interface LeaveRequest {
@@ -21,7 +21,7 @@ interface LeaveRequest {
 }
 
 export default function CTOLeavesPage() {
-  const role = useAuthStore((state) => state.role);
+  const { role, employeeId } = useAuthStore();
 
   // States waiting for backend population
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
@@ -32,7 +32,7 @@ export default function CTOLeavesPage() {
   const handleApprove = async (id: string) => {
     setProcessingId(id);
     try {
-      await approveLeave(id);
+      await approveLeave(id, employeeId!);
       setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'APPROVED' } : r));
     } catch (err) {
       console.error(err);
@@ -48,7 +48,7 @@ export default function CTOLeavesPage() {
 
     setProcessingId(id);
     try {
-      await rejectLeave(id, reason);
+      await rejectLeave(id, employeeId!, reason);
       setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'REJECTED' } : r));
     } catch (err) {
       console.error(err);
@@ -76,16 +76,29 @@ export default function CTOLeavesPage() {
   const daysArray = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
   React.useEffect(() => {
-    if (role === 'CTO') {
+    if (role === 'CTO' && employeeId) {
       setIsLoading(true);
-      fetchCtoLeaves()
-        .then((data) => {
-          setRequests(data || []);
+      fetchApprovals(employeeId)
+        .then((data: any[]) => {
+          const mapped = data.map(req => ({
+             id: req.id,
+             employeeName: `${req.employee?.firstName || ''} ${req.employee?.lastName || ''}`,
+             employeeInitials: `${req.employee?.firstName?.[0] ?? ''}${req.employee?.lastName?.[0] ?? ''}`,
+             employeeRole: req.employee?.designation?.title ?? 'Employee',
+             department: req.employee?.department?.name ?? 'Department',
+             type: req.leaveType?.name ?? 'Leave',
+             dateRange: `${new Date(req.startDate).toISOString().split('T')[0]} - ${new Date(req.endDate).toISOString().split('T')[0]}`,
+             days: req.totalDays,
+             reason: req.reason ?? '',
+             status: req.status,
+             balanceAfterApproval: 0
+          }));
+          setRequests(mapped);
         })
         .catch((err) => console.error("Failed to fetch CTO leaves", err))
         .finally(() => setIsLoading(false));
     }
-  }, [role]);
+  }, [role, employeeId]);
 
   // Protect route
   if (role !== "CTO") {

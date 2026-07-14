@@ -21,16 +21,18 @@ export interface ApiLeaveRequest {
 
 export interface ApiLeaveKpi {
   totalLeaves: number;
+  accruedLeaves: number;
   usedLeaves: number;
   pendingLeaves: number;
   availableLeaves: number;
   details: Array<{
     id: string;
+    yearlyAllocated?: number;
     allocated: number;
     used: number;
     pending: number;
     carriedOver: number;
-    leaveType: { name: string; code: string };
+    leaveType: { name: string; code: string; isPaidLeave?: boolean };
     year: number;
   }>;
 }
@@ -63,13 +65,34 @@ export const fetchApprovals = async (approverId: string): Promise<ApiLeaveReques
 // ─── Apply for leave ──────────────────────────────────────────────────────────
 export const applyLeave = async (payload: {
   employeeId: string;
-  leaveTypeId: string;
+  leaveTypeIds: string[];
   startDate: string;
   endDate: string;
   reason: string;
   isHalfDay?: boolean;
-}): Promise<{ message: string; data: ApiLeaveRequest }> => {
+  halfDaySession?: string | null;
+}): Promise<{ message: string; data: any }> => {
   const { data } = await apiClient.post("/leaves/apply", payload);
+  return data;
+};
+
+// ─── Calculate leave deductions ───────────────────────────────────────────────
+export const calculateLeave = async (payload: {
+  employeeId: string;
+  leaveTypeIds: string[];
+  startDate: string;
+  endDate: string;
+  isHalfDay?: boolean;
+  reason?: string;
+  halfDaySession?: string | null;
+}): Promise<{ totalDays: number; paidDays: number; unpaidDays: number; deductionAmount: number }> => {
+  const { data } = await apiClient.post("/leaves/calculate", payload);
+  return data;
+};
+
+// ─── Get My Leaves ───────────────────────────────────────────────────────────
+export const getMyLeaves = async (employeeId: string): Promise<any[]> => {
+  const { data } = await apiClient.get(`/leaves/my?employeeId=${employeeId}`);
   return data;
 };
 

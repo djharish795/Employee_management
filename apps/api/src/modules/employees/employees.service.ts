@@ -1,34 +1,56 @@
+<<<<<<< HEAD
 import { Injectable, ConflictException, NotFoundException, ForbiddenException, BadRequestException, UnauthorizedException } from "@nestjs/common";
+=======
+import { Injectable, ConflictException, NotFoundException, ForbiddenException, BadRequestException, Logger } from "@nestjs/common";
+>>>>>>> fc120ef7f0078f0d4d150b0d2015b2197b36efa3
 import { PrismaService } from "../../prisma/prisma.service";
 import { RbacService } from "../rbac/rbac.service";
 import { CreateEmployeeDto } from "./dto/create-employee.dto";
 import { UpdateEmployeeDto } from "./dto/update-employee.dto";
 import { getPaginationOptions, createPaginatedResponse, PaginationParams, PaginatedResult } from "../../common/utils/pagination.util";
 import { Employee, UserRole } from "@naprocs/database";
+import { EmployeeResponseDto, mapToEmployeeResponseDto } from "./dto/employee-response.dto";
 import { Permission } from "@naprocs/types";
 import * as bcrypt from "bcrypt";
 import { encryptData } from "../../common/utils/encrypt.util";
 import { RedisService } from "../../redis/redis.service";
 import { v4 as uuidv4 } from "uuid";
-import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { createS3Client } from "../../common/utils/s3.util";
+import { S3Client } from "@aws-sdk/client-s3";
+import { createS3Client, generatePresignedDownloadUrl } from "../../common/utils/s3.util";
+
+import { NotificationsService } from "../notifications/notifications.service";
+import { NotificationType } from "@naprocs/database";
 
 @Injectable()
 export class EmployeesService {
+  private readonly logger = new Logger(EmployeesService.name);
   private readonly s3: S3Client;
   private readonly bucketName: string;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
-    private readonly rbacService: RbacService
+    private readonly rbacService: RbacService,
+    private readonly notificationsService: NotificationsService
   ) {
     this.s3 = createS3Client();
     this.bucketName = (process.env.AWS_S3_BUCKET || "naprocs-ems-documents").trim();
   }
 
-  async createEmployee(dto: CreateEmployeeDto): Promise<Employee> {
+  /**
+   * Helper to generate a pre-signed S3 URL for employee photos if a raw object key is present.
+   */
+  private async enrichWithSignedPhotoUrl(employee: any): Promise<void> {
+    if (employee?.photoUrl && !employee.photoUrl.startsWith("http")) {
+      try {
+        employee.photoUrl = await generatePresignedDownloadUrl(this.s3, this.bucketName, employee.photoUrl);
+      } catch (error) {
+        this.logger.error(`Failed to sign photo URL for employee ${employee.id}:`, error);
+      }
+    }
+  }
+
+  async createEmployee(dto: CreateEmployeeDto): Promise<EmployeeResponseDto> {
     return this.prisma.$transaction(async (tx) => {
       // 1. Check uniqueness of officialEmail
       const existingEmail = await tx.employee.findUnique({
@@ -135,19 +157,9 @@ export class EmployeesService {
         });
       }
 
-      if (employee.photoUrl && !employee.photoUrl.startsWith("http")) {
-        try {
-          const command = new GetObjectCommand({
-            Bucket: this.bucketName,
-            Key: employee.photoUrl,
-          });
-          employee.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
-        } catch (error) {
-          console.error(`Failed to sign URL for employee ${employee.id}:`, error);
-        }
-      }
+      await this.enrichWithSignedPhotoUrl(employee);
 
-      return employee;
+      return mapToEmployeeResponseDto(employee);
     });
   }
 
@@ -176,7 +188,7 @@ export class EmployeesService {
     return draftData || {};
   }
 
-  async completeOnboarding(draftId: string): Promise<Employee> {
+  async completeOnboarding(draftId: string): Promise<EmployeeResponseDto> {
     if (!draftId) throw new ConflictException("draftId is required");
 
     const redisKey = `employee_draft:${draftId}`;
@@ -196,7 +208,7 @@ export class EmployeesService {
     return employee;
   }
 
-  async getEmployees(params: PaginationParams): Promise<PaginatedResult<Employee>> {
+  async getEmployees(params: PaginationParams): Promise<PaginatedResult<EmployeeResponseDto>> {
     const { skip, take, page, limit } = getPaginationOptions(params);
 
     const [data, total] = await Promise.all([
@@ -217,24 +229,14 @@ export class EmployeesService {
     ]);
 
     // Enhance employees with signed photo URLs
-    for (const emp of data) {
-      if (emp.photoUrl && !emp.photoUrl.startsWith("http")) {
-        try {
-          const command = new GetObjectCommand({
-            Bucket: this.bucketName,
-            Key: emp.photoUrl,
-          });
-          emp.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
-        } catch (error) {
-          console.error(`Failed to sign URL for employee ${emp.id}:`, error);
-        }
-      }
-    }
+    await Promise.all(data.map(async (emp) => {
+      await this.enrichWithSignedPhotoUrl(emp);
+    }));
 
-    return createPaginatedResponse(data, total, page, limit);
+    return createPaginatedResponse(data.map(mapToEmployeeResponseDto), total, page, limit);
   }
 
-  async getEmployeeById(id: string, currentUser?: any): Promise<Employee> {
+  async getEmployeeById(id: string, currentUser?: any): Promise<EmployeeResponseDto> {
     const employee = await this.prisma.employee.findUnique({
       where: { id },
       include: {
@@ -288,36 +290,26 @@ export class EmployeesService {
       }
     }
 
-    if (employee.photoUrl && !employee.photoUrl.startsWith("http")) {
-      try {
-        const command = new GetObjectCommand({
-          Bucket: this.bucketName,
-          Key: employee.photoUrl,
-        });
-        employee.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
-      } catch (error) {
-        console.error(`Failed to sign URL for employee ${employee.id}:`, error);
-      }
-    }
+    await this.enrichWithSignedPhotoUrl(employee);
 
     const empWithRels = employee as any;
-    if (empWithRels.subordinates && empWithRels.subordinates.length > 0) {
-      for (const sub of empWithRels.subordinates) {
-        if (sub.photoUrl && !sub.photoUrl.startsWith("http")) {
-          try {
-            const subCommand = new GetObjectCommand({
-              Bucket: this.bucketName,
-              Key: sub.photoUrl,
-            });
-            sub.photoUrl = await getSignedUrl(this.s3, subCommand, { expiresIn: 900 });
-          } catch (e) {
-            console.error(`Failed to sign URL for sub ${sub.id}:`, e);
-          }
-        }
-      }
+    
+    const hasGlobalWrite = currentUser && currentUser.role && this.rbacService.hasPermission(currentUser.role, [Permission.WRITE_EMPLOYEES]);
+    const isOwner = currentUser && currentUser.employeeId === id;
+    if (!hasGlobalWrite && !isOwner) {
+      delete empWithRels.aadhaar;
+      delete empWithRels.pan;
+      delete empWithRels.passport;
+      delete empWithRels.bankAccountEnc;
+      delete empWithRels.voterId;
+      delete empWithRels.drivingLicence;
     }
 
-    return employee;
+    if (empWithRels.subordinates && empWithRels.subordinates.length > 0) {
+      await Promise.all(empWithRels.subordinates.map((sub: any) => this.enrichWithSignedPhotoUrl(sub)));
+    }
+
+    return mapToEmployeeResponseDto(employee);
   }
 
   async getOrgChart() {
@@ -338,19 +330,7 @@ export class EmployeesService {
       }
     });
 
-    for (const emp of employees) {
-      if (emp.photoUrl && !emp.photoUrl.startsWith("http")) {
-        try {
-          const command = new GetObjectCommand({
-            Bucket: this.bucketName,
-            Key: emp.photoUrl,
-          });
-          emp.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
-        } catch (e) {
-          console.error(`Failed to sign URL for org chart emp ${emp.id}:`, e);
-        }
-      }
-    }
+    await Promise.all(employees.map((emp) => this.enrichWithSignedPhotoUrl(emp)));
 
     return employees;
   }
@@ -427,7 +407,7 @@ export class EmployeesService {
     };
   }
 
-  async updateEmployee(id: string, dto: UpdateEmployeeDto, currentUser?: any): Promise<Employee> {
+  async updateEmployee(id: string, dto: UpdateEmployeeDto, currentUser?: any): Promise<EmployeeResponseDto> {
     // Verify the employee exists (also validates read access if we pass currentUser)
     const employee = await this.getEmployeeById(id, currentUser);
 
@@ -509,19 +489,21 @@ export class EmployeesService {
       });
     }
 
-    if (updatedEmployee.photoUrl && !updatedEmployee.photoUrl.startsWith("http")) {
-      try {
-        const command = new GetObjectCommand({
-          Bucket: this.bucketName,
-          Key: updatedEmployee.photoUrl,
-        });
-        updatedEmployee.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
-      } catch (error) {
-        console.error(`Failed to sign URL for employee ${updatedEmployee.id}:`, error);
-      }
+    await this.enrichWithSignedPhotoUrl(updatedEmployee);
+
+    // Trigger Notification for the updated employee
+    try {
+      await this.notificationsService.createNotification(
+        updatedEmployee.id,
+        "Profile Updated",
+        "Your profile information has been updated by Human Resources or Management.",
+        NotificationType.SYSTEM_ALERT
+      );
+    } catch (e) {
+      this.logger.warn(`Failed to send update notification to employee ${updatedEmployee.id}: ${e}`);
     }
 
-    return updatedEmployee;
+    return mapToEmployeeResponseDto(updatedEmployee);
   }
 
   async reassignManager(employeeId: string, newManagerId: string): Promise<void> {
@@ -538,22 +520,20 @@ export class EmployeesService {
       if (!manager) throw new NotFoundException("New manager not found.");
 
       // Prevent cyclic management: Check if the new manager already reports to this employee (directly or indirectly)
-      let currentManagerId: string | null = manager.reportingManagerId;
-      const visited = new Set<string>();
-      visited.add(newManagerId);
-
-      while (currentManagerId) {
-        if (currentManagerId === employeeId) {
-          throw new ConflictException("Cannot assign a subordinate as a manager. This would create a circular reporting line.");
-        }
-        if (visited.has(currentManagerId)) {
-          break; // Break on existing cycle just in case
-        }
-        visited.add(currentManagerId);
-        
-        const currentManager = await this.prisma.employee.findUnique({ where: { id: currentManagerId } });
-        if (!currentManager) break;
-        currentManagerId = currentManager.reportingManagerId;
+      const cycleCheck = await this.prisma.$queryRaw<any[]>`
+        WITH RECURSIVE chain AS (
+          SELECT id, "reportingManagerId" 
+          FROM "Employee" 
+          WHERE id = ${newManagerId}
+          UNION ALL
+          SELECT e.id, e."reportingManagerId"
+          FROM "Employee" e
+          JOIN chain c ON c."reportingManagerId" = e.id
+        )
+        SELECT id FROM chain WHERE id = ${employeeId} OR "reportingManagerId" = ${employeeId} LIMIT 1
+      `;
+      if (cycleCheck.length > 0) {
+        throw new ConflictException("Cannot assign a subordinate as a manager. This would create a circular reporting line.");
       }
     }
     
@@ -561,6 +541,17 @@ export class EmployeesService {
       where: { id: employeeId },
       data: { reportingManagerId: newManagerId || null }
     });
+
+    try {
+      await this.notificationsService.createNotification(
+        employeeId,
+        "Manager Reassigned",
+        "Your reporting manager has been updated.",
+        NotificationType.SYSTEM_ALERT
+      );
+    } catch (e) {
+      this.logger.warn(`Failed to send manager reassignment notification to employee ${employeeId}: ${e}`);
+    }
   }
 
   async getCtoTeam(): Promise<any> {

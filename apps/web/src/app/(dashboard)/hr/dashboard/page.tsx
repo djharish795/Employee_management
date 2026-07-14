@@ -17,8 +17,10 @@ import { RecentNotificationsWidget } from '@/components/shared/recent-notificati
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
+import { useAuthStore } from "@/store/auth";
 
 export default function HrDashboardPage() {
+  const employeeId = useAuthStore(state => state.employeeId);
   const [refreshKey, setRefreshKey] = useState(0);
   const queryClient = useQueryClient();
   const today = new Date();
@@ -34,14 +36,14 @@ export default function HrDashboardPage() {
 
   const handleApprove = async (id: string) => {
     try {
-      await apiClient.post(`/leaves/${id}/approve`, { approverId: 'hr-admin' }); // In a real app we'd pass current user ID
+      await apiClient.post(`/leaves/${id}/approve`, { approverId: employeeId });
       queryClient.invalidateQueries({ queryKey: ['hr-overview'] });
     } catch (e) { console.error(e); }
   };
 
   const handleReject = async (id: string) => {
     try {
-      await apiClient.post(`/leaves/${id}/reject`, { approverId: 'hr-admin', reason: 'Rejected by HR' });
+      await apiClient.post(`/leaves/${id}/reject`, { approverId: employeeId, reason: 'Rejected by HR' });
       queryClient.invalidateQueries({ queryKey: ['hr-overview'] });
     } catch (e) { console.error(e); }
   };
@@ -266,7 +268,7 @@ export default function HrDashboardPage() {
                   a.download = 'hr-overview.csv';
                   a.click();
                 }}>Export Data</DropdownMenuItem>
-                <DropdownMenuItem asChild><Link href="/attendance/reports">View Details</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link href="/attendance/summary?tab=analytics">View Details</Link></DropdownMenuItem>
                 <DropdownMenuItem onClick={() => {
                   setRefreshKey(prev => prev + 1);
                   queryClient.invalidateQueries({ queryKey: ['hr-overview'] });
@@ -280,7 +282,7 @@ export default function HrDashboardPage() {
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                 <circle cx="50" cy="50" r="40" fill="transparent" stroke="var(--donut-bg, #f1f5f9)" strokeWidth="12" className="dark:stroke-slate-800" />
                 {/* Absent */}
-                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#e2e8f0" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset={251.2 - (251.2 * animAbsent) / 100} className={`dark:stroke-slate-700 ${isResetting ? 'transition-none' : 'transition-all duration-[2500ms] ease-out'}`} />
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#ef4444" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset={251.2 - (251.2 * animAbsent) / 100} className={`dark:stroke-red-500 ${isResetting ? 'transition-none' : 'transition-all duration-[2500ms] ease-out'}`} />
                 {/* WFH */}
                 <circle cx="50" cy="50" r="40" fill="transparent" stroke="#2563eb" strokeWidth="12" strokeDashoffset={251.2 - (251.2 * animWfh) / 100} strokeDasharray="251.2" style={{ strokeDashoffset: 251.2 - (251.2 * animWfh) / 100, strokeDasharray: "251.2 251.2", transformOrigin: "center", transform: `rotate(${(absentPct / 100) * 360}deg)` }} className={`${isResetting ? 'transition-none' : 'transition-all duration-[2500ms] ease-out'}`} />
                 {/* Present */}
@@ -312,8 +314,8 @@ export default function HrDashboardPage() {
               </div>
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-sm bg-slate-200 dark:bg-slate-700"></div>
-                  <span className="text-slate-500 dark:text-slate-500 font-medium">Absent ({absentPct}%)</span>
+                  <div className="w-2.5 h-2.5 rounded-sm bg-red-500 dark:bg-red-500"></div>
+                  <span className="text-slate-600 dark:text-slate-400 font-medium">Absent ({absentPct}%)</span>
                 </div>
                 <span className="font-bold text-red-600 dark:text-red-400">{data.attendance.absent}</span>
               </div>

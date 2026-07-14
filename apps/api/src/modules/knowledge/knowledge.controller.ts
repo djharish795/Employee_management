@@ -10,6 +10,8 @@ import {
   UseGuards,
   UseInterceptors,
 } from "@nestjs/common";
+import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
+import { RbacPermissions } from '../../common/rbac/rbac.config';
 import { KnowledgeService } from "./knowledge.service";
 import { CreateKnowledgeDocDto } from "./dto/create-knowledge.dto";
 import { UpdateKnowledgeDocDto } from "./dto/update-knowledge.dto";
@@ -27,8 +29,9 @@ import { AuditInterceptor } from "../../common/interceptors/audit.interceptor";
 export class KnowledgeController {
   constructor(private readonly knowledgeService: KnowledgeService) { }
 
+  @RequirePermissions(RbacPermissions.KNOWLEDGE_CREATE)
   @Post()
-  @Permissions(Permission.READ_OWN_PROFILE)
+  @Permissions(Permission.WRITE_EMPLOYEES)
   async create(
     @CurrentUser() user: any,
     @Body() dto: CreateKnowledgeDocDto,
@@ -64,7 +67,7 @@ export class KnowledgeController {
   }
 
   @Patch(":id")
-  @Permissions(Permission.READ_OWN_PROFILE)
+  @Permissions(Permission.WRITE_EMPLOYEES)
   async update(
     @Param("id") id: string,
     @CurrentUser() user: any,
@@ -74,7 +77,7 @@ export class KnowledgeController {
   }
 
   @Delete(":id")
-  @Permissions(Permission.READ_OWN_PROFILE)
+  @Permissions(Permission.WRITE_EMPLOYEES)
   async remove(
     @Param("id") id: string,
     @CurrentUser() user: any,
@@ -83,7 +86,7 @@ export class KnowledgeController {
   }
 
   @Patch(":id/publish")
-  @Permissions(Permission.READ_OWN_PROFILE)
+  @Permissions(Permission.WRITE_EMPLOYEES)
   async publish(
     @Param("id") id: string,
     @CurrentUser() user: any,

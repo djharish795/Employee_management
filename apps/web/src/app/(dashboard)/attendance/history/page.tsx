@@ -10,7 +10,7 @@ export default function AttendanceHistoryPage() {
   const activeRole = role.toUpperCase() as "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
 
   return (
-    <AttendanceLayout activeRole={activeRole}>
+    <AttendanceLayout >
       <HistoryPanel mode={activeRole === "HR" || activeRole === "ADMIN" ? "org" : "personal"} />
     </AttendanceLayout>
   );

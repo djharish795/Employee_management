@@ -21,7 +21,7 @@ export function AddConsentModal({ isOpen, onClose, onSuccess }: AddConsentModalP
   const { data: employees = [] } = useQuery({
     queryKey: ["employees-list", accessToken],
     queryFn: async () => {
-      const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const url = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${url}/employees?page=1&limit=500`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
@@ -40,7 +40,7 @@ export function AddConsentModal({ isOpen, onClose, onSuccess }: AddConsentModalP
     setIsSubmitting(true);
 
     try {
-      const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const url = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${url}/compliance/consents`, {
         method: "POST",
         headers: {

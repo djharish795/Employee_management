@@ -1,15 +1,16 @@
 "use client";
 
+import { usePermissions } from "@/hooks/use-permissions";
 import React from "react";
 import { Workflow, ArrowRight, FileCheck, Save, Clock, Trash2 } from "lucide-react";
 import { SettingsRole } from "@/types/settings";
 
 interface WorkflowsPanelProps {
-  activeRole: SettingsRole;
+  
 }
 
-export default function WorkflowsPanel({ activeRole }: WorkflowsPanelProps) {
-  const canManage = ["SUPER_ADMIN", "ADMIN", "HR_ADMIN"].includes(activeRole);
+export default function WorkflowsPanel() {
+  const { canManageSettings: canManage } = usePermissions();
 
   return (
     <div className="space-y-6">

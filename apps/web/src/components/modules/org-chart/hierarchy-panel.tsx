@@ -10,9 +10,11 @@ import { TreeNode, EmployeeCard } from "./tree-node";
 import { apiClient } from "@/lib/api/client";
 import html2canvas from "html2canvas";
 import toast from "react-hot-toast";
+import Image from "next/image";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface HierarchyPanelProps {
-  activeRole: OrgRole;
+  
 }
 
 
@@ -40,7 +42,7 @@ function buildTree(employees: OrgEmployee[], rootId: string | null = null): OrgT
     });
 }
 
-export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
+export default function HierarchyPanel() {
   const [zoom, setZoom] = useState(1);
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({
     "EMP-100": true,
@@ -66,8 +68,9 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
         email: emp.officialEmail,
         photoUrl: emp.photoUrl || '',
         initials: (emp.firstName?.[0] || '') + (emp.lastName?.[0] || ''),
-        avatarBg: colors[index % colors.length],
-        managerId: emp.reportingManagerId
+        avatarBg: emp.isVacant ? "bg-slate-100 text-slate-400" : colors[index % colors.length],
+        managerId: emp.reportingManagerId,
+        isVacant: emp.isVacant || false
       }));
 
       return mappedEmployees;
@@ -111,7 +114,8 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
 
   const { refetch } = useQuery({ queryKey: ["orgTree"] });
 
-  const canManageHierarchy = activeRole === "HR" || activeRole === "CEO" || activeRole === "ADMIN";
+  const { canManageOrg, isExecutive } = usePermissions();
+  const canManageHierarchy = canManageOrg || isExecutive;
 
   const toggleNode = (id: string) => {
     setExpandedNodes(prev => ({ ...prev, [id]: !prev[id] }));
@@ -214,7 +218,7 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
 
             <div className="p-6 flex flex-col items-center border-b border-slate-100">
               <div className={`w-20 h-20 rounded-full flex items-center justify-center text-xl font-bold mb-4 shadow-sm border-2 border-white ring-1 ring-slate-200 ${selectedNode.avatarBg}`}>
-                <img src={selectedNode.photoUrl} alt={selectedNode.name} className="w-full h-full rounded-full object-cover" />
+                <Image src={selectedNode.photoUrl} alt={selectedNode.name} className="w-full h-full rounded-full object-cover" fill style={{ objectFit: "cover" }} />
               </div>
               <h2 className="text-lg font-bold text-slate-900">{selectedNode.name}</h2>
               <p className="text-sm font-semibold text-slate-500 text-center mt-1">{selectedNode.designation}</p>

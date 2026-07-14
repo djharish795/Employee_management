@@ -1,15 +1,16 @@
 "use client";
 
+import { usePermissions } from "@/hooks/use-permissions";
 import React from "react";
 import { Building2, MapPin, Save, UploadCloud, Users } from "lucide-react";
 import { SettingsRole } from "@/types/settings";
 
 interface OrgPanelProps {
-  activeRole: SettingsRole;
+  
 }
 
-export default function OrgPanel({ activeRole }: OrgPanelProps) {
-  const canEdit = ["SUPER_ADMIN", "ADMIN", "HR_ADMIN"].includes(activeRole);
+export default function OrgPanel() {
+  const { canManageSettings: canEdit } = usePermissions();
 
   return (
     <div className="space-y-6">

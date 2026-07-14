@@ -4,11 +4,14 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
 import { Permissions } from '../../common/decorators/permissions.decorator';
 import { Permission } from '@naprocs/types';
+import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
+import { RbacPermissions } from '../../common/rbac/rbac.config';
 
 @Controller('reports')
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
+  @RequirePermissions(RbacPermissions.REPORTS_GENERATE)
   @Post('generate')
   @UseGuards(JwtAuthGuard, RbacGuard)
   @Permissions(Permission.READ_EMPLOYEES)

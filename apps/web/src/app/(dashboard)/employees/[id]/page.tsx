@@ -18,9 +18,6 @@ export default function EmployeeProfilePage() {
   const router = useRouter();
   const id = params.id as string;
 
-  // Staging Active Role Switcher to support CEO, HR, Manager, Admin configs
-  const [activeRole, setActiveRole] = useState<DirectoryRole>("ADMIN");
-
   // React Query Fetch Details matching route ID parameter
   const { data: profile, isLoading, error } = useQuery<FullEmployeeProfile>({
     queryKey: ["employeeProfile", id],
@@ -186,10 +183,8 @@ export default function EmployeeProfilePage() {
           <>
             <ProfileHeader
               profile={profile}
-              activeRole={activeRole}
-              onRoleChange={(role) => setActiveRole(role)}
             />
-            <ProfileTabs profile={profile} activeRole={activeRole} />
+            <ProfileTabs profile={profile} />
           </>
         )}
       </div>

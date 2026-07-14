@@ -5,6 +5,8 @@ import { RbacGuard } from "../../common/guards/rbac.guard";
 import { AuditInterceptor } from "../../common/interceptors/audit.interceptor";
 import { Permissions } from "../../common/decorators/permissions.decorator";
 import { Permission } from "@naprocs/types";
+import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
+import { RbacPermissions } from '../../common/rbac/rbac.config';
 
 @Controller("departments")
 @UseGuards(JwtAuthGuard, RbacGuard)
@@ -12,6 +14,7 @@ import { Permission } from "@naprocs/types";
 export class DepartmentsController {
   constructor(private readonly departmentsService: DepartmentsService) {}
 
+  @RequirePermissions(RbacPermissions.DEPARTMENTS_READ)
   @Get("dashboard")
   @Permissions(Permission.READ_EMPLOYEES) // Restrict to roles that can view org structure
   async getDashboardStats() {

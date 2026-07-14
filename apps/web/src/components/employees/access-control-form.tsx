@@ -3,7 +3,13 @@ import { User, Shield, Grid, ShieldCheck, Eye, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 
-export function AccessControlForm({ onSave }: { onSave: (data: any) => void }) {
+interface AccessControlProps {
+  onSave: (data: any) => void;
+  initialData?: any;
+  formId?: string;
+}
+
+export function AccessControlForm({ onSave, initialData = {}, formId }: AccessControlProps) {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -12,7 +18,7 @@ export function AccessControlForm({ onSave }: { onSave: (data: any) => void }) {
   };
 
   return (
-    <form id="onboarding-form" onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <form id={formId || "onboarding-form"} onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-3 gap-6">
       
       {/* Left Column: Forms */}
       <div className="xl:col-span-2 space-y-6">

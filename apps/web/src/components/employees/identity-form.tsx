@@ -1,9 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FileBadge, Landmark, Globe, UploadCloud, CheckCircle2, FileText, Image as ImageIcon, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 
-export function IdentityForm({ onSave }: { onSave: (data: any) => void }) {
+interface IdentityProps {
+  onSave: (data: any) => void;
+  initialData?: any;
+  formId?: string;
+}
+
+export function IdentityForm({ onSave, initialData = {}, formId }: IdentityProps) {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -12,7 +18,7 @@ export function IdentityForm({ onSave }: { onSave: (data: any) => void }) {
   };
 
   return (
-    <form id="onboarding-form" onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <form id={formId || "onboarding-form"} onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-3 gap-6">
       <div className="xl:col-span-2 space-y-6">
         
         {/* Government IDs */}

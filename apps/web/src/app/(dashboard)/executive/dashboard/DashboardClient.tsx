@@ -31,7 +31,7 @@ export function DashboardClient() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['dashboard-metrics'],
     queryFn: async () => {
-      const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const url = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${url}/dashboard/metrics`, {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
       });
@@ -69,7 +69,7 @@ export function DashboardClient() {
 
   const handleExport = async () => {
     try {
-      const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const url = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${url}/dashboard/export-report`, {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
       });

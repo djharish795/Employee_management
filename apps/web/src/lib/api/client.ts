@@ -2,7 +2,7 @@ import axios from "axios";
 import { useAuthStore } from "../../store/auth";
 
 export const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1",
+  baseURL: process.env.NEXT_PUBLIC_API_URL!,
 });
 
 // Request Interceptor: Inject Token
@@ -75,7 +75,7 @@ apiClient.interceptors.response.use(
 
       try {
         const { data } = await axios.post(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1"}/auth/refresh`,
+          `${process.env.NEXT_PUBLIC_API_URL!}/auth/refresh`,
           { refreshToken }
         );
 
@@ -85,6 +85,7 @@ apiClient.interceptors.response.use(
             refreshToken: data.refreshToken,
             role: data.role || "EMPLOYEE",
             employeeId: data.employeeId ?? null,
+            isTeamLead: data.isTeamLead ?? false,
           });
           document.cookie = `token=${data.token}; path=/; max-age=86400; SameSite=Strict`;
 

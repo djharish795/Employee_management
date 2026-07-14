@@ -1,11 +1,12 @@
 "use client";
 
+import { usePermissions } from "@/hooks/use-permissions";
 import React, { useState } from "react";
 import { Shield, Copy, Save, AlertTriangle, Eye, Check } from "lucide-react";
 import { SettingsRole, SystemModule, PermissionAction } from "@/types/settings";
 
 interface PermissionsPanelProps {
-  activeRole: SettingsRole;
+  
 }
 
 const MODULES: { id: SystemModule; label: string }[] = [
@@ -22,8 +23,10 @@ const ACTIONS: PermissionAction[] = ["READ", "WRITE", "DELETE", "APPROVE", "MANA
 
 const ROLES = ["CEO", "HR Admin", "IT Admin", "Manager", "Employee", "Compliance Officer"];
 
-export default function PermissionsPanel({ activeRole }: PermissionsPanelProps) {
-  const canManageRBAC = ["SUPER_ADMIN", "ADMIN"].includes(activeRole);
+export default function PermissionsPanel() {
+  const { role } = usePermissions();
+  const activeRole = role as any;
+  const { isAdmin: canManageRBAC } = usePermissions();
   
   // Create a complex bitmask-like simulation state for checkboxes
   const [matrixState, setMatrixState] = useState<Record<string, boolean>>({

@@ -128,4 +128,9 @@ export const assetsApi = {
     const { data } = await apiClient.get(`${BASE}/kpis/financials`);
     return data.data ?? data;
   },
+
+  kpiTrends: async () => {
+    const { data } = await apiClient.get(`${BASE}/kpis/trends`);
+    return data.data ?? data;
+  },
 };

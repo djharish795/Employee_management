@@ -120,10 +120,15 @@ model Employee {
   connectSettings            ConnectSettings?
   assignedTasks              Task[]                     @relation("TaskAssignee")
   createdTasks               Task[]                     @relation("TaskCreator")
+  reportedTasks              Task[]                     @relation("TaskReporter")
+  taskComments               TaskComment[]
+  taskActions                TaskAction[]
   generatedReports           ReportHistory[]            @relation("ReportGenerator")
   offboardingRecord          OffboardingProcess?        @relation("EmployeeOffboarding")
   ktAssignments              OffboardingProcess[]       @relation("KTAssignee")
   onboardingSession          OnboardingSession?
+  meetNotes                  MeetNote[]
+  meetNoteComments           MeetNoteComment[]
 
   @@map("employees")
 }
@@ -185,14 +190,17 @@ model Department {
 }
 
 model Designation {
-  id           String     @id @default(cuid())
-  band         String?
-  createdAt    DateTime   @default(now())
-  departmentId String
-  grade        String?
-  title        String
-  department   Department @relation(fields: [departmentId], references: [id])
-  employees    Employee[]
+  id                     String        @id @default(cuid())
+  band                   String?
+  createdAt              DateTime      @default(now())
+  departmentId           String
+  grade                  String?
+  title                  String
+  reportsToDesignationId String?
+  reportsToDesignation   Designation?  @relation("DesignationHierarchy", fields: [reportsToDesignationId], references: [id])
+  childDesignations      Designation[] @relation("DesignationHierarchy")
+  department             Department    @relation(fields: [departmentId], references: [id])
+  employees              Employee[]
 
   @@unique([title, departmentId])
   @@map("designations")
@@ -309,6 +317,8 @@ model LeaveRequest {
   startDate          DateTime           @db.Date
   status             LeaveRequestStatus @default(PENDING)
   totalDays          Decimal            @db.Decimal(4, 1)
+  paidDays           Decimal            @default(0) @db.Decimal(4, 1)
+  unpaidDays         Decimal            @default(0) @db.Decimal(4, 1)
   workflowInstanceId String?
   approvalQueue      Json?
   currentStep        Int                @default(0)
@@ -424,6 +434,7 @@ model MeetRequest {
   linkedGoal   Goal?             @relation(fields: [linkedGoalId], references: [id], onDelete: SetNull)
   participants MeetParticipant[]
   tasks        Task[]
+  notes        MeetNote[]
 
   @@map("meet_requests")
 }
@@ -1024,26 +1035,57 @@ model AIChat {
 }
 
 model Project {
-  id          String              @id @default(cuid())
-  name        String
-  description String?
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-  assignments ProjectAssignment[]
+  id           String              @id @default(cuid())
+  name         String
+  description  String?
+  key          String?             @unique
+  issueCounter Int                 @default(0)
+  status       ProjectStatus       @default(ACTIVE)
+  startDate    DateTime            @default(now())
+  endDate      DateTime?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  assignments  ProjectAssignment[]
+  tasks        Task[]
+  sprints      Sprint[]
 
   @@map("projects")
 }
 
 model ProjectAssignment {
-  id         String   @id @default(cuid())
-  projectId  String
-  employeeId String
-  assignedAt DateTime @default(now())
-  project    Project  @relation(fields: [projectId], references: [id])
-  employee   Employee @relation(fields: [employeeId], references: [id])
+  id          String      @id @default(cuid())
+  projectId   String
+  employeeId  String
+  projectRole ProjectRole @default(MEMBER)
+  assignedAt  DateTime    @default(now())
+  releasedAt  DateTime?
+  project     Project     @relation(fields: [projectId], references: [id])
+  employee    Employee    @relation(fields: [employeeId], references: [id])
 
   @@unique([projectId, employeeId])
   @@map("project_assignments")
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  ON_HOLD
+}
+
+enum ProjectRole {
+  DM
+  SPM
+  PM
+  TL
+  TR
+  TS
+  QA
+  QE
+  QM
+  SDM
+  ITM
+  ITE
+  MEMBER
 }
 
 model WorkFromHomeRequest {
@@ -1109,6 +1151,8 @@ enum UserRole {
   EMPLOYEE
   IT
   CAM
+  OE
+  OM
 }
 
 enum UserStatus {
@@ -1118,11 +1162,11 @@ enum UserStatus {
 }
 
 enum EmployeeStatus {
-  ONBOARDING
   PROBATION
   ACTIVE
   NOTICE_PERIOD
   EXITED
+  ONBOARDING
 }
 
 enum Gender {
@@ -1153,13 +1197,13 @@ enum OtpType {
 
 enum AttendanceStatus {
   PRESENT
-  LATE
   ABSENT
   HALF_DAY
   HOLIDAY
   WFH
   ON_LEAVE
   EARLY_CHECKOUT
+  LATE
 }
 
 enum CheckInMethod {
@@ -1444,7 +1488,19 @@ enum AITargetType {
 enum TaskStatus {
   TODO
   IN_PROGRESS
+  IN_REVIEW
+  QA
   DONE
+  BLOCKED
+}
+
+enum TaskType {
+  STORY
+  TASK
+  BUG
+  EPIC
+  DAILY_TASK
+  WEEKLY_TASK_SHEET
 }
 
 enum TaskPriority {
@@ -1453,26 +1509,106 @@ enum TaskPriority {
   HIGH
 }
 
+enum SprintStatus {
+  PLANNED
+  ACTIVE
+  COMPLETED
+}
+
+model Sprint {
+  id        String       @id @default(cuid())
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  status    SprintStatus @default(PLANNED)
+  projectId String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks   Task[]
+
+  @@map("sprints")
+}
+
 model Task {
   id          String       @id @default(cuid())
+  issueKey    String?      @unique
   title       String
   description String?
   status      TaskStatus   @default(TODO)
   priority    TaskPriority @default(MEDIUM)
+  type        TaskType     @default(TASK)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   dueDate     DateTime?
 
   assigneeId    String?
   creatorId     String
+  reporterId    String?
   meetRequestId String?
+  projectId     String?
+  sprintId      String?
 
-  assignee    Employee?    @relation("TaskAssignee", fields: [assigneeId], references: [id])
-  creator     Employee     @relation("TaskCreator", fields: [creatorId], references: [id])
-  meetRequest MeetRequest? @relation(fields: [meetRequestId], references: [id], onDelete: SetNull)
+  assignee    Employee?     @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  creator     Employee      @relation("TaskCreator", fields: [creatorId], references: [id])
+  reporter    Employee?     @relation("TaskReporter", fields: [reporterId], references: [id])
+  meetRequest MeetRequest?  @relation(fields: [meetRequestId], references: [id], onDelete: SetNull)
+  project     Project?      @relation(fields: [projectId], references: [id])
+  sprint      Sprint?       @relation(fields: [sprintId], references: [id])
+  comments    TaskComment[]
+  actions     TaskAction[]
 
   @@index([assigneeId, status])
+  @@index([projectId, status])
+  @@index([sprintId])
   @@map("tasks")
+}
+
+model TaskComment {
+  id        String          @id @default(cuid())
+  taskId    String
+  authorId  String
+  content   String
+  category  CommentCategory @default(COMMENT)
+  createdAt DateTime        @default(now())
+  viewedBy  String[]        @default([])
+  updatedAt DateTime        @updatedAt
+
+  task   Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author Employee @relation(fields: [authorId], references: [id])
+
+  @@index([taskId])
+  @@map("task_comments")
+}
+
+enum CommentCategory {
+  QUESTION
+  COMMENT
+  BUG
+  IMPROVEMENT
+}
+
+enum StrictActionType {
+  ESCALATED
+  BLOCKED_BY_MANAGEMENT
+  REMARK
+  PRIORITY_BUMP
+}
+
+model TaskAction {
+  id        String           @id @default(cuid())
+  taskId    String
+  actorId   String
+  type      StrictActionType
+  notes     String?
+  createdAt DateTime         @default(now())
+
+  task  Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  actor Employee @relation(fields: [actorId], references: [id])
+
+  @@index([taskId])
+  @@map("task_actions")
 }
 
 enum RegularizationCorrectionType {
@@ -1532,15 +1668,6 @@ model ReportHistory {
   @@map("report_history")
 }
 
-enum OnboardingStage {
-  OFFER_ACCEPTED
-  DOCUMENTATION
-  ASSET_ALLOCATION
-  TRAINING
-  MANAGER_INTRO
-  COMPLETED
-}
-
 model OnboardingSession {
   id          String          @id @default(cuid())
   employeeId  String          @unique
@@ -1572,4 +1699,42 @@ model OnboardingTask {
 
   @@index([sessionId])
   @@map("onboarding_tasks")
+}
+
+enum OnboardingStage {
+  OFFER_ACCEPTED
+  DOCUMENTATION
+  ASSET_ALLOCATION
+  TRAINING
+  MANAGER_INTRO
+  COMPLETED
+}
+
+model MeetNote {
+  id            String   @id @default(cuid())
+  meetRequestId String
+  authorId      String
+  content       String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  meetRequest   MeetRequest       @relation(fields: [meetRequestId], references: [id], onDelete: Cascade)
+  author        Employee          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments      MeetNoteComment[]
+
+  @@map("meet_notes")
+}
+
+model MeetNoteComment {
+  id         String   @id @default(cuid())
+  noteId     String
+  authorId   String
+  content    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  note       MeetNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  author     Employee @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("meet_note_comments")
 }

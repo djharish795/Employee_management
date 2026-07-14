@@ -1,5 +1,6 @@
 "use client";
 
+import { usePermissions } from "@/hooks/use-permissions";
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { assetsApi } from "@/lib/api/assets";
@@ -34,7 +35,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface InventoryPanelProps {
-  activeRole: AssetRole;
+  
 }
 
 
@@ -75,7 +76,7 @@ const ALL_STATUSES: AssetStatus[] = [
   "ASSIGNED", "AVAILABLE", "MAINTENANCE", "RETIRED", "LOST",
 ];
 
-export default function InventoryPanel({ activeRole }: InventoryPanelProps) {
+export default function InventoryPanel() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<AssetStatus | "ALL">("ALL");
   const [categoryFilter, setCategoryFilter] = useState<AssetCategory | "ALL">("ALL");
@@ -131,7 +132,7 @@ export default function InventoryPanel({ activeRole }: InventoryPanelProps) {
 
   const filtered = assets;
 
-  const canEdit = ["IT_ADMIN", "SUPER_ADMIN", "HR"].includes(activeRole);
+  const { isAdmin: canEdit } = usePermissions();
 
   return (
     <div className="space-y-5">
