@@ -440,7 +440,7 @@ export default function AttendanceSummaryPage() {
               {/* Analytics & Reports */}
               <div className="pt-2">
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Detailed Analytics</h3>
-                <ReportsPanel activeRole={role as any} />
+                <ReportsPanel />
               </div>
             </div>
           </div>
