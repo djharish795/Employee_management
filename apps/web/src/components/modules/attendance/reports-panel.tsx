@@ -3,7 +3,7 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { BarChart3, TrendingUp, Download, PieChart, Loader2 } from "lucide-react";
-import { fetchOrgReports } from "@/lib/api/attendance";
+import { fetchOrgReports, fetchAllLogs, fetchRegularizations } from "@/lib/api/attendance";
 
 interface ReportsPanelProps {
   activeRole: "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
@@ -26,24 +26,61 @@ export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
     queryFn: fetchOrgReports,
   });
 
-  const handleExportFullReport = () => {
-    if (!metrics) return;
-    const rows = [
-      ["Department", "Headcount", "Attendance Rate"],
-      ...metrics.departmentRates.map(d => [d.name, d.count.toString(), `${d.percent}%`])
-    ];
+  const handleExportTimesheet = async () => {
+    try {
+      const logs = await fetchAllLogs(1, 2000); // Fetch up to 2000 logs
+      const rows = [
+        ["Date", "Employee Name", "Check In", "Check Out", "Hours Worked", "Status", "Remarks"],
+        ...logs.map(log => [
+          log.date,
+          (log as any).employeeName || "Unknown",
+          log.checkIn,
+          log.checkOut,
+          log.hoursWorked.toString(),
+          log.status,
+          `"${(log.remarks || "").replace(/"/g, '""')}"`
+        ])
+      ];
+      const csvContent = "data:text/csv;charset=utf-8," + rows.map((e) => e.join(",")).join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `monthly_timesheet_${new Date().toISOString().split("T")[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e) {
+      console.error("Failed to export timesheet", e);
+    }
+  };
 
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      rows.map((e) => e.join(",")).join("\n");
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `org_attendance_report_${new Date().toISOString().split("T")[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleExportRegularizations = async () => {
+    try {
+      const requests = await fetchRegularizations();
+      const rows = [
+        ["Request ID", "Employee Name", "Date", "Correction Type", "Reason", "Manager Status", "HR Status", "Submitted Date"],
+        ...requests.map(req => [
+          req.id,
+          req.employeeName || "Unknown",
+          req.attendanceDate,
+          req.correctionType,
+          `"${(req.reason || "").replace(/"/g, '""')}"`,
+          req.managerStatus,
+          req.hrStatus,
+          req.submittedDate
+        ])
+      ];
+      const csvContent = "data:text/csv;charset=utf-8," + rows.map((e) => e.join(",")).join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `regularization_log_${new Date().toISOString().split("T")[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e) {
+      console.error("Failed to export regularizations", e);
+    }
   };
 
   if (isLoading) {
@@ -94,7 +131,7 @@ export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        
+
         {/* Department Attendance Comparison */}
         <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm space-y-4">
           <div className="flex justify-between items-center border-b border-slate-100 pb-2">
@@ -162,7 +199,7 @@ export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
               <p className="text-[10px] font-semibold text-slate-400 mt-0.5">Approved hours log for payroll calculations.</p>
             </div>
             <button
-              onClick={handleExportFullReport}
+              onClick={handleExportTimesheet}
               className="p-2 bg-white hover:bg-slate-100 text-slate-600 rounded-lg border border-slate-200 transition-colors cursor-pointer"
             >
               <Download className="w-4 h-4" />
@@ -174,7 +211,7 @@ export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
               <p className="text-[10px] font-semibold text-slate-400 mt-0.5">Audit log of corrected out-punches.</p>
             </div>
             <button
-              onClick={handleExportFullReport}
+              onClick={handleExportRegularizations}
               className="p-2 bg-white hover:bg-slate-100 text-slate-600 rounded-lg border border-slate-200 transition-colors cursor-pointer"
             >
               <Download className="w-4 h-4" />

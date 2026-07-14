@@ -49,15 +49,15 @@ export default function HrDashboardPage() {
   const handleDownloadPDF = () => {
     if (!data) return;
     const doc = new jsPDF();
-    
+
     // Add Title
     doc.setFontSize(20);
     doc.text("HR Overview Report", 14, 22);
-    
+
     // Add Date
     doc.setFontSize(11);
     doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
-    
+
     // Headcount Info
     autoTable(doc, {
       startY: 40,
@@ -94,14 +94,17 @@ export default function HrDashboardPage() {
     XLSX.writeFile(workbook, "HR_Overview_Report.xlsx");
   };
 
-  const attendanceTotal = data?.attendance?.total || 1;
+  const attendanceTotal = data?.headcount?.total || 1;
+  const vacantCount = (data?.headcount?.total || 0) - (data?.headcount?.active || 0);
   const presentPct = data ? Math.round((data.attendance.present / attendanceTotal) * 100) || 0 : 0;
   const wfhPct = data ? Math.round((data.attendance.wfh / attendanceTotal) * 100) || 0 : 0;
   const absentPct = data ? Math.round((data.attendance.absent / attendanceTotal) * 100) || 0 : 0;
+  const vacantPct = data ? Math.round((vacantCount / attendanceTotal) * 100) || 0 : 0;
 
   const [animPresent, setAnimPresent] = useState(0);
   const [animWfh, setAnimWfh] = useState(0);
   const [animAbsent, setAnimAbsent] = useState(0);
+  const [animVacant, setAnimVacant] = useState(0);
   const [isResetting, setIsResetting] = useState(false);
 
   useEffect(() => {
@@ -110,15 +113,17 @@ export default function HrDashboardPage() {
     setAnimPresent(0);
     setAnimWfh(0);
     setAnimAbsent(0);
-    
+    setAnimVacant(0);
+
     const timer = setTimeout(() => {
       setIsResetting(false);
       setAnimPresent(presentPct);
       setAnimWfh(wfhPct);
       setAnimAbsent(absentPct);
+      setAnimVacant(vacantPct);
     }, 50);
     return () => clearTimeout(timer);
-  }, [refreshKey, data, presentPct, wfhPct, absentPct]);
+  }, [refreshKey, data, presentPct, wfhPct, absentPct, vacantPct]);
 
   if (isLoading || !data) {
     return (
@@ -164,13 +169,28 @@ export default function HrDashboardPage() {
       <PersonalAttendanceWidget />
 
       {/* KPI Cards Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        {/* Total Headcount */}
+      <div className="grid grid-cols-2 lg:grid-cols-7 gap-4 mb-6">
+        {/* Total HeadCount */}
         <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-5 shadow-sm transition-colors">
           <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">TOTAL HEADCOUNT</p>
           <div className="flex items-center gap-2">
-            <span className="text-3xl font-bold text-slate-900 dark:text-white">{data.headcount.total}</span>
-            <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-bold px-2 py-0.5 rounded-md">+{data.headcount.newJoins}</span>
+            <span className="text-3xl font-bold text-slate-900 dark:text-white">{data.headcount?.total || 0}</span>
+          </div>
+        </div>
+
+        {/* Total Employees */}
+        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-5 shadow-sm transition-colors">
+          <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">TOTAL EMPLOYEES</p>
+          <div className="flex items-center gap-2">
+            <span className="text-3xl font-bold text-slate-900 dark:text-white">{data.headcount?.active || 0}</span>
+          </div>
+        </div>
+
+        {/* Vacant */}
+        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-5 shadow-sm transition-colors">
+          <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">VACANT</p>
+          <div className="flex items-center gap-2">
+            <span className="text-3xl font-bold text-slate-500 dark:text-slate-400">{(data.headcount?.total || 0) - (data.headcount?.active || 0)}</span>
           </div>
         </div>
 
@@ -225,7 +245,7 @@ export default function HrDashboardPage() {
 
       {/* Middle Row Widgets */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        
+
         {/* Attendance snapshot */}
         <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-6 shadow-sm flex flex-col transition-colors">
           <div className="flex justify-between items-center mb-6">
@@ -257,21 +277,23 @@ export default function HrDashboardPage() {
           <div className="flex-1 flex flex-col items-center justify-center">
             {/* SVG Donut Chart */}
             <div className="relative w-40 h-40 flex items-center justify-center mb-6">
-               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                 <circle cx="50" cy="50" r="40" fill="transparent" stroke="var(--donut-bg, #f1f5f9)" strokeWidth="12" className="dark:stroke-slate-800" />
                 {/* Absent */}
                 <circle cx="50" cy="50" r="40" fill="transparent" stroke="#e2e8f0" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset={251.2 - (251.2 * animAbsent) / 100} className={`dark:stroke-slate-700 ${isResetting ? 'transition-none' : 'transition-all duration-[2500ms] ease-out'}`} />
                 {/* WFH */}
-                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#2563eb" strokeWidth="12" strokeDashoffset={251.2 - (251.2 * animWfh) / 100} strokeDasharray="251.2" style={{ strokeDashoffset: 251.2 - (251.2 * animWfh) / 100, strokeDasharray: "251.2 251.2", transformOrigin: "center", transform: `rotate(${(absentPct/100) * 360}deg)` }} className={`${isResetting ? 'transition-none' : 'transition-all duration-[2500ms] ease-out'}`} />
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#2563eb" strokeWidth="12" strokeDashoffset={251.2 - (251.2 * animWfh) / 100} strokeDasharray="251.2" style={{ strokeDashoffset: 251.2 - (251.2 * animWfh) / 100, strokeDasharray: "251.2 251.2", transformOrigin: "center", transform: `rotate(${(absentPct / 100) * 360}deg)` }} className={`${isResetting ? 'transition-none' : 'transition-all duration-[2500ms] ease-out'}`} />
                 {/* Present */}
-                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#16a34a" strokeWidth="12" strokeDasharray="251.2" style={{ strokeDashoffset: 251.2 - (251.2 * animPresent) / 100, strokeDasharray: "251.2 251.2", transformOrigin: "center", transform: `rotate(${((absentPct+wfhPct)/100) * 360}deg)` }} className={`${isResetting ? 'transition-none' : 'transition-all duration-[2500ms] ease-out'}`} />
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#16a34a" strokeWidth="12" strokeDasharray="251.2" style={{ strokeDashoffset: 251.2 - (251.2 * animPresent) / 100, strokeDasharray: "251.2 251.2", transformOrigin: "center", transform: `rotate(${((absentPct + wfhPct) / 100) * 360}deg)` }} className={`${isResetting ? 'transition-none' : 'transition-all duration-[2500ms] ease-out'}`} />
+                {/* Vacant */}
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#8B4513" strokeWidth="12" strokeDasharray="251.2" style={{ strokeDashoffset: 251.2 - (251.2 * animVacant) / 100, strokeDasharray: "251.2 251.2", transformOrigin: "center", transform: `rotate(${((absentPct + wfhPct + presentPct) / 100) * 360}deg)` }} className={`${isResetting ? 'transition-none' : 'transition-all duration-[2500ms] ease-out'}`} />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-extrabold text-slate-900 dark:text-white">{data.attendance.total}</span>
+                <span className="text-3xl font-extrabold text-slate-900 dark:text-white">{attendanceTotal}</span>
                 <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">TOTAL</span>
               </div>
             </div>
-            
+
             {/* Legend */}
             <div className="w-full space-y-3">
               <div className="flex items-center justify-between text-sm">
@@ -294,6 +316,13 @@ export default function HrDashboardPage() {
                   <span className="text-slate-500 dark:text-slate-500 font-medium">Absent ({absentPct}%)</span>
                 </div>
                 <span className="font-bold text-red-600 dark:text-red-400">{data.attendance.absent}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: '#8B4513' }}></div>
+                  <span className="text-slate-500 dark:text-slate-500 font-medium">Vacant ({vacantPct}%)</span>
+                </div>
+                <span className="font-bold" style={{ color: '#8B4513' }}>{vacantCount}</span>
               </div>
             </div>
           </div>
@@ -367,7 +396,7 @@ export default function HrDashboardPage() {
 
       {/* Bottom Row Widgets */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         {/* Recent activity */}
         <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-6 shadow-sm transition-colors">
           <h3 className="text-sm font-bold text-slate-800 dark:text-white mb-6">Recent activity</h3>
@@ -411,7 +440,7 @@ export default function HrDashboardPage() {
                 const date = new Date(evt.date);
                 const monthStr = date.toLocaleString('default', { month: 'short' }).toUpperCase();
                 const dayStr = date.getDate().toString().padStart(2, '0');
-                
+
                 const styleMaps: any = [
                   { bg: 'bg-blue-50 dark:bg-blue-900/20', textM: 'text-blue-800 dark:text-blue-400', textD: 'text-blue-900 dark:text-blue-300' },
                   { bg: 'bg-slate-100 dark:bg-slate-800/50', textM: 'text-slate-500 dark:text-slate-400', textD: 'text-slate-700 dark:text-slate-300' },

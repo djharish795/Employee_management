@@ -131,7 +131,8 @@ export class DashboardService {
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
 
-    const totalHeadcount = await this.prisma.employee.count({ where: { status: 'ACTIVE' } });
+    const totalCapacity = await this.prisma.employee.count();
+    const activeEmployees = await this.prisma.employee.count({ where: { status: 'ACTIVE' } });
     const newJoins = await this.prisma.employee.count({
       where: {
         status: 'ACTIVE',
@@ -161,7 +162,7 @@ export class DashboardService {
 
     // Include employees with no record as absent
     const totalAccounted = presentCount + wfhCount + onLeaveCount + absentCount;
-    absentCount += Math.max(0, totalHeadcount - totalAccounted);
+    absentCount += Math.max(0, activeEmployees - totalAccounted);
 
     const pendingRequests = await this.prisma.leaveRequest.findMany({
       where: { status: 'PENDING' },
@@ -196,8 +197,8 @@ export class DashboardService {
     });
 
     return {
-      headcount: { total: totalHeadcount, newJoins: newJoins },
-      attendance: { present: presentCount, wfh: wfhCount, absent: absentCount, onLeave: onLeaveCount, total: totalHeadcount },
+      headcount: { total: totalCapacity, active: activeEmployees, newJoins: newJoins },
+      attendance: { present: presentCount, wfh: wfhCount, absent: absentCount, onLeave: onLeaveCount, total: activeEmployees },
       leaves: {
         pendingCount: pendingLeaveCount,
         requests: pendingRequests.map(r => ({

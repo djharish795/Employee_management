@@ -287,7 +287,7 @@ export default function AttendanceSummaryPage() {
           </div>
 
           {/* Employee Lists (Exceptions / Present) */}
-          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-6 flex flex-col transition-colors">
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-6 flex flex-col transition-colors min-h-0">
             <div className="flex items-center justify-between mb-6">
               <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 w-full">
                 <button 
@@ -305,8 +305,9 @@ export default function AttendanceSummaryPage() {
               </div>
             </div>
             
-            <div className="flex-1 space-y-4 overflow-y-auto pr-2 max-h-[350px]">
-              {listTab === 'exceptions' ? (
+            <div className="flex-1 relative min-h-[350px]">
+              <div className="absolute inset-0 space-y-4 overflow-y-auto pr-2">
+                {listTab === 'exceptions' ? (
                 filteredExceptions.length === 0 ? (
                   <div className="py-12 text-center text-sm font-medium text-slate-400 dark:text-slate-500">No exceptions found.</div>
                 ) : (
@@ -355,6 +356,7 @@ export default function AttendanceSummaryPage() {
                   ))
                 )
               )}
+            </div>
             </div>
           </div>
         </div>

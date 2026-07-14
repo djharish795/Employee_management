@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, NotFoundException, ForbiddenException, BadRequestException } from "@nestjs/common";
+import { Injectable, ConflictException, NotFoundException, ForbiddenException, BadRequestException, UnauthorizedException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { RbacService } from "../rbac/rbac.service";
 import { CreateEmployeeDto } from "./dto/create-employee.dto";
@@ -475,7 +475,7 @@ export class EmployeesService {
     }
 
     // Handle banking data encryption
-    const { password, role, bankAccount, ...employeeData } = dto;
+    const { password, oldPassword, role, bankAccount, ...employeeData } = dto as any;
     const updateData: any = { ...employeeData };
     if (bankAccount !== undefined) {
       updateData.bankAccountEnc = bankAccount ? encryptData(bankAccount) : null;
@@ -485,6 +485,29 @@ export class EmployeesService {
       where: { id },
       data: updateData,
     });
+
+    if (password) {
+      const user = await this.prisma.user.findUnique({
+        where: { employeeId: id }
+      });
+      
+      if (!user) {
+        throw new NotFoundException('User record not found for this employee.');
+      }
+
+      if (oldPassword) {
+        const isOldPasswordValid = await bcrypt.compare(oldPassword, user.passwordHash);
+        if (!isOldPasswordValid) {
+          throw new UnauthorizedException('The old password provided is incorrect.');
+        }
+      }
+
+      const passwordHash = await bcrypt.hash(password, 10);
+      await this.prisma.user.update({
+        where: { employeeId: id },
+        data: { passwordHash }
+      });
+    }
 
     if (updatedEmployee.photoUrl && !updatedEmployee.photoUrl.startsWith("http")) {
       try {
