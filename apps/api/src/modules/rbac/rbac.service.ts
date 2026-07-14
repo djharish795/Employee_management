@@ -10,27 +10,28 @@ export class RbacService {
     ],
     [UserRole.MANAGER]: [
       Permission.READ_OWN_PROFILE,
-      Permission.WRITE_OWN_PROFILE,
       Permission.READ_TEAM_PROFILES,
     ],
     [UserRole.TEAM_LEAD]: [
       Permission.READ_OWN_PROFILE,
-      Permission.WRITE_OWN_PROFILE,
       Permission.READ_TEAM_PROFILES,
     ],
     [UserRole.HR]: [
       Permission.READ_EMPLOYEES,
       Permission.WRITE_EMPLOYEES,
       Permission.READ_AUDIT,
+      Permission.WRITE_OWN_PROFILE,
     ],
     [UserRole.CHRO]: [
       Permission.READ_EMPLOYEES,
       Permission.WRITE_EMPLOYEES,
+      Permission.WRITE_OWN_PROFILE,
     ],
     [UserRole.SUPER_ADMIN]: [
       Permission.READ_EMPLOYEES,
       Permission.WRITE_EMPLOYEES,
       Permission.READ_AUDIT,
+      Permission.WRITE_OWN_PROFILE,
     ],
     [UserRole.FINANCE]: [
       Permission.READ_EMPLOYEES,
@@ -74,7 +75,6 @@ export class RbacService {
     return Array.from(new Set([
       ...basePerms,
       Permission.READ_OWN_PROFILE,
-      Permission.WRITE_OWN_PROFILE,
     ]));
   }
 
