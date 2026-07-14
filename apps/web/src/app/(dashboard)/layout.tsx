@@ -62,11 +62,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // middleware never runs for cached pages, so we enforce auth here.
   React.useEffect(() => {
     setMounted(true);
-    const getCookie = (name: string) => {
-      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-      return match ? decodeURIComponent(match[2]) : null;
-    };
-    const token = getCookie('token');
+    const token = useAuthStore.getState().accessToken;
     if (!token) {
       // Token is gone (user logged out) — replace history so Back won't bring them back
       router.replace('/login');

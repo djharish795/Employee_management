@@ -14,11 +14,11 @@ const protectedRoutes = [
   '/employees', '/attendance', '/leaves', '/assets', '/compliance',
   '/audit', '/onboarding', '/offboarding', '/knowledge', '/workflows',
   '/recruitment', '/payroll', '/performance', '/org-chart', '/settings',
-  '/connect'
+  '/connect', '/cam', '/oe', '/om', '/team-lead'
 ];
 
 // Role-specific dashboard namespaces (cross-role isolation)
-const roleNamespaces = ['/employee', '/admin', '/executive', '/cto', '/finance', '/hr'];
+const roleNamespaces = ['/employee', '/admin', '/executive', '/cto', '/finance', '/hr', '/cam', '/oe', '/om', '/team-lead'];
 
 // Ensure this matches the backend JWT secret
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-for-dev-12345';
@@ -52,10 +52,14 @@ export async function middleware(request: NextRequest) {
   // ─── Resolve Target Dashboard ────────────────────────────────────────────────
   let targetDashboard = '/employee/dashboard';
   if (['SUPER_ADMIN', 'IT'].includes(role)) targetDashboard = '/admin/dashboard';
-  else if (['CEO', 'COO'].includes(role)) targetDashboard = '/executive/dashboard';
+  else if (['CEO', 'COO', 'OPERATIONS_HEAD'].includes(role)) targetDashboard = '/executive/dashboard';
   else if (role === 'CTO') targetDashboard = '/cto/dashboard';
   else if (['CFO', 'FINANCE'].includes(role)) targetDashboard = '/finance/dashboard';
   else if (['CHRO', 'HR'].includes(role)) targetDashboard = '/hr/dashboard';
+  else if (role === 'TEAM_LEAD') targetDashboard = '/team-lead/dashboard';
+  else if (role === 'CAM') targetDashboard = '/cam/dashboard';
+  else if (role === 'OE') targetDashboard = '/oe/dashboard';
+  else if (role === 'OM') targetDashboard = '/om/dashboard';
 
   const employeeStatus = request.cookies.get('employeeStatus')?.value;
   if (employeeStatus === 'ONBOARDING') {

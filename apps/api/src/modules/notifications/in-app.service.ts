@@ -11,7 +11,7 @@ const jwt = require('jsonwebtoken');
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: process.env.WS_CORS_ORIGIN || '*',
   },
   namespace: '/notifications'
 })
@@ -38,7 +38,7 @@ export class InAppNotificationService implements OnGatewayConnection, OnGatewayD
       }
 
       // Simple JWT decode (in production, we should properly verify with secret)
-      const decoded = jwt.decode(token) as any;
+      const decoded = jwt.verify(token, process.env.JWT_SECRET) as any;
       
       if (!decoded || !decoded.employeeId) {
         this.logger.warn(`Client disconnected due to invalid token: ${client.id}`);
