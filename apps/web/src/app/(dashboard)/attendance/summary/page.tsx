@@ -11,6 +11,7 @@ import ReportsPanel from "@/components/modules/attendance/reports-panel";
 // ─── Interfaces (No Hardcoded Mock Data) ─────────────────────────────────────────
 interface AttendanceMetrics {
   totalEmployees: number;
+  vacantEmployees: number;
   present: number;
   presentPercentage: number;
   onLeave: number;
@@ -227,10 +228,15 @@ export default function AttendanceSummaryPage() {
             </div>
 
             {/* Metrics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
               <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm transition-colors">
                 <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">Total employees</div>
                 <div className="text-3xl font-extrabold text-slate-900 dark:text-white">{metrics?.totalEmployees ?? '--'}</div>
+              </div>
+
+              <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm transition-colors">
+                <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">Vacant</div>
+                <div className="text-3xl font-extrabold text-slate-400 dark:text-slate-500">{metrics?.vacantEmployees ?? '--'}</div>
               </div>
 
               <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm transition-colors">
@@ -434,7 +440,7 @@ export default function AttendanceSummaryPage() {
               {/* Analytics & Reports */}
               <div className="pt-2">
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Detailed Analytics</h3>
-                <ReportsPanel activeRole="HR" />
+                <ReportsPanel activeRole={role as any} />
               </div>
             </div>
           </div>

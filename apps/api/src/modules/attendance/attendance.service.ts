@@ -539,11 +539,16 @@ export class AttendanceService {
       employeeWhere.reportingManagerId = user.employeeId;
     }
 
-    const employees = await this.prisma.employee.findMany({
+    const allEmployees = await this.prisma.employee.findMany({
       where: employeeWhere,
       include: { department: true }
     });
+    
+    // Only count ACTIVE employees for daily attendance metrics
+    const employees = allEmployees.filter(e => e.status === 'ACTIVE');
     const totalEmployees = employees.length;
+    // Vacant positions are represented by employees with inactive statuses (e.g. TERMINATED)
+    const vacantEmployees = allEmployees.length - totalEmployees;
 
     // Get today's attendance records
     const todayRecords = await this.prisma.attendanceRecord.findMany({
@@ -691,6 +696,7 @@ export class AttendanceService {
     return {
       metrics: {
         totalEmployees,
+        vacantEmployees,
         present,
         presentPercentage,
         onLeave,
