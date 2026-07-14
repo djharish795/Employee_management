@@ -65,36 +65,34 @@ export class AssetsService {
     return asset;
   }
 
-  async create(role: UserRole, dto: CreateAssetDto): Promise<any> {
+  async create(role: UserRole, actorId: string, dto: CreateAssetDto): Promise<any> {
     this.validateWriteRole(role);
     const asset = await this.assetsRepository.create(dto);
-    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
     await this.auditService.logCreate({
       moduleName: "Asset",
       entityId: asset.id,
-      actorId: "unknown",
+      actorId: actorId,
       metadata: dto,
     });
     return asset;
   }
 
-  async update(role: UserRole, id: string, dto: UpdateAssetDto): Promise<any> {
+  async update(role: UserRole, actorId: string, id: string, dto: UpdateAssetDto): Promise<any> {
     this.validateWriteRole(role);
     const asset = await this.assetsRepository.findById(id);
     if (!asset) throw new NotFoundException(`Asset ${id} not found`);
     const updated = await this.assetsRepository.update(id, dto);
-    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
     await this.auditService.logUpdate({
       moduleName: "Asset",
       entityId: id,
-      actorId: "unknown",
+      actorId: actorId,
       oldValue: asset,
       newValue: dto,
     });
     return updated;
   }
 
-  async remove(role: UserRole, id: string): Promise<any> {
+  async remove(role: UserRole, actorId: string, id: string): Promise<any> {
     this.validateWriteRole(role);
     const asset = await this.assetsRepository.findById(id);
     if (!asset) throw new NotFoundException(`Asset ${id} not found`);
@@ -102,11 +100,10 @@ export class AssetsService {
       throw new BadRequestException("Cannot delete an asset that is currently assigned");
     }
     const result = await this.assetsRepository.delete(id);
-    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
     await this.auditService.logDelete({
       moduleName: "Asset",
       entityId: id,
-      actorId: "unknown",
+      actorId: actorId,
       metadata: asset,
     });
     return result;
@@ -133,7 +130,7 @@ export class AssetsService {
     return result;
   }
 
-  async returnAsset(role: UserRole, assetId: string, returnedCondition?: string) {
+  async returnAsset(role: UserRole, actorId: string, assetId: string, returnedCondition?: string) {
     this.validateWriteRole(role);
     const asset = await this.assetsRepository.findById(assetId);
     if (!asset) throw new NotFoundException(`Asset ${assetId} not found`);
@@ -141,11 +138,10 @@ export class AssetsService {
       throw new BadRequestException("Asset is not currently assigned");
     }
     const result = await this.assetsRepository.returnAsset(assetId, returnedCondition);
-    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
     await this.auditService.logUpdate({
       moduleName: "Asset",
       entityId: assetId,
-      actorId: 'unknown',
+      actorId: actorId,
       metadata: { action: 'RETURNED', returnedCondition },
     });
     return result;

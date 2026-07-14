@@ -1203,6 +1203,7 @@ enum AttendanceStatus {
   WFH
   ON_LEAVE
   EARLY_CHECKOUT
+  LATE
 }
 
 enum CheckInMethod {

@@ -576,7 +576,7 @@ export class LeavesService {
       const queue = leaveData.approvalQueue as unknown as ApprovalQueueItem[];
 
       // OR override logic
-      if (approverRole === 'OR' || approverRole === 'CEO') {
+      if (approverRole === 'CEO') {
         queue.forEach(q => {
           if (q.status === 'PENDING') {
             q.status = 'APPROVED';
@@ -611,11 +611,10 @@ export class LeavesService {
           }
         });
 
-      // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
       this.auditService.logApprove({
         moduleName: 'Leaves',
         entityId: leaveId,
-        actorId: 'unknown',
+        actorId: approverId,
         metadata: { approverId, override: true }
       });
 
@@ -672,11 +671,10 @@ export class LeavesService {
         }
       });
 
-      // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
       this.auditService.logApprove({
         moduleName: 'Leaves',
         entityId: leaveId,
-        actorId: 'unknown',
+        actorId: approverId,
         metadata: { approverId }
       });
 
@@ -700,7 +698,7 @@ export class LeavesService {
     const queue = leaveData.approvalQueue as unknown as ApprovalQueueItem[];
 
     // OR override logic for rejection
-    if (approverRole === 'OR' || approverRole === 'CEO') {
+    if (approverRole === 'CEO') {
       queue.forEach(q => {
         if (q.status === 'PENDING') {
           q.status = 'REJECTED';
@@ -729,11 +727,10 @@ export class LeavesService {
         }
       });
 
-      // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
       this.auditService.logReject({
         moduleName: 'Leaves',
         entityId: leaveId,
-        actorId: 'unknown',
+        actorId: approverId,
         metadata: { approverId, reason, override: true }
       });
 
@@ -779,11 +776,10 @@ export class LeavesService {
       }
     });
 
-    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
     this.auditService.logReject({
       moduleName: 'Leaves',
       entityId: leaveId,
-      actorId: 'unknown',
+      actorId: approverId,
       metadata: { approverId, reason }
     });
 

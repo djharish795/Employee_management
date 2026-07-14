@@ -1,6 +1,6 @@
 import { Injectable, Logger, ConflictException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { encryptData } from '../../common/utils/encrypt.util';
+import { encryptData, decryptData } from '../../common/utils/encrypt.util';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { EmployeeStatus, OnboardingStage } from '@naprocs/database';
@@ -86,6 +86,29 @@ export class OnboardingService {
       throw new ConflictException(`Email ${data.email} is already in use.`);
     }
 
+    // Check for duplicate Aadhaar or PAN by decrypting existing records in memory
+    if (data.aadhaar || data.pan) {
+      const activeEmployees = await this.db.employee.findMany({
+        where: { status: { in: ['ACTIVE', 'ONBOARDING', 'PROBATION'] } },
+        select: { id: true, aadhaar: true, pan: true }
+      });
+      
+      for (const emp of activeEmployees) {
+        if (data.aadhaar && emp.aadhaar) {
+          const decryptedAadhaar = decryptData(emp.aadhaar);
+          if (decryptedAadhaar === data.aadhaar) {
+            throw new ConflictException(`An employee profile with this Aadhaar number already exists.`);
+          }
+        }
+        if (data.pan && emp.pan) {
+          const decryptedPan = decryptData(emp.pan);
+          if (decryptedPan === data.pan) {
+            throw new ConflictException(`An employee profile with this PAN already exists.`);
+          }
+        }
+      }
+    }
+
     const DEPT_MAP: Record<string, string> = {
       "Engineering": "TR",
       "Product": "PR",
@@ -100,12 +123,13 @@ export class OnboardingService {
     const dept = data.department ? await this.db.department.findUnique({ where: { name: data.department } }) : null;
     const departmentId = dept?.id || null;
 
-    // 3. Encrypt PII
+    // 3. Sanitize Phone and Encrypt PII
+    const sanitizedPhone = data.phone ? data.phone.replace(/[^\d+]/g, '') : null;
     const encryptedAadhaar = data.aadhaar ? encryptData(data.aadhaar) : null;
     const encryptedPan = data.pan ? encryptData(data.pan) : null;
     const encryptedAccount = data.accountNo ? encryptData(data.accountNo) : null;
     const encryptedIfsc = data.ifsc ? encryptData(data.ifsc) : null;
-    const encryptedPhone = data.phone ? encryptData(data.phone) : null;
+    const encryptedPhone = sanitizedPhone ? encryptData(sanitizedPhone) : null;
 
     // 4. Generate User credentials
     const tempPassword = crypto.randomBytes(6).toString('hex');
@@ -216,7 +240,7 @@ export class OnboardingService {
           await tx.auditLog.create({
             data: {
               action: "INITIATE_ONBOARDING",
-              actorId: actor?.employeeId,
+              actorId: actor?.employeeId || "SYSTEM",
               resource: "OnboardingSession",
               resourceId: session.id,
               requestId: crypto.randomUUID()

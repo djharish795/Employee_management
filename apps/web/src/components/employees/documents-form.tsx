@@ -10,7 +10,13 @@ const CATEGORIES = [
   { id: 'financial', label: 'Financial', icon: <FileText className="w-4 h-4" /> },
 ];
 
-export function DocumentsForm({ onSave }: { onSave: (data: any) => void }) {
+interface DocumentsProps {
+  onSave: (data: any) => void;
+  initialData?: any;
+  formId?: string;
+}
+
+export function DocumentsForm({ onSave, initialData = {}, formId }: DocumentsProps) {
   const [activeTab, setActiveTab] = useState('personal');
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -21,7 +27,7 @@ export function DocumentsForm({ onSave }: { onSave: (data: any) => void }) {
   };
 
   return (
-    <form id="onboarding-form" onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <form id={formId || "onboarding-form"} onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-6">
       
       {/* Left Sidebar - Categories */}
       <div className="md:col-span-1 space-y-6">

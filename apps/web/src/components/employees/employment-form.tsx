@@ -1,15 +1,72 @@
 import Image from "next/image";
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Briefcase, Network, Building2, Calendar, Banknote } from 'lucide-react';
+import { useAuthStore } from '@/store/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 
 interface EmploymentProps {
   onSave: (data: any) => void;
   initialData?: any;
+  formId?: string;
 }
 
-export function EmploymentForm({ onSave, initialData = {} }: EmploymentProps) {
+export function EmploymentForm({ onSave, initialData = {}, formId }: EmploymentProps) {
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [designations, setDesignations] = useState<any[]>([]);
+  const [managers, setManagers] = useState<any[]>([]);
+  const [managerSearch, setManagerSearch] = useState('');
+  const [selectedManager, setSelectedManager] = useState<any>(initialData.reportingManagerId ? { id: initialData.reportingManagerId, name: initialData.manager?.name } : null);
+  const [isManagerDropdownOpen, setIsManagerDropdownOpen] = useState(false);
+  const accessToken = useAuthStore((state) => state.accessToken);
+
+  // Debounced manager search
+  useEffect(() => {
+    if (!accessToken) return;
+    const delayDebounceFn = setTimeout(async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
+        const query = managerSearch ? `&search=${encodeURIComponent(managerSearch)}` : '';
+        const empRes = await fetch(`${apiUrl}/employees?page=1&limit=20&status=ACTIVE${query}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+        if (empRes.ok) {
+          const empJson = await empRes.json();
+          setManagers(empJson.data || []);
+        }
+      } catch (e) {
+        console.error("Failed to load managers", e);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [managerSearch, accessToken]);
+
+  useEffect(() => {
+    const fetchMasterData = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
+        
+        // Fetch departments
+        const deptRes = await fetch(`${apiUrl}/departments?page=1&limit=100`, { headers: { Authorization: `Bearer ${accessToken}` } });
+        if (deptRes.ok) {
+          const json = await deptRes.json();
+          setDepartments(json.data || []);
+        }
+
+        // Fetch designations
+        const desigRes = await fetch(`${apiUrl}/departments/all-designations`, { headers: { Authorization: `Bearer ${accessToken}` } });
+        if (desigRes.ok) {
+          const desigJson = await desigRes.json();
+          setDesignations(desigJson || []);
+        }
+      } catch (e) {
+        console.error("Failed to load master data", e);
+      }
+    };
+    if (accessToken) {
+      fetchMasterData();
+    }
+  }, [accessToken]);
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -18,7 +75,7 @@ export function EmploymentForm({ onSave, initialData = {} }: EmploymentProps) {
   };
 
   return (
-    <form id="onboarding-form" onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <form id={formId || "onboarding-form"} onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-3 gap-6">
       <div className="xl:col-span-2 space-y-6">
         
         {/* Job Details */}
@@ -65,28 +122,71 @@ export function EmploymentForm({ onSave, initialData = {} }: EmploymentProps) {
                 <label className="text-sm font-semibold text-slate-700">Department</label>
                 <select name="departmentId" defaultValue={initialData.departmentId || ""} className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 outline-none">
                   <option value="">Select Department</option>
-                  <option value={initialData.departmentId}>{initialData.department}</option>
-                  {/* Options will be loaded from API */}
+                  {departments.map((d: any) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                  {initialData.departmentId && !departments.find((d: any) => d.id === initialData.departmentId) && (
+                    <option value={initialData.departmentId}>{initialData.department}</option>
+                  )}
                 </select>
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Designation</label>
                 <select name="designationId" defaultValue={initialData.designationId || ""} className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 outline-none">
                   <option value="">Select Designation</option>
-                  <option value={initialData.designationId}>{initialData.designation}</option>
-                  {/* Options will be loaded from API */}
+                  {designations.map((d: any) => (
+                    <option key={d.id} value={d.id}>{d.title}</option>
+                  ))}
+                  {initialData.designationId && !designations.find((d: any) => d.id === initialData.designationId) && (
+                    <option value={initialData.designationId}>{initialData.designation}</option>
+                  )}
                 </select>
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Role</label>
                 <Input name="jobRole" type="text" defaultValue={initialData.jobRole} placeholder="e.g. Individual Contributor" />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 relative">
                 <label className="text-sm font-semibold text-slate-700">Reporting Manager</label>
-                <select name="reportingManagerId" defaultValue={initialData.reportingManagerId || ""} className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 outline-none">
-                  <option value="">Select Manager</option>
-                  {initialData.manager && <option value={initialData.reportingManagerId}>{initialData.manager.name}</option>}
-                </select>
+                <input type="hidden" name="reportingManagerId" value={selectedManager?.id || ""} />
+                
+                <div className="relative">
+                  <Input 
+                    type="text" 
+                    placeholder="Search and select manager..." 
+                    value={isManagerDropdownOpen ? managerSearch : (selectedManager?.name || selectedManager?.firstName || managerSearch)}
+                    onChange={(e) => {
+                      setManagerSearch(e.target.value);
+                      setIsManagerDropdownOpen(true);
+                      if (e.target.value === '') setSelectedManager(null);
+                    }}
+                    onFocus={() => setIsManagerDropdownOpen(true)}
+                    onBlur={() => setTimeout(() => setIsManagerDropdownOpen(false), 200)}
+                    className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 outline-none"
+                  />
+                  
+                  {isManagerDropdownOpen && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {managers.length === 0 ? (
+                        <div className="px-3 py-2 text-sm text-slate-500">No managers found.</div>
+                      ) : (
+                        managers.map((m: any) => (
+                          <div 
+                            key={m.id} 
+                            className="px-3 py-2 text-sm hover:bg-slate-50 cursor-pointer"
+                            onClick={() => {
+                              setSelectedManager(m);
+                              setManagerSearch('');
+                              setIsManagerDropdownOpen(false);
+                            }}
+                          >
+                            {m.firstName} {m.lastName} ({m.employeeId})
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Team Lead</label>

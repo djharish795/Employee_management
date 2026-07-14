@@ -46,3 +46,21 @@ export async function generatePresignedDownloadUrl(
 
   return getSignedUrl(s3, command, { expiresIn });
 }
+
+/**
+ * Permanently deletes an object from S3.
+ * Used for DPDPA compliance when erasing an employee's PII/documents.
+ */
+export async function deleteFromS3(
+  s3: S3Client,
+  bucketName: string,
+  objectKey: string
+): Promise<void> {
+  if (!objectKey || objectKey.trim() === '') return;
+  const { DeleteObjectCommand } = await import("@aws-sdk/client-s3");
+  const command = new DeleteObjectCommand({
+    Bucket: bucketName,
+    Key: objectKey,
+  });
+  await s3.send(command);
+}

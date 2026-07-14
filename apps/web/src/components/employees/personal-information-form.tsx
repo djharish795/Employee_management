@@ -8,9 +8,10 @@ import { useAuthStore } from '@/store/auth';
 interface PersonalInfoProps {
   onSave: (data: any) => void;
   initialData?: any;
+  formId?: string;
 }
 
-export function PersonalInformationForm({ onSave, initialData: incomingData }: PersonalInfoProps) {
+export function PersonalInformationForm({ onSave, initialData: incomingData, formId }: PersonalInfoProps) {
   const initialData = incomingData || {};
   const [isUploading, setIsUploading] = useState(false);
   const [photoKey, setPhotoKey] = useState<string>(initialData?.photoUrl || '');
@@ -75,12 +76,16 @@ export function PersonalInformationForm({ onSave, initialData: incomingData }: P
     const rawData = Object.fromEntries(formData.entries());
 
     // Structure data to match backend Prisma schema expectations
+    const sanitizePhone = (val: string) => val ? val.replace(/[^\d+]/g, '') : val;
+
     const data: any = {
       ...rawData,
+      phone: sanitizePhone(rawData.phone as string),
+      alternatePhone: sanitizePhone(rawData.alternatePhone as string),
       // Group emergency contact into a JSON object
       emergencyContact: {
         name: rawData.emergencyContactName,
-        phone: rawData.emergencyContactPhone,
+        phone: sanitizePhone(rawData.emergencyContactPhone as string),
         relation: rawData.emergencyContactRelation
       }
     };
@@ -102,7 +107,7 @@ export function PersonalInformationForm({ onSave, initialData: incomingData }: P
         <CardTitle className="text-xl font-bold text-slate-800">Personal Information</CardTitle>
       </CardHeader>
       <CardContent>
-        <form id="onboarding-form" onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+        <form id={formId || "onboarding-form"} onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
           {/* Left Column */}
           <div className="space-y-6">
             <div className="space-y-1.5">

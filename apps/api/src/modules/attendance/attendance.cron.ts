@@ -12,7 +12,7 @@ export class AttendanceCronService {
     private readonly redis: RedisService
   ) {}
 
-  @Cron("59 23 * * *")
+  @Cron("59 23 * * *", { timeZone: "Asia/Kolkata" })
   async autoCheckoutMidnight() {
     this.logger.log("Running Midnight Auto-Checkout and Absence/Leave marking...");
     await this.processMidnightJob();

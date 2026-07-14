@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { Employee, DirectoryFilters } from "@/types/employees";
 import { useAuthStore } from "@/store/auth";
+import { usePermissions } from "@/hooks/use-permissions";
 
 import { EmployeeActionModals } from "./employee-action-modals";
 import { EmployeeRowActions, EmployeeActionType } from "./employee-row-actions";
@@ -63,6 +64,7 @@ export default function EmployeeDirectory() {
     }
   }, [searchParams]);
   const accessToken = useAuthStore((state) => state.accessToken);
+  const { role } = usePermissions();
 
   // Fetch from API
   const fetchEmployees = async (): Promise<Employee[]> => {
@@ -496,11 +498,7 @@ export default function EmployeeDirectory() {
                 </div>
               )}
             </div>
-            {/* Add Employee */}
-            <Link href="/employees/add" className="flex items-center justify-center h-10 px-4 gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-lg shadow-sm transition-colors whitespace-nowrap">
-              <Plus className="w-4 h-4" />
-              Add employee
-            </Link>
+
           </div>
         </div>
 

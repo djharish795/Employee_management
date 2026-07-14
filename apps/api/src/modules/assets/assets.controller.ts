@@ -134,7 +134,7 @@ export class AssetsController {
   @Post()
   @Permissions(Permission.READ_EMPLOYEES)
   async create(@CurrentUser() user: any, @Body() dto: CreateAssetDto) {
-    return this.assetsService.create(user.role as UserRole, dto);
+    return this.assetsService.create(user.role as UserRole, user.employeeId || 'unknown', dto);
   }
 
   // Update asset
@@ -145,14 +145,14 @@ export class AssetsController {
     @Param("id") id: string,
     @Body() dto: UpdateAssetDto
   ) {
-    return this.assetsService.update(user.role as UserRole, id, dto);
+    return this.assetsService.update(user.role as UserRole, user.employeeId || 'unknown', id, dto);
   }
 
   // Delete asset
   @Delete(":id")
   @Permissions(Permission.READ_EMPLOYEES)
   async remove(@CurrentUser() user: any, @Param("id") id: string) {
-    return this.assetsService.remove(user.role as UserRole, id);
+    return this.assetsService.remove(user.role as UserRole, user.employeeId || 'unknown', id);
   }
 
   // Assign asset to employee
@@ -175,13 +175,11 @@ export class AssetsController {
     @Param("id") assetId: string,
     @Body("returnedCondition") returnedCondition?: string
   ) {
-    return this.assetsService.returnAsset(user.role as UserRole, assetId, returnedCondition);
+    return this.assetsService.returnAsset(user.role as UserRole, user.employeeId || 'unknown', assetId, returnedCondition);
   }
-
 }
 
 // ─── Asset Requests Controller ────────────────────────────────────────────
-
 @Controller("assets/requests")
 @UseGuards(JwtAuthGuard, RbacGuard)
 export class AssetRequestsController {

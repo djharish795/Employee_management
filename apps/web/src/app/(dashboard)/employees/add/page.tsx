@@ -13,6 +13,8 @@ import { AssetsForm } from '@/components/employees/assets-form';
 import { AccessControlForm } from '@/components/employees/access-control-form';
 import { WizardStep } from '@/types/employee';
 import { useAuthStore } from '@/store/auth';
+import { usePermissions } from '@/hooks/use-permissions';
+import { AlertCircle } from 'lucide-react';
 
 const STEPS: WizardStep[] = [
   { num: 1, title: 'Personal Info', active: false, completed: false },
@@ -30,6 +32,17 @@ export default function AddEmployeePage() {
   const [draftId, setDraftId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const accessToken = useAuthStore((state) => state.accessToken);
+  const { role } = usePermissions();
+
+  if (role !== "HR" && role !== "CHRO") {
+    return (
+      <div className="flex flex-col items-center justify-center h-full bg-slate-50 text-slate-500">
+        <AlertCircle className="w-10 h-10 text-rose-400 mb-3" />
+        <h2 className="text-xl font-bold text-slate-800">Access Restricted</h2>
+        <p className="mt-2 text-sm">Only HR personnel can access the Onboarding Wizard.</p>
+      </div>
+    );
+  }
 
   const handleStepSave = async (stepData: any) => {
     setIsSubmitting(true);
@@ -100,18 +113,61 @@ export default function AddEmployeePage() {
     }
   };
 
-  const renderStepContent = () => {
-    switch (activeStep) {
-      case 1: return <PersonalInformationForm onSave={handleStepSave} />;
-      case 2: return <EmploymentForm onSave={handleStepSave} />;
-      case 3: return <IdentityForm onSave={handleStepSave} />;
-      case 4: return <BankingForm onSave={handleStepSave} />;
-      case 5: return <EmergencyForm onSave={handleStepSave} />;
-      case 6: return <AssetsForm onSave={handleStepSave} />;
-      case 7: return <DocumentsForm onSave={handleStepSave} />;
-      case 8: return <AccessControlForm onSave={handleStepSave} />;
-      default: return null;
+  const handleSaveDraft = async () => {
+    const formElement = document.getElementById(`onboarding-form-${activeStep}`) as HTMLFormElement;
+    if (!formElement) return;
+    
+    const formData = new FormData(formElement);
+    const stepData = Object.fromEntries(formData.entries());
+    
+    // Convert special fields to match onSave logic if needed, but since it's a generic draft save, we just pass the object
+    // To match the exact mapping inside the components, we can trigger the form submission but prevent default navigation.
+    // However, the cleanest way is to just dispatch a custom event or reuse the API logic.
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        draftId: draftId || "",
+        stepNumber: activeStep.toString(),
+        payload: stepData
+      };
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
+      const res = await fetch(`${apiUrl}/employees/onboarding/draft/step`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error("Failed to save draft");
+      
+      const data = await res.json();
+      if (data.draftId && !draftId) setDraftId(data.draftId);
+      
+      alert("Draft saved successfully!");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to save draft.");
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+
+  const renderStepContent = () => {
+    return (
+      <>
+        <div className={activeStep === 1 ? 'block' : 'hidden'}><PersonalInformationForm formId="onboarding-form-1" onSave={handleStepSave} /></div>
+        <div className={activeStep === 2 ? 'block' : 'hidden'}><EmploymentForm formId="onboarding-form-2" onSave={handleStepSave} /></div>
+        <div className={activeStep === 3 ? 'block' : 'hidden'}><IdentityForm formId="onboarding-form-3" onSave={handleStepSave} /></div>
+        <div className={activeStep === 4 ? 'block' : 'hidden'}><BankingForm formId="onboarding-form-4" onSave={handleStepSave} /></div>
+        <div className={activeStep === 5 ? 'block' : 'hidden'}><EmergencyForm formId="onboarding-form-5" onSave={handleStepSave} /></div>
+        <div className={activeStep === 6 ? 'block' : 'hidden'}><AssetsForm formId="onboarding-form-6" onSave={handleStepSave} /></div>
+        <div className={activeStep === 7 ? 'block' : 'hidden'}><DocumentsForm formId="onboarding-form-7" onSave={handleStepSave} /></div>
+        <div className={activeStep === 8 ? 'block' : 'hidden'}><AccessControlForm formId="onboarding-form-8" onSave={handleStepSave} /></div>
+      </>
+    );
   };
 
   const currentStepTitle = STEPS[activeStep - 1]?.title;
@@ -141,9 +197,12 @@ export default function AddEmployeePage() {
       <div className="fixed bottom-0 left-[260px] right-0 h-16 bg-white border-t border-slate-200 px-8 flex items-center justify-between z-20">
         <div className="flex items-center gap-8">
           <button 
-            className="text-sm font-bold text-slate-600 hover:text-slate-900 transition-colors"
+            type="button"
+            onClick={handleSaveDraft}
+            disabled={isSubmitting}
+            className="text-sm font-bold text-slate-600 hover:text-slate-900 transition-colors disabled:opacity-50 flex items-center gap-2"
           >
-            Save Draft
+            {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : 'Save Draft'}
           </button>
           <span className="text-xs font-semibold text-slate-400">
             Copyright © 2024 Enterprise Corp.
@@ -162,7 +221,7 @@ export default function AddEmployeePage() {
           
           <button 
             type="submit"
-            form="onboarding-form"
+            form={`onboarding-form-${activeStep}`}
             disabled={isSubmitting}
             className="flex items-center gap-2 h-10 px-6 bg-[#0052CC] hover:bg-[#0047B3] text-white rounded-md text-sm font-bold shadow-sm transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >

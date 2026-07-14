@@ -3,16 +3,28 @@ import { HeartPulse, Phone, MapPin } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 
-export function EmergencyForm({ onSave }: { onSave: (data: any) => void }) {
+interface EmergencyProps {
+  onSave: (data: any) => void;
+  initialData?: any;
+  formId?: string;
+}
+
+export function EmergencyForm({ onSave, initialData = {}, formId }: EmergencyProps) {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const data = Object.fromEntries(formData.entries());
+    const sanitizePhone = (val: string) => val ? val.replace(/[^\d+]/g, '') : val;
+    const data: any = Object.fromEntries(formData.entries());
+    
+    if (data.emergencyContactPhone) {
+      data.emergencyContactPhone = sanitizePhone(data.emergencyContactPhone);
+    }
+    
     onSave(data);
   };
 
   return (
-    <form id="onboarding-form" onSubmit={handleSubmit} className="space-y-6 max-w-4xl">
+    <form id={formId || "onboarding-form"} onSubmit={handleSubmit} className="space-y-6 max-w-4xl">
       
       {/* Emergency Contacts */}
       <Card className="border-slate-200 shadow-sm rounded-xl">
