@@ -20,6 +20,8 @@ import {
   Trash2
 } from "lucide-react";
 
+import { usePermissions } from "@/hooks/use-permissions";
+
 export type EmployeeActionType =
   | "edit"
   | "assign-manager"
@@ -39,6 +41,7 @@ interface EmployeeRowActionsProps {
 }
 
 export function EmployeeRowActions({ employeeId, employeeName, status, onAction }: EmployeeRowActionsProps) {
+  const { canManageEmployees: canEdit } = usePermissions();
   const isActive = status === "ACTIVE" || status === "PROBATION" || status === "NOTICE PERIOD" || status === "ONBOARDING";
 
   return (
