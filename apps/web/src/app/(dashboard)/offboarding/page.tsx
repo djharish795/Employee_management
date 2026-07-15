@@ -82,6 +82,62 @@ export default function OffboardingPage() {
     return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  // Calculate dynamic aggregates for pipeline and milestones
+  const inProgress = records.filter(r => r.status === "IN_PROGRESS");
+  
+  let assetT = 0, assetC = 0;
+  let deactT = 0, deactC = 0;
+  let setT = 0, setC = 0;
+  let ktT = 0, ktC = 0;
+
+  inProgress.forEach(r => {
+    const a = Array.isArray(r.assetChecklist) ? r.assetChecklist : [];
+    const d = Array.isArray(r.deactivationChecklist) ? r.deactivationChecklist : [];
+    const s = Array.isArray(r.settlementChecklist) ? r.settlementChecklist : [];
+    const k = Array.isArray(r.ktChecklist) ? r.ktChecklist : [];
+
+    assetT += a.length;
+    assetC += a.filter((i: any) => i.status === "completed").length;
+
+    deactT += d.length;
+    deactC += d.filter((i: any) => i.status === "completed").length;
+
+    setT += s.length;
+    setC += s.filter((i: any) => i.status === "completed").length;
+
+    ktT += k.length;
+    ktC += k.filter((i: any) => i.status === "completed").length;
+  });
+
+  const assetPct = assetT > 0 ? Math.round((assetC / assetT) * 100) : 0;
+  const deactPct = deactT > 0 ? Math.round((deactC / deactT) * 100) : 0;
+  const setPct = setT > 0 ? Math.round((setC / setT) * 100) : 0;
+  const ktPct = ktT > 0 ? Math.round((ktC / ktT) * 100) : 0;
+
+  const totalT = assetT + deactT + setT + ktT;
+  const totalC = assetC + deactC + setC + ktC;
+  const overallPct = totalT > 0 ? Math.round((totalC / totalT) * 100) : 0;
+
+  const getPipelineNode = (title: string, subtitle: string, icon: React.ReactNode, threshold: number) => {
+    let style = "bg-slate-100 text-slate-400 border-4 border-white shadow-sm"; 
+    
+    if (overallPct >= threshold) {
+      style = "bg-slate-900 text-white border-4 border-white shadow-sm"; 
+    } else if (overallPct >= threshold - 20) {
+      style = "bg-white text-slate-900 border-4 border-white shadow-[0_0_0_2px_#2563EB] relative"; 
+    }
+
+    return (
+      <div className="flex flex-col items-center gap-2 relative z-10 w-24">
+        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${style}`}>
+          {icon}
+        </div>
+        <div className={`text-xs font-bold text-center leading-tight ${overallPct >= threshold - 20 ? 'text-slate-900' : 'text-slate-500'}`}>{title}</div>
+        <div className={`text-[10px] font-medium ${overallPct >= threshold - 20 ? 'text-slate-500' : 'text-slate-400'}`}>{subtitle}</div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col h-full font-sans bg-slate-50 overflow-y-auto">
       <div className="p-8 max-w-[1400px] mx-auto w-full space-y-6">
@@ -181,62 +237,24 @@ export default function OffboardingPage() {
 
         {/* Pipeline */}
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 pt-5">
-          <h3 className="text-sm font-bold text-slate-900 mb-8">Offboarding Workflow Pipeline</h3>
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-sm font-bold text-slate-900">Offboarding Workflow Pipeline</h3>
+            <span className="text-xs font-bold text-slate-500">{overallPct}% Overall Progress</span>
+          </div>
           <div className="flex items-center justify-between relative px-8">
 
             {/* Connecting Line */}
-            <div className="absolute top-6 left-16 right-16 h-1 bg-slate-200 rounded-full z-0">
-              <div className="w-[45%] h-full bg-slate-900 rounded-full"></div>
+            <div className="absolute top-6 left-[80px] right-[80px] h-1 bg-slate-200 rounded-full z-0">
+              <div className="h-full bg-slate-900 rounded-full transition-all duration-500" style={{ width: `${overallPct}%` }}></div>
             </div>
 
-            {/* Steps */}
-            <div className="flex flex-col items-center gap-2 relative z-10 w-24">
-              <div className="w-12 h-12 rounded-full bg-slate-900 text-white flex items-center justify-center border-4 border-white shadow-sm">
-                <Check className="w-5 h-5" />
-              </div>
-              <div className="text-xs font-bold text-slate-900 text-center leading-tight">Resignation</div>
-              <div className="text-[10px] font-medium text-slate-500">Initiated</div>
-            </div>
-
-            <div className="flex flex-col items-center gap-2 relative z-10 w-24">
-              <div className="w-12 h-12 rounded-full bg-slate-900 text-white flex items-center justify-center border-4 border-white shadow-sm">
-                <Check className="w-5 h-5" />
-              </div>
-              <div className="text-xs font-bold text-slate-900 text-center leading-tight">Approval</div>
-              <div className="text-[10px] font-medium text-slate-500">Notice Registered</div>
-            </div>
-
-            <div className="flex flex-col items-center gap-2 relative z-10 w-24">
-              <div className="w-12 h-12 rounded-full bg-white text-slate-900 flex items-center justify-center border-4 border-white shadow-[0_0_0_2px_#2563EB] relative">
-                <RefreshCw className="w-5 h-5" />
-              </div>
-              <div className="text-xs font-bold text-slate-900 text-center leading-tight mt-1">KT Session</div>
-              <div className="text-[10px] font-medium text-slate-900">Task Assigned</div>
-            </div>
-
-            <div className="flex flex-col items-center gap-2 relative z-10 w-24">
-              <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center border-4 border-white shadow-sm">
-                <Archive className="w-5 h-5" />
-              </div>
-              <div className="text-xs font-bold text-slate-500 text-center leading-tight">Asset Return</div>
-              <div className="text-[10px] font-medium text-slate-400">Inventory Handover</div>
-            </div>
-
-            <div className="flex flex-col items-center gap-2 relative z-10 w-24">
-              <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center border-4 border-white shadow-sm">
-                <FileText className="w-5 h-5" />
-              </div>
-              <div className="text-xs font-bold text-slate-500 text-center leading-tight">Settlement</div>
-              <div className="text-[10px] font-medium text-slate-400">Full & Final</div>
-            </div>
-
-            <div className="flex flex-col items-center gap-2 relative z-10 w-24 opacity-50">
-              <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center border-4 border-white shadow-sm">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
-              <div className="text-xs font-bold text-slate-400 text-center leading-tight">Completed</div>
-              <div className="text-[10px] font-medium text-slate-400">Archived</div>
-            </div>
+            {/* Dynamic Steps */}
+            {getPipelineNode("Resignation", "Initiated", <Check className="w-5 h-5" />, 0)}
+            {getPipelineNode("Approval", "Notice Registered", <Check className="w-5 h-5" />, 20)}
+            {getPipelineNode("KT Session", "Task Assigned", <RefreshCw className="w-5 h-5" />, 40)}
+            {getPipelineNode("Asset Return", "Inventory Handover", <Archive className="w-5 h-5" />, 60)}
+            {getPipelineNode("Settlement", "Full & Final", <FileText className="w-5 h-5" />, 80)}
+            {getPipelineNode("Completed", "Archived", <CheckCircle2 className="w-5 h-5" />, 100)}
 
           </div>
         </div>
@@ -285,7 +303,7 @@ export default function OffboardingPage() {
                     </div>
                   </div>
                   <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-slate-700 w-full rounded-full"></div>
+                    <div className="h-full bg-slate-700 rounded-full transition-all duration-500" style={{ width: `${assetPct}%` }}></div>
                   </div>
                 </div>
                 <div>
@@ -295,7 +313,7 @@ export default function OffboardingPage() {
                     </div>
                   </div>
                   <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-orange-400 w-full rounded-full"></div>
+                    <div className="h-full bg-orange-400 rounded-full transition-all duration-500" style={{ width: `${ktPct}%` }}></div>
                   </div>
                 </div>
                 <div>
@@ -305,7 +323,7 @@ export default function OffboardingPage() {
                     </div>
                   </div>
                   <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-rose-500 w-full rounded-full"></div>
+                    <div className="h-full bg-rose-500 rounded-full transition-all duration-500" style={{ width: `${deactPct}%` }}></div>
                   </div>
                 </div>
               </div>

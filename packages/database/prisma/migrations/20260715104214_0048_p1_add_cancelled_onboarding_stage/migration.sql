@@ -1,0 +1,1 @@
+ALTER TYPE "OnboardingStage" ADD VALUE 'CANCELLED';

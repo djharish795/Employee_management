@@ -18,16 +18,17 @@ export class OnboardingService {
   ) {}
 
   async getDashboardMetrics(): Promise<any> {
-    const [upcomingJoiners, pendingDocuments, inProgress, completed30Days, activeSessions] = await Promise.all([
+    const [upcomingJoiners, pendingDocuments, inProgress, completed30Days, cancelled, activeSessions] = await Promise.all([
       this.db.onboardingSession.count({ where: { stage: OnboardingStage.OFFER_ACCEPTED } }),
       this.db.onboardingSession.count({ where: { stage: OnboardingStage.DOCUMENTATION } }),
-      this.db.onboardingSession.count({ where: { stage: { notIn: [OnboardingStage.COMPLETED] } } }),
+      this.db.onboardingSession.count({ where: { stage: { notIn: [OnboardingStage.COMPLETED, OnboardingStage.CANCELLED] } } }),
       this.db.onboardingSession.count({ 
         where: { 
           stage: OnboardingStage.COMPLETED,
           updatedAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } 
         } 
       }),
+      this.db.onboardingSession.count({ where: { stage: OnboardingStage.CANCELLED } }),
       this.db.onboardingSession.findMany({
         where: { stage: { notIn: [OnboardingStage.COMPLETED] } },
         include: { employee: true, tasks: true },
@@ -45,7 +46,11 @@ export class OnboardingService {
     };
 
     const pendingHrTasks = await this.db.onboardingTask.findMany({
-      where: { assignedTo: 'HR', isCompleted: false },
+      where: { 
+        assignedTo: 'HR', 
+        isCompleted: false,
+        session: { stage: { notIn: [OnboardingStage.CANCELLED, OnboardingStage.COMPLETED] } }
+      },
       include: {
         session: {
           include: { employee: true }
@@ -72,6 +77,7 @@ export class OnboardingService {
       completed30Days,
       pipeline,
       activeOnboarding: activeSessions,
+      cancelled,
       pendingHrTasks,
       recentActivity
     };
@@ -494,9 +500,14 @@ export class OnboardingService {
     }
 
     await this.db.$transaction(async (tx) => {
+      await tx.onboardingSession.update({
+        where: { id: session.id },
+        data: { stage: OnboardingStage.CANCELLED }
+      });
+
       await tx.employee.update({
         where: { id: session.employeeId },
-        data: { status: EmployeeStatus.EXITED }
+        data: { status: EmployeeStatus.CANCELLED }
       });
 
       await tx.user.updateMany({

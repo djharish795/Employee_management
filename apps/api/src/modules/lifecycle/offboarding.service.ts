@@ -340,21 +340,6 @@ export class OffboardingService {
 
       const allComplete = assetsComplete && accountsComplete && settlementsComplete && ktComplete;
 
-      if (allComplete && !updateData.status && existing.status !== "COMPLETED") {
-        updateData.status = "COMPLETED";
-      }
-
-      if (updateData.status === "COMPLETED" && existing.status !== "COMPLETED") {
-        await tx.employee.update({
-          where: { id: existing.employeeId },
-          data: { status: "EXITED" }
-        });
-        await tx.user.updateMany({
-          where: { employeeId: existing.employeeId },
-          data: { status: "SUSPENDED" }
-        });
-      }
-
       return tx.offboardingProcess.update({
         where: { id: existing.id },
         data: updateData,
@@ -438,33 +423,7 @@ export class OffboardingService {
       data: updateData
     });
 
-    // Check if all checklists are complete
-    const assetsComplete = ((updatedProcess.assetChecklist as any) || []).every((i: any) => i.status === "completed");
-    const accountsComplete = ((updatedProcess.deactivationChecklist as any) || []).every((i: any) => i.status === "completed");
-    const settlementsComplete = ((updatedProcess.settlementChecklist as any) || []).every((i: any) => i.status === "completed");
-    const ktComplete = ((updatedProcess.ktChecklist as any) || []).every((i: any) => i.status === "completed");
-
-    const allComplete = assetsComplete && accountsComplete && settlementsComplete && ktComplete;
-
-    if (allComplete && updatedProcess.status !== "COMPLETED") {
-      updatedProcess = await this.prisma.$transaction(async (tx) => {
-        // Set Employee status to EXITED
-        await tx.employee.update({
-          where: { id: existing.employeeId },
-          data: { status: "EXITED" }
-        });
-        await tx.user.updateMany({
-          where: { employeeId: existing.employeeId },
-          data: { status: "SUSPENDED" }
-        });
-
-        // Set process to completed
-        return tx.offboardingProcess.update({
-          where: { id: existing.id },
-          data: { status: "COMPLETED" }
-        });
-      });
-    }
+    // Note: We no longer auto-finalize. The frontend must explicitly call /finalize
 
     await this.auditService.createLog({
       action: "OFFBOARDING_CHECKLIST_UPDATED",
@@ -489,7 +448,7 @@ export class OffboardingService {
       where: { id: existing.id },
       data: {
         exitInterviewDate: now,
-        exitReason: dto.feedback || existing.exitReason
+        exitReason: dto.feedback ? (existing.exitReason ? `${existing.exitReason}\n\n[Interview Feedback]: ${dto.feedback}` : `[Interview Feedback]: ${dto.feedback}`) : existing.exitReason
       },
       include: {
         employee: { include: { designation: true, department: true } },
@@ -559,5 +518,41 @@ export class OffboardingService {
     });
 
     return result;
+  }
+
+  async finalize(id: string, actorId?: string): Promise<any> {
+    const existing = await this.findOne(id);
+    
+    if (existing.status === "COMPLETED") {
+      throw new BadRequestException("Offboarding is already completed");
+    }
+
+    const updatedProcess = await this.prisma.$transaction(async (tx) => {
+      // Set Employee status to EXITED
+      await tx.employee.update({
+        where: { id: existing.employeeId },
+        data: { status: "EXITED" }
+      });
+      // Suspend User login access
+      await tx.user.updateMany({
+        where: { employeeId: existing.employeeId },
+        data: { status: "SUSPENDED" }
+      });
+
+      // Set process to completed
+      return tx.offboardingProcess.update({
+        where: { id: existing.id },
+        data: { status: "COMPLETED" }
+      });
+    });
+
+    await this.auditService.createLog({
+      action: "OFFBOARDING_FINALIZED",
+      actorId,
+      resource: "OffboardingProcess",
+      resourceId: existing.id
+    });
+
+    return updatedProcess;
   }
 }

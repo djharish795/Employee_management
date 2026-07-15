@@ -1170,6 +1170,7 @@ enum EmployeeStatus {
   NOTICE_PERIOD
   EXITED
   ONBOARDING
+  CANCELLED
 }
 
 enum Gender {
@@ -1669,6 +1670,16 @@ model ReportHistory {
 
   @@index([generatedById])
   @@map("report_history")
+}
+
+enum OnboardingStage {
+  OFFER_ACCEPTED
+  DOCUMENTATION
+  ASSET_ALLOCATION
+  TRAINING
+  MANAGER_INTRO
+  COMPLETED
+  CANCELLED
 }
 
 model OnboardingSession {

@@ -85,4 +85,13 @@ export class LifecycleController {
   ): Promise<any> {
     return this.offboardingService.cancel(id, dto.reason, user?.employeeId);
   }
+
+  @Post(":id/finalize")
+  @Permissions(Permission.WRITE_EMPLOYEES)
+  async finalize(
+    @Param("id") id: string,
+    @CurrentUser() user: any
+  ): Promise<any> {
+    return this.offboardingService.finalize(id, user?.employeeId);
+  }
 }

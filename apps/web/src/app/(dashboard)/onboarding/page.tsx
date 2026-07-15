@@ -79,7 +79,7 @@ export default function OnboardingPage() {
         </div>
 
         {/* Top Stats Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-center">
             <div className="flex items-center justify-between mb-2">
               <div className="text-xs font-bold text-slate-500 uppercase tracking-wider leading-tight w-20">Upcoming Joiners</div>
@@ -109,6 +109,13 @@ export default function OnboardingPage() {
               <CheckCircle2 className="w-5 h-5 text-emerald-500" />
             </div>
             <div className="text-3xl font-bold text-slate-900">{isLoading ? '-' : metrics?.completed30Days || 0}</div>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-center">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider leading-tight w-20">Cancelled</div>
+              <AlertCircle className="w-5 h-5 text-rose-500" />
+            </div>
+            <div className="text-3xl font-bold text-slate-900">{isLoading ? '-' : metrics?.cancelled || 0}</div>
           </div>
         </div>
 
@@ -183,7 +190,7 @@ export default function OnboardingPage() {
                     {showFilter && (
                       <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 w-48 py-1">
                         <button onClick={() => { setFilterStage(null); setShowFilter(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 font-semibold">All Stages</button>
-                        {['OFFER_ACCEPTED', 'DOCUMENTATION', 'ASSET_ALLOCATION', 'TRAINING', 'MANAGER_INTRO'].map(stage => (
+                        {['OFFER_ACCEPTED', 'DOCUMENTATION', 'ASSET_ALLOCATION', 'TRAINING', 'MANAGER_INTRO', 'COMPLETED', 'CANCELLED'].map(stage => (
                           <button key={stage} onClick={() => { setFilterStage(stage); setShowFilter(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50">{stage.replace('_', ' ')}</button>
                         ))}
                       </div>

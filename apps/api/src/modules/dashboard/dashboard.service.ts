@@ -6,7 +6,9 @@ export class DashboardService {
   constructor(private prisma: PrismaService) {}
 
   async getMetrics() {
-    const totalEmployees = await this.prisma.employee.count();
+    const totalEmployees = await this.prisma.employee.count({
+      where: { status: { notIn: ["EXITED", "CANCELLED", "ONBOARDING"] } },
+    });
     const activeEmployees = await this.prisma.employee.count({
       where: { status: "ACTIVE" },
     });
@@ -64,6 +66,7 @@ export class DashboardService {
 
     const departmentsGroup = await this.prisma.employee.groupBy({
       by: ["departmentId"],
+      where: { status: { notIn: ["EXITED", "CANCELLED", "ONBOARDING"] } },
       _count: { id: true },
     });
 
@@ -76,7 +79,7 @@ export class DashboardService {
       const colors = ["bg-blue-600", "bg-indigo-600", "bg-sky-500", "bg-slate-400", "bg-slate-300"];
       return {
         department: d.departmentId ? (deptMap.get(d.departmentId) || d.departmentId) : "Unassigned",
-        count: d._count.id,
+        count: (d._count as any).id,
         color: colors[index % colors.length],
       };
     });
@@ -131,7 +134,9 @@ export class DashboardService {
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
 
-    const totalCapacity = await this.prisma.employee.count();
+    const totalCapacity = await this.prisma.employee.count({
+      where: { status: { notIn: ["EXITED", "CANCELLED", "ONBOARDING"] } }
+    });
     const activeEmployees = await this.prisma.employee.count({ where: { status: 'ACTIVE' } });
     const newJoins = await this.prisma.employee.count({
       where: {

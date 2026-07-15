@@ -73,6 +73,8 @@ export default function OnboardingDetailsPage() {
       await apiClient.post(`/onboarding/${id}/cancel`);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['onboarding-session', id] });
+      queryClient.invalidateQueries({ queryKey: ['onboarding-metrics'] });
       setIsCancelModalOpen(false);
       router.push('/onboarding');
     }
@@ -288,23 +290,33 @@ export default function OnboardingDetailsPage() {
                 <div className="space-y-3">
                   <button 
                     onClick={() => sendReminder.mutate()}
-                    disabled={sendReminder.isPending}
-                    className="w-full text-left px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium transition-colors flex items-center justify-between group disabled:opacity-50">
+                    disabled={sendReminder.isPending || session.stage === 'CANCELLED' || session.stage === 'COMPLETED'}
+                    className="w-full text-left px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium transition-colors flex items-center justify-between group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/10">
                     {sendReminder.isPending ? 'Sending...' : 'Send Reminder'}
                     <Mail className="w-4 h-4 text-white/50 group-hover:text-white transition-colors" />
                   </button>
                   <button 
                     onClick={() => setIsScheduleModalOpen(true)}
-                    className="w-full text-left px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium transition-colors flex items-center justify-between group">
+                    disabled={session.stage === 'CANCELLED' || session.stage === 'COMPLETED'}
+                    className="w-full text-left px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium transition-colors flex items-center justify-between group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/10">
                     Schedule Welcome Call
                     <Calendar className="w-4 h-4 text-white/50 group-hover:text-white transition-colors" />
                   </button>
                   <button 
                     onClick={() => setIsCancelModalOpen(true)}
-                    className="w-full text-left px-4 py-2.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 rounded-lg text-sm font-medium transition-colors flex items-center justify-between group">
+                    disabled={session.stage === 'CANCELLED' || session.stage === 'COMPLETED'}
+                    className="w-full text-left px-4 py-2.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 rounded-lg text-sm font-medium transition-colors flex items-center justify-between group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-rose-500/20">
                     Cancel Onboarding
                     <AlertCircle className="w-4 h-4 text-rose-400 group-hover:text-rose-300 transition-colors" />
                   </button>
+                  {session.stage === 'CANCELLED' && (
+                    <div className="pt-2">
+                      <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg flex items-center gap-2 text-rose-400">
+                        <AlertCircle className="w-5 h-5 flex-shrink-0 text-rose-500" />
+                        <p className="text-sm font-bold text-rose-500">This onboarding has been cancelled.</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

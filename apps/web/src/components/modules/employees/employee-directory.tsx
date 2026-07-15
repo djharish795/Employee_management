@@ -150,6 +150,10 @@ export default function EmployeeDirectory() {
   const filteredEmployees = useMemo(() => {
     let result = [...rawEmployees];
 
+    if (!filters.status) {
+      result = result.filter(emp => emp.status !== "EXITED" && emp.status !== "CANCELLED");
+    }
+
     if (filters.search.trim()) {
       const q = filters.search.toLowerCase();
       result = result.filter(
@@ -375,6 +379,10 @@ export default function EmployeeDirectory() {
             bg = "bg-yellow-100"; text = "text-yellow-700";
           } else if (status === "notice period") {
             bg = "bg-red-100"; text = "text-red-700";
+          } else if (status === "cancelled") {
+            bg = "bg-rose-100"; text = "text-rose-700";
+          } else if (status === "exited") {
+            bg = "bg-slate-200"; text = "text-slate-600";
           }
           return (
             <span className={`px-2.5 py-1 text-[11px] font-bold rounded-full capitalize ${bg} ${text}`}>
@@ -488,16 +496,18 @@ export default function EmployeeDirectory() {
                       onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
                       className="w-full h-9 rounded-md border border-slate-300 text-sm px-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-900/20"
                     >
-                      <option value="">All Statuses</option>
+                      <option value="">All Active Statuses</option>
                       <option value="ACTIVE">Active</option>
                       <option value="PROBATION">Probation</option>
                       <option value="NOTICE_PERIOD">Notice Period</option>
                       <option value="EXITED">Exited</option>
+                      <option value="CANCELLED">Cancelled</option>
                     </select>
                   </div>
                 </div>
               )}
             </div>
+
 
           </div>
         </div>

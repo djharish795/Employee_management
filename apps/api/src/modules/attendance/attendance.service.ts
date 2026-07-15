@@ -525,7 +525,9 @@ export class AttendanceService {
     }
 
     // Get all employees with their departments
-    let employeeWhere: any = {};
+    let employeeWhere: any = {
+      status: { notIn: ["EXITED", "CANCELLED", "ONBOARDING"] }
+    };
     if (filterDepartmentId && filterDepartmentId !== 'all') {
       employeeWhere.departmentId = filterDepartmentId;
     }

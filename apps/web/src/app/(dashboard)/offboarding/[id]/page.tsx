@@ -58,6 +58,84 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
   const [data, setData] = useState<OffboardingProcessData | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
 
+  const fetchOffboardingDetail = async () => {
+    try {
+      const response = await apiClient.get(`/lifecycle/offboarding/${params.id}`);
+      const record = response.data;
+      if (record) {
+        const employeeName = record.employee
+          ? record.employee.preferredName || `${record.employee.firstName || ''} ${record.employee.lastName || ''}`.trim()
+          : "Unknown Employee";
+
+        const assetList = Array.isArray(record.assetChecklist) ? record.assetChecklist : [];
+        const deactivationList = Array.isArray(record.deactivationChecklist) ? record.deactivationChecklist : [];
+        const settlementList = Array.isArray(record.settlementChecklist) ? record.settlementChecklist : [];
+        const ktList = Array.isArray(record.ktChecklist) ? record.ktChecklist : [];
+
+        const totalTasks = assetList.length + deactivationList.length + settlementList.length + ktList.length;
+        const completedTasks = [
+          ...assetList,
+          ...deactivationList,
+          ...settlementList,
+          ...ktList
+        ].filter(item => item.status === "completed").length;
+
+        const percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+        const daysRemaining = Math.max(0, Math.ceil(
+          (new Date(record.lastWorkingDay).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+        ));
+
+        const exitReason = record.exitReason || "Not Specified";
+        const hasFeedback = exitReason.includes("[Interview Feedback]:");
+
+        const mappedData: OffboardingProcessData = {
+          id: record.employeeId,
+          name: employeeName,
+          designation: record.employee?.designation?.title || "Employee",
+          lastDay: new Date(record.lastWorkingDay).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          avatarInitials: employeeName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() || "EE",
+          status: record.status,
+          noticePeriod: record.employee?.status === "NOTICE_PERIOD",
+          alert: {
+            daysRemaining,
+            tasksPending: totalTasks - completedTasks,
+            totalTasks
+          },
+          progress: {
+            completed: completedTasks,
+            total: totalTasks,
+            percentage,
+            target: new Date(record.lastWorkingDay).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+          },
+          checklists: {
+            assetRecovery: assetList,
+            accountDeactivation: deactivationList,
+            finalSettlement: settlementList,
+            knowledgeTransfer: ktList
+          },
+          exitDetails: {
+            resignationDate: new Date(record.resignationDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            lastWorkingDay: new Date(record.lastWorkingDay).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            noticePeriod: "30 Days",
+            exitType: record.exitType,
+            exitReason: exitReason
+          },
+          exitInterview: {
+            status: hasFeedback 
+              ? "Completed" 
+              : record.exitInterviewDate 
+                ? `Scheduled for ${new Date(record.exitInterviewDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` 
+                : "Not Scheduled"
+          }
+        };
+        setData(mappedData);
+      }
+    } catch (err) {
+      console.error("Failed to fetch offboarding details", err);
+    }
+  };
+
   const handleCancelOffboarding = async () => {
     if (!confirm('Are you sure you want to cancel this offboarding process?')) return;
     const reason = prompt('Please provide a cancellation reason:');
@@ -76,78 +154,6 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
   };
 
   useEffect(() => {
-    const fetchOffboardingDetail = async () => {
-      try {
-        const response = await apiClient.get(`/lifecycle/offboarding/${params.id}`);
-        const record = response.data;
-        if (record) {
-          const employeeName = record.employee
-            ? record.employee.preferredName || `${record.employee.firstName || ''} ${record.employee.lastName || ''}`.trim()
-            : "Unknown Employee";
-
-          const assetList = Array.isArray(record.assetChecklist) ? record.assetChecklist : [];
-          const deactivationList = Array.isArray(record.deactivationChecklist) ? record.deactivationChecklist : [];
-          const settlementList = Array.isArray(record.settlementChecklist) ? record.settlementChecklist : [];
-          const ktList = Array.isArray(record.ktChecklist) ? record.ktChecklist : [];
-
-          const totalTasks = assetList.length + deactivationList.length + settlementList.length + ktList.length;
-          const completedTasks = [
-            ...assetList,
-            ...deactivationList,
-            ...settlementList,
-            ...ktList
-          ].filter(item => item.status === "completed").length;
-
-          const percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
-          const daysRemaining = Math.max(0, Math.ceil(
-            (new Date(record.lastWorkingDay).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-          ));
-
-          const mappedData: OffboardingProcessData = {
-            id: record.employeeId,
-            name: employeeName,
-            designation: record.employee?.designation?.title || "Employee",
-            lastDay: new Date(record.lastWorkingDay).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-            avatarInitials: employeeName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() || "EE",
-            status: record.status,
-            noticePeriod: record.employee?.status === "NOTICE_PERIOD",
-            alert: {
-              daysRemaining,
-              tasksPending: totalTasks - completedTasks,
-              totalTasks
-            },
-            progress: {
-              completed: completedTasks,
-              total: totalTasks,
-              percentage,
-              target: new Date(record.lastWorkingDay).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-            },
-            checklists: {
-              assetRecovery: assetList,
-              accountDeactivation: deactivationList,
-              finalSettlement: settlementList,
-              knowledgeTransfer: ktList
-            },
-            exitDetails: {
-              resignationDate: new Date(record.resignationDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-              lastWorkingDay: new Date(record.lastWorkingDay).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-              noticePeriod: "30 Days",
-              exitType: record.exitType,
-              exitReason: record.exitReason || "Not Specified"
-            },
-            exitInterview: {
-              status: record.exitInterviewDate 
-                ? `Scheduled for ${new Date(record.exitInterviewDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` 
-                : "Not Scheduled"
-            }
-          };
-          setData(mappedData);
-        }
-      } catch (err) {
-        console.error("Failed to fetch offboarding details", err);
-      }
-    };
 
     if (params.id) {
       fetchOffboardingDetail();
@@ -165,7 +171,72 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
     );
   }
 
-  const renderChecklistItem = (item: ChecklistItem) => {
+  const handleToggleChecklist = async (section: string, itemId: string | number, currentStatus: string) => {
+    if (currentStatus === 'locked' || currentStatus === 'scheduled') return;
+    
+    const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+    
+    try {
+      await apiClient.patch(`/lifecycle/offboarding/${params.id}/checklist-item`, {
+        section,
+        itemId: String(itemId),
+        status: newStatus
+      });
+
+      if (data && newStatus === 'completed') {
+        const willBeComplete = (data.progress.completed + 1) === data.progress.total;
+        if (willBeComplete && data.status !== 'COMPLETED') {
+          // Use setTimeout so the checkbox visibly ticks before the prompt blocks the thread
+          setTimeout(async () => {
+            const confirmFinalize = window.confirm("All checklist items are done! Are you sure you want to finalize the offboarding?\n\nThis will suspend the employee's login access and lock this record permanently.");
+            if (confirmFinalize) {
+              try {
+                await apiClient.post(`/lifecycle/offboarding/${params.id}/finalize`);
+                alert("Offboarding finalized successfully!");
+              } catch (err) {
+                alert("Failed to finalize offboarding.");
+              }
+              fetchOffboardingDetail();
+            }
+          }, 100);
+        }
+      }
+
+      fetchOffboardingDetail();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to update checklist item');
+    }
+  };
+
+  const handleInterviewAction = async () => {
+    if (!data) return;
+    
+    if (data.exitInterview.status === "Not Scheduled") {
+      const dateStr = prompt("Enter exit interview date (YYYY-MM-DD):");
+      if (!dateStr) return;
+      
+      try {
+        await apiClient.patch(`/lifecycle/offboarding/${params.id}`, { exitInterviewDate: new Date(dateStr).toISOString() });
+        fetchOffboardingDetail();
+      } catch (err) {
+        alert("Failed to schedule interview. Please ensure valid date format.");
+      }
+    } else {
+      const feedback = prompt("Enter exit interview notes / feedback:");
+      if (!feedback) return;
+      
+      try {
+        await apiClient.post(`/lifecycle/offboarding/${params.id}/interview`, { feedback });
+        alert("Interview feedback recorded successfully!");
+        fetchOffboardingDetail();
+      } catch (err) {
+        alert("Failed to record interview feedback.");
+      }
+    }
+  };
+
+  const renderChecklistItem = (item: ChecklistItem, section: string) => {
     let icon = <Circle className="w-5 h-5 text-slate-300 flex-shrink-0" />;
     let textNode = null;
     let textClass = "text-[13px] font-medium text-slate-700";
@@ -195,8 +266,16 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
 
     return (
       <div key={item.id} className="flex items-center gap-3 py-2.5">
-        {icon}
-        <span className={textClass}>{item.label}</span>
+        <button 
+          onClick={() => handleToggleChecklist(section, item.id, item.status)}
+          disabled={data?.status === 'COMPLETED' || item.status === 'locked' || item.status === 'scheduled'}
+          className={`flex items-center gap-3 flex-1 text-left ${
+            data?.status !== 'COMPLETED' && item.status !== 'locked' && item.status !== 'scheduled' ? 'cursor-pointer hover:opacity-80 transition-opacity' : 'cursor-not-allowed'
+          }`}
+        >
+          {icon}
+          <span className={textClass}>{item.label}</span>
+        </button>
         {textNode}
       </div>
     );
@@ -289,7 +368,7 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
             <div className="mb-8">
               <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-4">Asset Recovery</h3>
               <div className="space-y-1">
-                {data.checklists.assetRecovery.map(renderChecklistItem)}
+                {data.checklists.assetRecovery.map(item => renderChecklistItem(item, 'assetRecovery'))}
               </div>
             </div>
 
@@ -299,7 +378,7 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
             <div className="mb-8">
               <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-4">Account Deactivation (On Last Day)</h3>
               <div className="space-y-1">
-                {data.checklists.accountDeactivation.map(renderChecklistItem)}
+                {data.checklists.accountDeactivation.map(item => renderChecklistItem(item, 'accountDeactivation'))}
               </div>
             </div>
 
@@ -309,7 +388,7 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
             <div className="mb-8">
               <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-4">Final Settlement</h3>
               <div className="space-y-1">
-                {data.checklists.finalSettlement.map(renderChecklistItem)}
+                {data.checklists.finalSettlement.map(item => renderChecklistItem(item, 'finalSettlement'))}
               </div>
             </div>
 
@@ -319,9 +398,32 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
             <div>
               <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-4">Knowledge Transfer</h3>
               <div className="space-y-1">
-                {data.checklists.knowledgeTransfer.map(renderChecklistItem)}
+                {data.checklists.knowledgeTransfer.map(item => renderChecklistItem(item, 'knowledgeTransfer'))}
               </div>
             </div>
+
+
+            {data.status === 'IN_PROGRESS' && data.progress.completed === data.progress.total && (
+              <div className="mt-8 pt-6 border-t border-slate-200">
+                <button 
+                  onClick={async () => {
+                    const confirmFinalize = window.confirm("Are you sure you want to finalize the offboarding?\n\nThis will suspend the employee's login access and lock this record permanently.");
+                    if (confirmFinalize) {
+                      try {
+                        await apiClient.post(`/lifecycle/offboarding/${params.id}/finalize`);
+                        alert("Offboarding finalized successfully!");
+                        fetchOffboardingDetail();
+                      } catch (err) {
+                        alert("Failed to finalize offboarding.");
+                      }
+                    }
+                  }}
+                  className="w-full py-3 bg-slate-900 text-white hover:bg-slate-800 font-bold text-[14px] rounded-xl transition-colors shadow-lg shadow-slate-900/20"
+                >
+                  Finalize Offboarding
+                </button>
+              </div>
+            )}
 
           </div>
 
@@ -352,7 +454,7 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
                 </div>
                 <div>
                   <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Exit Reason</div>
-                  <div className="text-[13px] font-semibold text-slate-900 leading-snug">{data.exitDetails.exitReason}</div>
+                  <div className="text-[13px] font-semibold text-slate-900 leading-snug whitespace-pre-wrap">{data.exitDetails.exitReason}</div>
                 </div>
               </div>
             </div>
@@ -367,8 +469,11 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
                   {data.exitInterview.status}
                 </div>
               </div>
-              <button className="w-full px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 font-bold text-[13px] rounded-lg transition-colors">
-                Schedule exit interview
+              <button 
+                onClick={handleInterviewAction}
+                className="w-full px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 font-bold text-[13px] rounded-lg transition-colors"
+              >
+                {data.exitInterview.status === "Not Scheduled" ? "Schedule exit interview" : data.exitInterview.status === "Completed" ? "Update interview feedback" : "Record interview feedback"}
               </button>
             </div>
 

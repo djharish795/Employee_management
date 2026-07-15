@@ -49,53 +49,63 @@ export function EmployeeRowActions({ employeeId, employeeName, status, onAction 
           <span className="sr-only">Open menu</span>
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[250px] bg-white border border-slate-200 shadow-xl z-[9999] rounded-xl p-2 space-y-0.5">
+      <DropdownMenuContent align="end" className="w-[200px] max-h-[250px] overflow-y-auto bg-white border border-slate-200 shadow-xl z-[9999] rounded-xl p-2 space-y-0.5">
 
-        <DropdownMenuItem onSelect={() => onAction("edit", employeeId)} className="flex items-center cursor-pointer py-2.5 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 focus:bg-slate-100 rounded-md transition-colors">
-          <Pencil className="mr-2 h-4 w-4 text-slate-400" />
-          Edit Employee
-        </DropdownMenuItem>
+        {canEdit && status !== "EXITED" && status !== "CANCELLED" && (
+          <>
+            <DropdownMenuItem onSelect={() => onAction("edit", employeeId)} className="flex items-center cursor-pointer py-2 px-3 text-sm font-semibold text-slate-700">
+              <Pencil className="mr-2 h-4 w-4 text-slate-400" />
+              Edit Employee
+            </DropdownMenuItem>
 
-        <DropdownMenuItem onSelect={() => onAction("assign-manager", employeeId)} className="flex items-center cursor-pointer py-3 px-4 text-base font-semibold text-slate-700 hover:bg-slate-100 focus:bg-slate-100 rounded-md transition-colors">
-          <UserCheck className="mr-2 h-5 w-5 text-slate-400" />
-          Assign Manager
-        </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => onAction("assign-manager", employeeId)} className="flex items-center cursor-pointer py-2 px-3 text-sm font-semibold text-slate-700">
+              <UserCheck className="mr-2 h-4 w-4 text-slate-400" />
+              Assign Manager
+            </DropdownMenuItem>
 
-        <DropdownMenuItem onSelect={() => onAction("transfer-dept", employeeId)} className="flex items-center cursor-pointer py-3 px-4 text-base font-semibold text-slate-700 hover:bg-slate-100 focus:bg-slate-100 rounded-md transition-colors">
-          <ArrowRightLeft className="mr-2 h-5 w-5 text-slate-400" />
-          Transfer Department
-        </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => onAction("transfer-dept", employeeId)} className="flex items-center cursor-pointer py-2 px-3 text-sm font-semibold text-slate-700">
+              <ArrowRightLeft className="mr-2 h-4 w-4 text-slate-400" />
+              Transfer Department
+            </DropdownMenuItem>
 
-        <DropdownMenuItem onSelect={() => onAction("change-designation", employeeId)} className="flex items-center cursor-pointer py-3 px-4 text-base font-semibold text-slate-700 hover:bg-slate-100 focus:bg-slate-100 rounded-md transition-colors">
-          <Briefcase className="mr-2 h-5 w-5 text-slate-400" />
-          Change Designation
-        </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => onAction("change-designation", employeeId)} className="flex items-center cursor-pointer py-2 px-3 text-sm font-semibold text-slate-700">
+              <Briefcase className="mr-2 h-4 w-4 text-slate-400" />
+              Change Designation
+            </DropdownMenuItem>
 
-        <DropdownMenuSeparator className="bg-slate-100" />
+            <DropdownMenuSeparator className="bg-slate-100" />
+          </>
+        )}
 
-        <DropdownMenuItem onSelect={() => onAction("toggle-status", employeeId)} className="flex items-center cursor-pointer py-3 px-4 text-base font-semibold text-slate-700 hover:bg-slate-100 focus:bg-slate-100 rounded-md transition-colors">
-          {isActive ? (
-            <>
-              <PowerOff className="mr-2 h-5 w-5 text-rose-500" />
-              <span className="text-rose-600">Deactivate Employee</span>
-            </>
-          ) : (
-            <>
-              <Power className="mr-2 h-5 w-5 text-emerald-500" />
-              <span className="text-emerald-600">Activate Employee</span>
-            </>
-          )}
-        </DropdownMenuItem>
+        {canEdit && (
+          <>
+            <DropdownMenuItem onSelect={() => onAction("toggle-status", employeeId)} className="flex items-center cursor-pointer py-2 px-3 text-sm font-semibold text-slate-700">
+              {isActive ? (
+                <>
+                  <PowerOff className="mr-2 h-4 w-4 text-rose-500" />
+                  <span className="text-rose-600">Deactivate Employee</span>
+                </>
+              ) : (
+                <>
+                  <Power className="mr-2 h-4 w-4 text-emerald-500" />
+                  <span className="text-emerald-600">Activate Employee</span>
+                </>
+              )}
+            </DropdownMenuItem>
 
-        <DropdownMenuItem onSelect={() => onAction("reset-password", employeeId)} className="flex items-center cursor-pointer py-3 px-4 text-base font-semibold text-slate-700 hover:bg-slate-100 focus:bg-slate-100 rounded-md transition-colors">
-          <KeyRound className="mr-2 h-5 w-5 text-slate-400" />
-          Reset Password
-        </DropdownMenuItem>
+            {status !== "EXITED" && status !== "CANCELLED" && (
+              <DropdownMenuItem onSelect={() => onAction("reset-password", employeeId)} className="flex items-center cursor-pointer py-2 px-3 text-sm font-semibold text-slate-700">
+                <KeyRound className="mr-2 h-4 w-4 text-slate-400" />
+                Reset Password
+              </DropdownMenuItem>
+            )}
 
-        <DropdownMenuSeparator className="bg-slate-100" />
+            <DropdownMenuSeparator className="bg-slate-100" />
+          </>
+        )}
 
-        <DropdownMenuItem onSelect={() => onAction("view-documents", employeeId)} className="flex items-center cursor-pointer py-3 px-4 text-base font-semibold text-slate-700 hover:bg-slate-100 focus:bg-slate-100 rounded-md transition-colors">
-          <FileText className="mr-2 h-5 w-5 text-slate-400" />
+        <DropdownMenuItem onSelect={() => onAction("view-documents", employeeId)} className="flex items-center cursor-pointer py-2 px-3 text-sm font-semibold text-slate-700">
+          <FileText className="mr-2 h-4 w-4 text-slate-400" />
           View Documents
         </DropdownMenuItem>
 

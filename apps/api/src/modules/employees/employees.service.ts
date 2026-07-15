@@ -11,8 +11,9 @@ import * as bcrypt from "bcrypt";
 import { encryptData } from "../../common/utils/encrypt.util";
 import { RedisService } from "../../redis/redis.service";
 import { v4 as uuidv4 } from "uuid";
-import { S3Client } from "@aws-sdk/client-s3";
-import { createS3Client, generatePresignedDownloadUrl } from "../../common/utils/s3.util";
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { createS3Client } from "../../common/utils/s3.util";
 
 import { NotificationsService } from "../notifications/notifications.service";
 import { NotificationType } from "@naprocs/database";

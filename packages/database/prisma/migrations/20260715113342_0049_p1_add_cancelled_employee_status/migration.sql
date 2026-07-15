@@ -1,0 +1,1 @@
+ALTER TYPE "EmployeeStatus" ADD VALUE 'CANCELLED';
