@@ -13,7 +13,7 @@ export class ProjectsService {
     private readonly auditService: AuditService,
   ) {}
 
-  async createProject(data: { name: string; description?: string; key?: string }) {
+  async createProject(data: { name: string; description?: string; key?: string }, requestingUser: any) {
     let projectKey = data.key;
     if (!projectKey) {
       const baseKey = data.name.replace(/[^A-Za-z0-9]/g, '').substring(0, 4).toUpperCase() || 'PROJ';
@@ -34,7 +34,7 @@ export class ProjectsService {
     await this.auditService.logCreate({
       moduleName: 'Projects',
       entityId: project.id,
-      actorId: 'unknown',
+      actorId: requestingUser?.employeeId,
       metadata: { name: project.name }
     });
 
@@ -61,7 +61,7 @@ export class ProjectsService {
     });
   }
 
-  async deleteProject(projectId: string) {
+  async deleteProject(projectId: string, requestingUser: any) {
     // Delete assignments first
     await this.prisma.projectAssignment.deleteMany({
       where: { projectId },
@@ -75,7 +75,7 @@ export class ProjectsService {
     await this.auditService.logDelete({
       moduleName: 'Projects',
       entityId: projectId,
-      actorId: 'unknown',
+      actorId: requestingUser?.employeeId,
       metadata: { name: project.name }
     });
 
@@ -163,7 +163,7 @@ export class ProjectsService {
     await this.auditService.logUpdate({
       moduleName: 'Projects',
       entityId: projectId,
-      actorId: 'unknown',
+      actorId: requestingUser?.employeeId,
       metadata: { action: 'ASSIGN_MEMBER', employeeId, role: projectRole }
     });
 
@@ -200,7 +200,7 @@ export class ProjectsService {
     await this.auditService.logUpdate({
       moduleName: 'Projects',
       entityId: projectId,
-      actorId: 'unknown',
+      actorId: requestingUser?.employeeId,
       metadata: { action: 'RELEASE_MEMBER', employeeId }
     });
 

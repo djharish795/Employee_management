@@ -167,7 +167,7 @@ export class TasksService {
     const mentionRegex = /@([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/g;
     const matches = [...content.matchAll(mentionRegex)];
     if (matches.length > 0) {
-      const emails = matches.map(m => m[1]);
+      const emails = matches.map(m => m[1].toLowerCase());
       const mentionedEmployees = await this.prisma.employee.findMany({
         where: { officialEmail: { in: emails } }
       });
@@ -195,7 +195,7 @@ export class TasksService {
     const comments = await (this.prisma as any).taskComment.findMany({
       where: {
         taskId,
-        content: { contains: `@${email}` }
+        content: { contains: `@${email}`, mode: 'insensitive' }
       }
     });
 

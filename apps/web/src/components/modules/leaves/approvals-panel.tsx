@@ -25,18 +25,7 @@ export default function ApprovalsPanel() {
   const [activeTab, setActiveTab] = useState("Pending My Approval");
   const [rejectId, setRejectId] = useState<string | null>(null);
 
-  // Derive approverId
-  const approverId = useMemo(() => {
-    if (typeof window === "undefined") return null;
-    try {
-      const raw = localStorage.getItem("auth-storage");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        return parsed?.state?.employeeId ?? null;
-      }
-    } catch { }
-    return null;
-  }, []);
+  const approverId = useAuthStore((state) => state.employeeId);
 
   const { data: requests = [], isLoading, error } = useQuery<ApiLeaveRequest[]>({
     queryKey: ["leave-approvals", approverId],
@@ -46,9 +35,9 @@ export default function ApprovalsPanel() {
 
   const filtered = useMemo(() => {
     let result = [...requests];
-    if (activeTab === "Pending My Approval") result = result.filter((r) => r.status === "PENDING");
-    if (activeTab === "Approved this month") result = result.filter((r) => r.status === "APPROVED");
-    if (activeTab === "Rejected") result = result.filter((r) => r.status === "REJECTED");
+    if (activeTab === "Pending My Approval") result = result.filter((r: any) => r.isPendingForMe);
+    if (activeTab === "Approved this month") result = result.filter((r: any) => r.myAction === "APPROVED");
+    if (activeTab === "Rejected") result = result.filter((r: any) => r.myAction === "REJECTED");
     return result;
   }, [requests, activeTab]);
 
@@ -66,9 +55,9 @@ export default function ApprovalsPanel() {
   });
 
   const tabs = [
-    { name: "Pending My Approval", count: requests.filter((r) => r.status === "PENDING").length },
-    { name: "Approved this month", count: requests.filter((r) => r.status === "APPROVED").length },
-    { name: "Rejected", count: requests.filter((r) => r.status === "REJECTED").length },
+    { name: "Pending My Approval", count: requests.filter((r: any) => r.isPendingForMe).length },
+    { name: "Approved this month", count: requests.filter((r: any) => r.myAction === "APPROVED").length },
+    { name: "Rejected", count: requests.filter((r: any) => r.myAction === "REJECTED").length },
     { name: "All requests", count: requests.length },
   ];
 
@@ -194,22 +183,24 @@ export default function ApprovalsPanel() {
                     {req.employee?.leaveBalance !== undefined ? `${req.employee.leaveBalance} days remaining` : "N/A"}
                   </span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setRejectId(req.id)}
-                    disabled={rejectMutation.isPending && rejectId === req.id}
-                    className="px-5 py-2 border border-rose-500 text-rose-600 font-bold text-xs rounded-lg hover:bg-rose-50 transition-colors disabled:opacity-50"
-                  >
-                    Reject
-                  </button>
-                  <button
-                    onClick={() => approveMutation.mutate({ leaveId: req.id })}
-                    disabled={approveMutation.isPending}
-                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-sm transition-colors disabled:opacity-50"
-                  >
-                    Approve
-                  </button>
-                </div>
+                {(req as any).isPendingForMe && (
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setRejectId(req.id)}
+                      disabled={rejectMutation.isPending && rejectId === req.id}
+                      className="px-5 py-2 border border-rose-500 text-rose-600 font-bold text-xs rounded-lg hover:bg-rose-50 transition-colors disabled:opacity-50"
+                    >
+                      Reject
+                    </button>
+                    <button
+                      onClick={() => approveMutation.mutate({ leaveId: req.id })}
+                      disabled={approveMutation.isPending}
+                      className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-sm transition-colors disabled:opacity-50"
+                    >
+                      Approve
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Quick reject confirmation (inline) */}

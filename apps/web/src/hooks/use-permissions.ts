@@ -10,7 +10,7 @@ export function usePermissions() {
     "FINANCE", "MANAGER", "TEAM_LEAD", "IT", "CAM", "OE", "OM"
   ].includes(role || "");
   
-  const canManageLeaves = ["SUPER_ADMIN", "CEO", "CTO", "HR", "CHRO", "MANAGER", "TEAM_LEAD"].includes(role || "");
+  const canManageLeaves = ["SUPER_ADMIN", "CEO", "CTO", "HR", "CHRO", "MANAGER", "TEAM_LEAD", "OM"].includes(role || "");
   const canManageCompliance = ["SUPER_ADMIN", "HR", "CHRO"].includes(role || "");
   const canManageSettings = ["SUPER_ADMIN", "IT"].includes(role || "");
   const canManageOrg = ["SUPER_ADMIN", "HR", "CHRO"].includes(role || "");

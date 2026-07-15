@@ -21,7 +21,7 @@ export function OmSidebar() {
         { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
         { title: 'Projects', icon: Briefcase, href: '/projects' },
         { title: 'Teams', icon: Users, href: '/teams' },
-        { title: 'Approvals', icon: CalendarCheck, href: '/om/approvals' },
+        { title: 'Approvals', icon: CalendarCheck, href: '/leaves/approvals' },
         { title: 'Escalations', icon: AlertTriangle, href: '/om/escalations' },
         { title: 'Work Reports', icon: FileText, href: '/om/work-reports' },
       ]

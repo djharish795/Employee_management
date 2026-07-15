@@ -9,7 +9,7 @@ import { RbacPermissions } from '../../common/rbac/rbac.config';
 @UseGuards(JwtAuthGuard)
 export class LeavesController {
 
-  constructor(private readonly leaveService: LeavesService) {}
+  constructor(private readonly leaveService: LeavesService) { }
 
   @RequirePermissions(RbacPermissions.LEAVE_READ)
   @Get('kpi')
@@ -27,7 +27,7 @@ export class LeavesController {
   @Get('my')
   getMyLeaves(@Req() req: any): Promise<unknown> {
     // Assuming JwtAuthGuard adds user info to req.user
-    const employeeId = req.user?.id || req.query.employeeId;
+    const employeeId = req.user?.employeeId || req.query.employeeId;
     return this.leaveService.getMyLeaves(employeeId);
   }
 
@@ -53,6 +53,13 @@ export class LeavesController {
   @Post(':id/reject')
   rejectLeave(@Param('id') id: string, @Body('approverId') approverId: string, @Body('reason') reason: string): Promise<unknown> {
     return this.leaveService.rejectLeave(id, approverId, reason || 'No reason provided');
+  }
+
+  @RequirePermissions(RbacPermissions.LEAVE_CREATE)
+  @Post(':id/cancel')
+  cancelLeave(@Param('id') id: string, @Req() req: any): Promise<unknown> {
+    const employeeId = req.user?.employeeId || req.query.employeeId;
+    return this.leaveService.cancelLeave(id, employeeId);
   }
 
   @RequirePermissions(RbacPermissions.LEAVE_APPROVE)

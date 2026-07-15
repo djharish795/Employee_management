@@ -1,15 +1,17 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/auth";
-import { getMyLeaves } from "@/lib/api/leaves";
+import { getMyLeaves, cancelLeaveRequest } from "@/lib/api/leaves";
 import LeavesLayout from "@/components/modules/leaves/leaves-layout";
 import { Loader2, FileClock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "react-hot-toast";
 
 export default function MyLeavesHistoryPage() {
   const { employeeId, role } = useAuthStore();
+  const queryClient = useQueryClient();
   
   const effectiveRole = (() => {
     if (role) return role.toUpperCase();
@@ -33,6 +35,17 @@ export default function MyLeavesHistoryPage() {
     queryFn: () => getMyLeaves(employeeId!),
     enabled: !!employeeId,
   });
+
+  const handleCancelLeave = async (id: string) => {
+    if (!confirm("Are you sure you want to cancel this leave request?")) return;
+    try {
+      await cancelLeaveRequest(id);
+      toast.success("Leave request cancelled successfully");
+      queryClient.invalidateQueries({ queryKey: ["my-leaves-history", employeeId] });
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || "Failed to cancel leave request");
+    }
+  };
 
   return (
     <LeavesLayout >
@@ -127,6 +140,15 @@ export default function MyLeavesHistoryPage() {
                               </React.Fragment>
                             ))}
                           </div>
+                        )}
+
+                        {req.status === "PENDING" && req.employeeId === employeeId && (
+                          <button
+                            onClick={() => handleCancelLeave(req.id)}
+                            className="text-[10px] font-bold text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2 py-0.5 rounded transition-colors w-max mt-1"
+                          >
+                            Cancel Request
+                          </button>
                         )}
                       </div>
                     </td>

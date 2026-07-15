@@ -24,7 +24,7 @@ export default function LeaveApprovalsPage() {
     if (["SUPER_ADMIN", "IT"].includes(effectiveRole)) return "ADMIN";
     if (["HR", "CHRO"].includes(effectiveRole)) return "HR";
     if (["CEO", "COO"].includes(effectiveRole)) return "CEO";
-    if (["CTO", "CFO", "FINANCE", "MANAGER", "TEAM_LEAD"].includes(effectiveRole)) return "MANAGER";
+    if (["CTO", "CFO", "FINANCE", "MANAGER", "TEAM_LEAD", "OM"].includes(effectiveRole)) return "MANAGER";
     return "EMPLOYEE";
   })();
 

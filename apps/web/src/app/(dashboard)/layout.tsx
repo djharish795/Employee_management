@@ -79,7 +79,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (activeRole === 'CAM') return <CamSidebar />;
     if (activeRole === 'OE') return <OeSidebar />;
     if (activeRole === 'OM') return <OmSidebar />;
-    if (activeRole === 'TEAM_LEAD' || (isTeamLead && pathname?.startsWith('/team-lead'))) {
+    if (activeRole === 'TEAM_LEAD' || isTeamLead) {
       return <TeamLeadSidebar />;
     }
     if (isPrivileged) return <CeoSidebar />;

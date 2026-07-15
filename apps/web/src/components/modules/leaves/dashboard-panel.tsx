@@ -8,8 +8,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useAuthStore } from "@/store/auth";
-import { fetchMyLeaveKpi, fetchLeaveCalendar, ApiLeaveRequest, ApiLeaveKpi } from "@/lib/api/leaves";
+import { fetchMyLeaveKpi, fetchLeaveCalendar, ApiLeaveRequest, ApiLeaveKpi, cancelLeaveRequest } from "@/lib/api/leaves";
 import { fetchMyWfh, ApiWfhRequest } from "@/lib/api/wfh";
+import { toast } from "react-hot-toast";
 
 interface DashboardPanelProps {
   activeRole: "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
@@ -24,7 +25,15 @@ export default function DashboardPanel() {
   const { employeeId } = useAuthStore();
   const isEmployee = activeRole === "EMPLOYEE";
 
-  // ── 1. Leave KPI ─────────────────────────────────────────────────────────
+  const leavePanelRole = ((): "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE" => {
+    if (["SUPER_ADMIN", "IT"].includes(activeRole)) return "ADMIN";
+    if (["HR", "CHRO"].includes(activeRole)) return "HR";
+    if (["CEO", "COO"].includes(activeRole)) return "CEO";
+    if (["CTO", "CFO", "FINANCE", "MANAGER", "TEAM_LEAD"].includes(activeRole)) return "MANAGER";
+    return "EMPLOYEE";
+  })();
+
+  // ── 1. My Leave KPI & Balance ─────────────────────────────────────────────────────────
   const kpiQuery = useQuery<ApiLeaveKpi>({
     queryKey: ["leaves-kpi", employeeId],
     queryFn: () => fetchMyLeaveKpi(employeeId!),
@@ -37,6 +46,7 @@ export default function DashboardPanel() {
   const calendarQuery = useQuery<ApiLeaveRequest[]>({
     queryKey: ["leaves-calendar"],
     queryFn: fetchLeaveCalendar,
+    enabled: !!employeeId && ["MANAGER", "HR", "CEO", "ADMIN"].includes(leavePanelRole),
     staleTime: 120_000,
     retry: 1,
   });
@@ -104,16 +114,28 @@ export default function DashboardPanel() {
   const recentRequests = useMemo(() => {
     if (!calendarQuery.data) return [];
     const items = calendarQuery.data as any[];
-    if (isEmployee && employeeId) {
+    if (employeeId) {
       return items.filter((r) => r.employeeId === employeeId).slice(0, 5);
     }
     return items.slice(0, 5);
-  }, [calendarQuery.data, isEmployee, employeeId]);
+  }, [calendarQuery.data, employeeId]);
 
   // ── Balance breakdown (excluding CL_HALF, shown separately) ──────────────
   const balanceDetails = (kpiQuery.data?.details ?? []).filter(d => d.leaveType.code !== "CL_HALF");
 
   const isLoading = kpiQuery.isLoading;
+
+  const handleCancelLeave = async (id: string) => {
+    if (!confirm("Are you sure you want to cancel this leave request?")) return;
+    try {
+      await cancelLeaveRequest(id);
+      toast.success("Leave request cancelled successfully");
+      calendarQuery.refetch();
+      kpiQuery.refetch();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || "Failed to cancel leave request");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -370,9 +392,19 @@ export default function DashboardPanel() {
                         <td className="px-5 py-3.5">{fmtDate(req.startDate)} – {fmtDate(req.endDate)}</td>
                         <td className="px-5 py-3.5 text-center font-bold text-slate-900">{req.totalDays}</td>
                         <td className="px-5 py-3.5">
-                          <span className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase ${badge}`}>
-                            {req.status}
-                          </span>
+                          <div className="flex items-center gap-3">
+                            <span className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase ${badge}`}>
+                              {req.status}
+                            </span>
+                            {req.status === 'PENDING' && req.employeeId === employeeId && (
+                              <button
+                                onClick={() => handleCancelLeave(req.id)}
+                                className="text-[10px] font-bold text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2 py-0.5 rounded transition-colors"
+                              >
+                                Cancel
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );

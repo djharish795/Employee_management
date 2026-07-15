@@ -34,7 +34,7 @@ export class LeavesService {
     let totalPending = 0;
 
     const currentMonth = new Date().getMonth();
-    const policyMonth = currentMonth >= 6 ? currentMonth - 6 + 1 : currentMonth + 6 + 1; // Policy year starts in July
+    const policyMonth = currentMonth >= 5 ? currentMonth - 5 + 1 : currentMonth + 7 + 1; // Policy year starts in June
 
     const adjustedBalances = balances.map(b => {
       let actualAllocated = Number(b.allocated);
@@ -57,10 +57,10 @@ export class LeavesService {
     });
 
     adjustedBalances.forEach(b => {
-      if (b.leaveType.code === 'CL_FULL') {
-        yearlyTotal += b.yearlyAllocated; // Strictly just the yearly allowance (20)
+      if (['CL_FULL', 'CL_HALF', 'OPTIONAL'].includes(b.leaveType.code)) {
+        yearlyTotal += b.yearlyAllocated;
       }
-      
+
       // Accrued, used, and pending must aggregate all available leave types to hit 4.5
       accruedTotal += b.allocated + b.carriedOver;
       totalUsed += b.used;
@@ -72,7 +72,7 @@ export class LeavesService {
       accruedLeaves: accruedTotal,
       usedLeaves: totalUsed,
       pendingLeaves: totalPending,
-      availableLeaves: Math.max(0, accruedTotal - totalUsed - totalPending),
+      availableLeaves: Math.max(0, accruedTotal - totalUsed),
       details: adjustedBalances
     };
   }
@@ -80,7 +80,7 @@ export class LeavesService {
   async getApprovals(approverId: string): Promise<unknown> {
     const approver = await this.prisma.employee.findUnique({
       where: { id: approverId },
-      include: { department: true, designation: true }
+      include: { department: true, designation: true, user: true }
     });
 
     if (!approver) throw new NotFoundException('Approver not found');
@@ -88,27 +88,74 @@ export class LeavesService {
     const role = this.getRoleForEmployee(approver);
 
     const requests = await this.prisma.leaveRequest.findMany({
-      where: { status: 'PENDING' },
+      where: { status: { in: ['PENDING', 'APPROVED', 'REJECTED'] } },
       include: { employee: true, leaveType: true }
     });
 
     return requests.filter(req => {
       const reqData = req as typeof req & { approvalQueue?: unknown, currentStep: number };
       if (!reqData.approvalQueue) return false;
-      const queue = reqData.approvalQueue as unknown as ApprovalQueueItem[];
-      const currentStep = queue[reqData.currentStep];
-      if (!currentStep) return false;
-      if (currentStep.status !== 'PENDING') return false;
+      const queue = reqData.approvalQueue as unknown as any[];
 
-      if (currentStep.approverId) {
-        return currentStep.approverId === approverId;
+      const currentStep = queue[reqData.currentStep];
+      let isCurrentPending = false;
+      if (currentStep && currentStep.status === 'PENDING') {
+        if (currentStep.approverId) {
+          isCurrentPending = currentStep.approverId === approverId;
+        } else {
+          isCurrentPending = currentStep.role === role;
+        }
       }
 
-      return currentStep.role === role;
+      const hasActed = queue.some(step => {
+        if (step.status === 'APPROVED' || step.status === 'REJECTED') {
+          if (step.approverId) {
+            return step.approverId === approverId;
+          }
+          return step.role === role;
+        }
+        return false;
+      });
+
+      return isCurrentPending || hasActed;
+    }).map(req => {
+      const reqData = req as typeof req & { approvalQueue?: unknown, currentStep: number };
+      const queue = reqData.approvalQueue as unknown as any[];
+      const currentStep = queue[reqData.currentStep];
+
+      let isCurrentPending = false;
+      if (currentStep && currentStep.status === 'PENDING') {
+        if (currentStep.approverId) {
+          isCurrentPending = currentStep.approverId === approverId;
+        } else {
+          isCurrentPending = currentStep.role === role;
+        }
+      }
+
+      // Determine what action this user took
+      let myAction = null;
+      const myStep = queue.find(step => {
+        if (step.approverId) return step.approverId === approverId;
+        return step.role === role;
+      });
+      if (myStep && myStep.status !== 'PENDING') {
+        myAction = myStep.status;
+      }
+
+      return {
+        ...req,
+        isPendingForMe: isCurrentPending,
+        myAction
+      };
     });
   }
 
-  private getRoleForEmployee(employee: { department?: { code?: string } | null, designation?: { title?: string } | null, employeeId?: string }): string {
+  private getRoleForEmployee(employee: any): string {
+    if (employee.user?.role) {
+      if (['CEO', 'CTO'].includes(employee.user.role)) {
+        return employee.user.role;
+      }
+    }
     const designTitle = employee.designation?.title || '';
     if (['TR', 'TS', 'TL', 'QA', 'QE', 'HRE', 'CTO', 'CEO'].includes(designTitle)) return designTitle;
 
@@ -134,40 +181,46 @@ export class LeavesService {
     });
   }
 
-  private determineQueue(employee: { department?: { code?: string } | null, designation?: { title?: string } | null, employeeId?: string, reportingManagerId?: string | null }): ApprovalQueueItem[] {
-    const role = this.getRoleForEmployee(employee);
+  private async determineQueue(employee: any): Promise<ApprovalQueueItem[]> {
     let queue: ApprovalQueueItem[] = [];
+    const role = this.getRoleForEmployee(employee);
 
-    switch (role) {
-      case 'TR':
-      case 'TS':
-        queue.push({ role: 'TL', status: 'PENDING', approverId: employee.reportingManagerId || undefined });
-        queue.push({ role: 'HRE', status: 'PENDING' });
-        break;
-      case 'TL':
-      case 'QA':
-        queue.push({ role: 'HRE', status: 'PENDING' });
-        break;
-      case 'QE':
-        queue.push({ role: 'QA', status: 'PENDING', approverId: employee.reportingManagerId || undefined });
-        queue.push({ role: 'HRE', status: 'PENDING' });
-        break;
-      case 'CTO':
-        queue.push({ role: 'CEO', status: 'PENDING' });
-        break;
-      default:
-        queue.push({ role: 'MANAGER', status: 'PENDING', approverId: employee.reportingManagerId || undefined });
-        queue.push({ role: 'HRE', status: 'PENDING' });
+    if (role === 'CTO') {
+      queue.push({ role: 'CEO', status: 'PENDING' });
+      return queue;
     }
 
-    // Filter out intermediate steps that require a manager but the employee has no manager assigned.
-    // They will just escalate to the next step (usually HR).
-    return queue.filter(q => {
-      if ((q.role === 'TL' || q.role === 'QA' || q.role === 'MANAGER') && !q.approverId) {
-        return false;
+    if (role === 'CEO') {
+      return queue;
+    }
+
+    const projectAssignment = await this.prisma.projectAssignment.findFirst({
+      where: { employeeId: employee.id, releasedAt: null },
+      include: {
+        project: {
+          include: {
+            assignments: {
+              where: { projectRole: 'TL', releasedAt: null }
+            }
+          }
+        }
       }
-      return true;
     });
+
+    let teamLeadId = undefined;
+    if (projectAssignment && projectAssignment.project.assignments.length > 0) {
+      teamLeadId = projectAssignment.project.assignments[0].employeeId;
+    }
+
+    if (teamLeadId && teamLeadId !== employee.id) {
+      queue.push({ role: 'TL', status: 'PENDING', approverId: teamLeadId });
+    } else if (employee.reportingManagerId) {
+      queue.push({ role: 'MANAGER', status: 'PENDING', approverId: employee.reportingManagerId });
+    }
+
+    queue.push({ role: 'HRE', status: 'PENDING', approverId: employee.assignedHrId || undefined });
+
+    return queue.filter(q => q.approverId || q.role === 'HRE');
   }
 
   async getMyLeaves(employeeId: string): Promise<unknown> {
@@ -183,7 +236,7 @@ export class LeavesService {
   async applyLeave(data: ApplyLeaveDto): Promise<unknown> {
     const employee = await this.prisma.employee.findUnique({
       where: { id: data.employeeId },
-      include: { department: true, designation: true }
+      include: { department: true, designation: true, user: true }
     });
 
     if (!employee) throw new NotFoundException('Employee not found');
@@ -252,7 +305,7 @@ export class LeavesService {
 
     const currentYear = startDate.getFullYear();
     const createdLeaves = [];
-    const baseApprovalQueue = this.determineQueue(employee);
+    const baseApprovalQueue = await this.determineQueue(employee);
 
     for (const leaveType of leaveTypes) {
       if (leaveType.code === 'MATERNITY') {
@@ -286,124 +339,124 @@ export class LeavesService {
 
       if (daysForThisType <= 0) continue;
 
-    const leave = await this.prisma.$transaction(async (tx) => {
-      let balance = await tx.leaveBalance.findUnique({
-        where: {
-          employeeId_leaveTypeId_year: {
-            employeeId: employee.id,
-            leaveTypeId: leaveType.id,
-            year: currentYear
+      const leave = await this.prisma.$transaction(async (tx) => {
+        let balance = await tx.leaveBalance.findUnique({
+          where: {
+            employeeId_leaveTypeId_year: {
+              employeeId: employee.id,
+              leaveTypeId: leaveType.id,
+              year: currentYear
+            }
           }
-        }
-      });
+        });
 
-      if (!balance) {
-        balance = await tx.leaveBalance.create({
+        if (!balance) {
+          balance = await tx.leaveBalance.create({
+            data: {
+              employeeId: employee.id,
+              leaveTypeId: leaveType.id,
+              year: currentYear,
+              allocated: 0,
+              carriedOver: 0,
+              pending: 0,
+              used: 0
+            }
+          });
+        }
+
+        let paidDays = 0;
+        let unpaidDays = 0;
+
+        let available = 0;
+        if (leaveType.code === 'CL_FULL') {
+          const currentMonth = startDate.getMonth();
+          const policyMonth = currentMonth >= 5 ? currentMonth - 5 + 1 : currentMonth + 7 + 1;
+          const accruedLimit = Math.min(Number(balance.allocated), policyMonth);
+          available = Math.max(0, accruedLimit + Number(balance.carriedOver) - Number(balance.used) - Number(balance.pending));
+        } else if (leaveType.code === 'CL_HALF') {
+          available = 0.5; // Strictly max 1 half-day per month. Reset every month.
+        } else {
+          available = Math.max(0, Number(balance.allocated) + Number(balance.carriedOver) - Number(balance.used) - Number(balance.pending));
+        }
+
+        if (leaveType.code === 'CL_FULL' || leaveType.code === 'CL_HALF') {
+          const applicablePaidDays = Math.min(daysForThisType, available);
+
+          const startOfMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+          const endOfMonth = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+
+          const monthlyLeaves = await tx.leaveRequest.aggregate({
+            where: {
+              employeeId: employee.id,
+              leaveTypeId: leaveType.id,
+              status: { notIn: ['REJECTED', 'CANCELLED'] },
+              startDate: { gte: startOfMonth, lte: endOfMonth }
+            },
+            _sum: { paidDays: true }
+          });
+
+          const alreadyPaidThisMonth = Number(monthlyLeaves._sum.paidDays || 0);
+          const maxPaidAllowedThisMonth = 3;
+          const remainingPaidAllowedThisMonth = Math.max(0, maxPaidAllowedThisMonth - alreadyPaidThisMonth);
+
+          paidDays = Math.min(applicablePaidDays, remainingPaidAllowedThisMonth);
+          unpaidDays = daysForThisType - paidDays;
+        } else {
+          if (available < daysForThisType) {
+            throw new BadRequestException(`Insufficient leave balance for ${leaveType.name}. You have ${available} days available.`);
+          }
+          paidDays = daysForThisType;
+          unpaidDays = 0;
+        }
+
+        let reqStartDate = new Date(startDate);
+        let reqEndDate = new Date(endDate);
+        let isReqHalfDay = false;
+
+        if (hasHalfDay && hasFullDay) {
+          if (leaveType.code === 'CL_HALF') {
+            if (data.halfDaySession === 'LAST_DAY') {
+              reqStartDate = new Date(endDate);
+            } else {
+              reqEndDate = new Date(startDate);
+            }
+            isReqHalfDay = true;
+          } else {
+            if (data.halfDaySession === 'LAST_DAY') {
+              reqEndDate.setDate(reqEndDate.getDate() - 1);
+            } else {
+              reqStartDate.setDate(reqStartDate.getDate() + 1);
+            }
+          }
+        } else if (leaveType.code === 'CL_HALF') {
+          isReqHalfDay = true;
+        }
+
+        const newLeave = await tx.leaveRequest.create({
           data: {
             employeeId: employee.id,
             leaveTypeId: leaveType.id,
-            year: currentYear,
-            allocated: 0,
-            carriedOver: 0,
-            pending: 0,
-            used: 0
+            startDate: reqStartDate,
+            endDate: reqEndDate,
+            reason: data.reason,
+            totalDays: daysForThisType,
+            paidDays,
+            unpaidDays,
+            status: 'PENDING',
+            attachmentUrl: data.attachmentUrl,
+            isHalfDay: isReqHalfDay,
+            isEmergency,
+            ...({ approvalQueue: approvalQueue as unknown as object, currentStep: 0 })
           }
         });
-      }
 
-      let paidDays = 0;
-      let unpaidDays = 0;
-
-      let available = 0;
-      if (leaveType.code === 'CL_FULL') {
-        const currentMonth = startDate.getMonth();
-        const policyMonth = currentMonth >= 5 ? currentMonth - 5 + 1 : currentMonth + 7 + 1;
-        const accruedLimit = Math.min(Number(balance.allocated), policyMonth);
-        available = Math.max(0, accruedLimit + Number(balance.carriedOver) - Number(balance.used) - Number(balance.pending));
-      } else if (leaveType.code === 'CL_HALF') {
-        available = 0.5; // Strictly max 1 half-day per month. Reset every month.
-      } else {
-        available = Math.max(0, Number(balance.allocated) + Number(balance.carriedOver) - Number(balance.used) - Number(balance.pending));
-      }
-
-      if (leaveType.code === 'CL_FULL' || leaveType.code === 'CL_HALF') {
-        const applicablePaidDays = Math.min(daysForThisType, available);
-
-        const startOfMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
-        const endOfMonth = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
-
-        const monthlyLeaves = await tx.leaveRequest.aggregate({
-          where: {
-            employeeId: employee.id,
-            leaveTypeId: leaveType.id,
-            status: { notIn: ['REJECTED', 'CANCELLED'] },
-            startDate: { gte: startOfMonth, lte: endOfMonth }
-          },
-          _sum: { paidDays: true }
+        await tx.leaveBalance.update({
+          where: { id: balance.id },
+          data: { pending: { increment: paidDays } }
         });
 
-        const alreadyPaidThisMonth = Number(monthlyLeaves._sum.paidDays || 0);
-        const maxPaidAllowedThisMonth = 3;
-        const remainingPaidAllowedThisMonth = Math.max(0, maxPaidAllowedThisMonth - alreadyPaidThisMonth);
-
-        paidDays = Math.min(applicablePaidDays, remainingPaidAllowedThisMonth);
-        unpaidDays = daysForThisType - paidDays;
-      } else {
-        if (available < daysForThisType) {
-          throw new BadRequestException(`Insufficient leave balance for ${leaveType.name}. You have ${available} days available.`);
-        }
-        paidDays = daysForThisType;
-        unpaidDays = 0;
-      }
-
-      let reqStartDate = new Date(startDate);
-      let reqEndDate = new Date(endDate);
-      let isReqHalfDay = false;
-
-      if (hasHalfDay && hasFullDay) {
-        if (leaveType.code === 'CL_HALF') {
-          if (data.halfDaySession === 'LAST_DAY') {
-            reqStartDate = new Date(endDate);
-          } else {
-            reqEndDate = new Date(startDate);
-          }
-          isReqHalfDay = true;
-        } else {
-          if (data.halfDaySession === 'LAST_DAY') {
-            reqEndDate.setDate(reqEndDate.getDate() - 1);
-          } else {
-            reqStartDate.setDate(reqStartDate.getDate() + 1);
-          }
-        }
-      } else if (leaveType.code === 'CL_HALF') {
-        isReqHalfDay = true;
-      }
-
-      const newLeave = await tx.leaveRequest.create({
-        data: {
-          employeeId: employee.id,
-          leaveTypeId: leaveType.id,
-          startDate: reqStartDate,
-          endDate: reqEndDate,
-          reason: data.reason,
-          totalDays: daysForThisType,
-          paidDays,
-          unpaidDays,
-          status: 'PENDING',
-          attachmentUrl: data.attachmentUrl,
-          isHalfDay: isReqHalfDay,
-          isEmergency,
-          ...({ approvalQueue: approvalQueue as unknown as object, currentStep: 0 })
-        }
+        return newLeave;
       });
-
-      await tx.leaveBalance.update({
-        where: { id: balance.id },
-        data: { pending: { increment: paidDays } }
-      });
-
-      return newLeave;
-    });
 
       createdLeaves.push(leave);
 
@@ -595,7 +648,7 @@ export class LeavesService {
               ...({ approvalQueue: queue as unknown as object, currentStep: queue.length })
             }
           });
-          
+
           if (updateResult.count === 0) throw new Error("ConcurrencyConflict");
 
           const balance = await this.getLeaveBalance(tx, leave);
@@ -611,34 +664,34 @@ export class LeavesService {
           }
         });
 
-      this.auditService.logApprove({
-        moduleName: 'Leaves',
-        entityId: leaveId,
-        actorId: approverId,
-        metadata: { approverId, override: true }
-      });
+        this.auditService.logApprove({
+          moduleName: 'Leaves',
+          entityId: leaveId,
+          actorId: approverId,
+          metadata: { approverId, override: true }
+        });
 
-      return { message: 'Leave Approved Successfully via Override' };
-    }
+        return { message: 'Leave Approved Successfully via Override' };
+      }
 
-    const currentStepIndex = leaveData.currentStep;
-    const currentStep = queue[currentStepIndex];
+      const currentStepIndex = leaveData.currentStep;
+      const currentStep = queue[currentStepIndex];
 
-    if (!currentStep) {
-      throw new BadRequestException('Queue is already completed.');
-    }
+      if (!currentStep) {
+        throw new BadRequestException('Queue is already completed.');
+      }
 
-    const isAuthorized = currentStep.approverId
-      ? currentStep.approverId === approverId
-      : currentStep.role === approverRole;
+      const isAuthorized = currentStep.approverId
+        ? currentStep.approverId === approverId
+        : currentStep.role === approverRole;
 
-    if (!isAuthorized) {
-      throw new BadRequestException(`You are not authorized for this step. Waiting for ${currentStep.role}`);
-    }
+      if (!isAuthorized) {
+        throw new BadRequestException(`You are not authorized for this step. Waiting for ${currentStep.role}`);
+      }
 
-    currentStep.status = 'APPROVED';
-    currentStep.approverId = approverId;
-    currentStep.actedAt = new Date();
+      currentStep.status = 'APPROVED';
+      currentStep.approverId = approverId;
+      currentStep.actedAt = new Date();
 
       const nextStepIndex = currentStepIndex + 1;
       const isFinished = nextStepIndex >= queue.length;
@@ -653,7 +706,7 @@ export class LeavesService {
             ...({ approvalQueue: queue as unknown as object, currentStep: nextStepIndex })
           }
         });
-        
+
         if (updateResult.count === 0) throw new Error("ConcurrencyConflict");
 
         if (isFinished) {
@@ -784,6 +837,37 @@ export class LeavesService {
     });
 
     return { message: 'Leave Rejected Successfully' };
+  }
+
+  async cancelLeave(leaveId: string, employeeId: string): Promise<unknown> {
+    const leave = await this.prisma.leaveRequest.findUnique({ where: { id: leaveId } });
+    if (!leave) throw new NotFoundException('Leave not found');
+    if (leave.employeeId !== employeeId) throw new BadRequestException('You can only cancel your own leave requests.');
+    if (leave.status !== 'PENDING') throw new BadRequestException('Only pending leaves can be cancelled.');
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.leaveRequest.update({
+        where: { id: leaveId },
+        data: { status: 'CANCELLED' }
+      });
+
+      const balance = await this.getLeaveBalance(tx, leave);
+      if (balance) {
+        await tx.leaveBalance.update({
+          where: { id: balance.id },
+          data: { pending: { decrement: leave.paidDays } }
+        });
+      }
+    });
+
+    this.auditService.logUpdate({
+      moduleName: 'Leaves',
+      entityId: leaveId,
+      actorId: employeeId,
+      metadata: { action: 'CANCELLED_BY_EMPLOYEE' }
+    });
+
+    return { message: 'Leave Cancelled Successfully' };
   }
 
   async accrueMonthlyLeaves(): Promise<unknown> {

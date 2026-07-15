@@ -48,8 +48,8 @@ export class ProjectsController {
   @RequirePermissions(RbacPermissions.PROJECTS_CREATE)
   @Post()
   @Permissions(Permission.MANAGE_PROJECTS)
-  createProject(@Body() data: CreateProjectDto) {
-    return this.projectsService.createProject(data);
+  createProject(@Body() data: CreateProjectDto, @CurrentUser() user: any) {
+    return this.projectsService.createProject(data, user);
   }
 
   @Get()
@@ -72,8 +72,8 @@ export class ProjectsController {
 
   @Post(':id/delete')
   @Permissions(Permission.MANAGE_PROJECTS)
-  deleteProject(@Param('id') id: string) {
-    return this.projectsService.deleteProject(id);
+  deleteProject(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.projectsService.deleteProject(id, user);
   }
 
   @Post(':id/assign')

@@ -115,6 +115,14 @@ export const rejectLeave = async (
   return data;
 };
 
+// ─── Cancel a leave request ───────────────────────────────────────────────────
+export const cancelLeaveRequest = async (
+  leaveId: string
+): Promise<{ message: string }> => {
+  const { data } = await apiClient.post(`/leaves/${leaveId}/cancel`);
+  return data;
+};
+
 // ─── Get approved leaves for calendar view ────────────────────────────────────
 export const fetchLeaveCalendar = async (): Promise<ApiLeaveRequest[]> => {
   const { data } = await apiClient.get("/leaves/calendar");

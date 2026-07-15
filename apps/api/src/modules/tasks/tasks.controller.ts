@@ -26,7 +26,7 @@ export class TasksController {
     const userEmail = user.email;
     return tasks.map((task: any) => {
       const isMentioned = task.comments?.some((comment: any) => 
-        comment.content?.includes(`@${userEmail}`) && !(comment.viewedBy || []).includes(employeeId)
+        comment.content?.toLowerCase().includes(`@${userEmail.toLowerCase()}`) && !(comment.viewedBy || []).includes(employeeId)
       ) || false;
       return { ...task, isMentioned };
     });
@@ -41,7 +41,7 @@ export class TasksController {
     const userEmail = user.email;
     return tasks.map((task: any) => {
       const isMentioned = task.comments?.some((comment: any) => 
-        comment.content?.includes(`@${userEmail}`) && !(comment.viewedBy || []).includes(user.employeeId)
+        comment.content?.toLowerCase().includes(`@${userEmail.toLowerCase()}`) && !(comment.viewedBy || []).includes(user.employeeId)
       ) || false;
       return { ...task, isMentioned };
     });
@@ -64,7 +64,7 @@ export class TasksController {
   }
 
   @Post(":id/comments")
-  @Permissions(Permission.WRITE_OWN_PROFILE)
+  @Permissions(Permission.READ_OWN_PROFILE)
   async addComment(
     @Param("id") id: string,
     @CurrentUser() user: any,

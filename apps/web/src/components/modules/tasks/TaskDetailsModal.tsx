@@ -30,9 +30,34 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated }: TaskD
   
   useEffect(() => {
     if (isOpen) {
-      apiClient.get('/employees/org-chart').then(res => setEmployees(res.data)).catch(console.error);
+      const fetchEmployees = async () => {
+        try {
+          const orgChartRes = await apiClient.get('/employees/org-chart');
+          let allEmployees = orgChartRes.data;
+          
+          if (localTask?.projectId) {
+            try {
+              const projRes = await apiClient.get(`/projects/${localTask.projectId}`);
+              if (projRes.data?.assignments) {
+                const projEmployees = projRes.data.assignments.map((a: any) => a.employee);
+                const projEmpIds = new Set(projEmployees.map((e: any) => e.id));
+                const otherEmployees = allEmployees.filter((e: any) => !projEmpIds.has(e.id));
+                allEmployees = [...projEmployees, ...otherEmployees];
+              }
+            } catch (err) {
+              console.error('Failed to fetch project members', err);
+            }
+          }
+          
+          setEmployees(allEmployees);
+        } catch (error) {
+          console.error(error);
+        }
+      };
+      
+      fetchEmployees();
     }
-  }, [isOpen]);
+  }, [isOpen, localTask?.projectId]);
 
   useEffect(() => {
     if (isOpen && localTask && (localTask as any).isMentioned) {
@@ -303,9 +328,10 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated }: TaskD
                               .filter(e => 
                                 e.firstName.toLowerCase().includes(mentionQuery) || 
                                 e.lastName.toLowerCase().includes(mentionQuery) || 
-                                e.officialEmail.toLowerCase().includes(mentionQuery)
+                                e.officialEmail.toLowerCase().includes(mentionQuery) ||
+                                (e.designation?.title && e.designation.title.toLowerCase().includes(mentionQuery))
                               )
-                              .slice(0, 5)
+                              .slice(0, 20)
                               .map(e => (
                                 <button
                                   key={e.id}

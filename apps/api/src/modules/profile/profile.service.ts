@@ -22,6 +22,14 @@ export class ProfileService {
 
     if (!employee) throw new NotFoundException('Profile not found');
 
+    const tlAssignment = await this.prisma.projectAssignment.findFirst({
+      where: { employeeId: employee.id, projectRole: 'TL' },
+    });
+
+    if (employee.user) {
+      (employee.user as any).isTeamLead = !!tlAssignment;
+    }
+
     // Decrypt sensitive fields for viewing (since only the owner can read their own profile in this endpoint)
     return {
       ...employee,

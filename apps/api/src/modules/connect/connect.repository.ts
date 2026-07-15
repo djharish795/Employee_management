@@ -128,15 +128,11 @@ export class ConnectRepository {
   }
 
   async getSettings(employeeId: string) {
-    let settings = await this.prisma.connectSettings.findUnique({
-      where: { employeeId }
+    return this.prisma.connectSettings.upsert({
+      where: { employeeId },
+      update: {},
+      create: { employeeId }
     });
-    if (!settings) {
-      settings = await this.prisma.connectSettings.create({
-        data: { employeeId }
-      });
-    }
-    return settings;
   }
 
   async updateSettings(employeeId: string, data: Prisma.ConnectSettingsUpdateInput) {
