@@ -42,19 +42,20 @@ export const LoginForm: React.FC = () => {
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
 
+  const accessToken = useAuthStore((state) => state.accessToken);
+
   // Client-side auth guard: redirect if already logged in
   React.useEffect(() => {
     const getCookie = (name: string) => {
       const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
       return match ? decodeURIComponent(match[2]) : null;
     };
-    const token = getCookie("token");
     const role = getCookie("role")?.toUpperCase() ?? "";
-    if (token) {
+    if (accessToken) {
       const target = getDashboardPathForRole(role);
       router.replace(target);
     }
-  }, [router]);
+  }, [router, accessToken]);
 
   const {
     register,

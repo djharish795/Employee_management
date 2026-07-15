@@ -13,10 +13,6 @@ export enum UserRole {
   EMPLOYEE = "EMPLOYEE",
   IT = "IT",
   CAM = "CAM",
-<<<<<<< Updated upstream
-  OE = "OE",
-  OM = "OM",
-=======
   OM = "OM",
   OE = "OE",
 }
@@ -49,7 +45,6 @@ export const ROLE_SIDEBAR_TYPE: Record<UserRole, SidebarType> = {
 
 export function getSidebarTypeForRole(role: string): SidebarType {
   return ROLE_SIDEBAR_TYPE[role as UserRole] ?? SidebarType.EMPLOYEE;
->>>>>>> Stashed changes
 }
 
 export const ROLE_DASHBOARD_PATH: Record<UserRole, string> = {
