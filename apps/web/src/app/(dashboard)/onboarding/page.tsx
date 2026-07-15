@@ -256,7 +256,9 @@ export default function OnboardingPage() {
             <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
               <div className="flex items-center justify-between mb-5">
                 <h3 className="text-sm font-bold text-slate-900">Pending HR Tasks</h3>
-                <div className="w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] font-bold shadow-sm">3</div>
+                <div className="w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] font-bold shadow-sm">
+                  {isLoading ? '-' : (metrics?.pendingHrTasks?.length || 0)}
+                </div>
               </div>
               <div className="space-y-4 mb-4">
                 {isLoading ? (

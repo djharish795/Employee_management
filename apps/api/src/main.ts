@@ -26,7 +26,7 @@ async function bootstrap() {
   app.setGlobalPrefix(`api/${apiVersion}`);
 
   const port = Number(process.env.PORT ?? 3001);
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   const logger = new Logger('Bootstrap');
   logger.log(`API listening on port ${port}/api/${apiVersion}`);
 }

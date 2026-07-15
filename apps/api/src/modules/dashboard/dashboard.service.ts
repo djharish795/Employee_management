@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
+import { EmployeeStatus } from "@naprocs/database";
 
 @Injectable()
 export class DashboardService {
@@ -7,7 +8,7 @@ export class DashboardService {
 
   async getMetrics() {
     const totalEmployees = await this.prisma.employee.count({
-      where: { status: { notIn: ["EXITED", "CANCELLED", "ONBOARDING"] } },
+      where: { status: { notIn: [EmployeeStatus.EXITED, EmployeeStatus.CANCELLED, EmployeeStatus.ONBOARDING] } },
     });
     const activeEmployees = await this.prisma.employee.count({
       where: { status: "ACTIVE" },
@@ -66,7 +67,7 @@ export class DashboardService {
 
     const departmentsGroup = await this.prisma.employee.groupBy({
       by: ["departmentId"],
-      where: { status: { notIn: ["EXITED", "CANCELLED", "ONBOARDING"] } },
+      where: { status: { notIn: [EmployeeStatus.EXITED, EmployeeStatus.CANCELLED, EmployeeStatus.ONBOARDING] } },
       _count: { id: true },
     });
 
@@ -135,7 +136,7 @@ export class DashboardService {
     today.setUTCHours(0, 0, 0, 0);
 
     const totalCapacity = await this.prisma.employee.count({
-      where: { status: { notIn: ["EXITED", "CANCELLED", "ONBOARDING"] } }
+      where: { status: { notIn: [EmployeeStatus.EXITED, EmployeeStatus.CANCELLED, EmployeeStatus.ONBOARDING] } }
     });
     const activeEmployees = await this.prisma.employee.count({ where: { status: 'ACTIVE' } });
     const newJoins = await this.prisma.employee.count({

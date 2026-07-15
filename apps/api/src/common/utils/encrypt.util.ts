@@ -6,9 +6,9 @@ const ALGORITHM = 'aes-256-gcm';
 // The key must be exactly 32 bytes for AES-256
 // In a real environment, this should come from AWS Secrets Manager
 const getEncryptionKey = (): Buffer => {
-  const secret = process.env.ENCRYPTION_KEY;
+  const secret = process.env.FIELD_ENCRYPTION_KEY || process.env.ENCRYPTION_KEY;
   if (!secret) {
-    throw new InternalServerErrorException('FATAL: ENCRYPTION_KEY environment variable is required for AES-256 encryption.');
+    throw new InternalServerErrorException('FATAL: FIELD_ENCRYPTION_KEY environment variable is required for AES-256 encryption.');
   }
   // If the secret is exactly 32 chars, use it. If not, hash it to 32 bytes.
   if (Buffer.from(secret).length === 32) {

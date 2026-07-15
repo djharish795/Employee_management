@@ -13,7 +13,7 @@ import { RedisService } from "../../redis/redis.service";
 import { v4 as uuidv4 } from "uuid";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { createS3Client } from "../../common/utils/s3.util";
+import { createS3Client, generatePresignedDownloadUrl } from "../../common/utils/s3.util";
 
 import { NotificationsService } from "../notifications/notifications.service";
 import { NotificationType } from "@naprocs/database";
@@ -195,9 +195,34 @@ export class EmployeesService {
       throw new NotFoundException("Draft not found or expired");
     }
 
-    // Transform draftData into CreateEmployeeDto if necessary, 
-    // but we can pass it directly to createEmployee since it handles the DTO structure.
     const employee = await this.createEmployee(draftData as CreateEmployeeDto);
+
+    // Automatically create an active OnboardingSession for the new employee
+    const session = await this.prisma.onboardingSession.create({
+      data: {
+        employeeId: employee.id,
+        stage: "OFFER_ACCEPTED",
+        laptopType: draftData.laptopType || "Standard Laptop",
+        accessories: draftData.accessories || [],
+        software: draftData.software || []
+      }
+    });
+
+    const defaultTasks = [
+      { title: "Verify I-9 Documents", assignedTo: "HR" },
+      { title: "Assign Work Laptop", assignedTo: "IT" },
+      { title: "Review Payroll Setup", assignedTo: "Finance" },
+      { title: "Complete Compliance Training", assignedTo: "Employee" }
+    ];
+
+    await this.prisma.onboardingTask.createMany({
+      data: defaultTasks.map(task => ({
+        sessionId: session.id,
+        title: task.title,
+        description: "",
+        assignedTo: task.assignedTo
+      }))
+    });
 
     // Delete the draft after successful creation
     await this.redis.del(redisKey);

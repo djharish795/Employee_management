@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { ArrowLeft, CheckCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
 import { Stepper } from '@/components/employees/stepper';
 import { PersonalInformationForm } from '@/components/employees/personal-information-form';
 import { EmploymentForm } from '@/components/employees/employment-form';

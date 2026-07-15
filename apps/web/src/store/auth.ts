@@ -29,24 +29,9 @@ interface AuthState {
   clearSession: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  tempSession: null,
-  deviceDetails: null,
-  accessToken: null,
-  refreshToken: null,
-  role: null,
-  employeeId: null,
-  photoUrl: null,
-  isTeamLead: false,
-  setTempSession: (session) => set({ tempSession: session }),
-  setDeviceDetails: (details) => set({ deviceDetails: details }),
-  setAuthSession: ({ accessToken, refreshToken, role, employeeId, isTeamLead = false }) =>
-    set({ accessToken, refreshToken, role, employeeId, isTeamLead, tempSession: null }),
-  setPhotoUrl: (url) => set({ photoUrl: url }),
-  clearSession: () => {
-    // Note: HttpOnly cookies are cleared by the backend /api/v1/auth/logout endpoint
-    // We only clear memory here
-    set({
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
       tempSession: null,
       deviceDetails: null,
       accessToken: null,
@@ -55,6 +40,30 @@ export const useAuthStore = create<AuthState>((set) => ({
       employeeId: null,
       photoUrl: null,
       isTeamLead: false,
-    });
-  },
-}));
+      setTempSession: (session) => set({ tempSession: session }),
+      setDeviceDetails: (details) => set({ deviceDetails: details }),
+      setAuthSession: ({ accessToken, refreshToken, role, employeeId, isTeamLead = false }) =>
+        set({ accessToken, refreshToken, role, employeeId, isTeamLead, tempSession: null }),
+      setPhotoUrl: (url) => set({ photoUrl: url }),
+      clearSession: () => {
+        if (typeof document !== "undefined") {
+          document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        }
+        set({
+          tempSession: null,
+          deviceDetails: null,
+          accessToken: null,
+          refreshToken: null,
+          role: null,
+          employeeId: null,
+          photoUrl: null,
+          isTeamLead: false,
+        });
+      },
+    }),
+    {
+      name: "auth-storage",
+      storage: createJSONStorage(() => localStorage),
+    }
+  )
+);

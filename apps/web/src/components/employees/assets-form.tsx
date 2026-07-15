@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Laptop, Monitor, Keyboard, Mouse, Smartphone, Badge as IdBadge, Key, Server, Laptop2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
@@ -20,6 +20,8 @@ interface AssetsProps {
 }
 
 export function AssetsForm({ onSave, initialData = {}, formId }: AssetsProps) {
+  const [assignedCount, setAssignedCount] = useState(0);
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -27,8 +29,19 @@ export function AssetsForm({ onSave, initialData = {}, formId }: AssetsProps) {
     onSave(data);
   };
 
+  const handleFormChange = (e: React.FormEvent<HTMLFormElement>) => {
+    const formData = new FormData(e.currentTarget);
+    let count = 0;
+    Array.from(formData.entries()).forEach(([key, value]) => {
+      if (key.startsWith('has') && value === 'on') {
+        count++;
+      }
+    });
+    setAssignedCount(count);
+  };
+
   return (
-    <form id={formId || "onboarding-form"} onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <form id={formId || "onboarding-form"} onSubmit={handleSubmit} onChange={handleFormChange} className="grid grid-cols-1 xl:grid-cols-3 gap-6">
       
       {/* Left side: Assets Selection */}
       <div className="xl:col-span-2 space-y-6">
@@ -36,7 +49,7 @@ export function AssetsForm({ onSave, initialData = {}, formId }: AssetsProps) {
           <CardHeader className="border-b border-slate-100 pb-4 mb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg font-bold text-slate-800">Hardware & Equipment Assignment</CardTitle>
-              <button className="text-sm font-bold text-blue-600 hover:text-blue-700">+ Add Custom Asset</button>
+              <button type="button" className="text-sm font-bold text-blue-600 hover:text-blue-700">+ Add Custom Asset</button>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -57,20 +70,20 @@ export function AssetsForm({ onSave, initialData = {}, formId }: AssetsProps) {
                   </div>
                   <label className="flex items-center cursor-pointer">
                     <div className="relative">
-                      <input type="checkbox" className="sr-only" />
-                      <div className="block bg-slate-200 w-10 h-6 rounded-full"></div>
-                      <div className="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition"></div>
+                      <input type="checkbox" name="hasLaptop" className="sr-only peer" />
+                      <div className="block bg-slate-200 w-10 h-6 rounded-full peer-checked:bg-blue-600 transition-colors"></div>
+                      <div className="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-4"></div>
                     </div>
                   </label>
                 </div>
-                <div className="grid grid-cols-2 gap-4 pl-13">
+                <div className="grid grid-cols-2 gap-4 pl-12">
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-500 uppercase">Serial Number</label>
-                    <Input type="text" placeholder="Enter Serial Number" className="h-8 text-xs" />
+                    <Input name="laptopSerialNumber" type="text" placeholder="Enter Serial Number" className="h-8 text-xs" />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-500 uppercase">Assigned Date</label>
-                    <Input type="date" className="h-8 text-xs" />
+                    <Input name="laptopAssignedDate" type="date" className="h-8 text-xs" />
                   </div>
                 </div>
               </div>
@@ -89,20 +102,20 @@ export function AssetsForm({ onSave, initialData = {}, formId }: AssetsProps) {
                   </div>
                   <label className="flex items-center cursor-pointer">
                     <div className="relative">
-                      <input type="checkbox" className="sr-only" />
-                      <div className="block bg-slate-200 w-10 h-6 rounded-full"></div>
-                      <div className="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition"></div>
+                      <input type="checkbox" name="hasMonitor" className="sr-only peer" />
+                      <div className="block bg-slate-200 w-10 h-6 rounded-full peer-checked:bg-blue-600 transition-colors"></div>
+                      <div className="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-4"></div>
                     </div>
                   </label>
                 </div>
-                <div className="grid grid-cols-2 gap-4 pl-13">
+                <div className="grid grid-cols-2 gap-4 pl-12">
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-500 uppercase">Serial Number</label>
-                    <Input type="text" placeholder="Enter Serial Number" className="h-8 text-xs" />
+                    <Input name="monitorSerialNumber" type="text" placeholder="Enter Serial Number" className="h-8 text-xs" />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-500 uppercase">Assigned Date</label>
-                    <Input type="date" className="h-8 text-xs" />
+                    <Input name="monitorAssignedDate" type="date" className="h-8 text-xs" />
                   </div>
                 </div>
               </div>
@@ -121,9 +134,9 @@ export function AssetsForm({ onSave, initialData = {}, formId }: AssetsProps) {
                   </div>
                   <label className="flex items-center cursor-pointer">
                     <div className="relative">
-                      <input type="checkbox" className="sr-only" />
-                      <div className="block bg-slate-200 w-10 h-6 rounded-full"></div>
-                      <div className="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition"></div>
+                      <input type="checkbox" name="hasIdCard" className="sr-only peer" />
+                      <div className="block bg-slate-200 w-10 h-6 rounded-full peer-checked:bg-blue-600 transition-colors"></div>
+                      <div className="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-4"></div>
                     </div>
                   </label>
                 </div>
@@ -141,9 +154,9 @@ export function AssetsForm({ onSave, initialData = {}, formId }: AssetsProps) {
                     </div>
                     <label className="flex items-center cursor-pointer">
                       <div className="relative">
-                        <input type="checkbox" className="sr-only" />
-                        <div className="block bg-slate-200 w-10 h-6 rounded-full"></div>
-                        <div className="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition"></div>
+                        <input type="checkbox" name={`has${asset.replace(/\s+/g, '')}`} className="sr-only peer" />
+                        <div className="block bg-slate-200 w-10 h-6 rounded-full peer-checked:bg-blue-600 transition-colors"></div>
+                        <div className="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-4"></div>
                       </div>
                     </label>
                   </div>
@@ -165,10 +178,10 @@ export function AssetsForm({ onSave, initialData = {}, formId }: AssetsProps) {
             <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-bold text-slate-700">Total Items Assigned</span>
-                <span className="text-lg font-black text-slate-900">0</span>
+                <span className="text-lg font-black text-slate-900">{assignedCount}</span>
               </div>
               <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                <div className="h-full bg-slate-200 w-full" />
+                <div className="h-full bg-blue-600 transition-all duration-300" style={{ width: `${Math.min((assignedCount / 6) * 100, 100)}%` }} />
               </div>
             </div>
 

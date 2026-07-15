@@ -56,7 +56,7 @@ export function EmploymentForm({ onSave, initialData = {}, formId }: EmploymentP
         const desigRes = await fetch(`${apiUrl}/departments/all-designations`, { headers: { Authorization: `Bearer ${accessToken}` } });
         if (desigRes.ok) {
           const desigJson = await desigRes.json();
-          setDesignations(desigJson || []);
+          setDesignations(desigJson.data || []);
         }
       } catch (e) {
         console.error("Failed to load master data", e);
@@ -107,7 +107,7 @@ export function EmploymentForm({ onSave, initialData = {}, formId }: EmploymentP
                   <option value="">Select Type</option>
                   <option value="FULL_TIME">Full-Time</option>
                   <option value="PART_TIME">Part-Time</option>
-                  <option value="CONTRACTOR">Contractor</option>
+                  <option value="CONTRACT">Contractor</option>
                 </select>
               </div>
               <div className="space-y-1.5">
