@@ -1,16 +1,17 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
+import { getDashboardPathForRole } from '@naprocs/types';
 
 // Roles that may act as approvers in the Leave Approvals queue
-const leaveApproverRoles = new Set(['HR', 'CHRO', 'MANAGER', 'TEAM_LEAD', 'CTO', 'SUPER_ADMIN', 'IT']);
+const leaveApproverRoles = new Set(['HR', 'CHRO', 'MANAGER', 'TEAM_LEAD', 'CTO', 'SUPER_ADMIN', 'IT', 'OM', 'OPERATIONS_HEAD']);
 
 // Roles that may view the /employees list
-const employeeViewRoles = new Set(['HR', 'CHRO', 'MANAGER', 'TEAM_LEAD', 'CTO', 'CEO', 'COO', 'CFO', 'FINANCE', 'SUPER_ADMIN', 'IT']);
+const employeeViewRoles = new Set(['HR', 'CHRO', 'MANAGER', 'TEAM_LEAD', 'CTO', 'CEO', 'COO', 'CFO', 'FINANCE', 'SUPER_ADMIN', 'IT', 'OM', 'OPERATIONS_HEAD']);
 
 // All protected route prefixes (require authentication)
 const protectedRoutes = [
-  '/employee', '/admin', '/executive', '/cto', '/finance', '/hr',
+  '/employee', '/admin', '/executive', '/cto', '/finance', '/hr', '/cam',
   '/employees', '/attendance', '/leaves', '/assets', '/compliance',
   '/audit', '/onboarding', '/offboarding', '/knowledge', '/workflows',
   '/recruitment', '/payroll', '/performance', '/org-chart', '/settings',
@@ -50,16 +51,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // ─── Resolve Target Dashboard ────────────────────────────────────────────────
-  let targetDashboard = '/employee/dashboard';
-  if (['SUPER_ADMIN', 'IT'].includes(role)) targetDashboard = '/admin/dashboard';
-  else if (['CEO', 'COO', 'OPERATIONS_HEAD'].includes(role)) targetDashboard = '/executive/dashboard';
-  else if (role === 'CTO') targetDashboard = '/cto/dashboard';
-  else if (['CFO', 'FINANCE'].includes(role)) targetDashboard = '/finance/dashboard';
-  else if (['CHRO', 'HR'].includes(role)) targetDashboard = '/hr/dashboard';
-  else if (role === 'TEAM_LEAD') targetDashboard = '/team-lead/dashboard';
-  else if (role === 'CAM') targetDashboard = '/cam/dashboard';
-  else if (role === 'OE') targetDashboard = '/oe/dashboard';
-  else if (role === 'OM') targetDashboard = '/om/dashboard';
+  let targetDashboard = getDashboardPathForRole(role);
 
   const employeeStatus = request.cookies.get('employeeStatus')?.value;
   if (employeeStatus === 'ONBOARDING') {

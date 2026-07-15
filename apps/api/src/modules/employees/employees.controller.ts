@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Query, Param, Patch, Delete } from "@nestjs/common";
+import { Controller, Post, Body, Get, Query, Param, Patch, Delete, Ip } from "@nestjs/common";
 import { EmployeesService } from "./employees.service";
 import { CreateEmployeeDto } from "./dto/create-employee.dto";
 import { UpdateEmployeeDto } from "./dto/update-employee.dto";
@@ -37,8 +37,12 @@ export class EmployeesController {
 
   @Post("onboarding/draft/complete")
   @Permissions(Permission.WRITE_EMPLOYEES)
-  async completeOnboarding(@Body() body: CompleteOnboardingDto): Promise<EmployeeResponseDto> {
-    return this.employeesService.completeOnboarding(body.draftId);
+  async completeOnboarding(
+    @Body() body: CompleteOnboardingDto,
+    @CurrentUser() user: any,
+    @Ip() ip: string
+  ): Promise<EmployeeResponseDto> {
+    return this.employeesService.completeOnboarding(body.draftId, user, ip);
   }
 
   @Post()

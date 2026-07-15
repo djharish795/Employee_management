@@ -13,10 +13,6 @@ export enum UserRole {
   EMPLOYEE = "EMPLOYEE",
   IT = "IT",
   CAM = "CAM",
-<<<<<<< Updated upstream
-  OE = "OE",
-  OM = "OM",
-=======
   OM = "OM",
   OE = "OE",
 }
@@ -49,7 +45,6 @@ export const ROLE_SIDEBAR_TYPE: Record<UserRole, SidebarType> = {
 
 export function getSidebarTypeForRole(role: string): SidebarType {
   return ROLE_SIDEBAR_TYPE[role as UserRole] ?? SidebarType.EMPLOYEE;
->>>>>>> Stashed changes
 }
 
 export const ROLE_DASHBOARD_PATH: Record<UserRole, string> = {
@@ -67,8 +62,8 @@ export const ROLE_DASHBOARD_PATH: Record<UserRole, string> = {
   [UserRole.EMPLOYEE]: "/employee/dashboard",
   [UserRole.IT]: "/admin/dashboard",
   [UserRole.CAM]: "/cam/scheduler",
-  [UserRole.OE]: "/oe/dashboard",
-  [UserRole.OM]: "/om/dashboard",
+  [UserRole.OM]: "/cam/scheduler",
+  [UserRole.OE]: "/cam/scheduler",
 };
 
 export function getDashboardPathForRole(role: string): string {
@@ -83,5 +78,4 @@ export enum Permission {
   WRITE_OWN_PROFILE = "WRITE_OWN_PROFILE",
   READ_AUDIT = "READ_AUDIT",
   APPROVE_FIELD_REQUESTS = "APPROVE_FIELD_REQUESTS",
-  MANAGE_PROJECTS = "MANAGE_PROJECTS",
 }

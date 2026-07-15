@@ -4,7 +4,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 export interface TempSession {
   email: string;
   challengeId: string;
-  method: "EMAIL_OTP";
+  method: "EMAIL_OTP" | "TOTP";
 }
 
 export interface DeviceDetails {
@@ -25,6 +25,7 @@ interface AuthState {
   setTempSession: (session: TempSession | null) => void;
   setDeviceDetails: (details: DeviceDetails | null) => void;
   setAuthSession: (params: { accessToken: string; refreshToken: string; role: string; employeeId: string | null; isTeamLead?: boolean }) => void;
+  updateTokens: (accessToken: string, refreshToken: string) => void;
   setPhotoUrl: (url: string | null) => void;
   clearSession: () => void;
 }
@@ -44,6 +45,7 @@ export const useAuthStore = create<AuthState>()(
       setDeviceDetails: (details) => set({ deviceDetails: details }),
       setAuthSession: ({ accessToken, refreshToken, role, employeeId, isTeamLead = false }) =>
         set({ accessToken, refreshToken, role, employeeId, isTeamLead, tempSession: null }),
+      updateTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
       setPhotoUrl: (url) => set({ photoUrl: url }),
       clearSession: () => {
         if (typeof document !== "undefined") {

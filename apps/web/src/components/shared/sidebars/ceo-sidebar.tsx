@@ -10,19 +10,13 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { useNotifications } from '@/hooks/use-notifications';
+import { getDashboardPathForRole } from '@naprocs/types';
 
 interface SidebarProps {
   activeModule?: string;
 }
 
-const getDashboardPath = (role: string) => {
-  if (['SUPER_ADMIN', 'IT'].includes(role)) return '/admin/dashboard';
-  if (['CEO', 'COO'].includes(role)) return '/executive/dashboard';
-  if (role === 'CTO') return '/cto/dashboard';
-  if (['CFO', 'FINANCE'].includes(role)) return '/finance/dashboard';
-  if (['CHRO', 'HR'].includes(role)) return '/hr/dashboard';
-  return '/employee/dashboard';
-};
+
 
 const getNavGroups = (role: string, unreadCount: number) => {
   if (role === 'CEO') {
@@ -143,7 +137,7 @@ const getNavGroups = (role: string, unreadCount: number) => {
   }
 
   const mainItems: any[] = [
-    { title: 'Dashboard', icon: LayoutDashboard, href: getDashboardPath(role) },
+    { title: 'Dashboard', icon: LayoutDashboard, href: getDashboardPathForRole(role) },
     { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
     { title: 'Connect', icon: MessageSquare, href: '/connect' },
   ];
@@ -209,7 +203,9 @@ export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
   const [collapsed, setCollapsed]   = useState(false);
   const [mounted, setMounted]       = useState(false);
   
-  const displayRole = role.replace('_', ' ');
+  let displayRole = role.replace('_', ' ');
+  if (role === 'OM') displayRole = 'Operations Manager';
+  else if (role === 'OE') displayRole = 'Operations Executive';
 
   React.useEffect(() => { setMounted(true); }, []);
 

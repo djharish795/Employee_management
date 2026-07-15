@@ -65,7 +65,7 @@ async function main() {
 
   const opsHead = await upsertEmployeeAndUser({
     emp: { employeeId: 'NAP/OH/001', firstName: 'Junaid', lastName: '', officialEmail: 'junaid@naprocs.in', departmentId: deptOps.id, designationId: desigOpsHead?.id, status: EmployeeStatus.ACTIVE, reportingManagerId: ceo.id, joiningDate: new Date('2022-01-01'), gender: Gender.MALE, maritalStatus: MaritalStatus.MARRIED },
-    userRole: UserRole.MANAGER,
+    userRole: 'OM' as any,
   });
 
   const leadArch = await upsertEmployeeAndUser({

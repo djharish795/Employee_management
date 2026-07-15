@@ -40,8 +40,8 @@ export default function LeaveApprovalsPage() {
   if (!isApprover) return null;
 
   return (
-    <LeavesLayout >
-      <ApprovalsPanel  />
+    <LeavesLayout>
+      <ApprovalsPanel activeRole={leavePanelRole} />
     </LeavesLayout>
   );
 }

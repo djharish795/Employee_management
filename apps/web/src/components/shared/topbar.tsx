@@ -47,7 +47,9 @@ export function Topbar() {
     userEmail = lastKnownRef.current.email;
   }
 
-  const displayRole = accessToken ? (role || "Employee") : lastKnownRef.current.role;
+  let displayRole = accessToken ? (role || "Employee") : lastKnownRef.current.role;
+  if (displayRole === 'OM') displayRole = 'Operations Manager';
+  else if (displayRole === 'OE') displayRole = 'Operations Executive';
   const displayPhotoUrl = accessToken ? photoUrl : lastKnownRef.current.photoUrl;
 
   const handleLogout = () => {

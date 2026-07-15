@@ -22,14 +22,6 @@ export default function MyLeavesHistoryPage() {
     return "EMPLOYEE";
   })();
 
-  const leavePanelRole = ((): "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE" => {
-    if (["SUPER_ADMIN", "IT"].includes(effectiveRole)) return "ADMIN";
-    if (["HR", "CHRO"].includes(effectiveRole)) return "HR";
-    if (["CEO", "COO"].includes(effectiveRole)) return "CEO";
-    if (["CTO", "CFO", "FINANCE", "MANAGER", "TEAM_LEAD"].includes(effectiveRole)) return "MANAGER";
-    return "EMPLOYEE";
-  })();
-
   const { data, isLoading } = useQuery({
     queryKey: ["my-leaves-history", employeeId],
     queryFn: () => getMyLeaves(employeeId!),
@@ -48,7 +40,7 @@ export default function MyLeavesHistoryPage() {
   };
 
   return (
-    <LeavesLayout >
+    <LeavesLayout>
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50/20">
           <div>

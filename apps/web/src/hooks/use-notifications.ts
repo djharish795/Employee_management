@@ -24,7 +24,9 @@ export function useNotifications() {
     if (!token) return;
 
     if (!socket) {
-      socket = io((process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3001") + "/notifications", {
+      let wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3001";
+      wsUrl = wsUrl.split('#')[0].trim();
+      socket = io(`${wsUrl}/notifications`, {
         auth: { token },
         transports: ["websocket"],
       });

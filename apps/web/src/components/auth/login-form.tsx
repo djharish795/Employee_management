@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle } from "lucide-react";
 import { useAuthStore } from "../../store/auth";
 import { AuthService } from "../../services/auth.service";
+import { getDashboardPathForRole } from "@naprocs/types";
 
 // ---------- Zod validation schema ----------
 const loginSchema = z.object({
@@ -23,20 +24,7 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-const roleDashboardMap: Record<string, string> = {
-  SUPER_ADMIN: "/admin/dashboard",
-  IT: "/admin/dashboard",
-  CEO: "/executive/dashboard",
-  COO: "/executive/dashboard",
-  CTO: "/cto/dashboard",
-  CFO: "/finance/dashboard",
-  FINANCE: "/finance/dashboard",
-  CHRO: "/hr/dashboard",
-  HR: "/hr/dashboard",
-  TEAM_LEAD: "/team-lead/dashboard",
-  CAM: "/cam/dashboard",
-  OE: "/oe/dashboard",
-};
+
 
 // ---------- Inline design tokens (from HTML) ----------
 const ink900 = "#0f1420";
@@ -63,7 +51,7 @@ export const LoginForm: React.FC = () => {
     const token = getCookie("token");
     const role = getCookie("role")?.toUpperCase() ?? "";
     if (token) {
-      const target = roleDashboardMap[role] ?? "/employee/dashboard";
+      const target = getDashboardPathForRole(role);
       router.replace(target);
     }
   }, [router]);

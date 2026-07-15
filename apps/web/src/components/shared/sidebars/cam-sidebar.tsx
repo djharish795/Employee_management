@@ -16,7 +16,28 @@ export function CamSidebar() {
   const router    = useRouter();
   const clearSession = useAuthStore((state) => state.clearSession);
   const { unreadCount } = useNotifications();
-  const role = 'CAM';
+  const storeRole = useAuthStore((state) => state.role) || 'CAM';
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const photoUrl = useAuthStore((state) => state.photoUrl);
+
+  let userName = "User";
+  if (accessToken) {
+    try {
+      const payload = JSON.parse(atob(accessToken.split('.')[1]));
+      if (payload.email) {
+        userName = payload.email.split('@')[0];
+        userName = userName.split('.').map((part: string) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  const initials = userName.split(' ').map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2);
+
+  let displayRole = storeRole.replace('_', ' ');
+  if (storeRole === 'OM') displayRole = 'Operations Manager';
+  else if (storeRole === 'OE') displayRole = 'Operations Executive';
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed]   = useState(false);
@@ -66,7 +87,7 @@ export function CamSidebar() {
         {!collapsed && (
           <div>
             <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight leading-snug">Naprocs EMS</h2>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-wide mt-0.5 uppercase">CAM Portal</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-wide mt-0.5 uppercase">{displayRole} Portal</p>
           </div>
         )}
         <button
@@ -167,11 +188,11 @@ export function CamSidebar() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 overflow-hidden">
               <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm flex-shrink-0 border border-blue-200 dark:border-blue-800">
-                SW
+                {initials}
               </div>
               <div className="overflow-hidden">
-                <p className="text-sm font-bold text-slate-900 dark:text-white truncate">Sweetha</p>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate uppercase">CAM</p>
+                <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{userName}</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate uppercase">{displayRole}</p>
               </div>
             </div>
             <button

@@ -1,5 +1,5 @@
+import React, { useState, useEffect } from 'react';
 import Image from "next/image";
-import React, { useEffect, useState } from 'react';
 import { Briefcase, Network, Building2, Calendar, Banknote } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';

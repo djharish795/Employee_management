@@ -54,6 +54,7 @@ export default function EmployeeDirectory() {
     designation: "",
     location: "",
     status: "",
+    employeeType: "",
   });
 
   // Automatically update filter if the URL changes while component is mounted
@@ -433,7 +434,7 @@ export default function EmployeeDirectory() {
     getRowId: (row) => row.id,
   });
 
-  const handleClearFilters = () => setFilters({ search: "", department: "", designation: "", location: "", status: "" });
+  const handleClearFilters = () => setFilters({ search: "", department: "", designation: "", location: "", status: "", employeeType: "" });
   const hasActiveFilters = filters.department || filters.status;
 
   return (
@@ -626,9 +627,6 @@ export default function EmployeeDirectory() {
         isOpen={actionModalState.isOpen}
         onClose={() => setActionModalState({ isOpen: false, type: null, employee: null })}
         onSuccess={handleActionSuccess}
-        departments={departmentsData?.data || []}
-        designations={designationsData?.data || []}
-        managers={rawEmployees}
       />
     </div>
   );

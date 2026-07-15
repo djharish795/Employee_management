@@ -18,9 +18,7 @@ const fmtDate = (iso: string) => {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 };
 
-export default function ApprovalsPanel() {
-  const { role } = usePermissions();
-  const activeRole = role as any;
+export default function ApprovalsPanel({ activeRole }: ApprovalsPanelProps) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("Pending My Approval");
   const [rejectId, setRejectId] = useState<string | null>(null);

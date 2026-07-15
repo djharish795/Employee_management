@@ -35,6 +35,7 @@ export interface DirectoryFilters {
   designation: string;
   location: string;
   status: string;
+  employeeType?: string;
 }
 
 // Extended Profile Interfaces

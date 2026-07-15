@@ -5,7 +5,6 @@ import { CreateEmployeeDto } from "./dto/create-employee.dto";
 import { UpdateEmployeeDto } from "./dto/update-employee.dto";
 import { getPaginationOptions, createPaginatedResponse, PaginationParams, PaginatedResult } from "../../common/utils/pagination.util";
 import { Employee, UserRole } from "@naprocs/database";
-import { EmployeeResponseDto, mapToEmployeeResponseDto } from "./dto/employee-response.dto";
 import { Permission } from "@naprocs/types";
 import * as bcrypt from "bcrypt";
 import { encryptData } from "../../common/utils/encrypt.util";
@@ -13,41 +12,31 @@ import { RedisService } from "../../redis/redis.service";
 import { v4 as uuidv4 } from "uuid";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { createS3Client, generatePresignedDownloadUrl } from "../../common/utils/s3.util";
+import { createS3Client } from "../../common/utils/s3.util";
 
 import { NotificationsService } from "../notifications/notifications.service";
-import { NotificationType } from "@naprocs/database";
+import { EmailService } from "../notifications/email.service";
+import { NotificationType, EmployeeStatus } from "@naprocs/database";
+import * as crypto from "crypto";
 
 @Injectable()
 export class EmployeesService {
-  private readonly logger = new Logger(EmployeesService.name);
   private readonly s3: S3Client;
   private readonly bucketName: string;
+  private readonly logger = new Logger(EmployeesService.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly rbacService: RbacService,
-    private readonly notificationsService: NotificationsService
+    private readonly notificationsService: NotificationsService,
+    private readonly emailService: EmailService
   ) {
     this.s3 = createS3Client();
     this.bucketName = (process.env.AWS_S3_BUCKET || "naprocs-ems-documents").trim();
   }
 
-  /**
-   * Helper to generate a pre-signed S3 URL for employee photos if a raw object key is present.
-   */
-  private async enrichWithSignedPhotoUrl(employee: any): Promise<void> {
-    if (employee?.photoUrl && !employee.photoUrl.startsWith("http")) {
-      try {
-        employee.photoUrl = await generatePresignedDownloadUrl(this.s3, this.bucketName, employee.photoUrl);
-      } catch (error) {
-        this.logger.error(`Failed to sign photo URL for employee ${employee.id}:`, error);
-      }
-    }
-  }
-
-  async createEmployee(dto: CreateEmployeeDto): Promise<EmployeeResponseDto> {
+  async createEmployee(dto: CreateEmployeeDto): Promise<Employee> {
     return this.prisma.$transaction(async (tx) => {
       // 1. Check uniqueness of officialEmail
       const existingEmail = await tx.employee.findUnique({
@@ -154,9 +143,19 @@ export class EmployeesService {
         });
       }
 
-      await this.enrichWithSignedPhotoUrl(employee);
+      if (employee.photoUrl && !employee.photoUrl.startsWith("http")) {
+        try {
+          const command = new GetObjectCommand({
+            Bucket: this.bucketName,
+            Key: employee.photoUrl,
+          });
+          employee.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
+        } catch (error) {
+          console.error(`Failed to sign URL for employee ${employee.id}:`, error);
+        }
+      }
 
-      return mapToEmployeeResponseDto(employee);
+      return employee;
     });
   }
 
@@ -185,7 +184,7 @@ export class EmployeesService {
     return draftData || {};
   }
 
-  async completeOnboarding(draftId: string): Promise<EmployeeResponseDto> {
+  async completeOnboarding(draftId: string, actor: any, ipAddress: string): Promise<Employee> {
     if (!draftId) throw new ConflictException("draftId is required");
 
     const redisKey = `employee_draft:${draftId}`;
@@ -195,34 +194,64 @@ export class EmployeesService {
       throw new NotFoundException("Draft not found or expired");
     }
 
+    // Force the status to ONBOARDING so they don't appear in the main directory yet
+    draftData.status = "ONBOARDING";
+
+    // Generate User credentials
+    const tempPassword = crypto.randomBytes(6).toString('hex');
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
+
     const employee = await this.createEmployee(draftData as CreateEmployeeDto);
 
-    // Automatically create an active OnboardingSession for the new employee
-    const session = await this.prisma.onboardingSession.create({
-      data: {
-        employeeId: employee.id,
-        stage: "OFFER_ACCEPTED",
-        laptopType: draftData.laptopType || "Standard Laptop",
-        accessories: draftData.accessories || [],
-        software: draftData.software || []
+    await this.prisma.$transaction(async (tx) => {
+      // Create ConsentLog BEFORE saving PII (DPDPA compliance)
+      await tx.consentLog.create({
+        data: {
+          employeeId: employee.id,
+          collectedById: actor?.employeeId || employee.id, // Fallback if no actor
+          purpose: "Onboarding Data Collection",
+          ipAddress: ipAddress || "0.0.0.0",
+        }
+      });
+
+      await tx.user.create({
+        data: {
+          email: employee.officialEmail,
+          passwordHash,
+          employeeId: employee.id,
+          role: 'EMPLOYEE',
+          status: 'ACTIVE'
+        }
+      });
+
+      // Create onboarding session and default tasks
+      await tx.onboardingSession.create({
+        data: {
+          employeeId: employee.id,
+          tasks: {
+            create: [
+              { title: "Review Offer Letter", assignedTo: "HR", description: "Verify signed offer letter." },
+              { title: "Collect Documents", assignedTo: "HR", description: "Collect identity and address proofs." },
+              { title: "Assign IT Assets", assignedTo: "IT", description: "Allocate laptop and required accessories." },
+              { title: "Schedule Manager Intro", assignedTo: "MANAGER", description: "Schedule a 1:1 with reporting manager." }
+            ]
+          }
+        }
+      });
+    });
+
+    // Send email asynchronously
+    this.emailService.sendEmail(
+      employee.officialEmail,
+      "Welcome to Naprocs! Here are your credentials",
+      "welcome_credentials",
+      {
+        firstName: employee.firstName,
+        email: employee.officialEmail,
+        password: tempPassword,
+        loginUrl: `${process.env.FRONTEND_URL}/login`
       }
-    });
-
-    const defaultTasks = [
-      { title: "Verify I-9 Documents", assignedTo: "HR" },
-      { title: "Assign Work Laptop", assignedTo: "IT" },
-      { title: "Review Payroll Setup", assignedTo: "Finance" },
-      { title: "Complete Compliance Training", assignedTo: "Employee" }
-    ];
-
-    await this.prisma.onboardingTask.createMany({
-      data: defaultTasks.map(task => ({
-        sessionId: session.id,
-        title: task.title,
-        description: "",
-        assignedTo: task.assignedTo
-      }))
-    });
+    ).catch(err => this.logger.error(`Failed to send welcome email to ${employee.officialEmail}`, err));
 
     // Delete the draft after successful creation
     await this.redis.del(redisKey);
@@ -230,13 +259,18 @@ export class EmployeesService {
     return employee;
   }
 
-  async getEmployees(params: PaginationParams): Promise<PaginatedResult<EmployeeResponseDto>> {
+  async getEmployees(params: PaginationParams): Promise<PaginatedResult<Employee>> {
     const { skip, take, page, limit } = getPaginationOptions(params);
 
     const [data, total] = await Promise.all([
       this.prisma.employee.findMany({
         skip,
         take,
+        where: {
+          status: {
+            not: 'ONBOARDING'
+          }
+        },
         orderBy: { createdAt: "desc" },
         include: {
           department: {
@@ -247,18 +281,34 @@ export class EmployeesService {
           }
         }
       }),
-      this.prisma.employee.count(),
+      this.prisma.employee.count({
+        where: {
+          status: {
+            not: 'ONBOARDING'
+          }
+        }
+      }),
     ]);
 
     // Enhance employees with signed photo URLs
-    await Promise.all(data.map(async (emp) => {
-      await this.enrichWithSignedPhotoUrl(emp);
-    }));
+    for (const emp of data) {
+      if (emp.photoUrl && !emp.photoUrl.startsWith("http")) {
+        try {
+          const command = new GetObjectCommand({
+            Bucket: this.bucketName,
+            Key: emp.photoUrl,
+          });
+          emp.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
+        } catch (error) {
+          console.error(`Failed to sign URL for employee ${emp.id}:`, error);
+        }
+      }
+    }
 
-    return createPaginatedResponse(data.map(mapToEmployeeResponseDto), total, page, limit);
+    return createPaginatedResponse(data, total, page, limit);
   }
 
-  async getEmployeeById(id: string, currentUser?: any): Promise<EmployeeResponseDto> {
+  async getEmployeeById(id: string, currentUser?: any): Promise<Employee> {
     const employee = await this.prisma.employee.findUnique({
       where: { id },
       include: {
@@ -312,26 +362,36 @@ export class EmployeesService {
       }
     }
 
-    await this.enrichWithSignedPhotoUrl(employee);
+    if (employee.photoUrl && !employee.photoUrl.startsWith("http")) {
+      try {
+        const command = new GetObjectCommand({
+          Bucket: this.bucketName,
+          Key: employee.photoUrl,
+        });
+        employee.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
+      } catch (error) {
+        console.error(`Failed to sign URL for employee ${employee.id}:`, error);
+      }
+    }
 
     const empWithRels = employee as any;
-    
-    const hasGlobalWrite = currentUser && currentUser.role && this.rbacService.hasPermission(currentUser.role, [Permission.WRITE_EMPLOYEES]);
-    const isOwner = currentUser && currentUser.employeeId === id;
-    if (!hasGlobalWrite && !isOwner) {
-      delete empWithRels.aadhaar;
-      delete empWithRels.pan;
-      delete empWithRels.passport;
-      delete empWithRels.bankAccountEnc;
-      delete empWithRels.voterId;
-      delete empWithRels.drivingLicence;
-    }
-
     if (empWithRels.subordinates && empWithRels.subordinates.length > 0) {
-      await Promise.all(empWithRels.subordinates.map((sub: any) => this.enrichWithSignedPhotoUrl(sub)));
+      for (const sub of empWithRels.subordinates) {
+        if (sub.photoUrl && !sub.photoUrl.startsWith("http")) {
+          try {
+            const subCommand = new GetObjectCommand({
+              Bucket: this.bucketName,
+              Key: sub.photoUrl,
+            });
+            sub.photoUrl = await getSignedUrl(this.s3, subCommand, { expiresIn: 900 });
+          } catch (e) {
+            console.error(`Failed to sign URL for sub ${sub.id}:`, e);
+          }
+        }
+      }
     }
 
-    return mapToEmployeeResponseDto(employee);
+    return employee;
   }
 
   async getOrgChart() {
@@ -352,13 +412,28 @@ export class EmployeesService {
       }
     });
 
-    await Promise.all(employees.map((emp) => this.enrichWithSignedPhotoUrl(emp)));
+    for (const emp of employees) {
+      if (emp.photoUrl && !emp.photoUrl.startsWith("http")) {
+        try {
+          const command = new GetObjectCommand({
+            Bucket: this.bucketName,
+            Key: emp.photoUrl,
+          });
+          emp.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
+        } catch (e) {
+          console.error(`Failed to sign URL for org chart emp ${emp.id}:`, e);
+        }
+      }
+    }
 
     return employees;
   }
 
   async getOrgStats() {
+    const totalCapacity = await this.prisma.employee.count();
     const totalEmployees = await this.prisma.employee.count({ where: { status: "ACTIVE" } });
+    const vacantCount = totalCapacity - totalEmployees;
+    
     const departmentsCount = await this.prisma.department.count();
     
     const managersResult = await this.prisma.employee.findMany({
@@ -367,9 +442,6 @@ export class EmployeesService {
       distinct: ['reportingManagerId']
     });
     const managersCount = managersResult.length;
-    
-    const openJobs = await this.prisma.job.findMany({ where: { status: "OPEN" } });
-    const vacantCount = openJobs.reduce((acc, job) => acc + (job.openPositions - job.filledPositions), 0);
     
     const avgSpanOfControl = managersCount > 0 ? (totalEmployees / managersCount).toFixed(1) : "0";
 
@@ -429,7 +501,7 @@ export class EmployeesService {
     };
   }
 
-  async updateEmployee(id: string, dto: UpdateEmployeeDto, currentUser?: any): Promise<EmployeeResponseDto> {
+  async updateEmployee(id: string, dto: UpdateEmployeeDto, currentUser?: any): Promise<Employee> {
     // Verify the employee exists (also validates read access if we pass currentUser)
     const employee = await this.getEmployeeById(id, currentUser);
 
@@ -511,21 +583,19 @@ export class EmployeesService {
       });
     }
 
-    await this.enrichWithSignedPhotoUrl(updatedEmployee);
-
-    // Trigger Notification for the updated employee
-    try {
-      await this.notificationsService.createNotification(
-        updatedEmployee.id,
-        "Profile Updated",
-        "Your profile information has been updated by Human Resources or Management.",
-        NotificationType.SYSTEM_ALERT
-      );
-    } catch (e) {
-      this.logger.warn(`Failed to send update notification to employee ${updatedEmployee.id}: ${e}`);
+    if (updatedEmployee.photoUrl && !updatedEmployee.photoUrl.startsWith("http")) {
+      try {
+        const command = new GetObjectCommand({
+          Bucket: this.bucketName,
+          Key: updatedEmployee.photoUrl,
+        });
+        updatedEmployee.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
+      } catch (error) {
+        console.error(`Failed to sign URL for employee ${updatedEmployee.id}:`, error);
+      }
     }
 
-    return mapToEmployeeResponseDto(updatedEmployee);
+    return updatedEmployee;
   }
 
   async reassignManager(employeeId: string, newManagerId: string): Promise<void> {
@@ -542,20 +612,22 @@ export class EmployeesService {
       if (!manager) throw new NotFoundException("New manager not found.");
 
       // Prevent cyclic management: Check if the new manager already reports to this employee (directly or indirectly)
-      const cycleCheck = await this.prisma.$queryRaw<any[]>`
-        WITH RECURSIVE chain AS (
-          SELECT id, "reportingManagerId" 
-          FROM "Employee" 
-          WHERE id = ${newManagerId}
-          UNION ALL
-          SELECT e.id, e."reportingManagerId"
-          FROM "Employee" e
-          JOIN chain c ON c."reportingManagerId" = e.id
-        )
-        SELECT id FROM chain WHERE id = ${employeeId} OR "reportingManagerId" = ${employeeId} LIMIT 1
-      `;
-      if (cycleCheck.length > 0) {
-        throw new ConflictException("Cannot assign a subordinate as a manager. This would create a circular reporting line.");
+      let currentManagerId: string | null = manager.reportingManagerId;
+      const visited = new Set<string>();
+      visited.add(newManagerId);
+
+      while (currentManagerId) {
+        if (currentManagerId === employeeId) {
+          throw new ConflictException("Cannot assign a subordinate as a manager. This would create a circular reporting line.");
+        }
+        if (visited.has(currentManagerId)) {
+          break; // Break on existing cycle just in case
+        }
+        visited.add(currentManagerId);
+        
+        const currentManager = await this.prisma.employee.findUnique({ where: { id: currentManagerId } });
+        if (!currentManager) break;
+        currentManagerId = currentManager.reportingManagerId;
       }
     }
     
@@ -563,17 +635,6 @@ export class EmployeesService {
       where: { id: employeeId },
       data: { reportingManagerId: newManagerId || null }
     });
-
-    try {
-      await this.notificationsService.createNotification(
-        employeeId,
-        "Manager Reassigned",
-        "Your reporting manager has been updated.",
-        NotificationType.SYSTEM_ALERT
-      );
-    } catch (e) {
-      this.logger.warn(`Failed to send manager reassignment notification to employee ${employeeId}: ${e}`);
-    }
   }
 
   async getCtoTeam(): Promise<any> {

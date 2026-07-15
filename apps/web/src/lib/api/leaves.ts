@@ -91,8 +91,9 @@ export const calculateLeave = async (payload: {
 };
 
 // ─── Get My Leaves ───────────────────────────────────────────────────────────
-export const getMyLeaves = async (employeeId: string): Promise<any[]> => {
-  const { data } = await apiClient.get(`/leaves/my?employeeId=${employeeId}`);
+export const getMyLeaves = async (employeeId?: string): Promise<any[]> => {
+  const url = employeeId ? `/leaves/my?employeeId=${employeeId}` : "/leaves/my";
+  const { data } = await apiClient.get(url);
   return data;
 };
 
@@ -122,6 +123,8 @@ export const cancelLeaveRequest = async (
   const { data } = await apiClient.post(`/leaves/${leaveId}/cancel`);
   return data;
 };
+
+// ─── Fetch my leave requests ──────────────────────────────────────────────────
 
 // ─── Get approved leaves for calendar view ────────────────────────────────────
 export const fetchLeaveCalendar = async (): Promise<ApiLeaveRequest[]> => {

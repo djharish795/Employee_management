@@ -138,6 +138,19 @@ export class TasksService {
     return updatedTask;
   }
 
+  async updateTaskStatus(taskId: string, status: TaskStatus): Promise<any> {
+    const task = await this.getTask(taskId);
+    const updatedTask = await this.tasksRepo.updateTask(taskId, { status });
+    this.auditService.logUpdate({
+      moduleName: 'Tasks',
+      entityId: taskId,
+      actorId: 'unknown',
+      oldValue: { status: task.status },
+      newValue: { status }
+    });
+    return updatedTask;
+  }
+
   async getTask(taskId: string): Promise<any> {
     const task = await this.tasksRepo.findTaskById(taskId);
     if (!task) throw new NotFoundException('Task not found');

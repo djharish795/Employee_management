@@ -1,53 +1,27 @@
 "use client";
 
-import { usePermissions } from "@/hooks/use-permissions";
 import React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { CeoSidebar } from '@/components/shared/sidebars/ceo-sidebar';
 import { EmployeeSidebar } from '@/components/shared/sidebars/employee-sidebar';
 import { TeamLeadSidebar } from '@/components/shared/sidebars/team-lead-sidebar';
 import { CamSidebar } from '@/components/shared/sidebars/cam-sidebar';
-import { OeSidebar } from '@/components/shared/sidebars/oe-sidebar';
-import { OmSidebar } from '@/components/shared/sidebars/om-sidebar';
 import { Topbar } from '@/components/shared/topbar';
+import { getSidebarTypeForRole, SidebarType } from '@naprocs/types';
+import { useRbac } from '@/hooks/use-rbac';
 import { useAuthStore } from '@/store/auth';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const pathname = usePathname();
   const storeRole = useAuthStore((state) => state.role);
-  const isTeamLead = useAuthStore((state) => state.isTeamLead);
 
-  const [activeRole, setActiveRole] = React.useState(storeRole?.toUpperCase() ?? 'EMPLOYEE');
-  const [isVerifying, setIsVerifying] = React.useState(true);
-
-  React.useEffect(() => {
-    // Session Hydration: Fetch verified role from backend
-    // This replaces the insecure reliance on localStorage/cookies
-    const verifySession = async () => {
-      try {
-        const { fetchMyProfile } = await import('@/lib/api/profile');
-        const profile = await fetchMyProfile();
-        if (profile?.user?.role) {
-          const verifiedRole = profile.user.role.toUpperCase();
-          useAuthStore.getState().setAuthSession({
-            accessToken: useAuthStore.getState().accessToken || '',
-            refreshToken: useAuthStore.getState().refreshToken || '',
-            role: verifiedRole,
-            employeeId: profile.id,
-            isTeamLead: profile.user.isTeamLead || false,
-          });
-          setActiveRole(verifiedRole);
-        }
-      } catch (e) {
-        console.error("Session verification failed", e);
-        // Fallback or force logout could go here
-      } finally {
-        setIsVerifying(false);
-      }
-    };
-    verifySession();
-  }, []);
+  const [activeRole, setActiveRole] = React.useState(() => {
+    if (typeof document !== 'undefined') {
+      const cookieRole = document.cookie.match(new RegExp('(^| )role=([^;]+)'))?.[2] ?? null;
+      return (storeRole || cookieRole)?.toUpperCase() ?? 'EMPLOYEE';
+    }
+    return storeRole?.toUpperCase() ?? 'EMPLOYEE';
+  });
 
   React.useEffect(() => {
     if (storeRole) {
@@ -62,27 +36,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // middleware never runs for cached pages, so we enforce auth here.
   React.useEffect(() => {
     setMounted(true);
-    const token = useAuthStore.getState().accessToken;
+    const getCookie = (name: string) => {
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      return match ? decodeURIComponent(match[2]) : null;
+    };
+    const token = getCookie('token');
     if (!token) {
       // Token is gone (user logged out) — replace history so Back won't bring them back
       router.replace('/login');
     }
   }, [router]);
 
-  // Determine which sidebar to show (Hooks must be called before early returns!)
-  const { isExecutive, canManageOrg, canManageEmployees, isAdmin } = usePermissions();
-  const isPrivileged = isExecutive || canManageOrg || canManageEmployees || isAdmin;
-
   if (!mounted) return null;
+
+  // Determine which sidebar to show
+  const sidebarType = getSidebarTypeForRole(activeRole);
   
   const renderSidebar = () => {
-    if (activeRole === 'CAM') return <CamSidebar />;
-    if (activeRole === 'OE') return <OeSidebar />;
-    if (activeRole === 'OM') return <OmSidebar />;
-    if (activeRole === 'TEAM_LEAD' || isTeamLead) {
-      return <TeamLeadSidebar />;
-    }
-    if (isPrivileged) return <CeoSidebar />;
+    if (sidebarType === SidebarType.CAM) return <CamSidebar />;
+    if (sidebarType === SidebarType.TEAM_LEAD) return <TeamLeadSidebar />;
+    if (sidebarType === SidebarType.CEO) return <CeoSidebar />;
     return <EmployeeSidebar />;
   };
 
