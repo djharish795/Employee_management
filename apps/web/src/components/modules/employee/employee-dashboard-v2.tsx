@@ -38,6 +38,11 @@ export default function EmployeeDashboardV2() {
   const router = useRouter();
 
   const [calendarDate, setCalendarDate] = useState(new Date());
+  const [mounted, setMounted] = useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const logsQuery = useQuery({
     queryKey: ["attendanceLogs"],
@@ -156,10 +161,19 @@ export default function EmployeeDashboardV2() {
   let weekendCount = 0;
   let onLeaveCount = 0;
 
+  const logsByDateMap = React.useMemo(() => {
+    const map = new Map<string, any>();
+    logs.forEach((l: any) => {
+      const dateStr = new Date(l.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      map.set(dateStr, l);
+    });
+    return map;
+  }, [logs]);
+
   for (let day = 1; day <= daysInMonth; day++) {
     const d = new Date(year, month, day);
     const dateStr = d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-    const dayLog = logs.find((l: any) => new Date(l.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) === dateStr);
+    const dayLog = logsByDateMap.get(dateStr);
 
     if (d.getDay() === 0 || d.getDay() === 6) {
       weekendCount++;
@@ -179,8 +193,12 @@ export default function EmployeeDashboardV2() {
       {/* Header section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{greeting}, {userName}</h1>
-          <p className="text-sm font-medium text-slate-500 mt-1">{todayFormatted}</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+            {mounted ? `${greeting}, ${userName}` : `Welcome, ${userName}`}
+          </h1>
+          <p className="text-sm font-medium text-slate-500 mt-1">
+            {mounted ? todayFormatted : "Loading date..."}
+          </p>
         </div>
 
         <button
@@ -319,7 +337,7 @@ export default function EmployeeDashboardV2() {
                 // Actual days
                 for (let day = 1; day <= daysInMonth; day++) {
                   const dateStr = new Date(year, month, day).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-                  const dayLog = logs.find((l: any) => new Date(l.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) === dateStr);
+                  const dayLog = logsByDateMap.get(dateStr);
 
                   let bgClass = "bg-transparent text-slate-700 hover:bg-slate-100";
                   if (dayLog) {
