@@ -533,6 +533,7 @@ export const BrandingPanel: React.FC = () => {
               style={{
                 display: "block",
                 objectFit: "contain",
+                width: "auto",
                 height: "auto",
                 filter: "drop-shadow(0 0 22px rgba(120,150,255,0.35)) drop-shadow(0 4px 18px rgba(0,0,0,0.5))",
               }}

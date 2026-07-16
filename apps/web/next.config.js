@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  transpilePackages: ["@naprocs/types", "@naprocs/schemas", "@naprocs/ui"],
   images: {
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',

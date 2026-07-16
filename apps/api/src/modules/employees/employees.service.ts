@@ -278,6 +278,9 @@ export class EmployeesService {
           },
           designation: {
             select: { id: true, title: true }
+          },
+          user: {
+            select: { role: true }
           }
         }
       }),
