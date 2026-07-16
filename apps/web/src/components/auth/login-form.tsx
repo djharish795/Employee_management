@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,6 +34,7 @@ const line = "#e7e8ec";
 const accent = "#5b6cff";
 
 export const LoginForm: React.FC = () => {
+  const router = useRouter();
   const setTempSession = useAuthStore((state) => state.setTempSession);
   const setAuthSession = useAuthStore((state) => state.setAuthSession);
   const [showPassword, setShowPassword] = React.useState(false);
