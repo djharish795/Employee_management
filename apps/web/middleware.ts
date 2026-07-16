@@ -125,6 +125,13 @@ export async function middleware(request: NextRequest) {
     // ─── Strict cross-role namespace isolation ───────────────────────────────
     for (const ns of roleNamespaces) {
       if (pathname === ns || pathname.startsWith(`${ns}/`)) {
+        // Exception: CAM, OM, and OE are part of the operations group and share access to /cam, /om, and /oe namespaces
+        const isCamGroupPath = pathname.startsWith('/cam') || pathname.startsWith('/om') || pathname.startsWith('/oe');
+        const isCamGroupRole = ['CAM', 'OM', 'OE'].includes(role);
+        if (isCamGroupPath && isCamGroupRole) {
+          continue;
+        }
+
         if (!targetDashboard.startsWith(ns)) {
           return NextResponse.redirect(new URL(targetDashboard, request.url));
         }
