@@ -66,7 +66,7 @@ export class WorkflowEngineService {
     });
     if (!instance) return;
 
-    const role = step.assigneeRole;
+    const role = step.assigneeRole || step.approverRole;
     let recipientEmail = 'hr@naprocs.in'; // fallback
 
     if (role === RbacRoles.MANAGER) {
@@ -131,7 +131,7 @@ export class WorkflowEngineService {
           throw new ForbiddenException("Invalid actor");
         }
 
-        const assigneeRole = currentStep.assigneeRole;
+        const assigneeRole = currentStep.assigneeRole || currentStep.approverRole;
         let isAuthorized = false;
 
         if (assigneeRole === "MANAGER") {

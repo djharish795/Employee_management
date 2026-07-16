@@ -38,11 +38,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // middleware never runs for cached pages, so we enforce auth here.
   React.useEffect(() => {
     setMounted(true);
-    if (!accessToken) {
-      // Token is gone (user logged out) — replace history so Back won't bring them back
-      router.replace('/login');
-    }
-  }, [router, accessToken]);
+    
+    // We delay the check by 100ms to allow Zustand to hydrate from localStorage.
+    // This entirely prevents the false-logout flash on reload, but still catches
+    // users trying to use the Back button after logging out.
+    const hydrationTimer = setTimeout(() => {
+      if (!useAuthStore.getState().accessToken) {
+        router.replace('/login');
+      }
+    }, 100);
+
+    return () => clearTimeout(hydrationTimer);
+  }, [router]);
 
   if (!mounted) return null;
 

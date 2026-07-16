@@ -378,6 +378,18 @@ export class EmployeesService {
     }
 
     const empWithRels = employee as any;
+
+    const hasGlobalWrite = currentUser && currentUser.role && this.rbacService.hasPermission(currentUser.role, [Permission.WRITE_EMPLOYEES]);
+    const isOwner = currentUser && currentUser.employeeId === id;
+    if (!hasGlobalWrite && !isOwner) {
+      delete empWithRels.aadhaar;
+      delete empWithRels.pan;
+      delete empWithRels.passport;
+      delete empWithRels.bankAccountEnc;
+      delete empWithRels.voterId;
+      delete empWithRels.drivingLicence;
+    }
+
     if (empWithRels.subordinates && empWithRels.subordinates.length > 0) {
       for (const sub of empWithRels.subordinates) {
         if (sub.photoUrl && !sub.photoUrl.startsWith("http")) {
@@ -433,19 +445,18 @@ export class EmployeesService {
   }
 
   async getOrgStats() {
-    const totalCapacity = await this.prisma.employee.count();
     const totalEmployees = await this.prisma.employee.count({ where: { status: "ACTIVE" } });
-    const vacantCount = totalCapacity - totalEmployees;
-    
     const departmentsCount = await this.prisma.department.count();
-    
+
     const managersResult = await this.prisma.employee.findMany({
       where: { status: "ACTIVE", reportingManagerId: { not: null } },
       select: { reportingManagerId: true },
       distinct: ['reportingManagerId']
     });
     const managersCount = managersResult.length;
-    
+
+    const openJobs = await this.prisma.job.findMany({ where: { status: "OPEN" } });
+    const vacantCount = openJobs.reduce((acc, job) => acc + (job.openPositions - job.filledPositions), 0);
     const avgSpanOfControl = managersCount > 0 ? (totalEmployees / managersCount).toFixed(1) : "0";
 
     const deps = await this.prisma.department.findMany({
@@ -464,7 +475,7 @@ export class EmployeesService {
 
     // Dynamic Notifications
     const notifications: Array<{ title: string; message: string; type: string }> = [];
-    
+
     // Check for manager vacancies (departments without a head)
     const departmentsWithoutHead = deps.filter(d => !d.headId);
     departmentsWithoutHead.forEach(d => {
@@ -567,7 +578,7 @@ export class EmployeesService {
       const user = await this.prisma.user.findUnique({
         where: { employeeId: id }
       });
-      
+
       if (!user) {
         throw new NotFoundException('User record not found for this employee.');
       }
@@ -605,11 +616,11 @@ export class EmployeesService {
     if (employeeId === newManagerId) {
       throw new ConflictException("An employee cannot be their own manager.");
     }
-    
+
     // Ensure both exist
     const employee = await this.prisma.employee.findUnique({ where: { id: employeeId } });
     if (!employee) throw new NotFoundException("Employee not found.");
-    
+
     if (newManagerId) {
       const manager = await this.prisma.employee.findUnique({ where: { id: newManagerId } });
       if (!manager) throw new NotFoundException("New manager not found.");
@@ -633,7 +644,7 @@ export class EmployeesService {
         currentManagerId = currentManager.reportingManagerId;
       }
     }
-    
+
     await this.prisma.employee.update({
       where: { id: employeeId },
       data: { reportingManagerId: newManagerId || null }
@@ -642,7 +653,7 @@ export class EmployeesService {
 
   async getCtoTeam(): Promise<any> {
     const employees = await this.prisma.employee.findMany({
-      where: { 
+      where: {
         status: 'ACTIVE',
       },
       include: {
@@ -660,11 +671,11 @@ export class EmployeesService {
         const years = (now.getTime() - e.joiningDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
         experience = Math.max(0, Number(years.toFixed(1)));
       }
-      
+
       // Determine subteam based on designation or default
       const title = (e.designation?.title || '').toLowerCase();
       const deptName = e.department?.name || 'Unassigned';
-      
+
       let subTeam = deptName;
       if (deptName.toLowerCase().includes('eng')) {
         if (title.includes('front')) subTeam = 'Frontend';
@@ -700,7 +711,7 @@ export class EmployeesService {
         await this.prisma.onboardingTask.deleteMany({ where: { sessionId: onboardingSession.id } });
         await this.prisma.onboardingSession.delete({ where: { employeeId: id } });
       }
-      
+
       // Actually delete the employee
       await this.prisma.employee.delete({ where: { id } });
     } catch (error: any) {
