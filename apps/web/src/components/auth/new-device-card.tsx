@@ -44,7 +44,7 @@ export const NewDeviceCard: React.FC = () => {
   if (!deviceDetails) return null;
 
   return (
-    <div className="w-full max-w-[460px] p-8 bg-white border border-slate-100 rounded-2xl shadow-sm text-center">
+    <div className="w-full max-w-md mx-auto p-8 bg-white border border-slate-100 rounded-2xl shadow-sm text-center">
       {/* Exclamation Icon */}
       <div className="flex items-center justify-center mx-auto mb-5 w-12 h-12 bg-amber-50 text-amber-600 rounded-full animate-bounce">
         <AlertTriangle className="w-6 h-6" />

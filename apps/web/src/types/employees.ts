@@ -8,7 +8,7 @@ export interface Employee {
   avatarBg: string;
   department: string;
   designation: string;
-  status: "ACTIVE" | "PROBATION" | "NOTICE PERIOD" | "ONBOARDING" | "DEACTIVATED";
+  status: "ACTIVE" | "PROBATION" | "NOTICE PERIOD" | "ONBOARDING" | "DEACTIVATED" | "EXITED" | "CANCELLED";
   joinedDate: string;
   location: string;
   manager?: {
@@ -35,6 +35,7 @@ export interface DirectoryFilters {
   designation: string;
   location: string;
   status: string;
+  employeeType?: string;
 }
 
 // Extended Profile Interfaces

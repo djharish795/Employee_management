@@ -2,127 +2,22 @@
 
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { 
-  Search, ZoomIn, ZoomOut, Maximize, Navigation, X, Mail, Phone, Calendar, LayoutGrid
+import {
+  Search, ZoomIn, ZoomOut, Maximize, Navigation, X, Mail, Phone, Calendar, LayoutGrid, Download
 } from "lucide-react";
 import { OrgRole, OrgEmployee, OrgTreeNode } from "@/types/org-chart";
-import { TreeNode } from "./tree-node";
+import { TreeNode, EmployeeCard } from "./tree-node";
+import { apiClient } from "@/lib/api/client";
+import html2canvas from "html2canvas";
+import toast from "react-hot-toast";
+import Image from "next/image";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface HierarchyPanelProps {
-  activeRole: OrgRole;
+  
 }
 
-// Flat list of employees for building the tree
-const MOCK_FLAT_EMPLOYEES: OrgEmployee[] = [
-  {
-    id: "EMP-100",
-    name: "Pradeep Chandra",
-    designation: "Chief Executive Officer",
-    department: "Leadership",
-    location: "Hyderabad HQ",
-    email: "pradeep@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Pradeep",
-    initials: "PC",
-    avatarBg: "bg-indigo-100 text-indigo-600",
-    managerId: null,
-  },
-  {
-    id: "EMP-101",
-    name: "Lokesh Kumar",
-    designation: "Chief Technology Officer",
-    department: "Engineering",
-    location: "Hyderabad HQ",
-    email: "lokesh@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Lokesh",
-    initials: "LK",
-    avatarBg: "bg-slate-200 text-slate-900",
-    managerId: "EMP-100",
-  },
-  {
-    id: "EMP-102",
-    name: "Tejesh Kumar",
-    designation: "HR Management Director",
-    department: "HR",
-    location: "Hyderabad HQ",
-    email: "tejesh@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Tejesh",
-    initials: "TK",
-    avatarBg: "bg-rose-100 text-rose-600",
-    managerId: "EMP-100",
-  },
-  {
-    id: "EMP-103",
-    name: "Alex Thompson",
-    designation: "VP of Engineering",
-    department: "Engineering",
-    location: "London, UK",
-    email: "alex.t@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Alex",
-    initials: "AT",
-    avatarBg: "bg-emerald-100 text-emerald-600",
-    managerId: "EMP-101",
-  },
-  {
-    id: "EMP-104",
-    name: "Sarah Q.",
-    designation: "VP of Sales",
-    department: "Sales",
-    location: "San Francisco, US",
-    email: "sarah.q@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Sarah",
-    initials: "SQ",
-    avatarBg: "bg-amber-100 text-amber-600",
-    managerId: "EMP-100",
-  },
-  {
-    id: "EMP-105",
-    name: "Arjun Mehta",
-    designation: "Staff Software Engineer",
-    department: "Engineering",
-    location: "Bangalore, IN",
-    email: "arjun.m@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Arjun",
-    initials: "AM",
-    avatarBg: "bg-slate-200 text-slate-900",
-    managerId: "EMP-103",
-  },
-  {
-    id: "EMP-106",
-    name: "Anita M.",
-    designation: "Frontend Developer",
-    department: "Engineering",
-    location: "Mumbai, IN",
-    email: "anita.m@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Anita",
-    initials: "AM",
-    avatarBg: "bg-pink-100 text-pink-600",
-    managerId: "EMP-105",
-  },
-  {
-    id: "EMP-107",
-    name: "Ravi Kumar",
-    designation: "DevOps Engineer",
-    department: "Engineering",
-    location: "Bangalore, IN",
-    email: "ravi.k@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Ravi",
-    initials: "RK",
-    avatarBg: "bg-teal-100 text-teal-600",
-    managerId: "EMP-105",
-  },
-  {
-    id: "EMP-108",
-    name: "Priya Menon",
-    designation: "HR Business Partner",
-    department: "HR",
-    location: "Hyderabad HQ",
-    email: "priya.m@naprocs.com",
-    photoUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Priya",
-    initials: "PM",
-    avatarBg: "bg-fuchsia-100 text-fuchsia-600",
-    managerId: "EMP-102",
-  },
-];
+
 
 // Helper to build recursive tree from flat list
 function buildTree(employees: OrgEmployee[], rootId: string | null = null): OrgTreeNode[] {
@@ -130,7 +25,7 @@ function buildTree(employees: OrgEmployee[], rootId: string | null = null): OrgT
     .filter((emp) => emp.managerId === rootId)
     .map((emp) => {
       const children = buildTree(employees, emp.id);
-      
+
       // Calculate total nested reports
       const calculateTotalReports = (nodes: OrgTreeNode[]): number => {
         let count = nodes.length;
@@ -147,7 +42,7 @@ function buildTree(employees: OrgEmployee[], rootId: string | null = null): OrgT
     });
 }
 
-export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
+export default function HierarchyPanel() {
   const [zoom, setZoom] = useState(1);
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({
     "EMP-100": true,
@@ -159,27 +54,103 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
 
   const { data: treeData } = useQuery({
     queryKey: ["orgTree"],
-    queryFn: async () => buildTree(MOCK_FLAT_EMPLOYEES),
+    queryFn: async () => {
+      const { data } = await apiClient.get("/employees/org-chart");
+
+      const colors = ["bg-indigo-100 text-indigo-600", "bg-slate-200 text-slate-900", "bg-rose-100 text-rose-600", "bg-emerald-100 text-emerald-600", "bg-amber-100 text-amber-600", "bg-pink-100 text-pink-600", "bg-teal-100 text-teal-600", "bg-fuchsia-100 text-fuchsia-600"];
+
+      const mappedEmployees: OrgEmployee[] = data.map((emp: any, index: number) => ({
+        id: emp.id,
+        name: `${emp.firstName} ${emp.lastName || ''}`.trim(),
+        designation: emp.designation?.title || 'Employee',
+        department: emp.department?.name || 'Organization',
+        location: emp.workLocation || 'Hyderabad HQ',
+        email: emp.officialEmail,
+        photoUrl: emp.photoUrl || '',
+        initials: (emp.firstName?.[0] || '') + (emp.lastName?.[0] || ''),
+        avatarBg: emp.isVacant ? "bg-slate-100 text-slate-400" : colors[index % colors.length],
+        managerId: emp.reportingManagerId,
+        isVacant: emp.isVacant || false
+      }));
+
+      return mappedEmployees;
+    },
   });
+
+  const handleExport = async () => {
+    const canvasEl = document.getElementById("org-chart-canvas");
+    if (!canvasEl) return;
+
+    try {
+      toast.loading("Exporting chart...", { id: "export" });
+      const canvas = await html2canvas(canvasEl, {
+        scale: 2, // high res
+        backgroundColor: "#f8fafc"
+      });
+      const dataUrl = canvas.toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `Org-Chart-${new Date().toISOString().split('T')[0]}.png`;
+      a.click();
+      toast.success("Exported successfully!", { id: "export" });
+    } catch (e) {
+      toast.error("Failed to export chart", { id: "export" });
+    }
+  };
+
+  const handleDropEmployee = async (draggedId: string, targetManagerId: string) => {
+    try {
+      toast.loading("Reassigning manager...", { id: "reassign" });
+      await apiClient.patch(`/employees/${draggedId}`, {
+        reportingManagerId: targetManagerId
+      });
+      // trigger refetch
+      refetch();
+      toast.success("Manager reassigned successfully!", { id: "reassign" });
+    } catch (e) {
+      toast.error("Failed to reassign manager", { id: "reassign" });
+    }
+  };
+
+  const { refetch } = useQuery({ queryKey: ["orgTree"] });
+
+  const { canManageOrg, isExecutive } = usePermissions();
+  const canManageHierarchy = canManageOrg || isExecutive;
 
   const toggleNode = (id: string) => {
     setExpandedNodes(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const rootNode = treeData?.[0];
+  const flatEmployees = treeData || [];
+
+  const toOrgTreeNode = (emp: OrgEmployee | undefined): OrgTreeNode | null => {
+    if (!emp) return null;
+    return { ...emp, children: [], directReportsCount: 0, totalReportsCount: 0 };
+  };
+
+  // Find root node (The CEO - explicitly filters out any old/legacy disconnected charts)
+  const rootNodes = flatEmployees.filter((e: OrgEmployee) =>
+    !e.managerId &&
+    (e.designation?.toUpperCase().includes('CEO') || e.designation?.toUpperCase().includes('CHIEF EXECUTIVE'))
+  );
+  const rootTreeNodes = rootNodes.map((root: OrgEmployee) => {
+    const node = toOrgTreeNode(root);
+    if (node) node.children = buildTree(flatEmployees, node.id);
+    return node;
+  }).filter(Boolean) as OrgTreeNode[];
 
   return (
     <div className="flex flex-col h-[700px] bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden relative">
-      
+
       {/* ── Toolbar ──────────────────────────────────────────────────────── */}
       <div className="h-14 border-b border-slate-200 px-4 flex items-center justify-between bg-white z-10 relative shadow-sm">
         <div className="flex items-center gap-4">
           <h2 className="text-sm font-bold text-slate-900">Interactive Directory</h2>
           <div className="relative">
             <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Search employee..." 
+            <input
+              type="text"
+              placeholder="Search employee..."
               className="w-48 h-8 pl-8 pr-3 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all font-medium"
             />
           </div>
@@ -200,22 +171,34 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
           <button className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded transition-colors" title="Mini Map">
             <Navigation className="w-4 h-4" />
           </button>
+          <div className="w-px h-4 bg-slate-300 mx-1" />
+          <button onClick={handleExport} className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Export to PNG">
+            <Download className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
       {/* ── Canvas Area ──────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-auto bg-slate-50/50 cursor-grab active:cursor-grabbing relative">
-        <div 
+      <div className="flex-1 overflow-auto bg-slate-50/50 relative">
+        <div
+          id="org-chart-canvas"
           className="min-w-max min-h-max p-16 flex justify-center transition-transform duration-200 origin-top"
           style={{ transform: `scale(${zoom})` }}
         >
-          {rootNode ? (
-            <TreeNode 
-              node={rootNode} 
-              isExpanded={expandedNodes[rootNode.id]} 
-              onToggle={toggleNode} 
-              onSelect={setSelectedNode}
-            />
+          {flatEmployees.length > 0 ? (
+            <div className="flex flex-col items-center gap-12">
+              {rootTreeNodes.map(rootNode => (
+                <TreeNode
+                  key={rootNode.id}
+                  node={rootNode}
+                  isExpanded={expandedNodes[rootNode.id] ?? true}
+                  onToggle={toggleNode}
+                  onSelect={setSelectedNode}
+                  canManageHierarchy={canManageHierarchy}
+                  onDropEmployee={handleDropEmployee}
+                />
+              ))}
+            </div>
           ) : (
             <div className="text-sm font-bold text-slate-400">Loading organization tree...</div>
           )}
@@ -232,14 +215,14 @@ export default function HierarchyPanel({ activeRole }: HierarchyPanelProps) {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            
+
             <div className="p-6 flex flex-col items-center border-b border-slate-100">
               <div className={`w-20 h-20 rounded-full flex items-center justify-center text-xl font-bold mb-4 shadow-sm border-2 border-white ring-1 ring-slate-200 ${selectedNode.avatarBg}`}>
-                <img src={selectedNode.photoUrl} alt={selectedNode.name} className="w-full h-full rounded-full object-cover" />
+                <Image src={selectedNode.photoUrl} alt={selectedNode.name} className="w-full h-full rounded-full object-cover" fill style={{ objectFit: "cover" }} />
               </div>
               <h2 className="text-lg font-bold text-slate-900">{selectedNode.name}</h2>
               <p className="text-sm font-semibold text-slate-500 text-center mt-1">{selectedNode.designation}</p>
-              
+
               <div className="flex gap-2 mt-5 w-full">
                 <button className="flex-1 flex items-center justify-center gap-2 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-lg transition-colors border border-indigo-100">
                   <Mail className="w-3.5 h-3.5" /> Message

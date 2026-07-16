@@ -11,3 +11,4 @@ packages/database/.env
 *.log
 .DS_Store
 coverage/
+backup_today/

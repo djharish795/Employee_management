@@ -5,11 +5,13 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "prisma generate && tsc -p tsconfig.json",
-    "generate": "prisma generate",
+    "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 prisma generate && tsc -p tsconfig.json",
+    "generate": "cross-env NODE_OPTIONS=--max_old_space_size=8192 prisma generate",
     "migrate:dev": "dotenv -e ../../apps/api/.env -e ../../apps/api/.env.local -- prisma migrate dev",
+    "push:dev": "dotenv -e ../../apps/api/.env -e ../../apps/api/.env.local -- prisma db push --accept-data-loss",
     "migrate:deploy": "dotenv -e ../../apps/api/.env -e ../../apps/api/.env.local -- prisma migrate deploy",
     "seed": "dotenv -e ../../apps/api/.env -e ../../apps/api/.env.local -- tsx prisma/seeds/seed.ts",
+    "seed:projects": "dotenv -e ../../apps/api/.env -e ../../apps/api/.env.local -- tsx scripts/seed-projects.ts",
     "studio": "cross-env NODE_OPTIONS=--max-old-space-size=8192 dotenv -e ../../apps/api/.env -e ../../apps/api/.env.local -- prisma studio"
   },
   "dependencies": {
@@ -17,6 +19,7 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
+    "@types/node": "^26.0.1",
     "bcrypt": "^5.1.1",
     "cross-env": "^10.1.0",
     "dotenv-cli": "^8.0.0",

@@ -1,25 +1,33 @@
+import Image from "next/image";
 import React, { useState } from 'react';
 import { Camera, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 import { useAuthStore } from '@/store/auth';
 
-export function PersonalInformationForm({ onSave }: { onSave: (data: any) => void }) {
+interface PersonalInfoProps {
+  onSave: (data: any) => void;
+  initialData?: any;
+  formId?: string;
+}
+
+export function PersonalInformationForm({ onSave, initialData: incomingData, formId }: PersonalInfoProps) {
+  const initialData = incomingData || {};
   const [isUploading, setIsUploading] = useState(false);
-  const [photoKey, setPhotoKey] = useState<string>('');
-  const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [photoKey, setPhotoKey] = useState<string>(initialData?.photoUrl || '');
+  const [previewUrl, setPreviewUrl] = useState<string>(initialData?.photoUrl || '');
   const accessToken = useAuthStore((state) => state.accessToken);
-  
+
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsUploading(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${apiUrl}/documents/upload-url`, {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${accessToken}`
         },
@@ -60,21 +68,24 @@ export function PersonalInformationForm({ onSave }: { onSave: (data: any) => voi
     } finally {
       setIsUploading(false);
     }
-
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const rawData = Object.fromEntries(formData.entries());
-    
+
     // Structure data to match backend Prisma schema expectations
+    const sanitizePhone = (val: string) => val ? val.replace(/[^\d+]/g, '') : val;
+
     const data: any = {
       ...rawData,
+      phone: sanitizePhone(rawData.phone as string),
+      alternatePhone: sanitizePhone(rawData.alternatePhone as string),
       // Group emergency contact into a JSON object
       emergencyContact: {
         name: rawData.emergencyContactName,
-        phone: rawData.emergencyContactPhone,
+        phone: sanitizePhone(rawData.emergencyContactPhone as string),
         relation: rawData.emergencyContactRelation
       }
     };
@@ -87,7 +98,7 @@ export function PersonalInformationForm({ onSave }: { onSave: (data: any) => voi
     if (photoKey) {
       data.photoUrl = photoKey; // Use photoUrl as defined in Prisma schema
     }
-    
+
     onSave(data);
   };
   return (
@@ -96,41 +107,42 @@ export function PersonalInformationForm({ onSave }: { onSave: (data: any) => voi
         <CardTitle className="text-xl font-bold text-slate-800">Personal Information</CardTitle>
       </CardHeader>
       <CardContent>
-        <form id="onboarding-form" onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+        <form id={formId || "onboarding-form"} onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
           {/* Left Column */}
           <div className="space-y-6">
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-slate-700">First name*</label>
-              <Input name="firstName" type="text" placeholder="e.g. John" required maxLength={50} pattern="[A-Za-z\s]+" title="Only letters and spaces are allowed" />
+              <Input name="firstName" type="text" defaultValue={initialData.firstName} placeholder="e.g. John" required maxLength={50} pattern="[A-Za-z\s]+" title="Only letters and spaces are allowed" />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-slate-700">Middle name</label>
-              <Input name="middleName" type="text" placeholder="e.g. Quincy" maxLength={50} pattern="[A-Za-z\s]+" title="Only letters and spaces are allowed" />
+              <Input name="middleName" type="text" defaultValue={initialData.middleName} placeholder="e.g. Quincy" maxLength={50} pattern="[A-Za-z\s]+" title="Only letters and spaces are allowed" />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-slate-700">Last name*</label>
-              <Input name="lastName" type="text" placeholder="e.g. Doe" required maxLength={50} pattern="[A-Za-z\s]+" title="Only letters and spaces are allowed" />
+              <Input name="lastName" type="text" defaultValue={initialData.lastName} placeholder="e.g. Doe" required maxLength={50} pattern="[A-Za-z\s]+" title="Only letters and spaces are allowed" />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-slate-700">Preferred name</label>
-              <Input name="preferredName" type="text" placeholder="e.g. Johnny" maxLength={50} pattern="[A-Za-z\s]+" title="Only letters and spaces are allowed" />
+              <Input name="preferredName" type="text" defaultValue={initialData.preferredName} placeholder="e.g. Johnny" maxLength={50} pattern="[A-Za-z\s]+" title="Only letters and spaces are allowed" />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-slate-700">Date of birth*</label>
-              <Input name="dateOfBirth" type="date" className="text-slate-500" required max={new Date().toISOString().split('T')[0]} />
+              <Input name="dateOfBirth" type="date" defaultValue={initialData.dateOfBirth?.split('T')[0]} className="text-slate-500" required max={new Date().toISOString().split('T')[0]} />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-slate-700">Gender*</label>
-              <select name="gender" required className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all">
+              <select name="gender" defaultValue={initialData.gender || ""} required className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all">
                 <option value="">Select gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="OTHER">Other</option>
+                <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
               </select>
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-slate-700">Blood group</label>
-              <select name="bloodGroup" className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all">
+              <select name="bloodGroup" defaultValue={initialData.bloodGroup || ""} className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all">
                 <option value="">Select blood group</option>
                 <option value="A+">A+</option>
                 <option value="O+">O+</option>
@@ -144,14 +156,16 @@ export function PersonalInformationForm({ onSave }: { onSave: (data: any) => voi
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-slate-700">Nationality</label>
-              <Input name="nationality" type="text" placeholder="e.g. Indian" maxLength={50} pattern="[A-Za-z\s]+" />
+              <Input name="nationality" type="text" defaultValue={initialData.nationality} placeholder="e.g. Indian" maxLength={50} pattern="[A-Za-z\s]+" />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-slate-700">Marital status</label>
-              <select name="maritalStatus" className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all">
+              <select name="maritalStatus" defaultValue={initialData.maritalStatus || ""} className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all">
                 <option value="">Select status</option>
-                <option value="Single">Single</option>
-                <option value="Married">Married</option>
+                <option value="SINGLE">Single</option>
+                <option value="MARRIED">Married</option>
+                <option value="DIVORCED">Divorced</option>
+                <option value="WIDOWED">Widowed</option>
               </select>
             </div>
 
@@ -162,7 +176,7 @@ export function PersonalInformationForm({ onSave }: { onSave: (data: any) => voi
                 <label className="w-24 h-24 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:bg-slate-100 hover:border-slate-400 transition-colors overflow-hidden relative">
                   <input type="file" accept="image/jpeg,image/png" className="hidden" onChange={handlePhotoUpload} disabled={isUploading} />
                   {previewUrl ? (
-                    <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                    <Image src={previewUrl} alt="Preview" className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
                   ) : (
                     <>
                       {isUploading ? (
@@ -177,7 +191,7 @@ export function PersonalInformationForm({ onSave }: { onSave: (data: any) => voi
                   )}
                 </label>
                 <div className="text-xs font-medium text-slate-500 leading-relaxed">
-                  Max size 2MB. Format: JPG, PNG.<br/>
+                  Max size 2MB. Format: JPG, PNG.<br />
                   Recommended size: 400x400px
                 </div>
               </div>
@@ -188,26 +202,26 @@ export function PersonalInformationForm({ onSave }: { onSave: (data: any) => voi
           <div className="space-y-6">
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-slate-700">Official email*</label>
-              <Input name="officialEmail" type="email" placeholder="john.doe@naprocs.com" required pattern="^[a-zA-Z0-9._%+-]+@naprocs\.com$" title="Must be a valid @naprocs.com email" />
+              <Input name="officialEmail" type="email" defaultValue={initialData.officialEmail} placeholder="john.doe@naprocs.com" required pattern="^[a-zA-Z0-9._%+-]+@naprocs\.com$" title="Must be a valid @naprocs.com email" />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-slate-700">Personal email</label>
-              <Input name="personalEmail" type="email" placeholder="john.doe@gmail.com" pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$" />
+              <Input name="personalEmail" type="email" defaultValue={initialData.personalEmail} placeholder="john.doe@gmail.com" pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$" />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-slate-700">Phone*</label>
-              <Input name="phone" type="tel" placeholder="+91 9876543210" required pattern="^(\+91[\-\s]?)?[0]?(91)?[789]\d{9}$" title="Enter a valid Indian phone number" />
+              <Input name="phone" type="tel" defaultValue={initialData.phone} placeholder="+91 9876543210" required pattern="^(\+91[\-\s]?)?[0]?(91)?[789]\d{9}$" title="Enter a valid Indian phone number" />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-slate-700">Alternate phone</label>
-              <Input name="alternatePhone" type="tel" placeholder="+91 9876543210" pattern="^(\+91[\-\s]?)?[0]?(91)?[789]\d{9}$" title="Enter a valid Indian phone number" />
+              <Input name="alternatePhone" type="tel" defaultValue={initialData.alternatePhone} placeholder="+91 9876543210" pattern="^(\+91[\-\s]?)?[0]?(91)?[789]\d{9}$" title="Enter a valid Indian phone number" />
             </div>
-            
+
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-slate-700">Current address</label>
-              <textarea name="currentAddress" placeholder="Enter current residence address" className="w-full h-[90px] p-3 rounded-md border border-slate-200 text-sm resize-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all" maxLength={250} />
+              <textarea name="currentAddress" defaultValue={initialData.currentAddress} placeholder="Enter current residence address" className="w-full h-[90px] p-3 rounded-md border border-slate-200 text-sm resize-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all" maxLength={250} />
             </div>
-            
+
             <div className="space-y-1.5 relative">
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-sm font-semibold text-slate-700">Permanent address</label>
@@ -216,22 +230,22 @@ export function PersonalInformationForm({ onSave }: { onSave: (data: any) => voi
                   <span className="text-xs font-semibold text-slate-500 group-hover:text-slate-700 transition-colors">Same as current address</span>
                 </label>
               </div>
-              <textarea name="permanentAddress" placeholder="Enter permanent address" className="w-full h-[90px] p-3 rounded-md border border-slate-200 text-sm resize-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all" maxLength={250} />
+              <textarea name="permanentAddress" defaultValue={initialData.permanentAddress} placeholder="Enter permanent address" className="w-full h-[90px] p-3 rounded-md border border-slate-200 text-sm resize-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all" maxLength={250} />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-slate-700">Emergency contact name*</label>
-              <Input name="emergencyContactName" type="text" placeholder="Full name" required maxLength={100} pattern="[A-Za-z\s]+" />
+              <Input name="emergencyContactName" type="text" defaultValue={initialData.emergencyContact?.name} placeholder="Full name" required maxLength={100} pattern="[A-Za-z\s]+" />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Emergency contact phone*</label>
-                <Input name="emergencyContactPhone" type="tel" placeholder="+91 9876543210" required pattern="^(\+91[\-\s]?)?[0]?(91)?[789]\d{9}$" />
+                <Input name="emergencyContactPhone" type="tel" defaultValue={initialData.emergencyContact?.phone} placeholder="+91 9876543210" required pattern="^(\+91[\-\s]?)?[0]?(91)?[789]\d{9}$" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Relationship*</label>
-                <Input name="emergencyContactRelation" type="text" placeholder="e.g. Spouse, Parent" required maxLength={50} pattern="[A-Za-z\s]+" />
+                <Input name="emergencyContactRelation" type="text" defaultValue={initialData.emergencyContact?.relation || initialData.emergencyContact?.relationship} placeholder="e.g. Spouse, Parent" required maxLength={50} pattern="[A-Za-z\s]+" />
               </div>
             </div>
           </div>

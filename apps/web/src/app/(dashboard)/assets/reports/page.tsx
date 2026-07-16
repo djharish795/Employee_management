@@ -3,14 +3,18 @@
 import React from "react";
 import AssetsLayout from "@/components/modules/assets/assets-layout";
 import ReportsPanel from "@/components/modules/assets/reports-panel";
-import { useAssetsTestStore } from "@/store/assets-test";
+import { usePermissions } from "@/hooks/use-permissions";
+import { useAuthStore } from "@/store/auth";
 
 export default function AssetsReportsPage() {
-  const { activeRole, setActiveRole } = useAssetsTestStore();
+  const { role: testRole } = usePermissions();
+  const currentUserRole = useAuthStore((state) => state.role) || "EMPLOYEE";
+  const isEmployeeLevel = ["EMPLOYEE", "MANAGER", "TEAM_LEAD"].includes(currentUserRole);
+  const effectiveRole = isEmployeeLevel ? "EMPLOYEE" : testRole;
 
   return (
-    <AssetsLayout activeRole={activeRole} onRoleChange={setActiveRole}>
-      <ReportsPanel activeRole={activeRole} />
+    <AssetsLayout  >
+      <ReportsPanel  />
     </AssetsLayout>
   );
 }

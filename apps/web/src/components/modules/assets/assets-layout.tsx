@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { usePermissions } from "@/hooks/use-permissions";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -13,16 +14,22 @@ import {
 } from "lucide-react";
 import { AssetRole } from "@/types/assets";
 
+import { useAuthStore } from "@/store/auth";
+
 interface AssetsLayoutProps {
   children: React.ReactNode;
-  activeRole: AssetRole;
-  onRoleChange: (role: AssetRole) => void;
+  
 }
 
 const ALL_ROLES: AssetRole[] = ["IT_ADMIN", "ADMIN", "HR", "CEO", "MANAGER", "EMPLOYEE"];
 
-export default function AssetsLayout({ children, activeRole, onRoleChange }: AssetsLayoutProps) {
+export default function AssetsLayout({ children }: AssetsLayoutProps) {
+  const { role } = usePermissions();
+  const activeRole = role as any;
   const pathname = usePathname();
+  const currentUserRole = useAuthStore((state) => state.role) || "EMPLOYEE";
+  const isEmployeeLevel = ["EMPLOYEE", "MANAGER", "TEAM_LEAD"].includes(currentUserRole);
+  const effectiveRole = isEmployeeLevel ? "EMPLOYEE" : activeRole;
 
   const navItems = React.useMemo(() => {
     const items = [
@@ -35,17 +42,17 @@ export default function AssetsLayout({ children, activeRole, onRoleChange }: Ass
     return items.filter((item) => {
       // Only IT_ADMIN and ADMIN can see full inventory and reports
       if (item.href === "/assets/inventory") {
-        return ["IT_ADMIN", "ADMIN", "HR", "CEO"].includes(activeRole);
+        return ["IT_ADMIN", "ADMIN", "HR", "CEO"].includes(effectiveRole);
       }
       if (item.href === "/assets/reports") {
-        return ["IT_ADMIN", "ADMIN", "CEO"].includes(activeRole);
+        return ["IT_ADMIN", "ADMIN", "CEO"].includes(effectiveRole);
       }
       return true;
     });
-  }, [activeRole]);
+  }, [effectiveRole]);
 
   const subtitle = React.useMemo(() => {
-    switch (activeRole) {
+    switch (effectiveRole) {
       case "EMPLOYEE":
         return "View your assigned assets and raise new asset requests.";
       case "MANAGER":
@@ -59,7 +66,7 @@ export default function AssetsLayout({ children, activeRole, onRoleChange }: Ass
       default:
         return "Manage the entire asset registry with full administrative control.";
     }
-  }, [activeRole]);
+  }, [effectiveRole]);
 
   return (
     <div className="flex flex-col h-full bg-slate-50 font-sans">
@@ -72,36 +79,7 @@ export default function AssetsLayout({ children, activeRole, onRoleChange }: Ass
                 Asset Management
               </h1>
 
-              {/* Dev Role Switcher */}
-              <div className="relative inline-block text-left group">
-                <button className="flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-full transition-all shadow-sm">
-                  <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
-                  View Config:{" "}
-                  <span className="text-violet-600 font-bold">{activeRole}</span>
-                  <ChevronDown className="w-3 h-3 text-slate-400" />
-                </button>
-                <div className="absolute left-0 mt-1.5 w-44 bg-white border border-slate-200 rounded-lg shadow-lg py-1 hidden group-hover:block z-50">
-                  <div className="px-3 py-1 text-[9px] font-bold text-slate-400 uppercase border-b border-slate-100">
-                    Toggle Role View
-                  </div>
-                  {ALL_ROLES.map((role) => (
-                    <button
-                      key={role}
-                      onClick={() => onRoleChange(role)}
-                      className={`w-full text-left px-3.5 py-2 text-xs font-medium hover:bg-slate-50 flex items-center justify-between ${
-                        activeRole === role
-                          ? "text-violet-600 bg-violet-50/50 font-bold"
-                          : "text-slate-600"
-                      }`}
-                    >
-                      {role}
-                      {activeRole === role && (
-                        <Check className="w-3.5 h-3.5 text-violet-600" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
+
             </div>
             <p className="text-sm font-medium text-slate-500 mt-1">{subtitle}</p>
           </div>

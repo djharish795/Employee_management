@@ -13,6 +13,8 @@ export interface LeaveRequest {
   comments?: string;
   employeeName: string;
   department: string;
+  approvalQueue?: Array<{ role: string; status: string; approverId?: string; actedAt?: string }>;
+  currentStep?: number;
 }
 
 export interface LeaveBalance {

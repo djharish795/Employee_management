@@ -7,6 +7,7 @@ import * as bcrypt from "bcrypt";
 import { PrismaService } from "../../prisma/prisma.service";
 import { MfaService } from "./mfa.service";
 import { TokenService } from "./token.service";
+import { RedisService } from "../../redis/redis.service";
 import { UserRole } from "@naprocs/types";
 import { LoginDto } from "./dto/login.dto";
 import { MfaVerifyDto } from "./dto/mfa-verify.dto";
@@ -17,7 +18,8 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly mfa: MfaService,
     private readonly tokens: TokenService,
-  ) {}
+    private readonly redis: RedisService,
+  ) { }
 
   async login(dto: LoginDto) {
     const email = dto.email.trim().toLowerCase();
@@ -44,30 +46,42 @@ export class AuthService {
       throw new UnauthorizedException("Invalid email or password.");
     }
 
-    // --- MFA TEMPORARILY BYPASSED FOR TESTING ---
-    // const challenge = await this.mfa.createEmailOtpChallenge(user.id, user.email);
-    //
-    // return {
-    //   mfaRequired: true,
-    //   challengeId: challenge.challengeId,
-    //   method: challenge.method,
-    // };
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+
+    let isTeamLead = false;
+    if (user.employeeId) {
+      const tlAssignment = await this.prisma.projectAssignment.findFirst({
+        where: { employeeId: user.employeeId, projectRole: 'TL' },
+      });
+      if (tlAssignment) isTeamLead = true;
+    }
 
     const issued = await this.tokens.issueTokens({
       userId: user.id,
       email: user.email,
-      role: user.role as UserRole,
+      role: isTeamLead && user.role === 'EMPLOYEE' ? 'TEAM_LEAD' : (user.role as any),
       employeeId: user.employeeId ?? undefined,
     });
 
+    let finalRedirectPath = issued.redirectPath;
+    if (user.employee?.status === "ONBOARDING") {
+      finalRedirectPath = "/employee/onboarding";
+    }
+
     return {
+      success: true,
       mfaRequired: false,
       token: issued.accessToken,
       refreshToken: issued.refreshToken,
       role: issued.role,
-      redirectPath: issued.redirectPath,
+      redirectPath: finalRedirectPath,
+      employeeId: user.employeeId ?? null,
+      isTeamLead,
+      employeeStatus: user.employee?.status ?? null,
     };
-    // ---------------------------------------------
   }
 
   async verifyMfa(dto: MfaVerifyDto) {
@@ -103,6 +117,7 @@ export class AuthService {
       refreshToken: issued.refreshToken,
       role: issued.role,
       redirectPath: issued.redirectPath,
+      employeeId: user.employeeId ?? null,
       unknownDevice: false,
     };
   }
@@ -111,5 +126,63 @@ export class AuthService {
     // Device trust is persisted in a later iteration; acknowledge for UI flow.
     void challengeId;
     return { success: true };
+  }
+
+  async refreshAuthToken(refreshToken: string) {
+    if (!refreshToken) {
+      throw new UnauthorizedException("Refresh token is required.");
+    }
+
+    const refreshKey = `auth:refresh:${refreshToken}`;
+    const sessionData = await this.redis.getJson<{ userId: string; email: string; role: string }>(refreshKey);
+
+    if (!sessionData) {
+      throw new UnauthorizedException("Invalid or expired refresh token.");
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: sessionData.userId },
+      include: { employee: true },
+    });
+
+    if (!user || user.status !== "ACTIVE") {
+      await this.redis.del(refreshKey);
+      throw new ForbiddenException("Account is not allowed to sign in.");
+    }
+
+    // Revoke old token family (basic rotation)
+    await this.redis.del(refreshKey);
+    await this.redis.del(`auth:session:${user.id}:${refreshToken}`);
+
+    let isTeamLead = false;
+    if (user.employeeId) {
+      const tlAssignment = await this.prisma.projectAssignment.findFirst({
+        where: { employeeId: user.employeeId, projectRole: 'TL' },
+      });
+      if (tlAssignment) isTeamLead = true;
+    }
+
+    const issued = await this.tokens.issueTokens({
+      userId: user.id,
+      email: user.email,
+      role: isTeamLead && user.role === 'EMPLOYEE' ? 'TEAM_LEAD' : (user.role as any),
+      employeeId: user.employeeId ?? undefined,
+    });
+
+    let finalRedirectPath = issued.redirectPath;
+    if (user.employee?.status === "ONBOARDING") {
+      finalRedirectPath = "/employee/onboarding";
+    }
+
+    return {
+      success: true,
+      token: issued.accessToken,
+      refreshToken: issued.refreshToken,
+      role: issued.role,
+      redirectPath: finalRedirectPath,
+      employeeId: user.employeeId ?? null,
+      isTeamLead,
+      employeeStatus: user.employee?.status ?? null,
+    };
   }
 }

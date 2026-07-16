@@ -5,29 +5,66 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, Filter, Download, ArrowUpDown, Calendar, RefreshCcw } from "lucide-react";
 import { AttendanceLog } from "@/types/attendance";
 
+import { fetchMyLogs, fetchAllLogs } from "@/lib/api/attendance";
+
+const formatTimeValue = (val: string | null | undefined): string => {
+  if (!val) return "—";
+  if (val.includes("AM") || val.includes("PM") || val === "--:--" || val === "—") {
+    return val;
+  }
+  const parsed = new Date(val);
+  if (isNaN(parsed.getTime())) {
+    return val;
+  }
+  return parsed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+};
+
 interface HistoryPanelProps {
-  activeRole: "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
+  mode?: "personal" | "org";
 }
 
-const LOCAL_LOGS_KEY = "naprocs_attendance_logs";
-
-export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
+export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
   const [filterMonth, setFilterMonth] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterSearch, setFilterSearch] = useState("");
 
-  const fetchLogs = async (): Promise<AttendanceLog[]> => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(LOCAL_LOGS_KEY);
-      if (saved) return JSON.parse(saved);
-    }
-    return [];
-  };
-
-  const { data: logs = [], isLoading } = useQuery<AttendanceLog[]>({
-    queryKey: ["attendanceLogs"],
-    queryFn: fetchLogs,
+  const isOrgMode = mode === "org";
+  
+  const { data: rawLogs = [], isLoading } = useQuery<AttendanceLog[]>({
+    queryKey: ["attendanceLogs", isOrgMode ? "all" : "my"],
+    queryFn: () => isOrgMode ? fetchAllLogs(1, 500) : fetchMyLogs(),
   });
+
+  const logs = useMemo(() => {
+    return rawLogs.map((log) => {
+      const formattedDate = new Date(log.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      const formattedCheckIn = formatTimeValue(log.checkIn);
+      const formattedCheckOut = formatTimeValue(log.checkOut);
+      const formattedHours = typeof log.hoursWorked === 'number' ? `${log.hoursWorked.toFixed(1)}h` : log.hoursWorked;
+      
+      // Calculate formatted break
+      let formattedBreak = "—";
+      if (log.totalBreakSeconds && log.totalBreakSeconds > 0) {
+        const breakMins = Math.round(log.totalBreakSeconds / 60);
+        if (breakMins < 60) {
+          formattedBreak = `${breakMins}m`;
+        } else {
+          const hrs = Math.floor(breakMins / 60);
+          const mins = breakMins % 60;
+          formattedBreak = mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
+        }
+      }
+
+      return {
+        ...log,
+        displayDate: formattedDate,
+        displayCheckIn: formattedCheckIn,
+        displayCheckOut: formattedCheckOut,
+        displayHours: formattedHours,
+        displayBreak: formattedBreak,
+      };
+    });
+  }, [rawLogs]);
 
   // Calculate filtered logs
   const filteredLogs = useMemo(() => {
@@ -38,16 +75,17 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
     }
 
     if (filterMonth) {
-      result = result.filter((log) => log.date.includes(filterMonth));
+      result = result.filter((log) => log.displayDate.includes(filterMonth));
     }
 
     if (filterSearch.trim()) {
       const q = filterSearch.toLowerCase();
       result = result.filter(
         (log) =>
-          log.date.toLowerCase().includes(q) ||
+          log.displayDate.toLowerCase().includes(q) ||
           log.remarks.toLowerCase().includes(q) ||
-          log.status.toLowerCase().includes(q)
+          log.status.toLowerCase().includes(q) ||
+          ((log as any).employeeName && (log as any).employeeName.toLowerCase().includes(q))
       );
     }
 
@@ -59,15 +97,25 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
     if (filteredLogs.length === 0) return;
     
     // Header
-    const headers = ["Date", "Check In", "Check Out", "Hours Worked", "Status", "Remarks"];
-    const rows = filteredLogs.map((log) => [
-      log.date,
-      log.checkIn,
-      log.checkOut || "—",
-      log.hoursWorked,
-      log.status,
-      `"${log.remarks}"`,
-    ]);
+    const headers = isOrgMode 
+      ? ["Employee", "Date", "Check In", "Check Out", "Hours Worked", "Break Time", "Status", "Remarks"]
+      : ["Date", "Check In", "Check Out", "Hours Worked", "Break Time", "Status", "Remarks"];
+      
+    const rows = filteredLogs.map((log) => {
+      const row = [
+        log.displayDate,
+        log.displayCheckIn,
+        log.displayCheckOut,
+        log.displayHours,
+        log.displayBreak,
+        log.status,
+        `"${log.remarks}"`,
+      ];
+      if (isOrgMode) {
+        row.unshift(`"${(log as any).employeeName || 'Unknown'}"`);
+      }
+      return row;
+    });
 
     const csvContent =
       "data:text/csv;charset=utf-8," +
@@ -84,7 +132,7 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
 
   const uniqueMonths = useMemo(() => {
     const months = logs.map((log) => {
-      const parts = log.date.split(" ");
+      const parts = log.displayDate.split(" ");
       return parts[1] ? `${parts[1]} ${parts[2]}` : "";
     });
     return Array.from(new Set(months.filter(Boolean)));
@@ -111,7 +159,7 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Search history remarks..."
+              placeholder="Search name, remarks, or date..."
               value={filterSearch}
               onChange={(e) => setFilterSearch(e.target.value)}
               className="w-full h-10 pl-9 pr-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 transition-all font-semibold text-slate-700"
@@ -140,6 +188,7 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
           >
             <option value="">All Statuses</option>
             <option value="PRESENT">PRESENT</option>
+            <option value="EARLY_CHECKOUT">EARLY CHECKOUT</option>
             <option value="LATE">LATE</option>
             <option value="WFH">WFH</option>
             <option value="ABSENT">ABSENT</option>
@@ -173,29 +222,40 @@ export default function HistoryPanel({ activeRole }: HistoryPanelProps) {
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200">
+                <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider text-left">
+                  {isOrgMode && <th className="px-6 py-4">Employee</th>}
                   <th className="px-6 py-4">Date</th>
                   <th className="px-6 py-4">Check In</th>
                   <th className="px-6 py-4">Check Out</th>
                   <th className="px-6 py-4">Hours Worked</th>
+                  <th className="px-6 py-4">Break Time</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4">Remarks</th>
                 </tr>
               </thead>
               <tbody className="text-xs font-semibold text-slate-700 divide-y divide-slate-100">
-                {paginatedLogs.map((log, index) => {
+                {paginatedLogs.map((log, idx) => {
                   let badge = "text-slate-600 bg-slate-100";
                   if (log.status === "PRESENT") badge = "text-emerald-700 bg-emerald-50 border border-emerald-200/50";
                   else if (log.status === "LATE") badge = "text-amber-700 bg-amber-50 border border-amber-200/50";
+                  else if (log.status === "EARLY_CHECKOUT") badge = "text-orange-500 bg-orange-50 border border-orange-200/50";
                   else if (log.status === "WFH") badge = "text-slate-900 bg-slate-100 border border-slate-300/50";
                   else if (log.status === "ABSENT") badge = "text-rose-700 bg-rose-50 border border-rose-200/50";
 
                   return (
-                    <tr key={index} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-6 py-4 font-bold text-slate-900">{log.date}</td>
-                      <td className="px-6 py-4 font-mono text-slate-500">{log.checkIn}</td>
-                      <td className="px-6 py-4 font-mono text-slate-500">{log.checkOut || "—"}</td>
-                      <td className="px-6 py-4 font-bold text-slate-900">{log.hoursWorked}</td>
+                    <tr key={(log as any).id || idx} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                      {isOrgMode && (
+                        <td className="px-6 py-4 font-bold text-slate-900">
+                          {(log as any).employeeName || "Unknown"}
+                        </td>
+                      )}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="font-bold text-slate-900">{log.displayDate}</div>
+                      </td>
+                      <td className="px-6 py-4 font-mono text-slate-500">{log.displayCheckIn}</td>
+                      <td className="px-6 py-4 font-mono text-slate-500">{log.displayCheckOut}</td>
+                      <td className="px-6 py-4 font-bold text-slate-900">{log.displayHours}</td>
+                      <td className="px-6 py-4 font-bold text-amber-600">{log.displayBreak}</td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase ${badge}`}>
                           {log.status}

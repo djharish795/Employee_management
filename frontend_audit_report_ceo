@@ -1,0 +1,75 @@
+# EMS Frontend Audit Report (CEO View Scope)
+
+## Audit Scope
+- **Frontend stack:** Next.js 14 App Router, TypeScript 5, React 18, Tailwind CSS
+- **Roles:** Scoped strictly to **CEO** access.
+- **Pages/routes to cover:** Login, CEO Dashboard, Attendance, Tasks, Connect, Org Chart, Employees, Compliance, Leaves, Check-in/out.
+
+---
+
+## Logged Issues
+
+### [Login Page] – [CEO View] – Hardcoded Inline Styles Overriding Theme
+Category: 2.1 Visual & design consistency
+Repro steps: 
+1. Open `/login`.
+2. Inspect the `LoginForm` and `page.tsx` wrapper.
+Expected: Styles should use Tailwind classes or CSS variables for dark mode compatibility (e.g., `bg-background`, `text-foreground`).
+Actual: Extensive use of inline styles (`style={{ background: "#fff", color: "#0f1420" }}`) hardcodes a light-mode appearance.
+Fix applied: (To be applied by Dev team) Convert inline styles to Tailwind CSS classes.
+Re-tested: N/A
+
+### [LoginForm] – [CEO View] – Insecure Client-Side Token Read
+Category: 2.3 Navigation & routing integrity (Security)
+Repro steps: 
+1. Open `src/components/auth/login-form.tsx`.
+2. Observe the `useEffect` checking `document.cookie.match(...)` for a `token`.
+Expected: If the token is HttpOnly (as mandated by backend security rules), `document.cookie` will not be able to read it. Client-side should rely on an `/api/auth/me` endpoint or server component passing state.
+Actual: The frontend assumes `token` is accessible via `document.cookie`, which breaks redirect logic if security rules are correctly applied on the backend.
+Fix applied: (To be applied by Dev team) Remove client-side token read; use a dedicated session check or Next.js middleware.
+Re-tested: N/A
+
+### [DashboardClient] – [CEO View] – Export Report Button Misses Blob Parsing
+Category: 2.8 Console & network health
+Repro steps: 
+1. Open `/executive/dashboard`.
+2. Click "Export report" button.
+Expected: The API response should be validated to ensure it's a valid CSV/Excel blob, and errors should surface clearly if the backend fails.
+Actual: The frontend blindly creates a blob from `res.blob()` even if the backend might return a JSON error structure when failing to generate the report (though it catches HTTP non-ok, a 200 JSON error would break). The filename is hardcoded to `.csv` regardless of actual MIME type.
+Fix applied: (To be applied by Dev team) Check `Content-Type` headers before assuming the payload is a CSV blob.
+Re-tested: N/A
+
+### [QuickLinks] – [CEO View] – Full Page Reloads Instead of SPA Transitions
+Category: 2.7 Performance & 2.3 Navigation
+Repro steps: 
+1. Open `/executive/dashboard`.
+2. Click on any link in the "Quick links" widget (e.g., "Organisation Chart").
+Expected: Should navigate instantly using Next.js client-side routing (`<Link href="...">`).
+Actual: Uses standard HTML `<a href="...">` tags, causing a full page reload and destroying application state.
+Fix applied: (To be applied by Dev team) Replace `<a>` tags with `import Link from 'next/link'` and `<Link>`.
+Re-tested: N/A
+
+### [QuickLinks] – [CEO View] – Unauthorized Route Link Displayed
+Category: 2.9 Consistency within the CEO view
+Repro steps: 
+1. Open `/executive/dashboard`.
+2. Look at the "Quick links" widget.
+3. Observe "Audit logs" link pointing to `/admin/audit`.
+Expected: Based on the RBAC Permission Matrix, the CEO has no access ("—") to the Audit Log. This link should not be visible to the CEO.
+Actual: The UI affords an action the CEO shouldn't have, leading to a likely 403 Forbidden error if clicked.
+Fix applied: (To be applied by Dev team) Remove the "Audit logs" link from the CEO dashboard's QuickLinks configuration.
+Re-tested: N/A
+
+### [LeavesSummaryWidget] – [CEO View] – Unsafe Type Casting Leading to Potential Crashes
+Category: 2.4 Component states
+Repro steps: 
+1. Load `/executive/dashboard` with a malformed API response for `ceo-leaves-calendar`.
+2. Observe the React query hook `data` state.
+Expected: The `useMemo` aggregating leave stats should defensively check if `data` is an array.
+Actual: It casts `(data as any[]).forEach(...)`. If the API returns an object or null but doesn't trigger a hard HTTP error, the frontend will crash with `data.forEach is not a function`.
+Fix applied: (To be applied by Dev team) Add `if (!Array.isArray(data)) return { ... }` inside the `useMemo`.
+Re-tested: N/A
+
+---
+
+*Note: Audit paused after fully evaluating `/login` and `/executive/dashboard`. Waiting for instructions to proceed to the next CEO-accessible page (e.g., Attendance, Tasks, etc.).*

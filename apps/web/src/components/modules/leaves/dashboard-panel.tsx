@@ -1,222 +1,613 @@
 "use client";
-
+import { usePermissions } from "@/hooks/use-permissions";
 import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Plane, Calendar, FileText, CheckCircle2, Clock, AlertTriangle, ArrowRight, BookOpen, UserPlus } from "lucide-react";
+import {
+  Plane, Calendar, FileText, CheckCircle2, UserPlus,
+  BookOpen, ArrowRight, AlertCircle, Loader2, Home, Clock
+} from "lucide-react";
 import Link from "next/link";
-import { LeaveRequest, LeaveBalance, Holiday } from "@/types/leaves";
+import { useAuthStore } from "@/store/auth";
+import { fetchMyLeaveKpi, fetchLeaveCalendar, ApiLeaveRequest, ApiLeaveKpi, cancelLeaveRequest } from "@/lib/api/leaves";
+import { fetchMyWfh, ApiWfhRequest } from "@/lib/api/wfh";
+import { toast } from "react-hot-toast";
 
 interface DashboardPanelProps {
   activeRole: "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
 }
 
-const INITIAL_REQUESTS: LeaveRequest[] = [
-  { id: "L-101", type: "CASUAL_LEAVE", startDate: "20 Jun 2026", endDate: "21 Jun 2026", days: 2, reason: "Attending family function", status: "APPROVED", submittedDate: "15 Jun 2026", employeeName: "Arjun Mehta", department: "Engineering", emergencyContact: "+91 9988776655" },
-  { id: "L-102", type: "SICK_LEAVE", startDate: "18 Jun 2026", endDate: "18 Jun 2026", days: 1, reason: "Severe migraine", status: "PENDING", submittedDate: "17 Jun 2026", employeeName: "Linda Chen", department: "Product Design", emergencyContact: "+91 8877665544" },
-  { id: "L-103", type: "EARNED_LEAVE", startDate: "05 Jul 2026", endDate: "10 Jul 2026", days: 6, reason: "Annual family summer vacation", status: "PENDING", submittedDate: "16 Jun 2026", employeeName: "Marcus Thorne", department: "Legal & Compliance", emergencyContact: "+91 7766554433" },
-];
+const fmtDate = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
-const INITIAL_BALANCES: LeaveBalance[] = [
-  { type: "Casual Leave", allocated: 12, used: 4, available: 8, pendingApproval: 0 },
-  { type: "Sick Leave", allocated: 10, used: 2, available: 8, pendingApproval: 1 },
-  { type: "Earned Leave", allocated: 20, used: 5, available: 15, pendingApproval: 6 },
-];
+export default function DashboardPanel() {
+  const { role } = usePermissions();
+  const activeRole = role as any;
+  const { employeeId } = useAuthStore();
+  const isEmployee = activeRole === "EMPLOYEE";
 
-const UPCOMING_HOLIDAYS: Holiday[] = [
-  { date: "25 Dec 2026", name: "Christmas Day", type: "PUBLIC" },
-  { date: "01 Jan 2027", name: "New Year's Day", type: "PUBLIC" },
-  { date: "26 Jan 2027", name: "Republic Day", type: "PUBLIC" },
-];
+  const leavePanelRole = ((): "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE" => {
+    if (["SUPER_ADMIN", "IT"].includes(activeRole)) return "ADMIN";
+    if (["HR", "CHRO"].includes(activeRole)) return "HR";
+    if (["CEO", "COO"].includes(activeRole)) return "CEO";
+    if (["CTO", "CFO", "FINANCE", "MANAGER", "TEAM_LEAD"].includes(activeRole)) return "MANAGER";
+    return "EMPLOYEE";
+  })();
 
-const CACHE_KEY = "naprocs_leave_requests";
-
-export default function DashboardPanel({ activeRole }: DashboardPanelProps) {
-  // Fetch leave requests list via React Query
-  const fetchLeaveRequests = async (): Promise<LeaveRequest[]> => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(CACHE_KEY);
-      if (saved) return JSON.parse(saved);
-      localStorage.setItem(CACHE_KEY, JSON.stringify(INITIAL_REQUESTS));
-    }
-    return INITIAL_REQUESTS;
-  };
-
-  const { data: allRequests = [] } = useQuery<LeaveRequest[]>({
-    queryKey: ["leaveRequests"],
-    queryFn: fetchLeaveRequests,
+  // ── 1. My Leave KPI & Balance ─────────────────────────────────────────────────────────
+  const kpiQuery = useQuery<ApiLeaveKpi>({
+    queryKey: ["leaves-kpi", employeeId],
+    queryFn: () => fetchMyLeaveKpi(employeeId!),
+    enabled: !!employeeId,
+    staleTime: 60_000,
+    retry: 2,
   });
 
-  const isEmployee = activeRole === "EMPLOYEE";
-  // Filter for employee view: normally we'd filter by userId, here we mock it by picking a specific name or just returning fewer items to simulate "My Requests"
-  const requests = isEmployee 
-    ? allRequests.filter(r => r.employeeName === "Arjun Mehta") 
-    : allRequests;
+  // ── 2. Leave Calendar (recent requests) ──────────────────────────────────
+  const calendarQuery = useQuery<ApiLeaveRequest[]>({
+    queryKey: ["leaves-calendar"],
+    queryFn: fetchLeaveCalendar,
+    enabled: !!employeeId && ["MANAGER", "HR", "CEO", "ADMIN"].includes(leavePanelRole),
+    staleTime: 120_000,
+    retry: 1,
+  });
 
-  // Calculate dynamic KPIs based on role
-  const kpis = useMemo(() => {
-    const available = INITIAL_BALANCES.reduce((acc, curr) => acc + curr.available, 0);
-    const used = INITIAL_BALANCES.reduce((acc, curr) => acc + curr.used, 0);
-    const pending = requests.filter((r) => r.status === "PENDING").length;
+  // ── 3. WFH requests for this month ───────────────────────────────────────
+  const wfhQuery = useQuery<ApiWfhRequest[]>({
+    queryKey: ["wfh-my", employeeId],
+    queryFn: () => fetchMyWfh(employeeId!),
+    enabled: !!employeeId,
+    staleTime: 60_000,
+    retry: 1,
+  });
+
+  // ── Computed leave KPIs ───────────────────────────────────────────────────
+  const kpi = useMemo(() => {
+    if (!kpiQuery.data) return null;
+    const { totalLeaves, usedLeaves, pendingLeaves, availableLeaves, details } = kpiQuery.data;
+
+    // Fallback if isPaidLeave is not available from API
+    const isPaidDefined = details.length > 0 && details[0].leaveType.isPaidLeave !== undefined;
+
+    const usedPaid = details
+      .filter(d => isPaidDefined ? d.leaveType.isPaidLeave : d.leaveType.code !== "LOP")
+      .reduce((sum, d) => sum + Number(d.used), 0);
+
+    const usedUnpaid = details
+      .filter(d => isPaidDefined ? d.leaveType.isPaidLeave === false : d.leaveType.code === "LOP")
+      .reduce((sum, d) => sum + Number(d.used), 0);
 
     return {
-      available: `${available} Days`,
-      used: `${used} Days`,
-      pending: `${pending} Requests`,
-      conflicts: isEmployee ? "0 Conflicts" : "2 Team Conflicts",
-      holidays: "3 Holidays MTD",
+      available: availableLeaves,
+      used: usedLeaves,
+      pending: pendingLeaves,
+      total: totalLeaves,
+      usedPaid,
+      usedUnpaid
     };
-  }, [requests, isEmployee]);
+  }, [kpiQuery.data]);
+
+  // ── Half-day specific balance ─────────────────────────────────────────────
+  const halfDayBalance = useMemo(() => {
+    if (!kpiQuery.data) return null;
+    const hd = kpiQuery.data.details.find(d => d.leaveType.code === "CL_HALF");
+    if (!hd) return null;
+    const available = Number(hd.allocated) + Number(hd.carriedOver) - Number(hd.used) - Number(hd.pending);
+    return { available, allocated: Number(hd.allocated) };
+  }, [kpiQuery.data]);
+
+  const maxWfh = activeRole === "CEO" ? 5 : activeRole === "MANAGER" || activeRole === "HR" ? 2 : 1;
+
+  // ── WFH this month ────────────────────────────────────────────────────────
+  const wfhThisMonth = useMemo(() => {
+    if (!wfhQuery.data) return { used: 0, pending: 0, max: maxWfh };
+    const now = new Date();
+    const thisMonthWfh = wfhQuery.data.filter(w => {
+      const d = new Date(w.date);
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    });
+    const used = thisMonthWfh.filter(w => w.status === "APPROVED").length;
+    const pending = thisMonthWfh.filter(w => w.status === "PENDING").length;
+    return { used, pending, max: maxWfh };
+  }, [wfhQuery.data, maxWfh]);
+
+  // ── Recent leave requests ─────────────────────────────────────────────────
+  const recentRequests = useMemo(() => {
+    if (!calendarQuery.data) return [];
+    const items = calendarQuery.data as any[];
+    if (employeeId) {
+      return items.filter((r) => r.employeeId === employeeId).slice(0, 5);
+    }
+    return items.slice(0, 5);
+  }, [calendarQuery.data, employeeId]);
+
+  // ── Balance breakdown (excluding CL_HALF, shown separately) ──────────────
+  const balanceDetails = (kpiQuery.data?.details ?? []).filter(d => d.leaveType.code !== "CL_HALF");
+
+  const isLoading = kpiQuery.isLoading;
+
+  const handleCancelLeave = async (id: string) => {
+    if (!confirm("Are you sure you want to cancel this leave request?")) return;
+    try {
+      await cancelLeaveRequest(id);
+      toast.success("Leave request cancelled successfully");
+      calendarQuery.refetch();
+      kpiQuery.refetch();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || "Failed to cancel leave request");
+    }
+  };
 
   return (
     <div className="space-y-6">
-      {/* KPIs Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Available Balance</div>
-          <div className="text-xl font-bold text-slate-900 mt-1">{kpis.available}</div>
-          <div className="text-[10px] font-semibold text-emerald-600 mt-1">Ready for time-off</div>
+
+      {/* ── Global Summary Cards ──────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Total Allocated (Yearly) */}
+        <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow-lg relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10">
+            <BookOpen className="w-16 h-16 text-white" />
+          </div>
+          <div className="relative z-10">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Allocated (Yearly)</p>
+            <p className={`text-3xl font-black mt-1 ${isLoading ? "text-slate-600" : "text-white"}`}>
+              {isLoading ? "..." : kpiQuery.data?.totalLeaves ? `${kpiQuery.data.totalLeaves} Days` : "--"}
+            </p>
+            <p className="text-[11px] font-semibold text-slate-400 mt-1">Your entire yearly allowance</p>
+          </div>
         </div>
+
+        {/* Used Leaves */}
         <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Used Leave</div>
-          <div className="text-xl font-bold text-slate-900 mt-1">{kpis.used}</div>
-          <div className="text-[10px] font-semibold text-slate-500 mt-1">Since Jan 1st</div>
+          <div>
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Used Leaves</p>
+            <p className={`text-3xl font-black mt-1 ${isLoading ? "text-slate-300" : "text-slate-800"}`}>
+              {isLoading ? "..." : kpiQuery.data?.usedLeaves !== undefined ? `${kpiQuery.data.usedLeaves} Days` : "--"}
+            </p>
+            <p className="text-[11px] font-semibold text-slate-500 mt-1">Total taken this year</p>
+          </div>
         </div>
-        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pending Requests</div>
-          <div className="text-xl font-bold text-slate-900 mt-1">{kpis.pending}</div>
-          <div className="text-[10px] font-semibold text-amber-500 mt-1">Awaiting approval</div>
-        </div>
-        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Upcoming Holidays</div>
-          <div className="text-xl font-bold text-slate-900 mt-1">{kpis.holidays}</div>
-          <div className="text-[10px] font-semibold text-slate-900 mt-1">Company-wide calendar</div>
-        </div>
-        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Team Leave Conflicts</div>
-          <div className="text-xl font-bold text-slate-900 mt-1">{kpis.conflicts}</div>
-          <div className="text-[10px] font-semibold text-rose-500 mt-1">Overlapping requests</div>
+
+        {/* Currently Active (Accrued) */}
+        <div className="bg-emerald-50 border border-emerald-100 p-5 rounded-xl shadow-sm">
+          <div>
+            <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Currently Active</p>
+            <p className={`text-3xl font-black mt-1 ${isLoading ? "text-emerald-300" : "text-emerald-700"}`}>
+              {isLoading ? "..." : kpiQuery.data?.availableLeaves !== undefined ? `${kpiQuery.data.availableLeaves} Days` : "--"}
+            </p>
+            <p className="text-[11px] font-semibold text-emerald-600/70 mt-1">Accrued & ready to use right now</p>
+          </div>
         </div>
       </div>
 
-      {/* Main Column Split Layout */}
+      {/* ── Detailed Breakdown Cards ──────────────────────────────────────── */}
+      <h4 className="text-sm font-bold text-slate-700 mb-2 mt-8 border-b border-slate-100 pb-2">Leave Breakdown</h4>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+
+        {/* Full-Day Available */}
+        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Full-Day Available</p>
+              <p className={`text-xl font-bold mt-1 ${isLoading ? "text-slate-300" : "text-emerald-600"}`}>
+                {isLoading ? "..." : kpiQuery.data ? (() => {
+                  const clFull = kpiQuery.data.details.find((d: any) => d.leaveType.code === "CL_FULL");
+                  if (!clFull) return "0 Days";
+                  const available = Number(clFull.allocated) + Number(clFull.carriedOver) - Number(clFull.used) - Number(clFull.pending);
+                  return `${available} Days`;
+                })() : "--"}
+              </p>
+              <p className="text-[10px] font-semibold text-slate-500 mt-1">
+                {isLoading ? "..." : (() => {
+                  const clFull = kpiQuery.data?.details.find((d: any) => d.leaveType.code === "CL_FULL");
+                  if (!clFull) return "Ready for time-off";
+                  const yearly = Number(clFull.yearlyAllocated) || 0;
+                  const currentAllocated = Number(clFull.allocated) || 0;
+                  const remainingToAccrue = Math.max(0, yearly - currentAllocated);
+                  return `Out of ${yearly} yearly limit (${remainingToAccrue} remaining to accrue)`;
+                })()}
+              </p>
+            </div>
+            <div className="w-8 h-8 flex-shrink-0 rounded-lg bg-emerald-50 flex items-center justify-center">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+            </div>
+          </div>
+        </div>
+
+        {/* Half-Day Available */}
+        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Half-Day Available</p>
+              <p className={`text-xl font-bold mt-1 ${isLoading ? "text-slate-300" : "text-indigo-600"}`}>
+                {isLoading ? "..." : halfDayBalance ? `${halfDayBalance.available} Days` : "--"}
+              </p>
+              <p className="text-[10px] font-semibold text-slate-500 mt-1">
+                {isLoading ? "..." : (() => {
+                  const clHalf = kpiQuery.data?.details.find((d: any) => d.leaveType.code === "CL_HALF");
+                  if (!clHalf) return "Half-day entitlement";
+                  const yearly = Number(clHalf.yearlyAllocated) || 0;
+                  const used = Number(clHalf.used) || 0;
+                  // Total instances they can ever use this year is yearly (e.g. 6). Remaining is 6 - used - available.
+                  const remainingToAccrue = Math.max(0, yearly - used - Number(halfDayBalance?.available || 0));
+                  return `Out of ${yearly} yearly limit (${remainingToAccrue} remaining to accrue)`;
+                })()}
+              </p>
+            </div>
+            <div className="w-8 h-8 flex-shrink-0 rounded-lg bg-indigo-50 flex items-center justify-center">
+              <Clock className="w-4 h-4 text-indigo-500" />
+            </div>
+          </div>
+        </div>
+
+        {/* Optional Leaves */}
+        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Optional Leaves</p>
+              <p className={`text-xl font-bold mt-1 ${isLoading ? "text-slate-300" : "text-purple-600"}`}>
+                {isLoading ? "..." : (() => {
+                  if (!kpiQuery.data) return "--";
+                  const opt = kpiQuery.data.details.find((d: any) => d.leaveType.code === "OPTIONAL");
+                  if (!opt) return "0 Days";
+                  const avail = Number(opt.allocated) + Number(opt.carriedOver) - Number(opt.used) - Number(opt.pending);
+                  return `${avail} Days`;
+                })()}
+              </p>
+              <p className="text-[10px] font-semibold text-slate-500 mt-1">Available holidays</p>
+            </div>
+            <div className="w-8 h-8 flex-shrink-0 rounded-lg bg-purple-50 flex items-center justify-center">
+              <BookOpen className="w-4 h-4 text-purple-500" />
+            </div>
+          </div>
+        </div>
+
+        {/* Pending Approval */}
+        <div className="bg-white border border-amber-200 p-5 rounded-xl shadow-sm bg-amber-50/30">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Pending Approval</p>
+              <p className={`text-xl font-bold mt-1 ${isLoading ? "text-amber-300" : "text-amber-600"}`}>
+                {isLoading ? "..." : kpi ? `${kpi.pending} Days` : "--"}
+              </p>
+              <p className="text-[10px] font-semibold text-amber-700/70 mt-1">Locks available balance</p>
+            </div>
+            <div className="w-8 h-8 flex-shrink-0 rounded-lg bg-amber-100 flex items-center justify-center">
+              <AlertCircle className="w-4 h-4 text-amber-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Used Paid vs Unpaid Breakdown */}
+        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
+          <div className="flex items-start justify-between gap-2">
+            <div className="w-full">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Used Leaves Breakdown</p>
+              <div className="flex items-center gap-4 mt-1">
+                <div>
+                  <p className={`text-xl font-bold ${isLoading ? "text-slate-300" : "text-emerald-600"}`}>
+                    {isLoading ? "..." : kpi ? `${kpi.usedPaid} Days` : "--"}
+                  </p>
+                  <p className="text-[10px] font-semibold text-slate-500 mt-0.5">Paid Leave</p>
+                </div>
+                <div className="w-px h-8 bg-slate-200"></div>
+                <div>
+                  <p className={`text-xl font-bold ${isLoading ? "text-slate-300" : "text-rose-600"}`}>
+                    {isLoading ? "..." : kpi ? `${kpi.usedUnpaid} Days` : "--"}
+                  </p>
+                  <p className="text-[10px] font-semibold text-slate-500 mt-0.5">Unpaid Leave</p>
+                </div>
+              </div>
+            </div>
+            <div className="w-8 h-8 flex-shrink-0 rounded-lg bg-slate-100 flex items-center justify-center">
+              <Calendar className="w-4 h-4 text-slate-500" />
+            </div>
+          </div>
+        </div>
+
+        {/* WFH This Month */}
+        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">WFH This Month</p>
+              <p className={`text-xl font-bold mt-1 ${wfhQuery.isLoading ? "text-slate-300" : wfhThisMonth.used >= wfhThisMonth.max ? "text-rose-600" : "text-sky-600"}`}>
+                {wfhQuery.isLoading ? "..." : `${wfhThisMonth.used} / ${wfhThisMonth.max}`}
+              </p>
+              <p className="text-[10px] font-semibold text-slate-500 mt-1">
+                {wfhThisMonth.pending > 0 ? `${wfhThisMonth.pending} pending` : `Max ${wfhThisMonth.max} per month`}
+              </p>
+            </div>
+            <div className={`w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center ${wfhThisMonth.used >= wfhThisMonth.max ? "bg-rose-50" : "bg-sky-50"}`}>
+              <Home className={`w-4 h-4 ${wfhThisMonth.used >= wfhThisMonth.max ? "text-rose-500" : "text-sky-500"}`} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Main Content Grid ──────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
-        
-        {/* Left Column (Leave History & Trend Chart) */}
+
+        {/* ── Left: Recent Leave Requests ───────────────────────────────────── */}
         <div className="xl:col-span-2 space-y-6">
-          
-          {/* History / Recent List */}
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
+
+          {/* Leave History Table */}
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
             <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/20">
-              <h3 className="text-sm font-bold text-slate-900">{isEmployee ? "My Recent Leave Applications" : "Recent Leave Applications"}</h3>
-              <Link href="/leaves/apply" className="flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-colors cursor-pointer">
+              <h3 className="text-sm font-bold text-slate-900">
+                {isEmployee ? "My Recent Leave Applications" : "Recent Approved Leaves"}
+              </h3>
+              <Link
+                href="/leaves/apply"
+                className="flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-colors"
+              >
                 <UserPlus className="w-3.5 h-3.5" /> Apply for Leave
               </Link>
             </div>
-            
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
-                  <th className="px-5 py-3">Employee</th>
-                  <th className="px-5 py-3">Leave Type</th>
-                  <th className="px-5 py-3">Duration</th>
-                  <th className="px-5 py-3 text-center">Days</th>
-                  <th className="px-5 py-3">Status</th>
-                </tr>
-              </thead>
-              <tbody className="text-xs font-semibold text-slate-600 divide-y divide-slate-100">
-                {requests.slice(0, 5).map((req) => {
-                  let badge = "text-slate-600 bg-slate-100";
-                  if (req.status === "APPROVED") badge = "text-emerald-700 bg-emerald-50 border border-emerald-100";
-                  else if (req.status === "PENDING") badge = "text-amber-700 bg-amber-50 border border-amber-100";
-                  else if (req.status === "REJECTED") badge = "text-rose-700 bg-rose-50 border border-rose-100";
 
+            {calendarQuery.isLoading ? (
+              <div className="py-16 flex flex-col items-center text-slate-400">
+                <Loader2 className="w-6 h-6 animate-spin mb-2" />
+                <p className="text-xs font-bold">Loading leave records...</p>
+              </div>
+            ) : calendarQuery.error ? (
+              <div className="py-10 flex flex-col items-center text-slate-400">
+                <AlertCircle className="w-6 h-6 text-rose-400 mb-2" />
+                <p className="text-xs font-bold text-slate-600">Could not load leave data</p>
+                <p className="text-xs text-slate-400 mt-1">Check backend connection</p>
+              </div>
+            ) : recentRequests.length === 0 ? (
+              <div className="py-14 flex flex-col items-center text-slate-400">
+                <CheckCircle2 className="w-8 h-8 text-slate-200 mb-2" />
+                <p className="text-xs font-bold text-slate-600">No leave records found</p>
+                <p className="text-xs mt-1">Apply for your first leave to see it here</p>
+              </div>
+            ) : (
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                    <th className="px-5 py-3">Employee</th>
+                    <th className="px-5 py-3">Leave Type</th>
+                    <th className="px-5 py-3">Duration</th>
+                    <th className="px-5 py-3 text-center">Days</th>
+                    <th className="px-5 py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="text-xs font-semibold text-slate-600 divide-y divide-slate-100">
+                  {recentRequests.map((req: any) => {
+                    const badge =
+                      req.status === "APPROVED"
+                        ? "text-emerald-700 bg-emerald-50 border border-emerald-100"
+                        : req.status === "PENDING"
+                          ? "text-amber-700 bg-amber-50 border border-amber-100"
+                          : "text-rose-700 bg-rose-50 border border-rose-100";
+                    const empName = req.employee
+                      ? `${req.employee.firstName} ${req.employee.lastName}`
+                      : "Employee";
+                    const leaveTypeName = req.leaveType?.name ?? req.leaveTypeId;
+                    return (
+                      <tr key={req.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-5 py-3.5 font-bold text-slate-900">{empName}</td>
+                        <td className="px-5 py-3.5 uppercase text-[9px] tracking-wide text-slate-500 font-bold">
+                          {leaveTypeName}
+                        </td>
+                        <td className="px-5 py-3.5">{fmtDate(req.startDate)} – {fmtDate(req.endDate)}</td>
+                        <td className="px-5 py-3.5 text-center font-bold text-slate-900">{req.totalDays}</td>
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <span className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase ${badge}`}>
+                              {req.status}
+                            </span>
+                            {req.status === 'PENDING' && req.employeeId === employeeId && (
+                              <button
+                                onClick={() => handleCancelLeave(req.id)}
+                                className="text-[10px] font-bold text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2 py-0.5 rounded transition-colors"
+                              >
+                                Cancel
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* WFH History */}
+          {wfhQuery.data && wfhQuery.data.length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+              <div className="p-4 border-b border-slate-100 bg-slate-50/20 flex justify-between items-center">
+                <h3 className="text-sm font-bold text-slate-900">My WFH Requests</h3>
+                <span className="text-[10px] font-bold px-2 py-0.5 bg-sky-100 text-sky-700 rounded-full border border-sky-200">
+                  Max {wfhThisMonth.max}/month
+                </span>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {wfhQuery.data.slice(0, 5).map((wfh) => {
+                  const badge =
+                    wfh.status === "APPROVED"
+                      ? "text-emerald-700 bg-emerald-50 border border-emerald-100"
+                      : wfh.status === "PENDING"
+                        ? "text-amber-700 bg-amber-50 border border-amber-100"
+                        : "text-rose-700 bg-rose-50 border border-rose-100";
                   return (
-                    <tr key={req.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-5 py-3.5 font-bold text-slate-900">{req.employeeName}</td>
-                      <td className="px-5 py-3.5 uppercase text-[9px] tracking-wide text-slate-500 font-bold">{req.type.replace("_", " ")}</td>
-                      <td className="px-5 py-3.5">{req.startDate} to {req.endDate}</td>
-                      <td className="px-5 py-3.5 text-center font-bold text-slate-900">{req.days}</td>
-                      <td className="px-5 py-3.5">
-                        <span className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase ${badge}`}>{req.status}</span>
-                      </td>
-                    </tr>
+                    <div key={wfh.id} className="px-5 py-3.5 flex items-center justify-between text-xs font-semibold">
+                      <div className="flex items-center gap-3">
+                        <Home className="w-3.5 h-3.5 text-sky-500 flex-shrink-0" />
+                        <div>
+                          <p className="font-bold text-slate-900">{fmtDate(wfh.date)}</p>
+                          <p className="text-[10px] text-slate-400 mt-0.5 truncate max-w-[200px]">{wfh.reason}</p>
+                        </div>
+                      </div>
+                      <span className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase ${badge}`}>
+                        {wfh.status}
+                      </span>
+                    </div>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Leave Trends Chart */}
-          <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm space-y-4">
-            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <FileText className="w-4 h-4 text-slate-700" />
-              Monthly Time-Off Trends
-            </h3>
-            
-            {/* SVG/HTML visual bar representation */}
-            <div className="h-44 flex items-end justify-between gap-4 pt-6 px-4">
-              {[
-                { label: "Jan", days: 6, percent: 30 },
-                { label: "Feb", days: 12, percent: 60 },
-                { label: "Mar", days: 4, percent: 20 },
-                { label: "Apr", days: 8, percent: 40 },
-                { label: "May", days: 15, percent: 75 },
-                { label: "Jun", days: 20, percent: 100 },
-              ].map((item, idx) => (
-                <div key={idx} className="flex-1 flex flex-col items-center gap-2 group cursor-pointer">
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-[9px] font-bold px-1.5 py-0.5 rounded absolute -translate-y-12 z-20 shadow">
-                    {item.days} Days
-                  </div>
-                  <div className="w-full bg-slate-100 h-28 rounded-md flex items-end">
-                    <div className="w-full bg-indigo-500 rounded-md transition-all duration-500" style={{ height: `${item.percent}%` }} />
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-400">{item.label}</span>
-                </div>
-              ))}
+              </div>
             </div>
-          </div>
+          )}
 
+          {/* Leave Balance Breakdown */}
+          {balanceDetails.length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+              <div className="p-4 border-b border-slate-100 bg-slate-50/20">
+                <h3 className="text-sm font-bold text-slate-900">Leave Balance Breakdown</h3>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {balanceDetails.map((b: any) => {
+                  const allocated = Number(b.allocated) + Number(b.carriedOver);
+                  const available = allocated - Number(b.used) - Number(b.pending);
+                  const usedPct = allocated > 0 ? Math.round((Number(b.used) / allocated) * 100) : 0;
+                  return (
+                    <div key={b.id} className="px-5 py-4 flex items-center gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <p className="text-xs font-bold text-slate-800">{b.leaveType?.name}</p>
+                          <div className="flex items-center gap-3 text-[10px] font-bold text-slate-500">
+                            <span className="text-emerald-600">{available} avail</span>
+                            <span className="text-slate-400">/</span>
+                            <span>{allocated} total</span>
+                          </div>
+                        </div>
+                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-indigo-500 rounded-full transition-all"
+                            style={{ width: `${usedPct}%` }}
+                          />
+                        </div>
+                      </div>
+                      {Number(b.pending) > 0 && (
+                        <span className="flex-shrink-0 px-2 py-0.5 text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded uppercase">
+                          {b.pending} pending
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Right Column (Upcoming Holidays & Shortcuts) */}
-        <div className="space-y-6">
-          
-          {/* Quick Shortcuts */}
+        {/* ── Right: Quick Operations ────────────────────────────────────────── */}
+        <div className="space-y-5">
+
+          {/* Quick Actions */}
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
             <h3 className="text-sm font-bold text-slate-900">Time-Off Operations</h3>
-            <div className="flex flex-col gap-2.5">
-              <Link href="/leaves/apply" className="flex items-center justify-center gap-2 py-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-900 text-xs font-bold rounded-lg transition-all shadow-sm">
-                Apply for Leave
+            <div className="flex flex-col gap-2">
+              <Link
+                href="/leaves/apply"
+                className="flex items-center justify-center gap-2 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition-all shadow-sm"
+              >
+                <UserPlus className="w-3.5 h-3.5" /> Apply for Leave
               </Link>
-              <Link href="/leaves/policies" className="flex items-center justify-center gap-2 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-all shadow-sm">
+              <Link
+                href="/leaves/apply?tab=wfh"
+                className="flex items-center justify-center gap-2 py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg transition-all shadow-sm"
+              >
+                <Home className="w-3.5 h-3.5" /> Apply for WFH
+              </Link>
+              <Link
+                href="/leaves/calendar"
+                className="flex items-center justify-center gap-2 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-all shadow-sm"
+              >
+                <Calendar className="w-3.5 h-3.5" /> Leave Calendar
+              </Link>
+              <Link
+                href="/leaves/policies"
+                className="flex items-center justify-center gap-2 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-all shadow-sm"
+              >
                 <BookOpen className="w-3.5 h-3.5" /> View Policies
               </Link>
+              {!isEmployee && activeRole !== "CEO" && (
+                <Link
+                  href="/leaves/approvals"
+                  className="flex items-center justify-center gap-2 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 text-xs font-bold rounded-lg transition-all shadow-sm"
+                >
+                  <ArrowRight className="w-3.5 h-3.5" /> Review Pending Queue
+                </Link>
+              )}
             </div>
           </div>
 
-          {/* Holidays list */}
+          {/* Global Leave Summary */}
+          {kpiQuery.data && !kpiQuery.isLoading && (
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-indigo-500" />
+                Leave Summary
+              </h3>
+              <div className="space-y-2 text-xs font-semibold text-slate-600">
+                <div className="flex justify-between py-1.5 border-b border-slate-50">
+                  <span className="text-slate-400">Total Allocated</span>
+                  <span className="font-bold text-slate-900">{kpiQuery.data.totalLeaves} days</span>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-slate-50">
+                  <span className="text-slate-400">Used This Year</span>
+                  <span className="font-bold text-slate-700">{kpiQuery.data.usedLeaves} days</span>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-slate-50">
+                  <span className="text-slate-400">Pending Approval</span>
+                  <span className="font-bold text-amber-600">{kpiQuery.data.pendingLeaves} days</span>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-slate-50">
+                  <span className="text-slate-400">Available Balance</span>
+                  <span className="font-bold text-emerald-600">{kpiQuery.data.availableLeaves} days</span>
+                </div>
+                {halfDayBalance && (
+                  <div className="flex justify-between py-1.5">
+                    <span className="text-slate-400">Half Days Left</span>
+                    <span className="font-bold text-indigo-600">{halfDayBalance.available} / {halfDayBalance.allocated}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* WFH Summary */}
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-emerald-500" />
-              Upcoming Holidays
+              <Home className="w-4 h-4 text-sky-500" />
+              Work From Home
             </h3>
-            <div className="space-y-3 pt-2">
-              {UPCOMING_HOLIDAYS.map((h, idx) => (
-                <div key={idx} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg border border-slate-100">
-                  <div>
-                    <h5 className="text-xs font-bold text-slate-800">{h.name}</h5>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">{h.type}</p>
-                  </div>
-                  <span className="text-xs font-mono font-bold text-slate-600 bg-white border border-slate-100 px-2 py-1 rounded">
-                    {h.date.split(" ")[0]} {h.date.split(" ")[1]}
-                  </span>
+            <div className="space-y-2 text-xs font-semibold text-slate-600">
+              <div className="flex justify-between py-1.5 border-b border-slate-50">
+                <span className="text-slate-400">This Month Used</span>
+                <span className={`font-bold ${wfhThisMonth.used >= wfhThisMonth.max ? "text-rose-600" : "text-sky-600"}`}>
+                  {wfhThisMonth.used} / {wfhThisMonth.max}
+                </span>
+              </div>
+              {wfhThisMonth.pending > 0 && (
+                <div className="flex justify-between py-1.5 border-b border-slate-50">
+                  <span className="text-slate-400">Pending</span>
+                  <span className="font-bold text-amber-600">{wfhThisMonth.pending}</span>
                 </div>
-              ))}
+              )}
+              <div className="flex justify-between py-1.5">
+                <span className="text-slate-400">Policy</span>
+                <span className="font-bold text-slate-500">Max {wfhThisMonth.max}/month for your role</span>
+              </div>
             </div>
+            {wfhThisMonth.used < wfhThisMonth.max && (
+              <Link
+                href="/leaves/apply?tab=wfh"
+                className="block w-full text-center py-2 bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-700 text-xs font-bold rounded-lg transition-all"
+              >
+                Apply for WFH
+              </Link>
+            )}
+            {wfhThisMonth.used >= wfhThisMonth.max && (
+              <div className="text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-100 rounded-lg p-2 text-center">
+                Monthly WFH limit reached
+              </div>
+            )}
           </div>
 
         </div>
-
       </div>
     </div>
   );

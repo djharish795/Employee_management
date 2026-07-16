@@ -1,11 +1,13 @@
 "use client";
+import { usePermissions } from "@/hooks/use-permissions";
 
 import React from "react";
 import { Search, History, MousePointerClick, ShieldCheck, UserCog, Briefcase, FileText } from "lucide-react";
 import { AuditRole, AuditEvent } from "@/types/audit";
+import Image from "next/image";
 
 interface UserActivityPanelProps {
-  activeRole: AuditRole;
+
 }
 
 const USER_TIMELINE: Partial<AuditEvent>[] = [
@@ -65,18 +67,18 @@ function getIconForAction(action: string) {
   }
 }
 
-export default function UserActivityPanel({ activeRole }: UserActivityPanelProps) {
+export default function UserActivityPanel() {
   return (
     <div className="flex flex-col lg:flex-row gap-6">
-      
+
       {/* ── Left Sidebar (Search User) ─────────────────────────────────── */}
       <div className="w-full lg:w-80 flex-shrink-0 space-y-6">
         <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
           <h2 className="text-sm font-bold text-slate-900 mb-4">Target User</h2>
           <div className="relative mb-4">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input 
-              type="text" 
+            <input
+              type="text"
               defaultValue="Lokesh Kumar"
               className="w-full h-10 pl-9 pr-3 text-sm font-medium border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
             />
@@ -84,7 +86,7 @@ export default function UserActivityPanel({ activeRole }: UserActivityPanelProps
 
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-900 flex items-center justify-center font-bold text-sm border border-slate-200 overflow-hidden">
-              <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Lokesh" alt="Lokesh" />
+              <Image src="https://api.dicebear.com/7.x/notionists/svg?seed=Lokesh" alt="Lokesh" fill style={{ objectFit: "cover" }} />
             </div>
             <div>
               <div className="text-sm font-bold text-slate-900">Lokesh Kumar</div>
@@ -134,14 +136,13 @@ export default function UserActivityPanel({ activeRole }: UserActivityPanelProps
               return (
                 <div key={event.id} className="relative pl-8 group">
                   {/* Timeline Dot with Icon */}
-                  <div className={`absolute -left-[17px] top-1 w-8 h-8 rounded-full flex items-center justify-center border-4 border-white shadow-sm ${
-                    event.action === "DATA_EXPORTED" ? "bg-amber-100" :
-                    event.action === "PERMISSION_GRANTED" ? "bg-emerald-100" :
-                    "bg-slate-100"
-                  }`}>
+                  <div className={`absolute -left-[17px] top-1 w-8 h-8 rounded-full flex items-center justify-center border-4 border-white shadow-sm ${event.action === "DATA_EXPORTED" ? "bg-amber-100" :
+                      event.action === "PERMISSION_GRANTED" ? "bg-emerald-100" :
+                        "bg-slate-100"
+                    }`}>
                     {getIconForAction(event.action!)}
                   </div>
-                  
+
                   {/* Content */}
                   <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm hover:border-indigo-300 transition-colors">
                     <div className="flex items-start justify-between mb-2">
@@ -158,11 +159,11 @@ export default function UserActivityPanel({ activeRole }: UserActivityPanelProps
                         <div className="text-[10px] font-mono text-slate-500">{timeStr}</div>
                       </div>
                     </div>
-                    
+
                     <p className="text-sm font-medium text-slate-700 leading-relaxed">
                       {event.details}
                       {event.target && (
-                         <> Target entity: <span className="font-bold text-indigo-700">{event.target.name}</span></>
+                        <> Target entity: <span className="font-bold text-indigo-700">{event.target.name}</span></>
                       )}
                     </p>
 
@@ -176,7 +177,7 @@ export default function UserActivityPanel({ activeRole }: UserActivityPanelProps
               );
             })}
           </div>
-          
+
           <div className="mt-8 text-center">
             <button className="text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors">
               Load Older Activity

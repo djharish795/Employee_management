@@ -1,11 +1,15 @@
 import * as crypto from 'crypto';
+import { InternalServerErrorException } from '@nestjs/common';
 
 const ALGORITHM = 'aes-256-gcm';
 
 // The key must be exactly 32 bytes for AES-256
 // In a real environment, this should come from AWS Secrets Manager
 const getEncryptionKey = (): Buffer => {
-  const secret = process.env.ENCRYPTION_KEY || 'default-secret-key-must-be-32-chars!';
+  const secret = process.env.FIELD_ENCRYPTION_KEY || process.env.ENCRYPTION_KEY;
+  if (!secret) {
+    throw new InternalServerErrorException('FATAL: FIELD_ENCRYPTION_KEY environment variable is required for AES-256 encryption.');
+  }
   // If the secret is exactly 32 chars, use it. If not, hash it to 32 bytes.
   if (Buffer.from(secret).length === 32) {
     return Buffer.from(secret);
@@ -35,7 +39,7 @@ export function decryptData(encryptedText: string): string {
   try {
     const parts = encryptedText.split(':');
     if (parts.length !== 3) {
-      throw new Error('Invalid encrypted text format');
+      throw new InternalServerErrorException('Invalid encrypted text format');
     }
     
     const iv = Buffer.from(parts[0], 'hex');

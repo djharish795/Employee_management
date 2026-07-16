@@ -1,5 +1,5 @@
 "use client";
-
+import { usePermissions } from "@/hooks/use-permissions";
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -11,19 +11,20 @@ import {
   Download,
   BarChart3,
 } from "lucide-react";
+import { assetsApi } from "@/lib/api/assets";
 import { AssetRole } from "@/types/assets";
 
 interface ReportsPanelProps {
-  activeRole: AssetRole;
+
 }
 
 const DEPT_ASSET_DATA = [
-  { dept: "Engineering", count: 132, value: "₹68.4L", percent: 90 },
-  { dept: "Design", count: 48, value: "₹22.1L", percent: 62 },
-  { dept: "Sales", count: 76, value: "₹31.5L", percent: 80 },
-  { dept: "HR", count: 24, value: "₹9.8L", percent: 55 },
-  { dept: "Finance", count: 22, value: "₹8.4L", percent: 50 },
-  { dept: "Leadership", count: 18, value: "₹15.2L", percent: 40 },
+  { dept: "Engineering", count: 132, value: "₹68.4L", percent: 90, bg: "bg-violet-500", text: "text-violet-700" },
+  { dept: "Design", count: 48, value: "₹22.1L", percent: 62, bg: "bg-blue-500", text: "text-blue-700" },
+  { dept: "Sales", count: 76, value: "₹31.5L", percent: 80, bg: "bg-emerald-500", text: "text-emerald-700" },
+  { dept: "HR", count: 24, value: "₹9.8L", percent: 55, bg: "bg-amber-500", text: "text-amber-700" },
+  { dept: "Finance", count: 22, value: "₹8.4L", percent: 50, bg: "bg-rose-500", text: "text-rose-700" },
+  { dept: "Leadership", count: 18, value: "₹15.2L", percent: 40, bg: "bg-sky-500", text: "text-sky-700" },
 ];
 
 const MONTHLY_ADDITIONS = [
@@ -35,37 +36,106 @@ const MONTHLY_ADDITIONS = [
   { month: "Jun", count: 7 },
 ];
 
-const maxCount = Math.max(...MONTHLY_ADDITIONS.map((m) => m.count));
+const CATEGORY_COLORS: Record<string, string> = {
+  LAPTOP: "bg-violet-600",
+  DESKTOP: "bg-blue-500",
+  MONITOR: "bg-slate-700",
+  MOBILE_DEVICE: "bg-emerald-500",
+  SIM: "bg-amber-500",
+  ACCESS_CARD: "bg-pink-500",
+  SOFTWARE_LICENCE: "bg-sky-500",
+  CLOUD_ACCOUNT: "bg-indigo-500",
+  OTHER: "bg-slate-400",
+};
 
-const CATEGORY_BREAKDOWN = [
-  { category: "Laptops", total: 154, assigned: 130, available: 18, maintenance: 6, color: "bg-violet-600" },
-  { category: "Monitors", total: 98, assigned: 82, available: 12, maintenance: 4, color: "bg-slate-700" },
-  { category: "Phones", total: 76, assigned: 72, available: 3, maintenance: 1, color: "bg-emerald-500" },
-  { category: "Tablets", total: 24, assigned: 18, available: 5, maintenance: 1, color: "bg-amber-500" },
-  { category: "Headsets", total: 44, assigned: 38, available: 5, maintenance: 1, color: "bg-pink-500" },
-  { category: "Other", total: 16, assigned: 10, available: 5, maintenance: 1, color: "bg-slate-400" },
-];
+export default function ReportsPanel() {
+  const { role } = usePermissions();
+  const isEmployee = role === "EMPLOYEE";
 
-export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
-  const { data: reportData } = useQuery({
-    queryKey: ["assetReports"],
-    queryFn: async () => ({
-      totalAssets: 412,
-      totalValue: 18200000,
-      bookValue: 12600000,
-      depreciation: 30.8,
-      newThisMonth: 7,
-      retiredThisMonth: 3,
-    }),
+  const { data: summaryKpis, isLoading: summaryLoading } = useQuery({
+    queryKey: ["kpiSummary"],
+    queryFn: async () => assetsApi.kpiSummary(),
+    enabled: !isEmployee,
   });
 
-  const data = reportData ?? {
-    totalAssets: 412,
-    totalValue: 18200000,
-    bookValue: 12600000,
-    depreciation: 30.8,
-    newThisMonth: 7,
-    retiredThisMonth: 3,
+  const { data: financialKpis, isLoading: financialLoading } = useQuery({
+    queryKey: ["kpiFinancials"],
+    queryFn: async () => assetsApi.kpiFinancials(),
+    enabled: !isEmployee,
+  });
+
+  const { data: categoryKpis, isLoading: categoryLoading } = useQuery({
+    queryKey: ["kpiCategories"],
+    queryFn: async () => assetsApi.kpiCategories(),
+    enabled: !isEmployee,
+  });
+
+  const { data: trendsKpis, isLoading: trendsLoading } = useQuery({
+    queryKey: ["kpiTrends"],
+    queryFn: async () => assetsApi.kpiTrends(),
+    enabled: !isEmployee,
+  });
+
+  const isLoading = summaryLoading || financialLoading || categoryLoading || trendsLoading;
+
+  const data = React.useMemo(() => {
+    if (!summaryKpis || !financialKpis) {
+      return {
+        totalAssets: 0,
+        totalValue: 0,
+        bookValue: 0,
+        depreciation: 0,
+        newThisMonth: 0,
+        retiredThisMonth: 0,
+      };
+    }
+
+    const totalInvestment = financialKpis.totalInvestment || 0;
+    const activeValuation = financialKpis.activeValuation || 0;
+    const depreciation = totalInvestment > 0 ? ((totalInvestment - activeValuation) / totalInvestment) * 100 : 0;
+    const retiredCount = summaryKpis.countsByStatus?.RETIRED || 0;
+    const newThisMonth = trendsKpis && trendsKpis.length > 0 ? trendsKpis[trendsKpis.length - 1].assetsProcured : 0;
+
+    return {
+      totalAssets: summaryKpis.totalAssetsCount || 0,
+      totalValue: totalInvestment,
+      bookValue: activeValuation,
+      depreciation: depreciation.toFixed(1),
+      newThisMonth,
+      retiredThisMonth: retiredCount,
+    };
+  }, [summaryKpis, financialKpis, trendsKpis]);
+
+  const categories = React.useMemo(() => {
+    if (!categoryKpis) return [];
+    return categoryKpis.map((cat: any) => ({
+      category: cat.category.replace(/_/g, " "),
+      total: cat.totalCount,
+      assigned: cat.assignedCount,
+      available: cat.availableCount,
+      maintenance: cat.damagedCount,
+      color: CATEGORY_COLORS[cat.category] || "bg-slate-400",
+    }));
+  }, [categoryKpis]);
+
+  const monthlyAdditions = React.useMemo(() => {
+    if (!trendsKpis) return [];
+    return trendsKpis.map((t: any) => {
+      const date = new Date(t.period + "-01");
+      const monthName = date.toLocaleString('default', { month: 'short' });
+      return { month: monthName, count: t.assetsProcured };
+    }).slice(-6); // last 6 months
+  }, [trendsKpis]);
+
+  const maxAdditionCount = monthlyAdditions.length > 0 ? Math.max(...monthlyAdditions.map((m: any) => m.count), 1) : 1;
+  if (isLoading) {
+    return <div className="p-8 text-center text-slate-500">Loading reports...</div>;
+  }
+
+  const formatCurrency = (val: number) => {
+    if (val >= 10000000) return `₹${(val / 10000000).toFixed(2)} Cr`;
+    if (val >= 100000) return `₹${(val / 100000).toFixed(2)} L`;
+    return `₹${val.toLocaleString()}`;
   };
 
   return (
@@ -106,7 +176,7 @@ export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
             </div>
             <TrendingDown className="w-4 h-4 text-rose-400" />
           </div>
-          <div className="text-2xl font-bold text-slate-900">₹1.82 Cr</div>
+          <div className="text-2xl font-bold text-slate-900">{formatCurrency(data.totalValue)}</div>
           <div className="text-xs font-semibold text-slate-500 mt-1">Original Cost Value</div>
           <div className="text-[10px] font-bold text-slate-400 mt-1">Across all assets</div>
         </div>
@@ -116,7 +186,7 @@ export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
               <BarChart3 className="w-4.5 h-4.5" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-slate-900">₹1.26 Cr</div>
+          <div className="text-2xl font-bold text-slate-900">{formatCurrency(data.bookValue)}</div>
           <div className="text-xs font-semibold text-slate-500 mt-1">Current Book Value</div>
           <div className="text-[10px] font-bold text-amber-600 mt-1">
             {data.depreciation}% depreciated
@@ -154,12 +224,12 @@ export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
                 </tr>
               </thead>
               <tbody className="text-xs font-medium text-slate-600 divide-y divide-slate-100">
-                {CATEGORY_BREAKDOWN.map((row, i) => (
+                {categories.map((row: any, i: number) => (
                   <tr key={i} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${row.color}`} />
-                        <span className="font-bold text-slate-900">{row.category}</span>
+                        <span className="font-bold text-slate-900 capitalize">{row.category.toLowerCase()}</span>
                       </div>
                     </td>
                     <td className="px-5 py-3 text-center font-bold text-slate-900">{row.total}</td>
@@ -175,17 +245,17 @@ export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
 
         {/* Monthly Asset Addition Chart */}
         <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-900 mb-5">Monthly Asset Additions (H1 2026)</h3>
+          <h3 className="text-sm font-bold text-slate-900 mb-5">Monthly Asset Additions (Last 6 Months)</h3>
           <div className="h-44 flex items-end justify-between gap-3 px-2">
-            {MONTHLY_ADDITIONS.map((item, idx) => (
+            {monthlyAdditions.map((item: any, idx: number) => (
               <div key={idx} className="flex-1 flex flex-col items-center gap-2 group cursor-pointer">
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-[9px] font-bold px-1.5 py-0.5 rounded mb-1">
                   {item.count}
                 </div>
                 <div className="w-full bg-slate-100 rounded-t-lg h-32 flex items-end">
                   <div
-                    className="w-full rounded-t-lg bg-violet-600 transition-all duration-500 hover:bg-violet-700"
-                    style={{ height: `${Math.round((item.count / maxCount) * 100)}%` }}
+                    className="w-full rounded-t-lg bg-gradient-to-t from-violet-600 to-indigo-400 transition-all duration-500 hover:from-violet-700 hover:to-indigo-500"
+                    style={{ height: `${Math.round((item.count / maxAdditionCount) * 100)}%` }}
                   />
                 </div>
                 <span className="text-[10px] font-bold text-slate-400">{item.month}</span>
@@ -210,11 +280,11 @@ export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
                     <div className="text-xs font-bold text-slate-900">{dept.dept}</div>
                     <div className="text-[10px] font-semibold text-slate-400">{dept.count} assets · {dept.value}</div>
                   </div>
-                  <div className="text-xs font-bold text-violet-700">{dept.percent}%</div>
+                  <div className={`text-xs font-bold ${dept.text}`}>{dept.percent}%</div>
                 </div>
                 <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-violet-600 rounded-full transition-all duration-700"
+                    className={`h-full ${dept.bg} rounded-full transition-all duration-700`}
                     style={{ width: `${dept.percent}%` }}
                   />
                 </div>

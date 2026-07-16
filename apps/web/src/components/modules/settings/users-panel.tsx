@@ -1,5 +1,6 @@
 "use client";
 
+import { usePermissions } from "@/hooks/use-permissions";
 import React, { useState, useMemo } from "react";
 import { 
   useReactTable, getCoreRowModel, getPaginationRowModel, getFilteredRowModel, 
@@ -11,7 +12,7 @@ import {
 import { SettingsRole, AdminUserRecord } from "@/types/settings";
 
 interface UsersPanelProps {
-  activeRole: SettingsRole;
+  
 }
 
 const MOCK_USERS: AdminUserRecord[] = [
@@ -24,12 +25,12 @@ const MOCK_USERS: AdminUserRecord[] = [
   { id: "USR-007", name: "Emily Chen", email: "emily.c@naprocs.com", role: "Compliance Officer", department: "Legal", status: "ACTIVE", lastLogin: "2023-11-23T09:30:00Z", mfaEnabled: true },
 ];
 
-export default function UsersPanel({ activeRole }: UsersPanelProps) {
+export default function UsersPanel() {
   const [globalFilter, setGlobalFilter] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
-  const canManageUsers = ["SUPER_ADMIN", "ADMIN", "HR_ADMIN", "IT_ADMIN"].includes(activeRole);
+  const { canManageSettings: canManageUsers } = usePermissions();
 
   const filteredData = useMemo(() => {
     let data = [...MOCK_USERS];

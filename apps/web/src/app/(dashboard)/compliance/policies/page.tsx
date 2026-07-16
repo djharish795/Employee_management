@@ -3,14 +3,14 @@
 import React from "react";
 import ComplianceLayout from "@/components/modules/compliance/compliance-layout";
 import PoliciesPanel from "@/components/modules/compliance/policies-panel";
-import { useComplianceTestStore } from "@/store/compliance-test";
+import { usePermissions } from "@/hooks/use-permissions";
 
 export default function CompliancePoliciesPage() {
-  const { activeRole, setActiveRole } = useComplianceTestStore();
+  const { role: activeRole } = usePermissions();
 
   return (
-    <ComplianceLayout activeRole={activeRole} onRoleChange={setActiveRole}>
-      <PoliciesPanel activeRole={activeRole} />
+    <ComplianceLayout  >
+      <PoliciesPanel  />
     </ComplianceLayout>
   );
 }

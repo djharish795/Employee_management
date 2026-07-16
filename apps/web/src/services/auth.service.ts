@@ -1,13 +1,15 @@
-import { DeviceDetails } from "../store/auth";
+import { DeviceDetails } from "../store/auth";
 
 export interface LoginResponse {
   mfaRequired: boolean;
   challengeId?: string;
-  method?: "EMAIL_OTP" | "TOTP";
+  method?: "EMAIL_OTP";
   token?: string;
   refreshToken?: string;
   role?: string;
   redirectPath?: string;
+  employeeId?: string | null;
+  isTeamLead?: boolean;
 }
 
 export interface VerifyMFAResponse {
@@ -18,11 +20,13 @@ export interface VerifyMFAResponse {
   redirectPath?: string;
   unknownDevice?: boolean;
   deviceDetails?: DeviceDetails;
+  employeeId?: string | null;
+  isTeamLead?: boolean;
 }
 
 export class AuthService {
   private static getApiUrl() {
-    return process.env.NEXT_PUBLIC_API_URL || "https://api.naprocs.internal/api/v1";
+    return process.env.NEXT_PUBLIC_API_URL!;
   }
 
   static async login(email: string, password: string): Promise<LoginResponse> {
@@ -31,6 +35,7 @@ export class AuthService {
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include",
       body: JSON.stringify({ email, password }),
     });
 
@@ -51,6 +56,7 @@ export class AuthService {
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include",
       body: JSON.stringify({ code, challengeId }),
     });
 
@@ -68,6 +74,7 @@ export class AuthService {
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include",
       body: JSON.stringify({ challengeId }),
     });
 

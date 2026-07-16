@@ -1,11 +1,12 @@
 "use client";
 
+import { usePermissions } from "@/hooks/use-permissions";
 import React from "react";
 import { Plug, KeyRound, ExternalLink, Activity, CheckCircle2, AlertCircle } from "lucide-react";
 import { SettingsRole, IntegrationStatus } from "@/types/settings";
 
 interface IntegrationsPanelProps {
-  activeRole: SettingsRole;
+  
 }
 
 const MOCK_INTEGRATIONS: IntegrationStatus[] = [
@@ -17,8 +18,8 @@ const MOCK_INTEGRATIONS: IntegrationStatus[] = [
   { id: "INT-006", provider: "Razorpay Payroll", category: "HRIS", isConnected: true, lastSync: "2023-11-22T00:00:00Z", health: "FAILING" },
 ];
 
-export default function IntegrationsPanel({ activeRole }: IntegrationsPanelProps) {
-  const canManage = ["SUPER_ADMIN", "ADMIN", "IT_ADMIN"].includes(activeRole);
+export default function IntegrationsPanel() {
+  const { isAdmin: canManage } = usePermissions();
 
   return (
     <div className="space-y-6">

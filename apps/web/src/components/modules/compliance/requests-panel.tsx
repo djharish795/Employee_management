@@ -1,11 +1,12 @@
 "use client";
 
+import { usePermissions } from "@/hooks/use-permissions";
 import React, { useMemo } from "react";
 import { Clock, ShieldAlert, CheckCircle2, UserCircle, Search, Filter, Mail, Trash2, Edit3, ArrowRight } from "lucide-react";
 import { ComplianceRole, ComplianceRequest } from "@/types/compliance";
 
 interface RequestsPanelProps {
-  activeRole: ComplianceRole;
+  
 }
 
 const MOCK_REQUESTS: ComplianceRequest[] = [
@@ -50,9 +51,9 @@ const MOCK_REQUESTS: ComplianceRequest[] = [
   }
 ];
 
-export default function RequestsPanel({ activeRole }: RequestsPanelProps) {
+export default function RequestsPanel() {
   // CEO shouldn't be processing requests. They can view, but no actions.
-  const canProcess = ["COMPLIANCE_OFFICER", "ADMIN", "LEGAL", "HR"].includes(activeRole);
+  const { canManageCompliance: canProcess } = usePermissions();
 
   const stats = useMemo(() => {
     return {

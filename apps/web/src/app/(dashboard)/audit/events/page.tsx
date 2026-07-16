@@ -3,14 +3,14 @@
 import React from "react";
 import AuditLayout from "@/components/modules/audit/audit-layout";
 import EventsExplorerPanel from "@/components/modules/audit/events-panel";
-import { useAuditTestStore } from "@/store/audit-test";
+import { usePermissions } from "@/hooks/use-permissions";
 
 export default function AuditEventsPage() {
-  const { activeRole, setActiveRole } = useAuditTestStore();
+  const { role: activeRole } = usePermissions();
 
   return (
-    <AuditLayout activeRole={activeRole} onRoleChange={setActiveRole}>
-      <EventsExplorerPanel activeRole={activeRole} />
+    <AuditLayout  >
+      <EventsExplorerPanel  />
     </AuditLayout>
   );
 }

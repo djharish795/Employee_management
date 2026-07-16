@@ -4,6 +4,7 @@ import { AppModule } from "./app.module";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.enableShutdownHooks();
 
   app.enableCors({
     origin: process.env.WS_CORS_ORIGIN ?? "http://localhost:3000",
@@ -22,7 +23,7 @@ async function bootstrap() {
   app.setGlobalPrefix(`api/${apiVersion}`);
 
   const port = Number(process.env.PORT ?? 3001);
-  await app.listen(port);
+  await app.listen(port, "0.0.0.0");
   console.log(`API listening on http://localhost:${port}/api/${apiVersion}`);
 }
 

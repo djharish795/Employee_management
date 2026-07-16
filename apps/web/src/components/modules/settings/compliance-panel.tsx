@@ -1,15 +1,16 @@
 "use client";
 
+import { usePermissions } from "@/hooks/use-permissions";
 import React from "react";
 import { Database, ShieldCheck, Save, Trash2 } from "lucide-react";
 import { SettingsRole } from "@/types/settings";
 
 interface CompliancePanelProps {
-  activeRole: SettingsRole;
+  
 }
 
-export default function CompliancePanel({ activeRole }: CompliancePanelProps) {
-  const canManage = ["SUPER_ADMIN", "COMPLIANCE_OFFICER"].includes(activeRole);
+export default function CompliancePanel() {
+  const { canManageCompliance: canManage } = usePermissions();
 
   return (
     <div className="space-y-6">

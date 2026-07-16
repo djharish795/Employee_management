@@ -1,4 +1,6 @@
 import { PrismaClient, WorkflowType } from '@prisma/client';
+import { seedKnowledge } from './seed-knowledge';
+import { seedWorkflowsExtra } from './seed-workflows';
 
 const prisma = new PrismaClient();
 
@@ -40,6 +42,8 @@ async function main() {
     { title: 'DevOps Engineer', departmentCode: 'ENG' },
     { title: 'HR Executive', departmentCode: 'HR' },
     { title: 'Finance Executive', departmentCode: 'FIN' },
+    { title: 'Operations Head', departmentCode: 'OPS' },
+    { title: 'Operations Executive', departmentCode: 'OPS' },
   ];
 
   for (const desig of designationsData) {
@@ -61,24 +65,49 @@ async function main() {
   console.log('Designations seeded.');
 
   // 3. Leave types
+  // Skipped deleteMany to prevent foreign key errors with leave_balances
+
   const leaveTypesData = [
-    { code: 'CL', name: 'Casual Leave', maxDaysPerYear: 8, isCarryForwardAllowed: false, isPaidLeave: true },
-    { code: 'SL', name: 'Sick Leave', maxDaysPerYear: 6, isCarryForwardAllowed: false, isPaidLeave: true, requiresDocumentAbove: 2 },
-    { code: 'EL', name: 'Earned Leave', maxDaysPerYear: 12, isCarryForwardAllowed: true, maxCarryForwardDays: 6, isPaidLeave: true },
-    { code: 'ML', name: 'Maternity Leave', maxDaysPerYear: 182, isCarryForwardAllowed: false, isPaidLeave: true },
-    { code: 'PL', name: 'Paternity Leave', maxDaysPerYear: 15, isCarryForwardAllowed: false, isPaidLeave: true },
-    { code: 'BL', name: 'Bereavement Leave', maxDaysPerYear: 5, isCarryForwardAllowed: false, isPaidLeave: true },
+    { code: 'CL_FULL', name: 'Casual Leave (Full Day)', maxDaysPerYear: 12, isCarryForwardAllowed: true, maxCarryForwardDays: 7, isPaidLeave: true },
+    { code: 'CL_HALF', name: 'Casual Leave (Half Day)', maxDaysPerYear: 6, isCarryForwardAllowed: false, isPaidLeave: true },
+    { code: 'MATERNITY', name: 'Maternity Leave', maxDaysPerYear: 180, isCarryForwardAllowed: false, isPaidLeave: true },
+    { code: 'OPTIONAL', name: 'Optional Holiday', maxDaysPerYear: 2, isCarryForwardAllowed: false, isPaidLeave: true },
     { code: 'COMP', name: 'Compensatory Leave', maxDaysPerYear: 12, isCarryForwardAllowed: false, isPaidLeave: true },
   ];
 
   for (const lt of leaveTypesData) {
     await prisma.leaveType.upsert({
       where: { code: lt.code },
-      update: {},
+      update: lt,
       create: lt,
     });
   }
   console.log('Leave Types seeded.');
+
+  // 3.5. Public Holidays
+  const holidaysData = [
+    { name: 'Makara Sankranti', date: new Date('2026-01-14') },
+    { name: 'Republic Day', date: new Date('2026-01-26') },
+    { name: 'Good Friday', date: new Date('2026-04-03') },
+    { name: 'Ramzan', date: new Date('2026-03-20') },
+    { name: 'Bakrid (Eid al-Adha)', date: new Date('2026-05-27') },
+    { name: 'Independence Day', date: new Date('2026-08-15') },
+    { name: 'Vinayaka Chaturthi', date: new Date('2026-09-14') },
+    { name: 'Mahatma Gandhi Jayanti', date: new Date('2026-10-02') },
+    { name: 'Dussehra', date: new Date('2026-10-20') },
+    { name: 'Deepavali', date: new Date('2026-11-08') },
+    { name: 'Christmas', date: new Date('2026-12-25') },
+  ];
+
+  for (const holiday of holidaysData) {
+    await prisma.companyHoliday.upsert({
+      // @ts-ignore: VS Code cache issue; compiler has verified this is correct
+      where: { date: holiday.date },
+      update: {},
+      create: holiday,
+    });
+  }
+  console.log('Public Holidays seeded.');
 
   // 4. Workflows
   const workflowsData = [
@@ -113,6 +142,12 @@ async function main() {
     });
   }
   console.log('App Settings seeded.');
+
+  // 6. Knowledge Base
+  await seedKnowledge(prisma);
+
+  // 7. Workflow Instances for Kanban
+  await seedWorkflowsExtra(prisma);
 
   console.log('Seed completed successfully.');
 }

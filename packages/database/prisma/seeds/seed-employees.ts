@@ -1,24 +1,20 @@
-import { PrismaClient, UserRole, EmployeeStatus, AttendanceStatus, CheckInMethod } from '@prisma/client';
-import * as bcrypt from 'bcrypt'; // User requested to use bcrypt.hashSync. Ensure this works, otherwise we fall back.
+import { PrismaClient, UserRole, EmployeeStatus, AttendanceStatus, CheckInMethod, Gender, MaritalStatus } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
-
-// This hash must never be used in production. Dev-only placeholder.
 const DEV_PASSWORD = 'ChangeMe123!';
 const DEV_PASSWORD_HASH = bcrypt.hashSync(DEV_PASSWORD, 10);
 
 async function main() {
-  console.log('Starting seed for employees...');
+  console.log('Starting seed for official employees with leave balances...');
 
-  // 1. Fetch reference data
   const deptExec = await prisma.department.findUnique({ where: { code: 'EXEC' } });
   const deptEng = await prisma.department.findUnique({ where: { code: 'ENG' } });
   const deptHr = await prisma.department.findUnique({ where: { code: 'HR' } });
-  const deptSales = await prisma.department.findUnique({ where: { code: 'SALES' } });
   const deptFin = await prisma.department.findUnique({ where: { code: 'FIN' } });
   const deptOps = await prisma.department.findUnique({ where: { code: 'OPS' } });
 
-  if (!deptExec || !deptEng || !deptHr || !deptSales || !deptFin || !deptOps) {
+  if (!deptExec || !deptEng || !deptHr || !deptFin || !deptOps) {
     throw new Error('Please run the base seed script first to populate departments.');
   }
 
@@ -30,23 +26,23 @@ async function main() {
 
   const desigCeo = await getDesig('Chief Executive Officer', deptExec.id);
   const desigCto = await getDesig('Chief Technology Officer', deptExec.id);
-  const desigHrDir = await getDesig('HR Management Director', deptHr.id);
+  const desigLeadArch = await getDesig('Lead Architect', deptEng.id);
+  const desigBackend = await getDesig('Backend Developer', deptEng.id);
+  const desigFrontend = await getDesig('Frontend Developer', deptEng.id);
+  const desigQa = await getDesig('QA Engineer', deptEng.id);
+  const desigHrExec = await getDesig('HR Executive', deptHr.id);
+  const desigOpsHead = await getDesig('Operations Head', deptOps.id);
+  const desigOpsExec = await getDesig('Operations Executive', deptOps.id);
 
-  if (!desigCeo || !desigCto || !desigHrDir) {
-    throw new Error('Please run the base seed script first to populate designations.');
-  }
-
-  // Helper to upsert Employee + User
   async function upsertEmployeeAndUser({ emp, userRole }: { emp: any; userRole: UserRole }) {
     const employee = await prisma.employee.upsert({
       where: { employeeId: emp.employeeId },
       update: emp,
       create: emp,
     });
-
     await prisma.user.upsert({
-      where: { email: employee.officialEmail },
-      update: { role: userRole },
+      where: { employeeId: employee.id },
+      update: { role: userRole, email: employee.officialEmail },
       create: {
         employeeId: employee.id,
         email: employee.officialEmail,
@@ -54,208 +50,110 @@ async function main() {
         role: userRole,
       },
     });
-
     return employee;
   }
 
-  // 1. CEO
   const ceo = await upsertEmployeeAndUser({
-    emp: {
-      employeeId: 'EMP-0001',
-      firstName: 'Pradeep',
-      lastName: 'Chandra',
-      officialEmail: 'pradeep.chandra@naprocs.in',
-      departmentId: deptExec.id,
-      designationId: desigCeo.id,
-      status: EmployeeStatus.ACTIVE,
-      joiningDate: new Date('2021-01-01'),
-    },
+    emp: { employeeId: 'NAP/EX/001', firstName: 'Pradeep', lastName: 'Chandra', officialEmail: 'pradeep@naprocs.in', departmentId: deptExec.id, designationId: desigCeo?.id, status: EmployeeStatus.ACTIVE, joiningDate: new Date('2021-01-01'), gender: Gender.MALE, maritalStatus: MaritalStatus.MARRIED },
     userRole: UserRole.CEO,
   });
 
-  // 2. CTO
   const cto = await upsertEmployeeAndUser({
-    emp: {
-      employeeId: 'EMP-0002',
-      firstName: 'Lokesh',
-      lastName: 'Kumar',
-      officialEmail: 'lokesh@naprocs.in',
-      departmentId: deptExec.id,
-      designationId: desigCto.id,
-      status: EmployeeStatus.ACTIVE,
-      reportingManagerId: ceo.id,
-      joiningDate: new Date('2021-02-01'),
-    },
+    emp: { employeeId: 'NAP/EX/002', firstName: 'Lokesh', lastName: 'Kumar', officialEmail: 'lokesh@naprocs.in', departmentId: deptExec.id, designationId: desigCto?.id, status: EmployeeStatus.ACTIVE, reportingManagerId: ceo.id, joiningDate: new Date('2021-02-01'), gender: Gender.MALE, maritalStatus: MaritalStatus.MARRIED },
     userRole: UserRole.CTO,
   });
 
-  // 3. HR Director
-  const hrDir = await upsertEmployeeAndUser({
-    emp: {
-      employeeId: 'EMP-0003',
-      firstName: 'Tejesh',
-      lastName: 'Kumar',
-      officialEmail: 'tejesh.kumar@naprocs.in',
-      departmentId: deptHr.id,
-      designationId: desigHrDir.id,
-      status: EmployeeStatus.ACTIVE,
-      reportingManagerId: ceo.id,
-      joiningDate: new Date('2021-03-01'),
-    },
-    userRole: UserRole.HR,
+  const opsHead = await upsertEmployeeAndUser({
+    emp: { employeeId: 'NAP/OH/001', firstName: 'Junaid', lastName: '', officialEmail: 'junaid@naprocs.in', departmentId: deptOps.id, designationId: desigOpsHead?.id, status: EmployeeStatus.ACTIVE, reportingManagerId: ceo.id, joiningDate: new Date('2022-01-01'), gender: Gender.MALE, maritalStatus: MaritalStatus.MARRIED },
+    userRole: 'OM' as any,
   });
 
-  // 4. Additional Employees
-  const desigLeadArch = await getDesig('Lead Architect', deptEng.id);
-  const desigBackend = await getDesig('Backend Developer', deptEng.id);
-  const desigFrontend = await getDesig('Frontend Developer', deptEng.id);
-  const desigHrExec = await getDesig('HR Executive', deptHr.id);
-  const desigFinExec = await getDesig('Finance Executive', deptFin.id);
-
-  // EMP-0004: Manager (Lead Architect)
   const leadArch = await upsertEmployeeAndUser({
-    emp: {
-      employeeId: 'EMP-0004',
-      firstName: 'Aditi',
-      lastName: 'Sharma',
-      officialEmail: 'aditi.sharma@naprocs.in',
-      departmentId: deptEng.id,
-      designationId: desigLeadArch?.id,
-      status: EmployeeStatus.ACTIVE,
-      reportingManagerId: cto.id,
-      joiningDate: new Date('2022-01-15'),
-    },
-    userRole: UserRole.MANAGER,
+    emp: { employeeId: 'NAP/TR/002', firstName: 'Tejesh', lastName: 'Kumar', officialEmail: 'tejesh@naprocs.in', departmentId: deptEng.id, designationId: desigLeadArch?.id, status: EmployeeStatus.ACTIVE, reportingManagerId: cto.id, joiningDate: new Date('2022-01-15'), gender: Gender.MALE, maritalStatus: MaritalStatus.MARRIED },
+    userRole: UserRole.EMPLOYEE,
   });
 
-  // EMP-0005: Manager (Finance)
-  const finManager = await upsertEmployeeAndUser({
-    emp: {
-      employeeId: 'EMP-0005',
-      firstName: 'Vikram',
-      lastName: 'Singh',
-      officialEmail: 'vikram.singh@naprocs.in',
-      departmentId: deptFin.id,
-      designationId: desigFinExec?.id,
-      status: EmployeeStatus.ACTIVE,
-      reportingManagerId: ceo.id,
-      joiningDate: new Date('2022-04-10'),
-    },
-    userRole: UserRole.MANAGER,
-  });
-
-  const remainingEmps = [
-    { id: '0006', f: 'Rohan', l: 'Gupta', d: deptEng, dg: desigBackend, m: leadArch.id, s: EmployeeStatus.ACTIVE, j: '2022-06-01' },
-    { id: '0007', f: 'Priya', l: 'Patel', d: deptEng, dg: desigFrontend, m: leadArch.id, s: EmployeeStatus.ACTIVE, j: '2022-08-15' },
-    { id: '0008', f: 'Rahul', l: 'Verma', d: deptEng, dg: desigBackend, m: leadArch.id, s: EmployeeStatus.PROBATION, j: '2024-01-10' },
-    { id: '0009', f: 'Sneha', l: 'Reddy', d: deptHr, dg: desigHrExec, m: hrDir.id, s: EmployeeStatus.ACTIVE, j: '2023-02-01' },
-    { id: '0010', f: 'Arjun', l: 'Nair', d: deptFin, dg: desigFinExec, m: finManager.id, s: EmployeeStatus.NOTICE_PERIOD, j: '2023-05-15' },
-    { id: '0011', f: 'Kavita', l: 'Joshi', d: deptSales, dg: null, m: ceo.id, s: EmployeeStatus.ACTIVE, j: '2023-09-01' },
-    { id: '0012', f: 'Suresh', l: 'Kumar', d: deptOps, dg: null, m: ceo.id, s: EmployeeStatus.ACTIVE, j: '2023-11-20' },
-    { id: '0013', f: 'Neha', l: 'Mishra', d: deptEng, dg: desigFrontend, m: leadArch.id, s: EmployeeStatus.ACTIVE, j: '2024-03-01' },
-    { id: '0014', f: 'Karan', l: 'Malhotra', d: deptEng, dg: desigBackend, m: leadArch.id, s: EmployeeStatus.ACTIVE, j: '2024-04-15' },
-    { id: '0015', f: 'Pooja', l: 'Iyer', d: deptHr, dg: desigHrExec, m: hrDir.id, s: EmployeeStatus.ACTIVE, j: '2024-05-10' },
+  const emps = [
+    { id: 'NAP/TR/001', f: 'Ajay', l: 'Kumar', email: 'ajay@naprocs.in', d: deptEng, dg: desigBackend, m: leadArch.id, r: UserRole.EMPLOYEE, g: Gender.MALE, ms: MaritalStatus.MARRIED },
+    { id: 'NAP/TR/003', f: 'Girish', l: '', email: 'girish@naprocs.in', d: deptEng, dg: desigFrontend, m: leadArch.id, r: UserRole.EMPLOYEE, g: Gender.MALE, ms: MaritalStatus.SINGLE },
+    { id: 'NAP/TR/004', f: 'Varsha', l: '', email: 'varsha@naprocs.in', d: deptEng, dg: desigBackend, m: leadArch.id, r: UserRole.EMPLOYEE, g: Gender.FEMALE, ms: MaritalStatus.MARRIED },
+    { id: 'NAP/TR/005', f: 'Harshitha', l: '', email: 'harshitha@naprocs.in', d: deptEng, dg: desigQa, m: leadArch.id, r: UserRole.EMPLOYEE, g: Gender.FEMALE, ms: MaritalStatus.SINGLE },
+    { id: 'NAP/TR/006', f: 'Salman', l: '', email: 'salman@naprocs.in', d: deptEng, dg: desigBackend, m: leadArch.id, r: UserRole.EMPLOYEE, g: Gender.MALE, ms: MaritalStatus.SINGLE },
+    { id: 'NAP/TR/007', f: 'Rahima', l: '', email: 'rahima@naprocs.in', d: deptEng, dg: desigFrontend, m: leadArch.id, r: UserRole.EMPLOYEE, g: Gender.FEMALE, ms: MaritalStatus.MARRIED },
+    { id: 'NAP/TR/008', f: 'Sumanth', l: '', email: 'sumanth@naprocs.in', d: deptEng, dg: desigBackend, m: leadArch.id, r: UserRole.EMPLOYEE, g: Gender.MALE, ms: MaritalStatus.SINGLE },
+    { id: 'NAP/TR/009', f: 'Harish', l: '', email: 'harish@naprocs.in', d: deptEng, dg: desigQa, m: leadArch.id, r: UserRole.EMPLOYEE, g: Gender.MALE, ms: MaritalStatus.SINGLE },
+    { id: 'NAP/TR/010', f: 'Pavani', l: '', email: 'pavani@naprocs.in', d: deptEng, dg: desigFrontend, m: leadArch.id, r: UserRole.EMPLOYEE, g: Gender.FEMALE, ms: MaritalStatus.SINGLE },
+    { id: 'NAP/TR/011', f: 'Vinay', l: '', email: 'vinay@naprocs.in', d: deptEng, dg: desigBackend, m: leadArch.id, r: UserRole.EMPLOYEE, g: Gender.MALE, ms: MaritalStatus.SINGLE },
+    { id: 'NAP/TR/012', f: 'Kumar', l: 'Sai', email: 'kumar@naprocs.in', d: deptEng, dg: desigFrontend, m: leadArch.id, r: UserRole.EMPLOYEE, g: Gender.MALE, ms: MaritalStatus.SINGLE },
+    { id: 'NAP/TR/013', f: 'Imthiyaz', l: '', email: 'imthiyaz@naprocs.in', d: deptEng, dg: desigBackend, m: leadArch.id, r: UserRole.EMPLOYEE, g: Gender.MALE, ms: MaritalStatus.SINGLE },
+    { id: 'NAP/HR/001', f: 'Prince', l: 'Alpha', email: 'hr@naprocs.in', d: deptHr, dg: desigHrExec, m: ceo.id, r: UserRole.HR, g: Gender.MALE, ms: MaritalStatus.SINGLE },
+    { id: 'NAP/OR/001', f: 'Sandeep', l: '', email: 'sandeep@naprocs.in', d: deptOps, dg: desigOpsExec, m: opsHead.id, r: UserRole.EMPLOYEE, g: Gender.MALE, ms: MaritalStatus.SINGLE },
+    { id: 'NAP/OR/002', f: 'Sandya', l: 'Rani', email: 'sandya@naprocs.in', d: deptOps, dg: desigOpsExec, m: opsHead.id, r: UserRole.EMPLOYEE, g: Gender.FEMALE, ms: MaritalStatus.MARRIED }
   ];
 
-  const createdRemaining = [];
-  for (const re of remainingEmps) {
-    const e = await upsertEmployeeAndUser({
+  const allInsertedEmployees = [ceo, cto, opsHead, leadArch];
+
+  for (const re of emps) {
+    const inserted = await upsertEmployeeAndUser({
       emp: {
-        employeeId: `EMP-${re.id}`,
+        employeeId: re.id,
         firstName: re.f,
         lastName: re.l,
-        officialEmail: `${re.f.toLowerCase()}.${re.l.toLowerCase()}@naprocs.in`,
+        officialEmail: re.email,
         departmentId: re.d.id,
         designationId: re.dg?.id,
-        status: re.s,
+        status: EmployeeStatus.ACTIVE,
         reportingManagerId: re.m,
-        joiningDate: new Date(re.j),
+        joiningDate: new Date('2023-01-01'),
+        gender: re.g,
+        maritalStatus: re.ms
       },
-      userRole: UserRole.EMPLOYEE,
+      userRole: re.r,
     });
-    createdRemaining.push(e);
+    allInsertedEmployees.push(inserted);
   }
 
-  // 6. Leave Balances for 3 employees (CEO, leadArch, and Rohan)
-  const leaveTypes = await prisma.leaveType.findMany();
   const currentYear = new Date().getFullYear();
-  const empsForLeave = [ceo, leadArch, createdRemaining[0]]; // createdRemaining[0] is Rohan
+  const clFullType = await prisma.leaveType.findUnique({ where: { code: 'CL_FULL' } });
+  const clHalfType = await prisma.leaveType.findUnique({ where: { code: 'CL_HALF' } });
+  const maternityType = await prisma.leaveType.findUnique({ where: { code: 'MATERNITY' } });
+  const optionalType = await prisma.leaveType.findUnique({ where: { code: 'OPTIONAL' } });
+  const compType = await prisma.leaveType.findUnique({ where: { code: 'COMP' } });
 
-  for (const emp of empsForLeave) {
-    for (const lt of leaveTypes) {
-      // used is a random number between 0 and allocated
-      const used = Math.floor(Math.random() * (Number(lt.maxDaysPerYear) + 1));
-      
+  for (const emp of allInsertedEmployees) {
+    const balancesToUpsert = [];
+    if (clFullType) balancesToUpsert.push({ type: clFullType, allocated: 12 });
+    if (clHalfType) balancesToUpsert.push({ type: clHalfType, allocated: 6 });
+    if (optionalType) balancesToUpsert.push({ type: optionalType, allocated: 2 });
+    if (compType) balancesToUpsert.push({ type: compType, allocated: 0 });
+
+    if (maternityType && emp.gender === 'FEMALE' && emp.maritalStatus === 'MARRIED') {
+      balancesToUpsert.push({ type: maternityType, allocated: 180 });
+    }
+
+    for (const b of balancesToUpsert) {
       await prisma.leaveBalance.upsert({
         where: {
           employeeId_leaveTypeId_year: {
             employeeId: emp.id,
-            leaveTypeId: lt.id,
-            year: currentYear,
-          },
+            leaveTypeId: b.type.id,
+            year: currentYear
+          }
         },
         update: {},
         create: {
           employeeId: emp.id,
-          leaveTypeId: lt.id,
+          leaveTypeId: b.type.id,
           year: currentYear,
-          allocated: lt.maxDaysPerYear,
-          used: used,
-          pending: Number(lt.maxDaysPerYear) - used,
-        },
+          allocated: b.allocated,
+          used: 0,
+          pending: 0
+        }
       });
     }
   }
 
-  // 7. Attendance Records for 2 employees (Priya and Sneha)
-  const empsForAttendance = [createdRemaining[1], createdRemaining[3]]; // Priya, Sneha
-
-  const today = new Date();
-  for (const emp of empsForAttendance) {
-    for (let i = 0; i < 10; i++) {
-      const d = new Date(today);
-      d.setDate(today.getDate() - i);
-      
-      // Skip weekends
-      if (d.getDay() === 0 || d.getDay() === 6) {
-        continue;
-      }
-
-      // Check-in around 9:00 - 9:30 AM
-      const checkInTime = new Date(d);
-      checkInTime.setHours(9, Math.floor(Math.random() * 30), 0, 0);
-
-      // Check-out around 6:00 - 6:30 PM (18:00 - 18:30)
-      const checkOutTime = new Date(d);
-      checkOutTime.setHours(18, Math.floor(Math.random() * 30), 0, 0);
-
-      // Calculate work hours (approx 9 hours)
-      const workHours = (checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60);
-
-      const dStr = d.toISOString().split('T')[0] + 'T00:00:00.000Z'; // normalize to start of day
-
-      await prisma.attendanceRecord.upsert({
-        where: {
-          employeeId_date: {
-            employeeId: emp.id,
-            date: new Date(dStr),
-          },
-        },
-        update: {},
-        create: {
-          employeeId: emp.id,
-          date: new Date(dStr),
-          checkInTime: checkInTime,
-          checkOutTime: checkOutTime,
-          workHours: workHours.toFixed(2) as any,
-          status: AttendanceStatus.PRESENT,
-          checkInMethod: CheckInMethod.WEB,
-        },
-      });
-    }
-  }
-
-  console.log('Sample data seed completed successfully.');
+  console.log('Official employee data and leave balances seeded successfully.');
 }
 
 main()

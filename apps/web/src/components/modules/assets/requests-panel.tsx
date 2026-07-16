@@ -1,7 +1,9 @@
 "use client";
 
+import { usePermissions } from "@/hooks/use-permissions";
 import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { assetsApi } from "@/lib/api/assets";
 import {
   Plus,
   Clock,
@@ -17,71 +19,12 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { AssetCategory, AssetRequest, AssetRole } from "@/types/assets";
+import { FulfillRequestDialog } from "./asset-action-dialogs";
 
 interface RequestsPanelProps {
-  activeRole: AssetRole;
+  
 }
 
-// ─── Mock Requests ────────────────────────────────────────────────────────────
-
-const INITIAL_REQUESTS: AssetRequest[] = [
-  {
-    id: "req1",
-    requestedBy: "Akash Singh",
-    requestedByAvatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Akash",
-    department: "Sales",
-    assetCategory: "LAPTOP",
-    description: "New hire laptop request",
-    justification: "Joining as Senior Sales Executive on July 1st. Need a laptop from day one.",
-    priority: "HIGH",
-    status: "PENDING",
-    requestDate: "14 Jun 2026",
-    responseDate: null,
-    respondedBy: null,
-  },
-  {
-    id: "req2",
-    requestedBy: "Meera Pillai",
-    requestedByAvatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Meera",
-    department: "Design",
-    assetCategory: "MONITOR",
-    description: "Extra monitor for design work",
-    justification: "Need dual-monitor setup for UI/UX design workflows to improve productivity.",
-    priority: "MEDIUM",
-    status: "PENDING",
-    requestDate: "13 Jun 2026",
-    responseDate: null,
-    respondedBy: null,
-  },
-  {
-    id: "req3",
-    requestedBy: "Divya Menon",
-    requestedByAvatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Divya",
-    department: "Engineering",
-    assetCategory: "HEADSET",
-    description: "Noise-cancelling headset",
-    justification: "Open office environment is causing distractions during coding sessions.",
-    priority: "LOW",
-    status: "APPROVED",
-    requestDate: "10 Jun 2026",
-    responseDate: "12 Jun 2026",
-    respondedBy: "Ravi Kumar (IT Admin)",
-  },
-  {
-    id: "req4",
-    requestedBy: "Suresh V.",
-    requestedByAvatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Suresh",
-    department: "HR",
-    assetCategory: "PHONE",
-    description: "Office mobile for HR communication",
-    justification: "Need a dedicated office phone for candidate communications and HR ops.",
-    priority: "MEDIUM",
-    status: "REJECTED",
-    requestDate: "08 Jun 2026",
-    responseDate: "09 Jun 2026",
-    respondedBy: "Ravi Kumar (IT Admin)",
-  },
-];
 
 const CATEGORY_OPTIONS: { value: AssetCategory; label: string; icon: React.ElementType }[] = [
   { value: "LAPTOP", label: "Laptop", icon: Laptop },
@@ -114,12 +57,14 @@ const PRIORITY_COLORS: Record<string, string> = {
   URGENT: "text-rose-700 bg-rose-50 border border-rose-100",
 };
 
-const STORAGE_KEY = "naprocs_asset_requests";
+const STORAGE_KEY = "naprocs_asset_requests"; // kept for legacy cleanup only
 
-export default function RequestsPanel({ activeRole }: RequestsPanelProps) {
+export default function RequestsPanel() {
+  const { role } = usePermissions();
+  const activeRole = role as any;
   const queryClient = useQueryClient();
   const isEmployee = activeRole === "EMPLOYEE";
-  const canApprove = ["IT_ADMIN", "ADMIN"].includes(activeRole);
+  const { isAdmin: canApprove } = usePermissions();
 
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
@@ -128,62 +73,71 @@ export default function RequestsPanel({ activeRole }: RequestsPanelProps) {
     justification: "",
     priority: "MEDIUM" as "LOW" | "MEDIUM" | "HIGH" | "URGENT",
   });
+  const [requestToFulfill, setRequestToFulfill] = useState<AssetRequest | null>(null);
 
-  const { data: requests = [] } = useQuery<AssetRequest[]>({
+  const { data: rawRequests = [], isLoading } = useQuery({
     queryKey: ["assetRequests"],
-    queryFn: async () => {
-      if (typeof window !== "undefined") {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) return JSON.parse(saved);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_REQUESTS));
-      }
-      return INITIAL_REQUESTS;
-    },
+    queryFn: () => assetsApi.listRequests(),
+    staleTime: 30_000,
   });
 
+  // Map WorkflowInstance shape → AssetRequest UI shape
+  const requests: AssetRequest[] = useMemo(() => {
+    return rawRequests.map((r: any) => {
+      const meta = r.metadata ?? {};
+      return {
+        id: r.id,
+        initiatorId: r.initiatedById,
+        requestedBy: r.initiatedBy
+          ? `${r.initiatedBy.firstName} ${r.initiatedBy.lastName}`
+          : "Unknown",
+        requestedByAvatar: r.initiatedBy
+          ? `https://api.dicebear.com/7.x/notionists/svg?seed=${r.initiatedBy.firstName}`
+          : "",
+        department: r.initiatedBy?.department?.name ?? "",
+        assetCategory: (meta.category ?? "OTHER") as AssetCategory,
+        description: meta.description ?? "",
+        justification: meta.justification ?? "",
+        priority: (meta.priority ?? "MEDIUM") as AssetRequest["priority"],
+        status: r.status as AssetRequest["status"],
+        requestDate: new Date(r.createdAt).toLocaleDateString("en-IN", {
+          day: "numeric", month: "short", year: "numeric",
+        }),
+        responseDate: r.completedAt
+          ? new Date(r.completedAt).toLocaleDateString("en-IN", {
+              day: "numeric", month: "short", year: "numeric",
+            })
+          : null,
+        respondedBy: meta.respondedById ?? null,
+      };
+    });
+  }, [rawRequests]);
+
   const submitMutation = useMutation({
-    mutationFn: async (newReq: Omit<AssetRequest, "id">) => {
-      const withId: AssetRequest = { ...newReq, id: `req-${Date.now()}` };
-      const updated = [withId, ...requests];
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      return updated;
-    },
-    onSuccess: (updated) => {
-      queryClient.setQueryData(["assetRequests"], updated);
+    mutationFn: (payload: { category: AssetCategory; description: string; justification: string; priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT" }) =>
+      assetsApi.createRequest(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["assetRequests"] });
       setShowForm(false);
       setForm({ description: "", assetCategory: "LAPTOP", justification: "", priority: "MEDIUM" });
     },
   });
 
   const respondMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: "APPROVED" | "REJECTED" }) => {
-      const updated = requests.map((r) =>
-        r.id === id
-          ? { ...r, status, responseDate: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }), respondedBy: "Ravi Kumar (IT Admin)" }
-          : r
-      );
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      return updated;
-    },
-    onSuccess: (updated) => {
-      queryClient.setQueryData(["assetRequests"], updated);
+    mutationFn: ({ id, status }: { id: string; status: "APPROVED" | "REJECTED" }) =>
+      assetsApi.respondToRequest(id, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["assetRequests"] });
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     submitMutation.mutate({
-      requestedBy: "You",
-      requestedByAvatar: "https://api.dicebear.com/7.x/notionists/svg?seed=You",
-      department: "Engineering",
-      assetCategory: form.assetCategory,
+      category: form.assetCategory,
       description: form.description,
       justification: form.justification,
       priority: form.priority,
-      status: "PENDING",
-      requestDate: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
-      responseDate: null,
-      respondedBy: null,
     });
   };
 
@@ -203,7 +157,7 @@ export default function RequestsPanel({ activeRole }: RequestsPanelProps) {
             </p>
           )}
         </div>
-        {(isEmployee || ["MANAGER", "HR"].includes(activeRole)) && (
+        {true && (
           <button
             onClick={() => setShowForm((v) => !v)}
             className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
@@ -381,7 +335,7 @@ export default function RequestsPanel({ activeRole }: RequestsPanelProps) {
                         Reject
                       </button>
                       <button
-                        onClick={() => respondMutation.mutate({ id: req.id, status: "APPROVED" })}
+                        onClick={() => setRequestToFulfill(req)}
                         className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-[10px] font-bold rounded-lg transition-colors"
                       >
                         Approve
@@ -400,6 +354,11 @@ export default function RequestsPanel({ activeRole }: RequestsPanelProps) {
           </div>
         )}
       </div>
+
+      <FulfillRequestDialog 
+        request={requestToFulfill} 
+        onClose={() => setRequestToFulfill(null)} 
+      />
     </div>
   );
 }

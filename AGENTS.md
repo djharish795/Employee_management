@@ -133,3 +133,12 @@ Step 8  Concurrent session limit: max 3 sessions per user (SESSION_MAX_CONCURREN
 
 Cost jumps significantly at P3 due to OpenSearch Serverless (₹55,000/month alone).
 Do not enable OpenSearch until P3 is formally unlocked.
+
+## External Integrations & Notifications
+
+- **Zoom**: Zoom Server-to-Server OAuth is used to generate meeting links via `zoom.service.ts`.
+  - The Meet link is generated and sent to attendees via email.
+- **Email Delivery (AWS SES)**:
+  - We rely on AWS SES (via our internal `EmailService`) to send the generated Meet links and system notifications to users.
+  - In development (`NODE_ENV=development`), `EmailService` uses **Ethereal** to mock emails. Emails do not hit real inboxes; they print a URL to the console.
+  - In production, SES sends from `noreply@naprocs.in`. Spam prevention relies on configuring DKIM, SPF, and DMARC in AWS SES, not Google Workspace.

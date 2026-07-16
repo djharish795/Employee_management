@@ -3,14 +3,14 @@
 import React from "react";
 import AuditLayout from "@/components/modules/audit/audit-layout";
 import UserActivityPanel from "@/components/modules/audit/user-activity-panel";
-import { useAuditTestStore } from "@/store/audit-test";
+import { usePermissions } from "@/hooks/use-permissions";
 
 export default function AuditUsersPage() {
-  const { activeRole, setActiveRole } = useAuditTestStore();
+  const { role: activeRole } = usePermissions();
 
   return (
-    <AuditLayout activeRole={activeRole} onRoleChange={setActiveRole}>
-      <UserActivityPanel activeRole={activeRole} />
+    <AuditLayout  >
+      <UserActivityPanel  />
     </AuditLayout>
   );
 }

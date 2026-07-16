@@ -85,11 +85,14 @@ export const MfaCard: React.FC = () => {
       if (res.unknownDevice && res.deviceDetails) {
         setDeviceDetails(res.deviceDetails);
         router.push("/new-device");
-      } else if (res.success && res.token) {
+      } else if (res.success && res.token && res.refreshToken) {
         const role = res.role ?? "EMPLOYEE";
         setAuthSession({
           accessToken: res.token,
+          refreshToken: res.refreshToken,
           role: role,
+          employeeId: res.employeeId ?? null,
+          isTeamLead: res.isTeamLead ?? false,
         });
         document.cookie = `token=${res.token}; path=/; max-age=86400; SameSite=Strict`;
         document.cookie = `role=${role}; path=/; max-age=86400; SameSite=Strict`;

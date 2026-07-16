@@ -2,13 +2,17 @@ export interface AttendanceLog {
   date: string;
   checkIn: string;
   checkOut: string;
-  hoursWorked: string;
-  status: "PRESENT" | "LATE" | "WFH" | "ABSENT" | "ON_LEAVE";
+  hoursWorked: number | string;
+  status: "PRESENT" | "LATE" | "WFH" | "ABSENT" | "ON_LEAVE" | "EARLY_CHECKOUT" | "HALF_DAY";
   remarks: string;
+  totalBreakSeconds?: number;
+  breakHistory?: Array<{ start: string; end: string | null }>;
 }
 
 export interface RegularizationRequest {
   id: string;
+  employeeId: string;
+  employeeName?: string;
   attendanceDate: string;
   reason: string;
   correctionType: "MISSING_PUNCH" | "INCORRECT_TIME" | "WFH_MARKING";
@@ -26,4 +30,24 @@ export interface AttendanceKPIs {
   lateArrivals: number;
   leaveDays: number;
   wfhDays: number;
+  thisWeekHours?: number;
+  thisMonthDays?: number;
+  weeklyTrends?: Array<{ date: string; hours: number }>;
+}
+
+export interface OrgReportsResponse {
+  avgAttendance: number;
+  lateRate: number;
+  avgHours: string;
+  activeFTE: number;
+  departmentRates: Array<{
+    name: string;
+    percent: number;
+    count: number;
+  }>;
+  lateTrends: Array<{
+    label: string;
+    count: number;
+    percent: number;
+  }>;
 }

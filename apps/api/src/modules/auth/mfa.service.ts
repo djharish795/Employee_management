@@ -38,9 +38,7 @@ export class MfaService {
 
     await this.redis.setJson(`${CHALLENGE_PREFIX}${challengeId}`, challenge, CHALLENGE_TTL_SECONDS);
 
-    // MVP: log OTP for staging/dev until SES is wired
-    this.logger.log(`EMAIL OTP for ${email}: ${otp} (challenge ${challengeId})`);
-
+    // MVP note: OTP should be sent via EmailService here instead of logged
     return { challengeId, method: "EMAIL_OTP" };
   }
 

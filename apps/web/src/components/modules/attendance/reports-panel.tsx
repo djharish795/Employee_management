@@ -1,13 +1,18 @@
 "use client";
+import { usePermissions } from "@/hooks/use-permissions";
 
-import React, { useMemo } from "react";
-import { BarChart3, TrendingUp, Download, PieChart, FileSpreadsheet } from "lucide-react";
+import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { BarChart3, TrendingUp, Download, PieChart, Loader2 } from "lucide-react";
+import { fetchOrgReports, fetchAllLogs, fetchRegularizations } from "@/lib/api/attendance";
 
 interface ReportsPanelProps {
   activeRole: "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
 }
 
-export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
+export default function ReportsPanel() {
+  const { role } = usePermissions();
+  const activeRole = role as any;
   // Gating access checks
   if (activeRole === "EMPLOYEE") {
     return (
@@ -19,39 +24,88 @@ export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
     );
   }
 
-  // Sample analytics stats
-  const metrics = useMemo(() => {
-    return {
-      avgAttendance: 96.4,
-      lateRate: 4.8,
-      avgHours: "8.2h",
-      activeFTE: 78,
-    };
-  }, []);
+  const { data: metrics, isLoading, isError, error } = useQuery({
+    queryKey: ["org-reports"],
+    queryFn: fetchOrgReports,
+  });
 
-  const handleExportFullReport = () => {
-    // Generate a simple CSV representing organization metrics
-    const rows = [
-      ["Department", "Headcount", "Attendance Rate", "Avg Work Hours", "Late Arrivals (MTD)"],
-      ["Engineering", "42", "98.1%", "8.8h", "3"],
-      ["Sales & Marketing", "24", "94.5%", "7.9h", "8"],
-      ["Operations", "12", "95.0%", "8.2h", "4"],
-      ["Product & Design", "8", "97.2%", "8.5h", "1"],
-      ["Others", "5", "96.0%", "8.0h", "2"],
-    ];
-
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      rows.map((e) => e.join(",")).join("\n");
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `org_attendance_report_${new Date().toISOString().split("T")[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleExportTimesheet = async () => {
+    try {
+      const logs = await fetchAllLogs(1, 2000); // Fetch up to 2000 logs
+      const rows = [
+        ["Date", "Employee Name", "Check In", "Check Out", "Hours Worked", "Status", "Remarks"],
+        ...logs.map(log => [
+          log.date,
+          (log as any).employeeName || "Unknown",
+          log.checkIn,
+          log.checkOut,
+          log.hoursWorked.toString(),
+          log.status,
+          `"${(log.remarks || "").replace(/"/g, '""')}"`
+        ])
+      ];
+      const csvContent = "data:text/csv;charset=utf-8," + rows.map((e) => e.join(",")).join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `monthly_timesheet_${new Date().toISOString().split("T")[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e) {
+      console.error("Failed to export timesheet", e);
+    }
   };
+
+  const handleExportRegularizations = async () => {
+    try {
+      const requests = await fetchRegularizations();
+      const rows = [
+        ["Request ID", "Employee Name", "Date", "Correction Type", "Reason", "Manager Status", "HR Status", "Submitted Date"],
+        ...requests.map(req => [
+          req.id,
+          req.employeeName || "Unknown",
+          req.attendanceDate,
+          req.correctionType,
+          `"${(req.reason || "").replace(/"/g, '""')}"`,
+          req.managerStatus,
+          req.hrStatus,
+          req.submittedDate
+        ])
+      ];
+      const csvContent = "data:text/csv;charset=utf-8," + rows.map((e) => e.join(",")).join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `regularization_log_${new Date().toISOString().split("T")[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e) {
+      console.error("Failed to export regularizations", e);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64 bg-white border border-slate-200 rounded-xl shadow-sm">
+        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+      </div>
+    );
+  }
+
+  if (isError || !metrics) {
+    return (
+      <div className="bg-rose-50 border border-rose-200 p-8 rounded-xl shadow-sm text-center">
+        <p className="text-sm font-semibold text-rose-600">Failed to load organizational reports.</p>
+        <p className="text-xs text-rose-500 mt-2 whitespace-pre-wrap text-left bg-rose-100 p-4 rounded-md">
+          {(error as any)?.response?.data?.message || (error instanceof Error ? error.message : JSON.stringify(error))}
+        </p>
+      </div>
+    );
+  }
+
+  const colorMap = ["bg-slate-900", "bg-purple-500", "bg-slate-400", "bg-amber-500", "bg-rose-500", "bg-emerald-500", "bg-indigo-500"];
 
   return (
     <div className="space-y-6">
@@ -80,7 +134,7 @@ export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        
+
         {/* Department Attendance Comparison */}
         <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm space-y-4">
           <div className="flex justify-between items-center border-b border-slate-100 pb-2">
@@ -92,20 +146,14 @@ export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
           </div>
 
           <div className="space-y-4">
-            {[
-              { name: "Engineering", percent: 98.1, count: 42, color: "bg-slate-900" },
-              { name: "Product & Design", percent: 97.2, count: 8, color: "bg-purple-500" },
-              { name: "Others", percent: 96.0, count: 5, color: "bg-slate-400" },
-              { name: "Operations", percent: 95.0, count: 12, color: "bg-amber-500" },
-              { name: "Sales & Marketing", percent: 94.5, count: 24, color: "bg-rose-500" },
-            ].map((d) => (
+            {metrics.departmentRates.map((d, idx) => (
               <div key={d.name} className="space-y-1.5">
                 <div className="flex justify-between text-xs font-semibold text-slate-700">
                   <span className="font-bold">{d.name}</span>
                   <span>{d.percent}% ({d.count} FTE)</span>
                 </div>
                 <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full ${d.color}`} style={{ width: `${d.percent}%` }} />
+                  <div className={`h-full rounded-full ${colorMap[idx % colorMap.length]}`} style={{ width: `${d.percent}%` }} />
                 </div>
               </div>
             ))}
@@ -124,15 +172,8 @@ export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
 
           {/* Simple Vector Graph */}
           <div className="h-44 flex items-end justify-between gap-4 pt-6 px-4">
-            {[
-              { label: "Jan", count: 8, percent: 40 },
-              { label: "Feb", count: 5, percent: 25 },
-              { label: "Mar", count: 12, percent: 60 },
-              { label: "Apr", count: 15, percent: 75 },
-              { label: "May", count: 9, percent: 45 },
-              { label: "Jun", count: 18, percent: 90 },
-            ].map((item, idx) => (
-              <div key={idx} className="flex-1 flex flex-col items-center gap-2 group cursor-pointer">
+            {metrics.lateTrends.map((item, idx) => (
+              <div key={idx} className="relative flex-1 flex flex-col items-center gap-2 group cursor-pointer">
                 {/* count bubble */}
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-[9px] font-bold px-1.5 py-0.5 rounded absolute -translate-y-12 z-20 shadow">
                   {item.count} Lates
@@ -161,7 +202,7 @@ export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
               <p className="text-[10px] font-semibold text-slate-400 mt-0.5">Approved hours log for payroll calculations.</p>
             </div>
             <button
-              onClick={handleExportFullReport}
+              onClick={handleExportTimesheet}
               className="p-2 bg-white hover:bg-slate-100 text-slate-600 rounded-lg border border-slate-200 transition-colors cursor-pointer"
             >
               <Download className="w-4 h-4" />
@@ -173,7 +214,7 @@ export default function ReportsPanel({ activeRole }: ReportsPanelProps) {
               <p className="text-[10px] font-semibold text-slate-400 mt-0.5">Audit log of corrected out-punches.</p>
             </div>
             <button
-              onClick={handleExportFullReport}
+              onClick={handleExportRegularizations}
               className="p-2 bg-white hover:bg-slate-100 text-slate-600 rounded-lg border border-slate-200 transition-colors cursor-pointer"
             >
               <Download className="w-4 h-4" />

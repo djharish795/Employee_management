@@ -1,4 +1,4 @@
-export type OrgRole = "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
+export type OrgRole = "ADMIN" | "HR" | "CEO" | "CTO" | "MANAGER" | "EMPLOYEE";
 
 export interface OrgEmployee {
   id: string;
@@ -10,13 +10,19 @@ export interface OrgEmployee {
   photoUrl: string;
   initials: string;
   avatarBg: string;
+  gender?: string;
   managerId: string | null; // Adjacency list relation
+  isVacant?: boolean;
 }
 
 export interface DepartmentNode {
   id: string;
   name: string;
-  headId: string; // Refers to an OrgEmployee id
+  headId: string | null; // Refers to an OrgEmployee id
+  head?: {
+    name: string;
+    photoUrl: string | null;
+  } | null;
   headcount: number;
   openPositions: number;
   budget?: string;
