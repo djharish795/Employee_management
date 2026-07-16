@@ -54,7 +54,7 @@ export class KnowledgeController {
     @Param("id") id: string,
     @CurrentUser() user: any,
   ) {
-    return this.knowledgeService.findOne(id, user.role as UserRole);
+    return this.knowledgeService.findOne(id, user.role as UserRole, user.employeeId);
   }
 
   @Get("slug/:slug")
@@ -63,7 +63,7 @@ export class KnowledgeController {
     @Param("slug") slug: string,
     @CurrentUser() user: any,
   ) {
-    return this.knowledgeService.findBySlug(slug, user.role as UserRole);
+    return this.knowledgeService.findBySlug(slug, user.role as UserRole, user.employeeId);
   }
 
   @Patch(":id")

@@ -4,6 +4,7 @@ import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, Filter, Download, ArrowUpDown, Calendar, RefreshCcw } from "lucide-react";
 import { AttendanceLog } from "@/types/attendance";
+import { memo } from "react";
 
 const formatDecimalHoursToHMS = (hoursDecimal: number): string => {
   if (!hoursDecimal || hoursDecimal === 0) return "0s";
@@ -36,6 +37,42 @@ const formatTimeValue = (val: string | null | undefined): string => {
 interface HistoryPanelProps {
   mode?: "personal" | "org";
 }
+
+const MemoizedHistoryRow = memo(({ log, isOrgMode }: { log: any, isOrgMode: boolean }) => {
+  let badge = "text-slate-600 bg-slate-100";
+  if (log.status === "PRESENT") badge = "text-emerald-700 bg-emerald-50 border border-emerald-200/50";
+  else if (log.status === "LATE") badge = "text-amber-700 bg-amber-50 border border-amber-200/50";
+  else if (log.status === "EARLY_CHECKOUT") badge = "text-orange-500 bg-orange-50 border border-orange-200/50";
+  else if (log.status === "WFH") badge = "text-slate-900 bg-slate-100 border border-slate-300/50";
+  else if (log.status === "ABSENT") badge = "text-rose-700 bg-rose-50 border border-rose-200/50";
+
+  return (
+    <tr className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+      {isOrgMode && (
+        <td className="px-6 py-4 font-bold text-slate-900">
+          {log.employeeName || "Unknown"}
+        </td>
+      )}
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="font-bold text-slate-900">{log.displayDate}</div>
+      </td>
+      <td className="px-6 py-4 font-mono text-slate-500">{log.displayCheckIn}</td>
+      <td className="px-6 py-4 font-mono text-slate-500">{log.displayCheckOut}</td>
+      <td className="px-6 py-4 font-bold text-slate-900">{log.displayHours}</td>
+      <td className="px-6 py-4 font-bold text-amber-600">{log.displayBreak}</td>
+      <td className="px-6 py-4">
+        <span className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase ${badge}`}>
+          {log.status}
+        </span>
+      </td>
+      <td className="px-6 py-4 text-slate-500 leading-relaxed max-w-[240px] truncate" title={log.remarks}>
+        {log.remarks}
+      </td>
+    </tr>
+  );
+});
+
+MemoizedHistoryRow.displayName = "MemoizedHistoryRow";
 
 export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
   const [filterMonth, setFilterMonth] = useState("");
@@ -145,7 +182,13 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
 
       const escapeCsv = (str: any) => {
         if (str === null || str === undefined) return '""';
-        const s = String(str);
+        let s = String(str);
+        
+        // Prevent CSV/Excel Formula Injection (BUG-SEC-001)
+        if (s.startsWith('=') || s.startsWith('+') || s.startsWith('-') || s.startsWith('@')) {
+          s = "'" + s;
+        }
+
         if (s.includes('"') || s.includes(',') || s.includes('\n') || s.includes('\r')) {
           return `"${s.replace(/"/g, '""')}"`;
         }
@@ -303,71 +346,9 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
                 </tr>
               </thead>
               <tbody className="text-xs font-semibold text-slate-700 divide-y divide-slate-100">
-                {paginatedLogs.map((log, idx) => {
-                  let badge = "text-slate-600 bg-slate-100";
-                  if (log.status === "PRESENT") badge = "text-emerald-700 bg-emerald-50 border border-emerald-200/50";
-                  else if (log.status === "LATE") badge = "text-amber-700 bg-amber-50 border border-amber-200/50";
-                  else if (log.status === "EARLY_CHECKOUT") badge = "text-orange-500 bg-orange-50 border border-orange-200/50";
-                  else if (log.status === "WFH") badge = "text-slate-900 bg-slate-100 border border-slate-300/50";
-                  else if (log.status === "ABSENT") badge = "text-rose-700 bg-rose-50 border border-rose-200/50";
-
-                  return (
-                    <tr key={(log as any).id || idx} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                      {isOrgMode && (
-                        <td className="px-6 py-4 font-bold text-slate-900">
-                          {(log as any).employeeName || "Unknown"}
-                        </td>
-                      )}
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-bold text-slate-900">{log.displayDate}</div>
-                      </td>
-                      <td className="px-6 py-4 font-mono text-slate-500">
-                        <div className="relative flex flex-col">
-                          <span>{log.displayCheckIn}</span>
-                          {log.punchHistory && log.punchHistory.length > 2 && (
-                            <span 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveTooltipLogId(activeTooltipLogId === log.date ? null : log.date);
-                              }}
-                              className="text-[10px] font-bold text-blue-500 mt-1 uppercase bg-blue-50 hover:bg-blue-100 rounded-full px-2 py-0.5 inline-block w-max cursor-pointer transition-colors"
-                            >
-                              Split Shift
-                            </span>
-                          )}
-                          {/* Tooltip for detailed timeline */}
-                          {log.punchHistory && log.punchHistory.length > 0 && (
-                            <div 
-                              onClick={(e) => e.stopPropagation()}
-                              className={`absolute left-0 top-full mt-2 flex-col gap-1 bg-slate-900 text-white text-[11px] p-3 rounded-lg shadow-xl z-50 min-w-[150px] ${activeTooltipLogId === log.date ? 'flex' : 'hidden'}`}
-                            >
-                              <div className="font-bold text-slate-400 mb-1 border-b border-slate-700 pb-1">Punch Timeline</div>
-                              {log.punchHistory.map((p: any, i: number) => (
-                                <div key={i} className="flex justify-between gap-4">
-                                  <span className={p.action === "IN" ? "text-emerald-400 font-bold" : p.action === "BREAK" ? "text-amber-400" : "text-rose-400"}>
-                                    {p.action}
-                                  </span>
-                                  <span className="font-mono text-slate-300">{formatTimeValue(p.time)}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 font-mono text-slate-500">{log.displayCheckOut}</td>
-                      <td className="px-6 py-4 font-bold text-slate-900">{log.displayHours}</td>
-                      <td className="px-6 py-4 font-bold text-amber-600">{log.displayBreak}</td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase ${badge}`}>
-                          {log.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-slate-500 leading-relaxed max-w-[240px] truncate">
-                        {log.remarks}
-                      </td>
-                    </tr>
-                  );
-                })}
+                {paginatedLogs.map((log, idx) => (
+                  <MemoizedHistoryRow key={(log as any).id || idx} log={log} isOrgMode={isOrgMode} />
+                ))}
               </tbody>
             </table>
           </div>

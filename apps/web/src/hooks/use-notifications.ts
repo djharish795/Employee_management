@@ -8,27 +8,33 @@ let socket: Socket | null = null;
 
 export function useNotifications() {
   const queryClient = useQueryClient();
-  const token = useAuthStore((state) => state.accessToken);
+  const employeeId = useAuthStore((state) => state.employeeId);
 
   // Fetch notifications initially
   const { data: notifications = [], isLoading } = useQuery<NotificationRecord[]>({
     queryKey: ["notifications"],
     queryFn: fetchNotifications,
-    enabled: !!token,
+    enabled: !!employeeId,
   });
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   // Initialize WebSockets for realtime badge updates
   useEffect(() => {
-    if (!token) return;
+    if (!employeeId) {
+      if (socket) {
+        socket.disconnect();
+        socket = null;
+      }
+      return;
+    }
 
     if (!socket) {
       let wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3001";
       wsUrl = wsUrl.split('#')[0].trim();
       socket = io(`${wsUrl}/notifications`, {
-        auth: { token },
-        transports: ["websocket"],
+        withCredentials: true,
+        transports: ["websocket", "polling"],
       });
 
       socket.on("connect", () => {
@@ -43,12 +49,10 @@ export function useNotifications() {
     }
 
     return () => {
-      if (socket) {
-        socket.disconnect();
-        socket = null;
-      }
+      // Intentionally empty. Do NOT disconnect the global socket here,
+      // otherwise unmounting any single component destroys it for the whole app.
     };
-  }, [token, queryClient]);
+  }, [employeeId, queryClient]);
 
   const markAsReadMutation = useMutation({
     mutationFn: markNotificationAsRead,

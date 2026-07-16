@@ -5,6 +5,7 @@ import { ArrowRight, Video, CalendarDays } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { connectApi } from "@/lib/api/connect";
 import { MeetDetailsModal } from "./meet-details-modal";
+import { useNotifications } from "@/hooks/use-notifications";
 
 export function MeetingsList() {
   const router = useRouter();
@@ -26,6 +27,16 @@ export function MeetingsList() {
   useEffect(() => {
     loadMeetings();
   }, []);
+
+  const { notifications } = useNotifications();
+
+  useEffect(() => {
+    if (!notifications || notifications.length === 0) return;
+    const latest = notifications[0];
+    if (latest.type === "MEETING_CREATED" || latest.type === "MEETING_UPDATED") {
+      loadMeetings();
+    }
+  }, [notifications]);
 
   const handleAccept = async (id: string) => {
     try {
