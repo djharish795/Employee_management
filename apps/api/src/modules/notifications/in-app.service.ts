@@ -7,7 +7,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from '../../redis/redis.service';
-const jwt = require('jsonwebtoken');
+import jwt = require('jsonwebtoken');
 
 @WebSocketGateway({
   cors: {
@@ -40,7 +40,7 @@ export class InAppNotificationService implements OnGatewayConnection, OnGatewayD
       // Simple JWT decode (in production, we should properly verify with secret)
       let decoded: any = null;
       try {
-        decoded = jwt.verify(token, process.env.JWT_SECRET) as any;
+        decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
       } catch (err) {
         this.logger.warn(`JWT verification failed, falling back to decode: ${(err as any).message}`);
         decoded = jwt.decode(token) as any;

@@ -31,6 +31,7 @@ export interface AttendanceKPIs {
   leaveDays: number;
   wfhDays: number;
   thisWeekHours?: number;
+  weeklyTargetHours?: number;
   thisMonthDays?: number;
   weeklyTrends?: Array<{ date: string; hours: number }>;
 }

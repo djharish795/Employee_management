@@ -93,41 +93,83 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
   }, [logs, filterStatus, filterMonth, filterSearch]);
 
   // Export to CSV Functionality
-  const handleExportCSV = () => {
-    if (filteredLogs.length === 0) return;
-    
-    // Header
-    const headers = isOrgMode 
-      ? ["Employee", "Date", "Check In", "Check Out", "Hours Worked", "Break Time", "Status", "Remarks"]
-      : ["Date", "Check In", "Check Out", "Hours Worked", "Break Time", "Status", "Remarks"];
+  const handleExportCSV = async () => {
+    try {
+      // Fetch full dataset to avoid exporting just the paginated subset
+      const fullRawLogs = isOrgMode ? await fetchAllLogs(1, 10000) : await fetchMyLogs(1, 10000);
       
-    const rows = filteredLogs.map((log) => {
-      const row = [
-        log.displayDate,
-        log.displayCheckIn,
-        log.displayCheckOut,
-        log.displayHours,
-        log.displayBreak,
-        log.status,
-        `"${log.remarks}"`,
-      ];
-      if (isOrgMode) {
-        row.unshift(`"${(log as any).employeeName || 'Unknown'}"`);
+      const formattedLogs = fullRawLogs.map((log) => {
+        const displayDate = new Date(log.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+        const displayCheckIn = formatTimeValue(log.checkIn);
+        const displayCheckOut = formatTimeValue(log.checkOut);
+        const displayHours = typeof log.hoursWorked === 'number' ? `${log.hoursWorked.toFixed(1)}h` : log.hoursWorked;
+        let displayBreak = "—";
+        if (log.totalBreakSeconds && log.totalBreakSeconds > 0) {
+          const breakMins = Math.round(log.totalBreakSeconds / 60);
+          if (breakMins < 60) displayBreak = `${breakMins}m`;
+          else {
+            const hrs = Math.floor(breakMins / 60);
+            const mins = breakMins % 60;
+            displayBreak = mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
+          }
+        }
+        return { ...log, displayDate, displayCheckIn, displayCheckOut, displayHours, displayBreak };
+      });
+
+      let result = [...formattedLogs];
+      if (filterStatus) result = result.filter(log => log.status === filterStatus);
+      if (filterMonth) result = result.filter(log => log.displayDate.includes(filterMonth));
+      if (filterSearch && isOrgMode) {
+        const search = filterSearch.toLowerCase();
+        result = result.filter(log => (log as any).employeeName?.toLowerCase().includes(search));
       }
-      return row;
-    });
 
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+      if (result.length === 0) {
+        alert("No records found to export");
+        return;
+      }
 
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `attendance_history_${new Date().toISOString().split("T")[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      const escapeCsv = (str: any) => {
+        if (str === null || str === undefined) return '""';
+        const s = String(str);
+        if (s.includes('"') || s.includes(',') || s.includes('\n') || s.includes('\r')) {
+          return `"${s.replace(/"/g, '""')}"`;
+        }
+        return s;
+      };
+
+      const headers = isOrgMode 
+        ? ["Employee", "Date", "Check In", "Check Out", "Hours Worked", "Break Time", "Status", "Remarks"]
+        : ["Date", "Check In", "Check Out", "Hours Worked", "Break Time", "Status", "Remarks"];
+        
+      const rows = result.map((log) => {
+        const row = [
+          escapeCsv(log.displayDate),
+          escapeCsv(log.displayCheckIn),
+          escapeCsv(log.displayCheckOut),
+          escapeCsv(log.displayHours),
+          escapeCsv(log.displayBreak),
+          escapeCsv(log.status),
+          escapeCsv(log.remarks),
+        ];
+        if (isOrgMode) row.unshift(escapeCsv((log as any).employeeName || 'Unknown'));
+        return row.join(",");
+      });
+
+      const csvContent = headers.join(",") + "\n" + rows.join("\n");
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `attendance_history_${new Date().toISOString().split("T")[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Export failed", e);
+      alert("Failed to export logs");
+    }
   };
 
   const uniqueMonths = useMemo(() => {

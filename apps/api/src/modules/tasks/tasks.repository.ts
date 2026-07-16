@@ -6,14 +6,14 @@ import { TaskStatus, TaskPriority, Prisma } from "@naprocs/database";
 export class TasksRepository {
   constructor(private readonly prisma: PrismaService) { }
 
-  async findTasksByEmployee(employeeId: string): Promise<any> {
+  async findTasksByEmployee(employeeId: string, isTrTs: boolean = false): Promise<any> {
+    const where = isTrTs 
+      ? { assigneeId: employeeId }
+      : { OR: [{ assigneeId: employeeId }, { creatorId: employeeId }] };
+
     return this.prisma.task.findMany({
-      where: {
-        OR: [
-          { assigneeId: employeeId },
-          { creatorId: employeeId }
-        ]
-      },
+      where,
+      distinct: ['id'],
       include: {
         assignee: true,
         creator: true,
@@ -22,7 +22,7 @@ export class TasksRepository {
         comments: { include: { author: true } },
         actions: { include: { actor: true } },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }]
     });
   }
 
@@ -37,7 +37,7 @@ export class TasksRepository {
         comments: { include: { author: true } },
         actions: { include: { actor: true } },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }]
     });
   }
 

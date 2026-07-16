@@ -30,7 +30,7 @@ export default function EmployeeDashboardV2() {
 
   const logsQuery = useQuery({
     queryKey: ["attendanceLogs"],
-    queryFn: fetchMyLogs,
+    queryFn: () => fetchMyLogs(),
     staleTime: 60_000,
   });
   const logs = logsQuery.data || [];

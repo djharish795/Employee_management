@@ -282,8 +282,8 @@ export class LeavesService {
     });
     const holidayDates = holidays.map((h: any) => h.date.toISOString().split('T')[0]);
 
-    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-      const dayOfWeek = d.getDay();
+    for (let d = new Date(startDate); d <= endDate; d.setUTCDate(d.getUTCDate() + 1)) {
+      const dayOfWeek = d.getUTCDay();
       const dateStr = d.toISOString().split('T')[0];
 
       // Skip Sundays (0), Saturdays (6), and Holidays
@@ -309,8 +309,8 @@ export class LeavesService {
 
     for (const leaveType of leaveTypes) {
       if (leaveType.code === 'MATERNITY') {
-        if (employee.gender !== 'FEMALE' || employee.maritalStatus !== 'MARRIED') {
-          throw new BadRequestException('Maternity leave is only applicable for married female employees.');
+        if (employee.gender !== 'FEMALE') {
+          throw new BadRequestException('Maternity leave is only applicable for female employees.');
         }
       }
 
@@ -323,10 +323,22 @@ export class LeavesService {
         throw new BadRequestException('Optional holidays require at least 7 days prior notice.');
       }
 
-      let approvalQueue = isEmergency ? [
-        { role: 'CTO', status: 'PENDING' },
-        { role: 'CEO', status: 'PENDING' }
-      ] : baseApprovalQueue;
+      if (leaveType.requiresDocumentAbove && totalWorkingDays > Number(leaveType.requiresDocumentAbove) && !data.attachmentUrl) {
+        throw new BadRequestException(`${leaveType.name} requests exceeding ${leaveType.requiresDocumentAbove} consecutive days require a medical proof document.`);
+      }
+
+      let approvalQueue = baseApprovalQueue;
+      if (isEmergency) {
+        const matrix = await this.prisma.approvalMatrix.findMany({ where: { isEmergency: true }, orderBy: { stepOrder: 'asc' } });
+        if (matrix.length > 0) {
+          approvalQueue = matrix.map(m => ({ role: m.approverRoleId, status: 'PENDING' }));
+        } else {
+          approvalQueue = [
+            { role: 'CTO', status: 'PENDING' },
+            { role: 'CEO', status: 'PENDING' }
+          ];
+        }
+      }
 
       let daysForThisType = totalWorkingDays;
       if (hasHalfDay) {
@@ -396,7 +408,7 @@ export class LeavesService {
           });
 
           const alreadyPaidThisMonth = Number(monthlyLeaves._sum.paidDays || 0);
-          const maxPaidAllowedThisMonth = 3;
+          const maxPaidAllowedThisMonth = (leaveType as any).maxPaidPerMonth ? Number((leaveType as any).maxPaidPerMonth) : 3;
           const remainingPaidAllowedThisMonth = Math.max(0, maxPaidAllowedThisMonth - alreadyPaidThisMonth);
 
           paidDays = Math.min(applicablePaidDays, remainingPaidAllowedThisMonth);
@@ -504,8 +516,8 @@ export class LeavesService {
     });
     const holidayDates = holidays.map((h: any) => h.date.toISOString().split('T')[0]);
 
-    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-      const dayOfWeek = d.getDay();
+    for (let d = new Date(startDate); d <= endDate; d.setUTCDate(d.getUTCDate() + 1)) {
+      const dayOfWeek = d.getUTCDay();
       const dateStr = d.toISOString().split('T')[0];
       if (dayOfWeek !== 0 && dayOfWeek !== 6 && !holidayDates.includes(dateStr)) {
         totalWorkingDays++;
@@ -581,7 +593,7 @@ export class LeavesService {
         });
 
         const alreadyPaidThisMonth = Number(monthlyLeaves._sum.paidDays || 0);
-        const maxPaidAllowedThisMonth = 3;
+        const maxPaidAllowedThisMonth = (leaveType as any).maxPaidPerMonth ? Number((leaveType as any).maxPaidPerMonth) : 3;
         const remainingPaidAllowedThisMonth = Math.max(0, maxPaidAllowedThisMonth - alreadyPaidThisMonth);
 
         paidDays = Math.min(applicablePaidDays, remainingPaidAllowedThisMonth);
@@ -662,6 +674,17 @@ export class LeavesService {
               }
             });
           }
+
+          if (Number(leave.unpaidDays) > 0) {
+            await tx.payrollSyncEvent.create({
+              data: {
+                employeeId: leave.employeeId,
+                leaveRequestId: leave.id,
+                unpaidDays: leave.unpaidDays,
+                status: 'PENDING'
+              }
+            });
+          }
         });
 
         this.auditService.logApprove({
@@ -718,6 +741,17 @@ export class LeavesService {
               data: {
                 pending: { decrement: (leave as any).paidDays || 0 },
                 used: { increment: (leave as any).paidDays || 0 }
+              }
+            });
+          }
+
+          if (Number(leave.unpaidDays) > 0) {
+            await tx.payrollSyncEvent.create({
+              data: {
+                employeeId: leave.employeeId,
+                leaveRequestId: leave.id,
+                unpaidDays: leave.unpaidDays,
+                status: 'PENDING'
               }
             });
           }

@@ -176,7 +176,10 @@ export function TaskKanbanBoard({ initialTasks, projectId, onTaskUpdated }: { in
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         projectId={projectId}
-        onTaskCreated={(newTask) => setTasks((prev) => [newTask, ...prev])}
+        onTaskCreated={(newTask) => setTasks((prev) => {
+          const exists = prev.some(t => t.id === newTask.id);
+          return exists ? prev : [newTask, ...prev];
+        })}
       />
 
       <TaskDetailsModal

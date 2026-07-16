@@ -74,11 +74,4 @@ export class LeavesController {
     return this.leaveService.getCalendar();
   }
 
-  @RequirePermissions(RbacPermissions.LEAVE_READ)
-  @Get('debug-leaves')
-  async debugLeaves(): Promise<unknown> {
-    return this.leaveService['prisma'].leaveRequest.findMany({ include: { employee: true } });
-  }
-
-
 }

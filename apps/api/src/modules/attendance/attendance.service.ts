@@ -83,6 +83,15 @@ export class AttendanceService {
   async punch(employeeId: string, dto: PunchDto, ipAddress: string) {
     if (!employeeId) throw new BadRequestException("Employee ID is required");
 
+    if (dto.idempotencyKey) {
+      await this.redis.connect();
+      const lockKey = `punch_lock:${employeeId}:${dto.idempotencyKey}`;
+      const locked = await this.redis.getClient().set(lockKey, "1", "EX", 10, "NX");
+      if (!locked) {
+        throw new BadRequestException("Duplicate punch request detected");
+      }
+    }
+
     const key = this.getRedisKey(employeeId);
     let state = await this.getState(employeeId);
     const now = Date.now();
@@ -201,13 +210,18 @@ export class AttendanceService {
       state.startTime = now;
       await this.redis.setJson(key, state, 60 * 60 * 24);
 
-      const workHoursDecimal = state.offset / 3600;
-
       const existingRecord = await this.prisma.attendanceRecord.findUnique({
         where: { employeeId_date: { employeeId, date: shiftDate } }
       });
       const checkInTime = existingRecord?.checkInTime || new Date(state.startTime);
       const isLate = isLateArrival(checkInTime);
+
+      let workHoursDecimal = state.offset / 3600;
+      if (existingRecord?.checkInTime) {
+        const totalElapsedSeconds = Math.floor((now - existingRecord.checkInTime.getTime()) / 1000);
+        const actualSeconds = totalElapsedSeconds - (existingRecord.totalBreakSeconds || 0);
+        workHoursDecimal = Math.max(0, actualSeconds) / 3600;
+      }
 
       const approvedHalfDay = await this.prisma.leaveRequest.findFirst({
         where: {
@@ -359,20 +373,24 @@ export class AttendanceService {
 
     const attendanceRate = Math.min(100, (daysPresent / totalWorkingDays) * 100);
 
-    // 4. Weekly Trends (Last 7 days)
-    const sevenDaysAgo = new Date(today);
-    sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 6);
+    // 4. Weekly Trends (ISO Week: Mon-Sun)
+    const currentDayOfWeek = today.getUTCDay();
+    const daysSinceMonday = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1;
+    const startOfWeek = new Date(today);
+    startOfWeek.setUTCDate(today.getUTCDate() - daysSinceMonday);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setUTCDate(startOfWeek.getUTCDate() + 6);
 
     const weeklyRecords = await this.prisma.attendanceRecord.findMany({
       where: {
         employeeId,
-        date: { gte: sevenDaysAgo, lte: today }
+        date: { gte: startOfWeek, lte: endOfWeek }
       },
       orderBy: { date: "asc" }
     });
 
     const weeklyTrends = [];
-    for (let d = new Date(sevenDaysAgo); d <= today; d.setUTCDate(d.getUTCDate() + 1)) {
+    for (let d = new Date(startOfWeek); d <= endOfWeek; d.setUTCDate(d.getUTCDate() + 1)) {
       const isoDate = d.toISOString().split("T")[0];
       const record = weeklyRecords.find(r => r.date.toISOString().split("T")[0] === isoDate);
       weeklyTrends.push({
@@ -383,6 +401,7 @@ export class AttendanceService {
 
     // Calculate this week hours
     const thisWeekHours = weeklyTrends.reduce((sum, day) => sum + day.hours, 0);
+    const weeklyTargetHours = 45;
 
     return {
       presentToday,
@@ -392,6 +411,7 @@ export class AttendanceService {
       wfhDays,
       leaveDays: holidaysAndLeaves,
       thisWeekHours: Number(thisWeekHours.toFixed(1)),
+      weeklyTargetHours,
       thisMonthDays: daysPresent,
       weeklyTrends
     };
@@ -667,27 +687,31 @@ export class AttendanceService {
     });
 
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const monthStats = new Map<string, { present: number, total: number }>();
+    const monthStats = new Map<string, { present: number, total: number, label: string }>();
 
     pastRecords.forEach(r => {
-      const monthStr = monthNames[r.date.getUTCMonth()];
-      if (!monthStats.has(monthStr)) {
-        monthStats.set(monthStr, { present: 0, total: 0 });
+      const m = r.date.getUTCMonth();
+      const y = r.date.getUTCFullYear();
+      const key = `${y}-${(m + 1).toString().padStart(2, '0')}`;
+      
+      if (!monthStats.has(key)) {
+        monthStats.set(key, { present: 0, total: 0, label: monthNames[m] });
       }
-      const stat = monthStats.get(monthStr)!;
+      const stat = monthStats.get(key)!;
       stat.total++;
       const statusStr = r.status as string;
       if ((PRESENT_STATUSES as readonly string[]).includes(statusStr)) {
         stat.present++;
       }
     });
-
     // Populate trend array in order (last 6 months)
     for (let i = 5; i >= 0; i--) {
       const d = new Date(today);
       d.setUTCMonth(d.getUTCMonth() - i);
       const mName = monthNames[d.getUTCMonth()];
-      const stat = monthStats.get(mName);
+      const y = d.getUTCFullYear();
+      const key = `${y}-${(d.getUTCMonth() + 1).toString().padStart(2, '0')}`;
+      const stat = monthStats.get(key);
       let perc = 0;
       if (stat && stat.total > 0) {
         perc = Math.round((stat.present / stat.total) * 100);
@@ -757,8 +781,8 @@ export class AttendanceService {
     ]);
 
     const data = records.map(record => {
-      const checkIn = record.checkInTime ? record.checkInTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : "--:--";
-      const checkOut = record.checkOutTime ? record.checkOutTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : "--:--";
+      const checkIn = record.checkInTime ? record.checkInTime.toISOString() : null;
+      const checkOut = record.checkOutTime ? record.checkOutTime.toISOString() : null;
       const hoursWorked = record.workHours ? Number(record.workHours) : "--";
       let statusStr = record.status;
       if (statusStr === "PRESENT" && Number(hoursWorked) < 9) {
@@ -782,8 +806,21 @@ export class AttendanceService {
     return { data, total, page, limit };
   }
 
-  async getRegularizations() {
+  async getRegularizations(user?: any) {
+    const where: any = {};
+    if (user && !['SUPER_ADMIN', 'CEO', 'CTO', 'HR', 'CHRO'].includes(user.role)) {
+      if (['MANAGER', 'TEAM_LEAD'].includes(user.role)) {
+        where.OR = [
+          { employeeId: user.employeeId },
+          { employee: { reportingManagerId: user.employeeId } }
+        ];
+      } else {
+        where.employeeId = user.employeeId;
+      }
+    }
+
     const requests = await this.prisma.regularizationRequest.findMany({
+      where,
       orderBy: { submittedDate: "desc" },
       include: { employee: { select: { firstName: true, lastName: true } } }
     });

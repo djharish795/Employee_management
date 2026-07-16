@@ -34,6 +34,16 @@ export class ConnectService {
       participantIds = deptEmployees.map(e => e.id);
     } else {
       if (!dto.assigneeId) throw new BadRequestException("AssigneeId required for 1-on-1 meets");
+      
+      const existing = await this.prisma.meetRequest.findFirst({
+        where: {
+          requesterId,
+          assigneeId: dto.assigneeId,
+          status: { in: [MeetStatus.PENDING, MeetStatus.RESCHEDULED] }
+        }
+      });
+      if (existing) throw new BadRequestException('A pending meet request with this employee already exists.');
+
       participantIds = [dto.assigneeId];
     }
 
@@ -205,7 +215,7 @@ export class ConnectService {
       for (const item of actionItems) {
         if (!item.taskId) {
           // It's a new action item, create it in Tasks table
-          const task = await this.tasksService.createTask(employeeId, {
+          const task = await this.tasksService.createTask({ employeeId, role: 'TEAM_LEAD' }, {
             title: item.text,
             description: `From meeting: ${meet.title}`,
             status: item.completed ? TaskStatus.DONE : TaskStatus.TODO,

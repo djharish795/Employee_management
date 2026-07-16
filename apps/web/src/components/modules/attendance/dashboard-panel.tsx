@@ -21,7 +21,7 @@ export default function DashboardPanel() {
   // Fetch Attendance logs list via React Query
   const { data: logs = [] } = useQuery<AttendanceLog[]>({
     queryKey: ["attendanceLogs"],
-    queryFn: fetchMyLogs,
+    queryFn: () => fetchMyLogs(),
   });
 
   // Fetch KPI Data
@@ -53,7 +53,7 @@ export default function DashboardPanel() {
   const { data: statusData } = useQuery({
     queryKey: ["attendanceStatus"],
     queryFn: fetchTodayStatus,
-    refetchInterval: 60000, // Optional: Poll every minute to ensure sync across devices
+    refetchInterval: 15000, // SYNC STRATEGY: polling every 15s to ensure sync across devices
   });
 
   // Local clock state that ticks based on backend offset
@@ -136,6 +136,7 @@ export default function DashboardPanel() {
     leaveDays: 0,
     wfhDays: 0,
     thisWeekHours: 0,
+    weeklyTargetHours: 45,
     thisMonthDays: 0,
     weeklyTrends: []
   };
@@ -330,7 +331,7 @@ export default function DashboardPanel() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">This Week</div>
-            <div className="text-2xl font-bold text-slate-900 mt-1">{defaultKpis.thisWeekHours ?? "0.0"} hrs</div>
+            <div className="text-2xl font-bold text-slate-900 mt-1">{defaultKpis.thisWeekHours ?? "0.0"}h / {defaultKpis.weeklyTargetHours ?? 45}h</div>
           </div>
           <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">This Month</div>
@@ -360,7 +361,7 @@ export default function DashboardPanel() {
             </div>
           </div>
           <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Avg. Work Hours</div>
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Avg. Hours/Day Worked</div>
             <div className="text-xl font-bold text-slate-900 mt-1">{defaultKpis.avgHoursWorked}</div>
             <div className="text-[10px] font-semibold text-slate-500 mt-1">Target: 9.0h / Day</div>
           </div>

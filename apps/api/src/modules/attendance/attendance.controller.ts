@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Query, Ip, Patch, Param } from "@nestjs/common";
+import { Controller, Get, Post, Body, UseGuards, Query, Ip, Patch, Param, BadRequestException } from "@nestjs/common";
 import { AttendanceService } from "./attendance.service";
 import { AttendanceCronService } from "./attendance.cron";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
@@ -64,7 +64,6 @@ export class AttendanceController {
     try {
       return await this.attendanceService.getOrgReports();
     } catch (e: any) {
-      const { BadRequestException } = require('@nestjs/common');
       throw new BadRequestException(e.message + "\n" + e.stack);
     }
   }
@@ -79,7 +78,6 @@ export class AttendanceController {
     try {
       return await this.attendanceService.getSummaryToday(date, departmentId, user);
     } catch (e: any) {
-      const { BadRequestException } = require('@nestjs/common');
       throw new BadRequestException(e.message + "\n" + e.stack);
     }
   }
@@ -91,9 +89,9 @@ export class AttendanceController {
   }
 
   @Get("regularizations")
-  @Permissions(Permission.READ_OWN_PROFILE) // Should probably be open so people can see their own, but since we are doing org wide, maybe READ_EMPLOYEES or filter by user inside the service. For now, since HR and Admin manage this, we can leave it. Actually the FE passes all requests so everyone can see them for now, or the FE filters them. Let's allow everyone to fetch, and filter in service if needed.
-  async getRegularizations() {
-    return this.attendanceService.getRegularizations();
+  @Permissions(Permission.READ_OWN_PROFILE)
+  async getRegularizations(@CurrentUser() user: any) {
+    return this.attendanceService.getRegularizations(user);
   }
 
   @Post("regularize")
