@@ -9,79 +9,90 @@ import {
 } from 'lucide-react';
 import { useRbac } from '@/hooks/use-rbac';
 import { Permission } from '@naprocs/types';
+import { fetchMyFieldWork, fetchFieldWorkApprovals } from '@/lib/api/field-work';
+import { useAuthStore } from '@/store/auth';
+import { apiClient } from '@/lib/api/client';
 
 export default function CamReportsPage() {
   const router = useRouter();
   const { hasPermission } = useRbac();
   const canApprove = hasPermission(Permission.APPROVE_FIELD_REQUESTS);
+  const accessToken = useAuthStore((state) => state.accessToken);
 
   const [activeTab, setActiveTab] = useState<'my-requests' | 'approvals'>('my-requests');
   const [localRequests, setLocalRequests] = useState<any[]>([]);
   const [teamRequests, setTeamRequests] = useState<any[]>([]);
+  const [isDataLoading, setIsDataLoading] = useState(true);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Seed mock team requests if they do not exist
-      const existingTeam = localStorage.getItem('team_field_requests');
-      const mockApprovals = [
-        {
-          id: 'REQ-2023-0101',
-          employeeName: 'Sweetha',
-          employeeId: 'EMS-77490',
-          department: 'Client Management',
-          reportingManager: 'Junaid',
-          client: 'Apex International Ltd.',
-          destination: 'Corporate Office, Block C, Mumbai',
-          purpose: 'Client coordination and monthly operational sync-up.',
-          date: '2023-10-24',
-          startTime: '10:00',
-          endTime: '15:00',
-          description: 'Meet client stakeholders, review performance metrics, and plan project scope expansion.',
-          transportation: 'personal',
-          returnTime: '16:00',
-          contact: '+91 98765 43210',
-          remarks: 'Awaiting site pass.',
-          status: 'Under Review',
-          fileName: 'Agenda_Doc.pdf',
-          createdAt: '2023-10-18T10:15:00.000Z'
-        },
-        {
-          id: 'REQ-2023-0102',
-          employeeName: 'Rohan Sharma',
-          employeeId: 'EMS-77495',
-          department: 'Operations Support',
-          reportingManager: 'Junaid',
-          client: 'Global Logistics Corp.',
-          destination: 'Warehouse Hub, Sector 4, Chennai',
-          purpose: 'Audit of standard storage operations and logistics flow.',
-          date: '2023-10-25',
-          startTime: '09:00',
-          endTime: '18:00',
-          description: 'Inspect physical space, assess pick-and-pack workflow efficiency, and address staff feedback.',
-          transportation: 'public',
-          returnTime: '19:30',
-          contact: '+91 87654 32109',
-          remarks: 'Safety gear requested.',
-          status: 'Approved',
-          fileName: 'Warehouse_Guidelines.pdf',
-          createdAt: '2023-10-17T09:00:00.000Z'
+    async function loadData() {
+      if (!accessToken) return;
+      setIsDataLoading(true);
+      try {
+        const own = await fetchMyFieldWork();
+        setLocalRequests(own);
+
+        if (canApprove) {
+          const team = await fetchFieldWorkApprovals();
+          setTeamRequests(team);
         }
-      ];
-
-      if (!existingTeam) {
-        localStorage.setItem('team_field_requests', JSON.stringify(mockApprovals));
-        setTeamRequests(mockApprovals);
-      } else {
-        setTeamRequests(JSON.parse(existingTeam));
-      }
-
-      // Load own requests
-      const stored = localStorage.getItem('field_work_requests');
-      if (stored) {
-        setLocalRequests(JSON.parse(stored));
+      } catch (err) {
+        console.error("Failed to load reports data", err);
+      } finally {
+        setIsDataLoading(false);
       }
     }
-  }, []);
+    loadData();
+  }, [canApprove, accessToken]);
+
+  const handleDeleteRequest = async (id: string) => {
+    if (confirm("Are you sure you want to permanently delete this request? This action cannot be undone.")) {
+      try {
+        await apiClient.delete(`/field-work-requests/${id}`);
+        alert("Request deleted successfully.");
+        // Re-fetch requests
+        const own = await fetchMyFieldWork();
+        setLocalRequests(own);
+        if (canApprove) {
+          const team = await fetchFieldWorkApprovals();
+          setTeamRequests(team);
+        }
+      } catch (error: any) {
+        console.error("Failed to delete request", error);
+        alert(error?.response?.data?.message || "Failed to delete request.");
+      }
+    }
+  };
+
+  const getStatusDisplay = (status: string) => {
+    switch (status) {
+      case 'DRAFT': return 'Draft';
+      case 'PENDING': return 'Under Review';
+      case 'APPROVED': return 'Approved';
+      case 'REJECTED': return 'Rejected';
+      case 'CANCELLED': return 'Cancelled';
+      default: return status || 'Pending';
+    }
+  };
+
+  const getStatusColorClass = (status: string) => {
+    switch (status) {
+      case 'DRAFT':
+      case 'Draft':
+        return 'bg-slate-400';
+      case 'APPROVED':
+      case 'Approved':
+        return 'bg-emerald-500';
+      case 'REJECTED':
+      case 'Rejected':
+        return 'bg-rose-500';
+      case 'CANCELLED':
+      case 'Cancelled':
+        return 'bg-slate-300';
+      default:
+        return 'bg-slate-950 dark:bg-white animate-pulse';
+    }
+  };
 
   return (
     <div className="flex flex-col h-[calc(100vh-72px)] bg-slate-50 dark:bg-slate-950 animate-in fade-in duration-300">
@@ -205,7 +216,23 @@ export default function CamReportsPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
                   {/* Local / Team Requests depending on tab */}
-                  {(activeTab === 'my-requests' ? localRequests : teamRequests).map((req, index) => (
+                  {isDataLoading ? (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-8 text-center text-sm font-semibold text-slate-500">
+                        Loading requests...
+                      </td>
+                    </tr>
+                  ) : (activeTab === 'my-requests' ? localRequests : teamRequests).length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-16 text-center">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <FileSpreadsheet className="w-8 h-8 text-slate-300 dark:text-slate-700 animate-pulse" />
+                          <p className="text-sm font-bold text-slate-900 dark:text-white">No Field Work Requests Found</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Your submitted field work requests and drafts will appear here.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (activeTab === 'my-requests' ? localRequests : teamRequests).map((req, index) => (
                     <tr key={`${activeTab}-${index}`} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors animate-in fade-in duration-300">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
@@ -223,130 +250,61 @@ export default function CamReportsPage() {
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-1.5 text-slate-650 dark:text-slate-350 text-xs font-semibold">
-                          <div className={`w-1.5 h-1.5 rounded-full ${
-                            req.status === 'Draft' 
-                              ? 'bg-slate-400' 
-                              : req.status === 'Approved' 
-                              ? 'bg-emerald-500' 
-                              : req.status === 'Rejected' 
-                              ? 'bg-rose-500' 
-                              : 'bg-slate-950 dark:bg-white animate-pulse'
-                          }`}></div>
-                          {req.status || 'Pending'}
+                          <div className={`w-1.5 h-1.5 rounded-full ${getStatusColorClass(req.status)}`}></div>
+                          {getStatusDisplay(req.status)}
                         </div>
                       </td>
                       <td className="px-5 py-4">
-                        <button 
-                          onClick={() => router.push(`/cam/reports/${req.id}`)}
-                          className="text-sm font-bold text-slate-900 dark:text-white hover:underline"
-                        >
-                          View
-                        </button>
+                        <div className="flex items-center gap-3">
+                          {req.status === 'DRAFT' || req.status === 'Draft' ? (
+                            <>
+                              <button 
+                                onClick={() => router.push(`/cam/reports/field-request?id=${req.id}`)}
+                                className="text-sm font-bold text-slate-900 dark:text-white hover:underline"
+                              >
+                                Edit
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteRequest(req.id)}
+                                className="text-sm font-bold text-rose-600 hover:text-rose-700 hover:underline"
+                              >
+                                Delete
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button 
+                                onClick={() => router.push(`/cam/reports/${req.id}`)}
+                                className="text-sm font-bold text-slate-900 dark:text-white hover:underline"
+                              >
+                                View
+                              </button>
+                              {(req.status === 'CANCELLED' || req.status === 'Cancelled') && (
+                                <button 
+                                  onClick={() => handleDeleteRequest(req.id)}
+                                  className="text-sm font-bold text-rose-600 hover:text-rose-700 hover:underline"
+                                  title="Delete from list"
+                                >
+                                  Delete
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
-
-                  <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <FileSpreadsheet className="w-4 h-4 text-slate-400" />
-                        <span className="font-medium text-slate-900 dark:text-white text-sm">Q3 Regional Lead Audit</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="px-2 py-1 text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded uppercase">LEAD</span>
-                    </td>
-                    <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-400">Oct 12,<br/>2023</td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-500 text-xs font-semibold">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                        Ready
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <button className="text-sm font-bold text-slate-900 dark:text-white hover:underline">Download</button>
-                    </td>
-                  </tr>
-                  
-                  <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <BarChart2 className="w-4 h-4 text-slate-400" />
-                        <span className="font-medium text-slate-900 dark:text-white text-sm">Monthly Revenue Reconciliation</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="px-2 py-1 text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded uppercase">REVENUE</span>
-                    </td>
-                    <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-400">Oct 10,<br/>2023</td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-500 text-xs font-semibold">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                        Ready
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <button className="text-sm font-bold text-slate-900 dark:text-white hover:underline">Download</button>
-                    </td>
-                  </tr>
-                  
-                  <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <TrendingUp className="w-4 h-4 text-slate-400" />
-                        <span className="font-medium text-slate-900 dark:text-white text-sm">Pipeline Forecast 2024</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="px-2 py-1 text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded uppercase">FORECAST</span>
-                    </td>
-                    <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-400">Oct 08,<br/>2023</td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 text-xs font-semibold">
-                        <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></div>
-                        Processing
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <button className="text-sm font-semibold text-slate-600 dark:text-slate-400 hover:underline">Cancel</button>
-                    </td>
-                  </tr>
-                  
-                  <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <Users className="w-4 h-4 text-slate-400" />
-                        <span className="font-medium text-slate-900 dark:text-white text-sm">AE Performance Dashboard</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="px-2 py-1 text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded uppercase">SALES</span>
-                    </td>
-                    <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-400">Oct 05,<br/>2023</td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-500 text-xs font-semibold">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                        Ready
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <button className="text-sm font-bold text-slate-900 dark:text-white hover:underline">Download</button>
-                    </td>
-                  </tr>
                 </tbody>
               </table>
             </div>
 
-            <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
-              <span className="text-xs text-slate-500 dark:text-slate-400">Showing 1-10 of 42 reports</span>
-              <div className="flex items-center gap-1 text-sm">
-                <button className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium">&lt;</button>
-                <button className="w-8 h-8 flex items-center justify-center bg-slate-950 text-white dark:bg-white dark:text-slate-950 rounded font-bold">1</button>
-                <button className="w-8 h-8 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded font-medium">2</button>
-                <button className="w-8 h-8 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded font-medium">3</button>
-                <button className="w-8 h-8 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded font-medium">&gt;</button>
+            {!isDataLoading && (activeTab === 'my-requests' ? localRequests : teamRequests).length > 0 && (
+              <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                  Showing {(activeTab === 'my-requests' ? localRequests : teamRequests).length} request{(activeTab === 'my-requests' ? localRequests : teamRequests).length !== 1 ? 's' : ''}
+                </span>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
