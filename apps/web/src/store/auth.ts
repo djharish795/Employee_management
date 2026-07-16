@@ -20,6 +20,8 @@ interface AuthState {
   employeeId: string | null;
   photoUrl: string | null;
   isTeamLead: boolean;
+  accessToken: string | null;
+  refreshToken: string | null;
   setTempSession: (session: TempSession | null) => void;
   setDeviceDetails: (details: DeviceDetails | null) => void;
   setAuthSession: (params: { role: string; employeeId: string | null; isTeamLead?: boolean; accessToken?: string; refreshToken?: string; }) => void;
@@ -36,10 +38,12 @@ export const useAuthStore = create<AuthState>()(
       employeeId: null,
       photoUrl: null,
       isTeamLead: false,
+      accessToken: null,
+      refreshToken: null,
       setTempSession: (session) => set({ tempSession: session }),
       setDeviceDetails: (details) => set({ deviceDetails: details }),
-      setAuthSession: ({ role, employeeId, isTeamLead = false }) =>
-        set({ role, employeeId, isTeamLead, tempSession: null }),
+      setAuthSession: ({ role, employeeId, isTeamLead = false, accessToken = null, refreshToken = null }) =>
+        set({ role, employeeId, isTeamLead, accessToken, refreshToken, tempSession: null }),
       setPhotoUrl: (url) => set({ photoUrl: url }),
       clearSession: () => {
         if (typeof document !== "undefined") {
@@ -53,6 +57,8 @@ export const useAuthStore = create<AuthState>()(
           employeeId: null,
           photoUrl: null,
           isTeamLead: false,
+          accessToken: null,
+          refreshToken: null,
         });
       },
     }),
