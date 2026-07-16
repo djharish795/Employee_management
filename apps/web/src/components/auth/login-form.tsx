@@ -1,14 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle } from "lucide-react";
 import { useAuthStore } from "../../store/auth";
 import { AuthService } from "../../services/auth.service";
-import { getDashboardPathForRole } from "@naprocs/types";
 
 // ---------- Zod validation schema ----------
 const loginSchema = z.object({
@@ -35,27 +33,15 @@ const line = "#e7e8ec";
 const accent = "#5b6cff";
 
 export const LoginForm: React.FC = () => {
-  const router = useRouter();
   const setTempSession = useAuthStore((state) => state.setTempSession);
   const setAuthSession = useAuthStore((state) => state.setAuthSession);
   const [showPassword, setShowPassword] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
 
-  const accessToken = useAuthStore((state) => state.accessToken);
-
-  // Client-side auth guard: redirect if already logged in
-  React.useEffect(() => {
-    const getCookie = (name: string) => {
-      const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
-      return match ? decodeURIComponent(match[2]) : null;
-    };
-    const role = getCookie("role")?.toUpperCase() ?? "";
-    if (accessToken) {
-      const target = getDashboardPathForRole(role);
-      router.replace(target);
-    }
-  }, [router, accessToken]);
+  // Do NOT do a client-side redirect here based on accessToken.
+  // The middleware.ts handles all auth-based redirects server-side using the HttpOnly cookie.
+  // A client-side redirect based on Zustand state would race with the cookie being set.
 
   const {
     register,
@@ -88,10 +74,13 @@ export const LoginForm: React.FC = () => {
           employeeId: res.employeeId ?? null,
           isTeamLead: res.isTeamLead ?? false,
         });
-        // Security Note: The backend AuthController MUST set HttpOnly Secure SameSite cookies
-        // for the session token. Do not set them via client-side JavaScript.
-        // See V2 Security Audit (Backend Dependencies).
-        router.push(res.redirectPath ?? "/employee/dashboard");
+        // Use a hard navigation (window.location) instead of router.push.
+        // router.push is a client-side transition — it does NOT re-run the middleware
+        // that reads the HttpOnly cookie. window.location forces a full page load,
+        // which makes the browser send the cookie to the server and allows middleware
+        // to verify it properly before serving the page.
+        const target = res.redirectPath ?? "/employee/dashboard";
+        window.location.replace(target);
       } else {
         throw new Error("Authentication failed: Missing secure tokens in server response.");
       }
