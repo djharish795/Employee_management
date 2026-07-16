@@ -33,7 +33,8 @@ const getNotificationIcon = (title: string) => {
 
 export default function EmployeeDashboardV2() {
   const queryClient = useQueryClient();
-  const { accessToken, employeeId } = useAuthStore();
+  const { employeeId } = useAuthStore();
+  const router = useRouter();
 
   const [calendarDate, setCalendarDate] = useState(new Date());
 
@@ -138,16 +139,6 @@ export default function EmployeeDashboardV2() {
   let userName = "Employee";
   if (profileQuery.data?.firstName) {
     userName = `${profileQuery.data.firstName} ${profileQuery.data.lastName || ""}`.trim();
-  } else if (accessToken) {
-    try {
-      const payload = JSON.parse(atob(accessToken.split('.')[1]));
-      if (payload.email) {
-        userName = payload.email.split('@')[0];
-        userName = userName.split('.').map((part: string) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
-      }
-    } catch (e) {
-      // ignore
-    }
   }
   const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
   const todayFormatted = new Date().toLocaleDateString('en-US', dateOptions);
