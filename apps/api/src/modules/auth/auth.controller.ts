@@ -16,10 +16,10 @@ export class AuthController {
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.login(dto);
     if (result.token) {
-      res.cookie("token", result.token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: "strict", maxAge: 86400000 });
+      res.cookie("token", result.token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: "lax", maxAge: 86400000 });
     }
     if (result.refreshToken) {
-      res.cookie("refreshToken", result.refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: "strict", maxAge: 86400000 * 7 });
+      res.cookie("refreshToken", result.refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: "lax", maxAge: 86400000 * 7 });
     }
     return result;
   }
@@ -28,10 +28,10 @@ export class AuthController {
   async verifyMfa(@Body() dto: MfaVerifyDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.verifyMfa(dto);
     if (result.token) {
-      res.cookie("token", result.token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: "strict", maxAge: 86400000 });
+      res.cookie("token", result.token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: "lax", maxAge: 86400000 });
     }
     if (result.refreshToken) {
-      res.cookie("refreshToken", result.refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: "strict", maxAge: 86400000 * 7 });
+      res.cookie("refreshToken", result.refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: "lax", maxAge: 86400000 * 7 });
     }
     return result;
   }
@@ -49,10 +49,10 @@ export class AuthController {
     }
     const result = await this.authService.refreshAuthToken(refreshToken);
     if (result.token) {
-      res.cookie("token", result.token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: "strict", maxAge: 86400000 });
+      res.cookie("token", result.token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: "lax", maxAge: 86400000 });
     }
     if (result.refreshToken) {
-      res.cookie("refreshToken", result.refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: "strict", maxAge: 86400000 * 7 });
+      res.cookie("refreshToken", result.refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: "lax", maxAge: 86400000 * 7 });
     }
     return result;
   }
