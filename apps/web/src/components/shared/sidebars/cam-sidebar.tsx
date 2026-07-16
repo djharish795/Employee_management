@@ -66,6 +66,7 @@ export function CamSidebar() {
       items: [
         { title: 'Dashboard', icon: LayoutDashboard, href: '/cam/dashboard' },
         { title: 'Scheduler', icon: Calendar, href: '/cam/scheduler' },
+        { title: 'Team Chat', icon: MessageSquare, href: '/cam/team-chat' },
         { title: 'Reports', icon: BarChart3, href: '/cam/reports' },
       ]
     },
@@ -168,7 +169,7 @@ export function CamSidebar() {
                       collapsed ? 'justify-center' : ''
                     } ${
                       isActive
-                        ? 'bg-blue-600 text-white font-semibold shadow-sm'
+                        ? 'bg-slate-900 dark:bg-slate-800 text-white font-semibold shadow-sm'
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >

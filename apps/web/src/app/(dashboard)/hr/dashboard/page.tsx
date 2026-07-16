@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Download, MoreVertical, Check, X as CloseIcon, Lock, FileText, FileSpreadsheet, ChevronDown } from "lucide-react";
+import toast from "react-hot-toast";
 import Link from "next/link";
 import {
   DropdownMenu,
@@ -36,16 +37,26 @@ export default function HrDashboardPage() {
 
   const handleApprove = async (id: string) => {
     try {
+      const toastId = toast.loading("Approving leave request...");
       await apiClient.post(`/leaves/${id}/approve`, { approverId: employeeId });
       queryClient.invalidateQueries({ queryKey: ['hr-overview'] });
-    } catch (e) { console.error(e); }
+      toast.success("Leave request approved", { id: toastId });
+    } catch (e: any) { 
+      toast.error(e?.response?.data?.message || "Failed to approve leave request");
+      console.error(e); 
+    }
   };
 
   const handleReject = async (id: string) => {
     try {
+      const toastId = toast.loading("Rejecting leave request...");
       await apiClient.post(`/leaves/${id}/reject`, { approverId: employeeId, reason: 'Rejected by HR' });
       queryClient.invalidateQueries({ queryKey: ['hr-overview'] });
-    } catch (e) { console.error(e); }
+      toast.success("Leave request rejected", { id: toastId });
+    } catch (e: any) { 
+      toast.error(e?.response?.data?.message || "Failed to reject leave request");
+      console.error(e); 
+    }
   };
 
   const handleDownloadPDF = () => {
