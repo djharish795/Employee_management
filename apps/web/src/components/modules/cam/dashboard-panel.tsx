@@ -163,8 +163,13 @@ export default function CamDashboardPanel() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-800">
                   {/* Lead 1 */}
-                  <tr className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-4 px-6 font-bold text-slate-950">Robert Chen</td>
+                  <tr className="hover:bg-slate-50/80 transition-colors group">
+                    <td className="py-4 px-6">
+                      <button className="text-left font-bold text-slate-950 hover:text-blue-600 hover:underline flex items-center gap-1.5">
+                        Robert Chen
+                        <ExternalLink className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </button>
+                    </td>
                     <td className="py-4 px-3 text-slate-500 font-medium">Aether Logistics Corp</td>
                     <td className="py-4 px-3 text-center">
                       <span className="inline-block px-2.5 py-0.5 bg-slate-100 text-slate-600 rounded text-[9px] font-black uppercase tracking-wider">
@@ -183,8 +188,13 @@ export default function CamDashboardPanel() {
                   </tr>
 
                   {/* Lead 2 */}
-                  <tr className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-4 px-6 font-bold text-slate-950">Elena Markova</td>
+                  <tr className="hover:bg-slate-50/80 transition-colors group">
+                    <td className="py-4 px-6">
+                      <button className="text-left font-bold text-slate-950 hover:text-blue-600 hover:underline flex items-center gap-1.5">
+                        Elena Markova
+                        <ExternalLink className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </button>
+                    </td>
                     <td className="py-4 px-3 text-slate-500 font-medium">Stratos Cloud Systems</td>
                     <td className="py-4 px-3 text-center">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-50 text-emerald-700 rounded text-[9px] font-black uppercase tracking-wider border border-emerald-100">
@@ -201,8 +211,13 @@ export default function CamDashboardPanel() {
                   </tr>
 
                   {/* Lead 3 */}
-                  <tr className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-4 px-6 font-bold text-slate-950">David Jenkins</td>
+                  <tr className="hover:bg-slate-50/80 transition-colors group">
+                    <td className="py-4 px-6">
+                      <button className="text-left font-bold text-slate-950 hover:text-blue-600 hover:underline flex items-center gap-1.5">
+                        David Jenkins
+                        <ExternalLink className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </button>
+                    </td>
                     <td className="py-4 px-3 text-slate-500 font-medium">Mainframe Solutions Ltd</td>
                     <td className="py-4 px-3 text-center">
                       <span className="inline-block px-2.5 py-0.5 bg-slate-100 text-slate-600 rounded text-[9px] font-black uppercase tracking-wider">
@@ -219,8 +234,13 @@ export default function CamDashboardPanel() {
                   </tr>
 
                   {/* Lead 4 */}
-                  <tr className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-4 px-6 font-bold text-slate-950">Sarah Miller</td>
+                  <tr className="hover:bg-slate-50/80 transition-colors group">
+                    <td className="py-4 px-6">
+                      <button className="text-left font-bold text-slate-950 hover:text-blue-600 hover:underline flex items-center gap-1.5">
+                        Sarah Miller
+                        <ExternalLink className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </button>
+                    </td>
                     <td className="py-4 px-3 text-slate-500 font-medium">Apex Global</td>
                     <td className="py-4 px-3 text-center">
                       <span className="inline-block px-2.5 py-0.5 bg-indigo-50 text-indigo-700 rounded text-[9px] font-black uppercase tracking-wider border border-indigo-100">
@@ -325,7 +345,7 @@ export default function CamDashboardPanel() {
             
             <div className="space-y-3">
               {/* Card Item 1 */}
-              <div className="border border-slate-200 rounded-xl p-4 flex flex-col gap-3 hover:border-slate-300 transition-all">
+              <div className="border border-slate-200 rounded-xl p-4 flex flex-col gap-3 hover:border-slate-300 transition-all bg-white">
                 <div className="flex justify-between items-start">
                   <div>
                     <h4 className="text-sm font-extrabold text-slate-950">James Wilson</h4>
@@ -335,9 +355,13 @@ export default function CamDashboardPanel() {
                     Urgent
                   </span>
                 </div>
+
+                <div className="text-[10px] space-y-1 text-slate-500 font-medium bg-slate-50 p-2 rounded-lg border border-slate-100">
+                  <div><span className="font-bold text-slate-700">Qualified By:</span> Sarah Jenkins (CAM)</div>
+                  <div><span className="font-bold text-slate-700">Qualified Date:</span> Oct 23, 2023</div>
+                </div>
                 
-                <div className="flex items-center justify-between mt-1.5 pt-3 border-t border-slate-50">
-                  <span className="text-[10px] font-semibold text-slate-400">Qual: Oct 23</span>
+                <div className="flex items-center justify-end mt-1 pt-2 border-t border-slate-100">
                   <button className="px-3.5 py-1.5 text-[10px] font-black tracking-wider uppercase text-white bg-slate-950 rounded hover:bg-slate-800 transition-colors">
                     Assign To CRM
                   </button>
@@ -345,7 +369,7 @@ export default function CamDashboardPanel() {
               </div>
 
               {/* Card Item 2 */}
-              <div className="border border-slate-200 rounded-xl p-4 flex flex-col gap-3 hover:border-slate-300 transition-all">
+              <div className="border border-slate-200 rounded-xl p-4 flex flex-col gap-3 hover:border-slate-300 transition-all bg-white">
                 <div className="flex justify-between items-start">
                   <div>
                     <h4 className="text-sm font-extrabold text-slate-950">Maria Garcia</h4>
@@ -355,9 +379,13 @@ export default function CamDashboardPanel() {
                     Med
                   </span>
                 </div>
+
+                <div className="text-[10px] space-y-1 text-slate-500 font-medium bg-slate-50 p-2 rounded-lg border border-slate-100">
+                  <div><span className="font-bold text-slate-700">Qualified By:</span> Sarah Jenkins (CAM)</div>
+                  <div><span className="font-bold text-slate-700">Qualified Date:</span> Oct 24, 2023</div>
+                </div>
                 
-                <div className="flex items-center justify-between mt-1.5 pt-3 border-t border-slate-50">
-                  <span className="text-[10px] font-semibold text-slate-400">Qual: Oct 24</span>
+                <div className="flex items-center justify-end mt-1 pt-2 border-t border-slate-100">
                   <button className="px-3.5 py-1.5 text-[10px] font-black tracking-wider uppercase text-white bg-slate-950 rounded hover:bg-slate-800 transition-colors">
                     Assign To CRM
                   </button>
@@ -420,14 +448,14 @@ export default function CamDashboardPanel() {
             </div>
           </div>
 
-          {/* Workspace Status Card */}
+          {/* Pending CRM Acceptance Card */}
           <div className="bg-[#111827] text-white rounded-xl shadow-md p-5 flex items-center justify-between border border-slate-800">
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                Workspace Status
+              <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
+                Pending CRM Acceptance
               </p>
               <h4 className="text-sm font-black text-slate-100 mt-1 flex items-center gap-1.5">
-                All Workflows Active
+                3 Leads Waiting For CRM Acceptance
               </h4>
             </div>
             <button className="w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center hover:bg-slate-800 hover:text-white text-slate-300 transition-colors shadow-inner">
