@@ -7,6 +7,7 @@ import { Loader2, ArrowLeft, CheckCircle, AlertTriangle, FileText } from "lucide
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import { useAuthStore } from "@/store/auth";
 
 export function KnowledgeDetailClient({ slug }: { slug: string }) {
   const router = useRouter();
@@ -14,6 +15,23 @@ export function KnowledgeDetailClient({ slug }: { slug: string }) {
   const [loading, setLoading] = useState(true);
   const [signature, setSignature] = useState("");
   const [isSigning, setIsSigning] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const [userName, setUserName] = useState("");
+  
+  useEffect(() => {
+    if (accessToken) {
+      try {
+        const payload = JSON.parse(atob(accessToken.split('.')[1]));
+        if (payload.email) {
+          let name = payload.email.split('@')[0];
+          name = name.split('.').map((part: string) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
+          setUserName(name);
+        }
+      } catch (e) {}
+    }
+  }, [accessToken]);
 
   useEffect(() => {
     knowledgeApi.getBySlug(slug)
@@ -24,13 +42,14 @@ export function KnowledgeDetailClient({ slug }: { slug: string }) {
         router.push("/knowledge");
       })
       .finally(() => setLoading(false));
-  }, [slug, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]);
 
   const [viewUrl, setViewUrl] = useState("");
   const [viewUrlLoading, setViewUrlLoading] = useState(false);
 
   useEffect(() => {
-    if (!doc) {
+    if (!doc?.content) {
       setViewUrl("");
       return;
     }
@@ -50,22 +69,44 @@ export function KnowledgeDetailClient({ slug }: { slug: string }) {
     };
 
     getUrl();
-  }, [doc]);
+  }, [doc?.content]);
 
-  const handleSign = async () => {
+  const handleSignClick = () => {
     if (!doc) return;
     if (signature.trim().length < 2) {
       toast.error("Please enter your full legal name");
       return;
     }
+    if (signature.trim().toLowerCase() !== userName.toLowerCase()) {
+      toast.error(`Please enter your exact account name: ${userName}`);
+      return;
+    }
+    setShowConfirm(true);
+  };
+
+  const handleSign = async () => {
+    if (!doc) return;
     
     setIsSigning(true);
     try {
-      await knowledgeApi.acknowledge(doc.id, signature);
+      const newAck = await knowledgeApi.acknowledge(doc.id, signature);
       toast.success("Document signed successfully");
-      // Refresh doc
+      setShowConfirm(false);
+      
+      // Instantly update local state to remove the blocker
+      setDoc(prev => prev ? {
+        ...prev,
+        acknowledgements: [newAck]
+      } : prev);
+
+      // Refresh doc from server just in case, but preserve our new acknowledgement if the server doesn't return it yet
       const updated = await knowledgeApi.getBySlug(slug);
-      setDoc(updated);
+      if (updated) {
+        setDoc({
+          ...updated,
+          acknowledgements: updated.acknowledgements?.length ? updated.acknowledgements : [newAck]
+        });
+      }
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to sign document");
     } finally {
@@ -109,7 +150,16 @@ export function KnowledgeDetailClient({ slug }: { slug: string }) {
         </div>
 
         {/* Content */}
-        <div className="p-8 border-b border-slate-100">
+        <div className="p-8 border-b border-slate-100 relative">
+          {needsSignature && (
+            <div className="absolute inset-0 z-10 bg-white/40 backdrop-blur-md flex flex-col items-center justify-center">
+              <div className="bg-white p-6 rounded-2xl shadow-xl border border-slate-200 text-center max-w-md m-4">
+                <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
+                <h3 className="text-lg font-bold text-slate-900 mb-2">Signature Required</h3>
+                <p className="text-sm text-slate-600">Please provide your e-signature below to unlock and view this document.</p>
+              </div>
+            </div>
+          )}
           {viewUrlLoading ? (
             <div className="flex flex-col items-center justify-center py-20 text-slate-500">
               <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-2" />
@@ -176,17 +226,20 @@ export function KnowledgeDetailClient({ slug }: { slug: string }) {
                 </div>
 
                 <div className="flex flex-col gap-2 max-w-sm">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Type your full legal name</label>
-                  <input 
-                    type="text" 
-                    value={signature}
-                    onChange={(e) => setSignature(e.target.value)}
-                    placeholder="e.g. John Doe"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                  />
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Confirm Your Identity</label>
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      value={signature}
+                      onChange={(e) => setSignature(e.target.value)}
+                      placeholder={userName || "Your Account Name"}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder-slate-300 font-medium text-slate-900"
+                    />
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1 mb-2">Please type exactly: <span className="font-bold text-slate-700">{userName}</span></p>
                   <button
-                    onClick={handleSign}
-                    disabled={isSigning || signature.trim().length < 2}
+                    onClick={handleSignClick}
+                    disabled={isSigning || signature !== userName || userName === ""}
                     className="mt-2 w-full py-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
                   >
                     {isSigning ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-4 h-4" />}
@@ -199,6 +252,31 @@ export function KnowledgeDetailClient({ slug }: { slug: string }) {
         )}
 
       </div>
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 animate-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-bold text-slate-900 mb-2">Confirm Signature</h3>
+            <p className="text-sm text-slate-600 mb-6">Are you sure you want to sign this document? This action cannot be undone.</p>
+            <div className="flex gap-3 justify-end">
+              <button 
+                onClick={() => setShowConfirm(false)}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition-colors"
+                disabled={isSigning}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSign}
+                className="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 flex items-center gap-2 transition-colors shadow-sm"
+                disabled={isSigning}
+              >
+                {isSigning ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                Confirm & Sign
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

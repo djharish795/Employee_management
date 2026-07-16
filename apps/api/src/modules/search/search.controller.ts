@@ -12,9 +12,9 @@ export class SearchController {
 
   @RequirePermissions(RbacPermissions.DASHBOARD_VIEW)
   @Get()
-  async globalSearch(@Query('q') q: string, @CurrentUser() user: any) {
+  async globalSearch(@Query('q') q: string, @Query('scope') scope: string, @CurrentUser() user: any) {
     if (!q || q.length < 2) return { data: [] };
-    const results = await this.searchService.globalSearch(q, user.role);
+    const results = await this.searchService.globalSearch(q, user.role, scope, user.employeeId);
     return { data: results };
   }
 }

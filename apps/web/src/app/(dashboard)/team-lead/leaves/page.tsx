@@ -18,8 +18,9 @@ export default function TeamLeavePage() {
 
   // Fetch Team Calendar
   const { data: calendar = [], isLoading: isLoadingCalendar } = useQuery<ApiLeaveRequest[]>({
-    queryKey: ["leaves-calendar"],
-    queryFn: fetchLeaveCalendar,
+    queryKey: ["leaves-calendar", employeeId],
+    queryFn: () => fetchLeaveCalendar(employeeId!),
+    enabled: !!employeeId,
   });
 
   const approveMutation = useMutation({

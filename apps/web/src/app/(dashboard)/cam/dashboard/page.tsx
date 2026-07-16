@@ -1,6 +1,6 @@
 import React from 'react';
 import { Metadata } from 'next';
-import EmployeeDashboardV2 from '@/components/modules/employee/employee-dashboard-v2';
+import CamDashboardPanel from '@/components/modules/cam/dashboard-panel';
 
 export const metadata: Metadata = {
   title: 'CAM Dashboard | Naprocs EMS',
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function CamDashboardPage() {
   return (
     <div className="flex-1 w-full p-6 md:p-8 bg-slate-50 min-h-screen font-sans">
-      <EmployeeDashboardV2 />
+      <CamDashboardPanel />
     </div>
   );
 }

@@ -55,7 +55,7 @@ export function EmployeeSidebar() {
         {!collapsed && (
           <div>
             <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight leading-snug">Naprocs EMS</h2>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-wide mt-0.5">Employee Dashboard</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-wide mt-0.5 capitalize">{useAuthStore.getState().role?.toLowerCase() || 'employee'} Dashboard</p>
           </div>
         )}
         <button
@@ -67,22 +67,6 @@ export function EmployeeSidebar() {
         </button>
       </div>
 
-      {/* Quick Action */}
-      {!collapsed && (
-        <div className="px-4 pb-5">
-          <button className="w-full bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm">
-            <Plus className="w-4 h-4" />
-            <span>New Request</span>
-          </button>
-        </div>
-      )}
-      {collapsed && (
-        <div className="px-3 pb-5">
-          <button className="w-full bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white flex items-center justify-center py-2.5 rounded-lg transition-colors shadow-sm" title="New Request">
-            <Plus className="w-4 h-4" />
-          </button>
-        </div>
-      )}
 
       {/* Navigation */}
       <nav className={`flex-1 space-y-0.5 overflow-y-auto ${collapsed ? 'px-2' : 'px-3'}`}>

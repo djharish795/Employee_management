@@ -69,6 +69,7 @@ export const applyLeave = async (payload: {
   startDate: string;
   endDate: string;
   reason: string;
+  attachmentUrl?: string;
   isHalfDay?: boolean;
   halfDaySession?: string | null;
 }): Promise<{ message: string; data: any }> => {
@@ -127,7 +128,8 @@ export const cancelLeaveRequest = async (
 // ─── Fetch my leave requests ──────────────────────────────────────────────────
 
 // ─── Get approved leaves for calendar view ────────────────────────────────────
-export const fetchLeaveCalendar = async (): Promise<ApiLeaveRequest[]> => {
-  const { data } = await apiClient.get("/leaves/calendar");
+export const fetchLeaveCalendar = async (employeeId?: string): Promise<ApiLeaveRequest[]> => {
+  const url = employeeId ? `/leaves/calendar?employeeId=${employeeId}` : "/leaves/calendar";
+  const { data } = await apiClient.get(url);
   return data;
 };

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Download, MoreVertical, Check, X as CloseIcon, Lock, FileText, FileSpreadsheet, ChevronDown } from "lucide-react";
+import toast from "react-hot-toast";
 import Link from "next/link";
 import {
   DropdownMenu,
@@ -36,16 +37,26 @@ export default function HrDashboardPage() {
 
   const handleApprove = async (id: string) => {
     try {
+      const toastId = toast.loading("Approving leave request...");
       await apiClient.post(`/leaves/${id}/approve`, { approverId: employeeId });
       queryClient.invalidateQueries({ queryKey: ['hr-overview'] });
-    } catch (e) { console.error(e); }
+      toast.success("Leave request approved", { id: toastId });
+    } catch (e: any) { 
+      toast.error(e?.response?.data?.message || "Failed to approve leave request");
+      console.error(e); 
+    }
   };
 
   const handleReject = async (id: string) => {
     try {
+      const toastId = toast.loading("Rejecting leave request...");
       await apiClient.post(`/leaves/${id}/reject`, { approverId: employeeId, reason: 'Rejected by HR' });
       queryClient.invalidateQueries({ queryKey: ['hr-overview'] });
-    } catch (e) { console.error(e); }
+      toast.success("Leave request rejected", { id: toastId });
+    } catch (e: any) { 
+      toast.error(e?.response?.data?.message || "Failed to reject leave request");
+      console.error(e); 
+    }
   };
 
   const handleDownloadPDF = () => {
@@ -260,7 +271,7 @@ export default function HrDashboardPage() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => {
-                  const csvData = "Metric,Value\\nHeadcount," + data.headcount.total + "\\nPresent," + data.attendance.present + "\\nAbsent," + data.attendance.absent;
+                  const csvData = "Metric,Value\\nHeadcount," + data.headcount.total + "\\nPresent," + data.attendance.present + "\\nLeaves," + data.attendance.absent;
                   const blob = new Blob([csvData], { type: 'text/csv' });
                   const url = window.URL.createObjectURL(blob);
                   const a = document.createElement('a');
@@ -315,7 +326,7 @@ export default function HrDashboardPage() {
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-sm bg-red-500 dark:bg-red-500"></div>
-                  <span className="text-slate-600 dark:text-slate-400 font-medium">Absent ({absentPct}%)</span>
+                  <span className="text-slate-600 dark:text-slate-400 font-medium">Leaves ({absentPct}%)</span>
                 </div>
                 <span className="font-bold text-red-600 dark:text-red-400">{data.attendance.absent}</span>
               </div>

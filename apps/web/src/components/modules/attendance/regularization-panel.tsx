@@ -312,11 +312,10 @@ export default function RegularizationPanel() {
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Attachment (Optional)</label>
                 <input
-                  type="text"
-                  placeholder="e.g. log_snapshot.jpg"
-                  value={fileName}
-                  onChange={(e) => setFileName(e.target.value)}
-                  className="w-full h-10 px-3.5 border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-slate-900/20"
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.pdf"
+                  onChange={(e) => setFileName(e.target.files?.[0]?.name || "")}
+                  className="w-full text-xs font-semibold text-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 file:cursor-pointer cursor-pointer border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/20 bg-white"
                 />
               </div>
 

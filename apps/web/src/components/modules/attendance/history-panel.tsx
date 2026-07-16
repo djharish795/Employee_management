@@ -4,6 +4,21 @@ import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, Filter, Download, ArrowUpDown, Calendar, RefreshCcw } from "lucide-react";
 import { AttendanceLog } from "@/types/attendance";
+import { memo } from "react";
+
+const formatDecimalHoursToHMS = (hoursDecimal: number): string => {
+  if (!hoursDecimal || hoursDecimal === 0) return "0s";
+  const totalSeconds = Math.round(hoursDecimal * 3600);
+  const hrs = Math.floor(totalSeconds / 3600);
+  const mins = Math.floor((totalSeconds % 3600) / 60);
+  const secs = totalSeconds % 60;
+  
+  const parts = [];
+  if (hrs > 0) parts.push(`${hrs}h`);
+  if (mins > 0) parts.push(`${mins}m`);
+  if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+  return parts.join(" ");
+};
 
 import { fetchMyLogs, fetchAllLogs } from "@/lib/api/attendance";
 
@@ -23,6 +38,42 @@ interface HistoryPanelProps {
   mode?: "personal" | "org";
 }
 
+const MemoizedHistoryRow = memo(({ log, isOrgMode }: { log: any, isOrgMode: boolean }) => {
+  let badge = "text-slate-600 bg-slate-100";
+  if (log.status === "PRESENT") badge = "text-emerald-700 bg-emerald-50 border border-emerald-200/50";
+  else if (log.status === "LATE") badge = "text-amber-700 bg-amber-50 border border-amber-200/50";
+  else if (log.status === "EARLY_CHECKOUT") badge = "text-orange-500 bg-orange-50 border border-orange-200/50";
+  else if (log.status === "WFH") badge = "text-slate-900 bg-slate-100 border border-slate-300/50";
+  else if (log.status === "ABSENT") badge = "text-rose-700 bg-rose-50 border border-rose-200/50";
+
+  return (
+    <tr className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+      {isOrgMode && (
+        <td className="px-6 py-4 font-bold text-slate-900">
+          {log.employeeName || "Unknown"}
+        </td>
+      )}
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="font-bold text-slate-900">{log.displayDate}</div>
+      </td>
+      <td className="px-6 py-4 font-mono text-slate-500">{log.displayCheckIn}</td>
+      <td className="px-6 py-4 font-mono text-slate-500">{log.displayCheckOut}</td>
+      <td className="px-6 py-4 font-bold text-slate-900">{log.displayHours}</td>
+      <td className="px-6 py-4 font-bold text-amber-600">{log.displayBreak}</td>
+      <td className="px-6 py-4">
+        <span className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase ${badge}`}>
+          {log.status}
+        </span>
+      </td>
+      <td className="px-6 py-4 text-slate-500 leading-relaxed max-w-[240px] truncate" title={log.remarks}>
+        {log.remarks}
+      </td>
+    </tr>
+  );
+});
+
+MemoizedHistoryRow.displayName = "MemoizedHistoryRow";
+
 export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
   const [filterMonth, setFilterMonth] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -40,7 +91,7 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
       const formattedDate = new Date(log.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
       const formattedCheckIn = formatTimeValue(log.checkIn);
       const formattedCheckOut = formatTimeValue(log.checkOut);
-      const formattedHours = typeof log.hoursWorked === 'number' ? `${log.hoursWorked.toFixed(1)}h` : log.hoursWorked;
+      const formattedHours = typeof log.hoursWorked === 'number' ? formatDecimalHoursToHMS(log.hoursWorked) : log.hoursWorked;
       
       // Calculate formatted break
       let formattedBreak = "—";
@@ -102,7 +153,7 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
         const displayDate = new Date(log.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
         const displayCheckIn = formatTimeValue(log.checkIn);
         const displayCheckOut = formatTimeValue(log.checkOut);
-        const displayHours = typeof log.hoursWorked === 'number' ? `${log.hoursWorked.toFixed(1)}h` : log.hoursWorked;
+        const displayHours = typeof log.hoursWorked === 'number' ? formatDecimalHoursToHMS(log.hoursWorked) : log.hoursWorked;
         let displayBreak = "—";
         if (log.totalBreakSeconds && log.totalBreakSeconds > 0) {
           const breakMins = Math.round(log.totalBreakSeconds / 60);
@@ -131,7 +182,13 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
 
       const escapeCsv = (str: any) => {
         if (str === null || str === undefined) return '""';
-        const s = String(str);
+        let s = String(str);
+        
+        // Prevent CSV/Excel Formula Injection (BUG-SEC-001)
+        if (s.startsWith('=') || s.startsWith('+') || s.startsWith('-') || s.startsWith('@')) {
+          s = "'" + s;
+        }
+
         if (s.includes('"') || s.includes(',') || s.includes('\n') || s.includes('\r')) {
           return `"${s.replace(/"/g, '""')}"`;
         }
@@ -139,8 +196,8 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
       };
 
       const headers = isOrgMode 
-        ? ["Employee", "Date", "Check In", "Check Out", "Hours Worked", "Break Time", "Status", "Remarks"]
-        : ["Date", "Check In", "Check Out", "Hours Worked", "Break Time", "Status", "Remarks"];
+        ? ["Employee", "Date", "Check In", "Check Out", "Time Worked", "Break Time", "Status", "Remarks"]
+        : ["Date", "Check In", "Check Out", "Time Worked", "Break Time", "Status", "Remarks"];
         
       const rows = result.map((log) => {
         const row = [
@@ -182,6 +239,8 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  
+  const [activeTooltipLogId, setActiveTooltipLogId] = useState<string | null>(null);
 
   // Reset to page 1 when filters change
   React.useEffect(() => {
@@ -193,6 +252,17 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
 
   return (
     <div className="space-y-6">
+      {/* Invisible overlay to close tooltip when clicking outside */}
+      {activeTooltipLogId && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={(e) => {
+            e.stopPropagation();
+            setActiveTooltipLogId(null);
+          }} 
+        />
+      )}
+
       {/* Filtering Bar */}
       <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3 flex-1">
@@ -269,46 +339,16 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
                   <th className="px-6 py-4">Date</th>
                   <th className="px-6 py-4">Check In</th>
                   <th className="px-6 py-4">Check Out</th>
-                  <th className="px-6 py-4">Hours Worked</th>
+                  <th className="px-6 py-4">Time Worked</th>
                   <th className="px-6 py-4">Break Time</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4">Remarks</th>
                 </tr>
               </thead>
               <tbody className="text-xs font-semibold text-slate-700 divide-y divide-slate-100">
-                {paginatedLogs.map((log, idx) => {
-                  let badge = "text-slate-600 bg-slate-100";
-                  if (log.status === "PRESENT") badge = "text-emerald-700 bg-emerald-50 border border-emerald-200/50";
-                  else if (log.status === "LATE") badge = "text-amber-700 bg-amber-50 border border-amber-200/50";
-                  else if (log.status === "EARLY_CHECKOUT") badge = "text-orange-500 bg-orange-50 border border-orange-200/50";
-                  else if (log.status === "WFH") badge = "text-slate-900 bg-slate-100 border border-slate-300/50";
-                  else if (log.status === "ABSENT") badge = "text-rose-700 bg-rose-50 border border-rose-200/50";
-
-                  return (
-                    <tr key={(log as any).id || idx} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                      {isOrgMode && (
-                        <td className="px-6 py-4 font-bold text-slate-900">
-                          {(log as any).employeeName || "Unknown"}
-                        </td>
-                      )}
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-bold text-slate-900">{log.displayDate}</div>
-                      </td>
-                      <td className="px-6 py-4 font-mono text-slate-500">{log.displayCheckIn}</td>
-                      <td className="px-6 py-4 font-mono text-slate-500">{log.displayCheckOut}</td>
-                      <td className="px-6 py-4 font-bold text-slate-900">{log.displayHours}</td>
-                      <td className="px-6 py-4 font-bold text-amber-600">{log.displayBreak}</td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase ${badge}`}>
-                          {log.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-slate-500 leading-relaxed max-w-[240px] truncate">
-                        {log.remarks}
-                      </td>
-                    </tr>
-                  );
-                })}
+                {paginatedLogs.map((log, idx) => (
+                  <MemoizedHistoryRow key={(log as any).id || idx} log={log} isOrgMode={isOrgMode} />
+                ))}
               </tbody>
             </table>
           </div>

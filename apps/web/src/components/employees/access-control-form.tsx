@@ -237,4 +237,3 @@ export function AccessControlForm({ onSave, initialData = {}, formId }: AccessCo
     </form>
   );
 }
-

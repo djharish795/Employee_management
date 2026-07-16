@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, Bell, HelpCircle, LogOut, User, Users, Monitor, Calendar, LayoutDashboard, Clock, BookOpen, ShieldCheck, History, Network, CheckSquare, MessageSquare, UserPlus, Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { useDebounce } from '@/hooks/use-debounce';
 import { apiClient } from '@/lib/api/client';
@@ -12,6 +12,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from "next/image";
+import { useQuery } from '@tanstack/react-query';
+import { fetchMyProfile } from '@/lib/api/profile';
 
 const IconMap: Record<string, React.ElementType> = {
   Monitor, Users, Calendar, LayoutDashboard, Clock, BookOpen,
@@ -19,38 +21,43 @@ const IconMap: Record<string, React.ElementType> = {
 };
 
 export function Topbar() {
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const pathname = usePathname();
   const clearSession = useAuthStore((state) => state.clearSession);
   const accessToken = useAuthStore((state) => state.accessToken);
   const role = useAuthStore((state) => state.role);
   const photoUrl = useAuthStore((state) => state.photoUrl);
   const isTeamLead = useAuthStore((state) => state.isTeamLead);
 
-  const lastKnownRef = useRef({ email: "User", role: "Employee", photoUrl: null as string | null });
+  const { data: profile } = useQuery({
+    queryKey: ["myProfile"],
+    queryFn: fetchMyProfile,
+    staleTime: 5 * 60 * 1000,
+  });
 
-  let userEmail = "User";
-  if (accessToken) {
-    try {
-      const payload = JSON.parse(atob(accessToken.split('.')[1]));
-      if (payload.email) {
-        userEmail = payload.email.split('@')[0];
-        // Replace dots with spaces and capitalize
-        userEmail = userEmail.split('.').map((part: string) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
-      }
-    } catch (e) {
-      // ignore
-    }
-    lastKnownRef.current = { email: userEmail, role: role || "Employee", photoUrl };
+  const lastKnownRef = useRef({ name: "User", role: "Employee", photoUrl: null as string | null });
+
+  let userName = "User";
+  if (profile?.firstName) {
+    userName = `${profile.firstName} ${profile.lastName || ""}`.trim();
+    lastKnownRef.current.name = userName;
   } else {
-    userEmail = lastKnownRef.current.email;
+    userName = lastKnownRef.current.name;
   }
 
-  let displayRole = accessToken ? (role || "Employee") : lastKnownRef.current.role;
+  let displayRole = profile?.role || role || lastKnownRef.current.role;
+  lastKnownRef.current.role = displayRole;
   if (displayRole === 'OM') displayRole = 'Operations Manager';
   else if (displayRole === 'OE') displayRole = 'Operations Executive';
-  const displayPhotoUrl = accessToken ? photoUrl : lastKnownRef.current.photoUrl;
+  
+  const displayPhotoUrl = profile?.profilePicture || photoUrl || lastKnownRef.current.photoUrl;
+  lastKnownRef.current.photoUrl = displayPhotoUrl;
 
   const handleLogout = () => {
     setIsDropdownOpen(false);
@@ -111,7 +118,8 @@ export function Topbar() {
       }
       setLoading(true);
       try {
-        const response = await apiClient.get(`/search?q=${encodeURIComponent(debouncedQuery)}`);
+        const scope = pathname.startsWith('/team-lead') ? 'team' : 'individual';
+        const response = await apiClient.get(`/search?q=${encodeURIComponent(debouncedQuery)}&scope=${scope}`);
         const searchData = Array.isArray(response.data) ? response.data : (response.data?.data || []);
         setResults(searchData);
         setSelectedIndex(0);
@@ -176,7 +184,7 @@ export function Topbar() {
             spellCheck="false"
             className="flex-1 bg-transparent border-none focus:outline-none text-sm text-slate-900 dark:text-white placeholder:text-slate-400 font-medium"
             placeholder={
-              !role || role.toUpperCase() === "EMPLOYEE" 
+              !pathname.startsWith('/team-lead') 
                 ? "Search my tasks, documents, or modules..." 
                 : "Search employees, reports, or modules..."
             }
@@ -284,9 +292,7 @@ export function Topbar() {
               <button className="relative hover:text-slate-900 dark:hover:text-white transition-colors focus:outline-none">
                 <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-slate-950">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
+                  <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-950" />
                 )}
               </button>
             </DropdownMenuTrigger>
@@ -331,11 +337,13 @@ export function Topbar() {
                   </div>
                 )}
               </div>
+              <div className="p-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+                <Link href="/notifications" onClick={() => setIsDropdownOpen(false)} className="block w-full text-center py-2 text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+                  View all notifications
+                </Link>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
-          <button onClick={() => { }} className="hidden sm:block hover:text-slate-900 dark:hover:text-white transition-colors focus:outline-none">
-            <HelpCircle className="w-5 h-5" />
-          </button>
         </div>
 
         {/* Divider */}
@@ -349,14 +357,14 @@ export function Topbar() {
           >
             {/* Hide text name on mobile, show only avatar */}
             <div className="hidden sm:flex text-right flex-col">
-              <span className="text-sm font-bold text-slate-900 dark:text-white leading-tight">{userEmail}</span>
-              <span className="text-[11px] font-semibold tracking-wide text-slate-500 dark:text-slate-400">{displayRole}</span>
+              <span className="text-sm font-bold text-slate-900 dark:text-white leading-tight">{isMounted ? userName : "User"}</span>
+              <span className="text-[11px] font-semibold tracking-wide text-slate-500 dark:text-slate-400">{isMounted ? displayRole : "Employee"}</span>
             </div>
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-700 dark:text-slate-300 font-bold text-sm uppercase transition-colors">
-              {displayPhotoUrl ? (
+              {displayPhotoUrl && isMounted ? (
                 <Image src={displayPhotoUrl} alt="Profile" className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
               ) : (
-                userEmail.charAt(0)
+                isMounted ? userName.charAt(0).toUpperCase() : "U"
               )}
             </div>
           </div>

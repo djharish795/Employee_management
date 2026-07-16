@@ -6,8 +6,12 @@ import { Queue } from 'bullmq';
 export class LeavesSchedulerService implements OnModuleInit {
   private readonly logger = new Logger(LeavesSchedulerService.name);
 
-  constructor(@InjectQueue('leaves-queue') private readonly leavesQueue: Queue) {}
-
+  constructor(@InjectQueue('leaves-queue') private readonly leavesQueue: Queue) {
+    this.leavesQueue.on('error', (err: Error) => {
+      // Catch connection errors silently or as warnings so they don't crash Node via EventEmitter
+      this.logger.warn(`BullMQ Queue error: ${err.message}`);
+    });
+  }
   async onModuleInit() {
     this.logger.log('Registering monthly leave accrual cron job in BullMQ');
     try {

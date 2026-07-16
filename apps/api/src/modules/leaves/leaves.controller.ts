@@ -70,8 +70,9 @@ export class LeavesController {
 
   @RequirePermissions(RbacPermissions.LEAVE_READ)
   @Get('calendar')
-  getCalendar(): Promise<unknown> {
-    return this.leaveService.getCalendar();
+  getCalendar(@Req() req: any): Promise<unknown> {
+    const employeeId = req.user?.employeeId || req.query.employeeId;
+    return this.leaveService.getCalendar(employeeId);
   }
 
 }
