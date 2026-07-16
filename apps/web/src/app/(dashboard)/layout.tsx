@@ -43,7 +43,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     // This entirely prevents the false-logout flash on reload, but still catches
     // users trying to use the Back button after logging out.
     const hydrationTimer = setTimeout(() => {
-      if (!useAuthStore.getState().accessToken) {
+      if (!useAuthStore.getState().role) {
         router.replace('/login');
       }
     }, 100);

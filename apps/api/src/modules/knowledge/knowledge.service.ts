@@ -47,8 +47,8 @@ export class KnowledgeService {
     return this.searchService.search(searchDto.q, searchDto.category, isPublished);
   }
 
-  async findOne(id: string, role: UserRole) {
-    const doc = await this.knowledgeRepository.findById(id);
+  async findOne(id: string, role: UserRole, employeeId?: string) {
+    const doc = await this.knowledgeRepository.findById(id, employeeId);
     if (!doc) {
       throw new NotFoundException("Knowledge document not found");
     }
@@ -61,8 +61,8 @@ export class KnowledgeService {
     return doc;
   }
 
-  async findBySlug(slug: string, role: UserRole) {
-    const doc = await this.knowledgeRepository.findBySlug(slug);
+  async findBySlug(slug: string, role: UserRole, employeeId?: string) {
+    const doc = await this.knowledgeRepository.findBySlug(slug, employeeId);
     if (!doc) {
       throw new NotFoundException("Knowledge document not found");
     }
