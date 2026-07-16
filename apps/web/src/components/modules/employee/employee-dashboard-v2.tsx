@@ -7,7 +7,7 @@ import {
   Clock, Calendar, LogIn, LogOut, CheckCircle2,
   ChevronRight, CalendarDays, Bell, Coffee, Loader2, AlertCircle,
   MonitorSmartphone, Target, Lock, Check, FileText, ShieldAlert,
-  ChevronLeft
+  ChevronLeft, MessageSquare
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth";
 import {
@@ -21,6 +21,15 @@ import { fetchMyProfile } from "@/lib/api/profile";
 import { assetsApi } from "@/lib/api/assets";
 import { workflowsApi } from "@/lib/api/workflows";
 import { fetchNotifications } from "@/lib/api/notifications";
+
+import { formatDistanceToNow } from 'date-fns';
+
+const getNotificationIcon = (title: string) => {
+  if (title.toLowerCase().includes('meet')) return <Calendar className="w-4 h-4" />;
+  if (title.toLowerCase().includes('task') || title.toLowerCase().includes('workflow')) return <CheckCircle2 className="w-4 h-4" />;
+  if (title.toLowerCase().includes('leave')) return <FileText className="w-4 h-4" />;
+  return <MessageSquare className="w-4 h-4" />;
+};
 
 export default function EmployeeDashboardV2() {
   const queryClient = useQueryClient();
@@ -83,6 +92,9 @@ export default function EmployeeDashboardV2() {
 
   const todayState = todayQuery.data?.state ?? "OUT";
   const isPunchedIn = todayState === "IN" || todayState === "BREAK";
+  const hasCompletedShift = !isPunchedIn && todayQuery.data?.offset && todayQuery.data.offset > 0;
+
+  const PHASE_2_ENABLED = process.env.NEXT_PUBLIC_PHASE_2_ENABLED === 'true';
 
   // ── Punch mutation ────────────────────────────────────────────────────────
   const punchMutation = useMutation({
@@ -146,6 +158,7 @@ export default function EmployeeDashboardV2() {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
   let presentCount = 0;
+  let earlyCheckoutCount = 0;
   let lateCount = 0;
   let absentCount = 0;
   let weekendCount = 0;
@@ -161,7 +174,8 @@ export default function EmployeeDashboardV2() {
     }
 
     if (dayLog) {
-      if (dayLog.status === "PRESENT" || dayLog.status === "EARLY_CHECKOUT") presentCount++;
+      if (dayLog.status === "PRESENT") presentCount++;
+      else if (dayLog.status === "EARLY_CHECKOUT") earlyCheckoutCount++;
       else if (dayLog.status === "LATE") lateCount++;
       else if (dayLog.status === "ABSENT") absentCount++;
       else if (dayLog.status === "ON_LEAVE") onLeaveCount++;
@@ -221,7 +235,11 @@ export default function EmployeeDashboardV2() {
         <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex flex-col justify-between">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Leave Balance</p>
           <div className="flex items-baseline gap-1.5">
-            <h3 className="text-3xl font-black text-slate-900">{leaveBalance}</h3>
+            {leaveKpiQuery.isLoading ? (
+              <div className="h-9 w-16 bg-slate-200 animate-pulse rounded-md mb-1"></div>
+            ) : (
+              <h3 className="text-3xl font-black text-slate-900">{leaveBalance}</h3>
+            )}
             <span className="text-xs font-medium text-slate-500">days available</span>
           </div>
         </div>
@@ -230,7 +248,11 @@ export default function EmployeeDashboardV2() {
         <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex flex-col justify-between">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Assets Assigned</p>
           <div className="flex items-baseline gap-1.5">
-            <h3 className="text-3xl font-black text-slate-900">{assetsAssigned}</h3>
+            {assetsQuery.isLoading ? (
+              <div className="h-9 w-12 bg-slate-200 animate-pulse rounded-md mb-1"></div>
+            ) : (
+              <h3 className="text-3xl font-black text-slate-900">{assetsAssigned}</h3>
+            )}
             <span className="text-xs font-medium text-slate-500">active items</span>
           </div>
         </div>
@@ -239,10 +261,17 @@ export default function EmployeeDashboardV2() {
         <div className="bg-slate-50 border border-slate-100 p-5 rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden">
           <div className="flex justify-between items-start mb-3">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Goals This Quarter</p>
-            <Lock className="w-3.5 h-3.5 text-slate-300" />
+            {!PHASE_2_ENABLED && <Lock className="w-3.5 h-3.5 text-slate-300" />}
           </div>
           <div>
-            <p className="text-xs font-medium text-slate-400 italic">Available in Phase 2</p>
+            {!PHASE_2_ENABLED ? (
+              <p className="text-xs font-medium text-slate-400 italic">Available in Phase 2</p>
+            ) : (
+              <div className="flex items-baseline gap-1.5">
+                <h3 className="text-3xl font-black text-slate-900">0</h3>
+                <span className="text-xs font-medium text-slate-500">active goals</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -319,17 +348,24 @@ export default function EmployeeDashboardV2() {
                   } else if (isFuture) {
                     bgClass = "bg-transparent text-slate-300";
                   } else if (isWeekend && !dayLog) {
-                    bgClass = "bg-transparent text-slate-400 hover:bg-slate-50";
+                    bgClass = "bg-slate-100/70 text-slate-400 hover:bg-slate-200";
                   }
 
                   cells.push(
                     <div
                       key={`day-${day}`}
-                      title={dayLog ? `${dayLog.status}: ${typeof dayLog.hoursWorked === 'number' ? dayLog.hoursWorked.toFixed(1) : dayLog.hoursWorked}h` : "No Record"}
-                      className="flex items-center justify-center py-1 cursor-pointer"
+                      className="group relative flex items-center justify-center py-1 cursor-pointer"
                     >
                       <div className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${bgClass}`}>
                         {day}
+                      </div>
+                      
+                      {/* Custom Tooltip */}
+                      <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex flex-col items-center">
+                        <div className="bg-slate-900 text-white text-[11px] font-medium px-2.5 py-1.5 rounded-md shadow-lg whitespace-nowrap">
+                          {dayLog ? `${dayLog.status === 'EARLY_CHECKOUT' ? 'EARLY CHECKOUT' : dayLog.status}: ${typeof dayLog.hoursWorked === 'number' ? dayLog.hoursWorked.toFixed(1) : dayLog.hoursWorked}h` : (isWeekend ? "Weekend (Off)" : "No Record")}
+                        </div>
+                        <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1"></div>
                       </div>
                     </div>
                   );
@@ -349,6 +385,9 @@ export default function EmployeeDashboardV2() {
             <div className="flex flex-wrap items-center gap-4 mt-8 pt-4 border-t border-slate-100">
               <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1 rounded-full text-[11px] font-bold text-slate-600">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Present {presentCount}
+              </div>
+              <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1 rounded-full text-[11px] font-bold text-slate-600">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span> Early Checkouts {earlyCheckoutCount}
               </div>
               <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1 rounded-full text-[11px] font-bold text-slate-600">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Late {lateCount}
@@ -410,12 +449,18 @@ export default function EmployeeDashboardV2() {
             <div className="flex justify-center p-2"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
           ) : notificationsQuery.data && notificationsQuery.data.length > 0 ? (
             notificationsQuery.data.slice(0, 4).map((notification: any) => (
-              <div key={notification.id} className="flex items-start gap-4">
-                <span className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${!notification.isRead ? 'bg-blue-500' : 'bg-slate-300'}`}></span>
-                <div>
-                  <p className={`text-sm ${!notification.isRead ? 'font-semibold text-slate-900' : 'font-medium text-slate-600'}`}>{notification.title}</p>
-                  <p className="text-[11px] font-medium text-slate-400 mt-0.5">{new Date(notification.createdAt).toLocaleDateString()}</p>
+              <div key={notification.id} className="group flex items-start gap-3 p-3 -mx-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer border border-transparent hover:border-slate-100">
+                <div className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${!notification.isRead ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}`}>
+                  {getNotificationIcon(notification.title)}
                 </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm truncate ${!notification.isRead ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}`}>{notification.title}</p>
+                  <p className="text-xs text-slate-500 truncate mt-0.5">{notification.message || "You have a new notification in your inbox."}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-2">{formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}</p>
+                </div>
+                {!notification.isRead && (
+                  <span className="w-2 h-2 rounded-full bg-blue-500 mt-3 flex-shrink-0"></span>
+                )}
               </div>
             ))
           ) : (

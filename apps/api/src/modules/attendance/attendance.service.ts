@@ -162,7 +162,18 @@ export class AttendanceService {
             isRegularized: false,
             checkInIp: ipAddress,
             workHours: 0,
-          },
+            punchHistory: [{ action: "IN", time: new Date(now).toISOString() }] as any,
+          } as any,
+        });
+      } else {
+        const record = await this.prisma.attendanceRecord.findUnique({
+          where: { employeeId_date: { employeeId, date: shiftDate } }
+        });
+        const ph = (record as any)?.punchHistory ? ((record as any).punchHistory as any[]) : [];
+        ph.push({ action: "IN", time: new Date(now).toISOString() });
+        await this.prisma.attendanceRecord.update({
+          where: { employeeId_date: { employeeId, date: shiftDate } },
+          data: { punchHistory: ph as any } as any
         });
       }
 
@@ -188,9 +199,12 @@ export class AttendanceService {
 
       breakHistory.push({ start: new Date(now).toISOString(), end: null });
 
+      let punchHistory = (record as any)?.punchHistory ? ((record as any).punchHistory as any[]) : [];
+      punchHistory.push({ action: "BREAK", time: new Date(now).toISOString() });
+
       await this.prisma.attendanceRecord.updateMany({
         where: { employeeId, date: shiftDate, currentBreakStartTime: null },
-        data: { currentBreakStartTime: new Date(now), breakHistory: breakHistory as any } as any
+        data: { currentBreakStartTime: new Date(now), breakHistory: breakHistory as any, punchHistory: punchHistory as any } as any
       });
 
       return state;
@@ -217,11 +231,6 @@ export class AttendanceService {
       const isLate = isLateArrival(checkInTime);
 
       let workHoursDecimal = state.offset / 3600;
-      if (existingRecord?.checkInTime) {
-        const totalElapsedSeconds = Math.floor((now - existingRecord.checkInTime.getTime()) / 1000);
-        const actualSeconds = totalElapsedSeconds - (existingRecord.totalBreakSeconds || 0);
-        workHoursDecimal = Math.max(0, actualSeconds) / 3600;
-      }
 
       const approvedHalfDay = await this.prisma.leaveRequest.findFirst({
         where: {
@@ -249,6 +258,9 @@ export class AttendanceService {
         overtimeDecimal = (state.offset - 32400) / 3600;
       }
 
+      let punchHistory = (existingRecord as any)?.punchHistory ? ((existingRecord as any).punchHistory as any[]) : [];
+      punchHistory.push({ action: "OUT", time: new Date(now).toISOString() });
+
       await this.prisma.attendanceRecord.upsert({
         where: { employeeId_date: { employeeId, date: shiftDate } },
         update: {
@@ -256,7 +268,8 @@ export class AttendanceService {
           workHours: workHoursDecimal,
           status: finalStatus as any,
           overtime: overtimeDecimal,
-        },
+          punchHistory: punchHistory as any,
+        } as any,
         create: {
           employeeId,
           date: shiftDate,
@@ -266,7 +279,8 @@ export class AttendanceService {
           isRegularized: false,
           workHours: workHoursDecimal,
           overtime: overtimeDecimal,
-        }
+          punchHistory: punchHistory as any,
+        } as any
       }).catch(err => {
         this.logger.error(`Check-out upsert failed for employee ${employeeId}:`, err.stack || err);
       });
@@ -303,7 +317,8 @@ export class AttendanceService {
       status: record.status,
       remarks: record.notes || "",
       totalBreakSeconds: record.totalBreakSeconds || 0,
-      breakHistory: parseBreakHistory((record as any).breakHistory)
+      breakHistory: parseBreakHistory((record as any).breakHistory),
+      punchHistory: Array.isArray((record as any).punchHistory) ? (record as any).punchHistory : []
     }));
 
     return { data: mappedData, total, page, limit };
@@ -799,7 +814,8 @@ export class AttendanceService {
         checkOut,
         hoursWorked,
         status: statusStr,
-        remarks: record.notes || "Standard Entry"
+        remarks: record.notes || "Standard Entry",
+        punchHistory: Array.isArray((record as any).punchHistory) ? (record as any).punchHistory : []
       };
     });
 

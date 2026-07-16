@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, Bell, HelpCircle, LogOut, User, Users, Monitor, Calendar, LayoutDashboard, Clock, BookOpen, ShieldCheck, History, Network, CheckSquare, MessageSquare, UserPlus, Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { useDebounce } from '@/hooks/use-debounce';
 import { apiClient } from '@/lib/api/client';
@@ -22,6 +22,7 @@ export function Topbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const pathname = usePathname();
   const clearSession = useAuthStore((state) => state.clearSession);
   const accessToken = useAuthStore((state) => state.accessToken);
   const role = useAuthStore((state) => state.role);
@@ -111,7 +112,8 @@ export function Topbar() {
       }
       setLoading(true);
       try {
-        const response = await apiClient.get(`/search?q=${encodeURIComponent(debouncedQuery)}`);
+        const scope = pathname.startsWith('/team-lead') ? 'team' : 'individual';
+        const response = await apiClient.get(`/search?q=${encodeURIComponent(debouncedQuery)}&scope=${scope}`);
         const searchData = Array.isArray(response.data) ? response.data : (response.data?.data || []);
         setResults(searchData);
         setSelectedIndex(0);
@@ -176,7 +178,7 @@ export function Topbar() {
             spellCheck="false"
             className="flex-1 bg-transparent border-none focus:outline-none text-sm text-slate-900 dark:text-white placeholder:text-slate-400 font-medium"
             placeholder={
-              !role || role.toUpperCase() === "EMPLOYEE" 
+              !pathname.startsWith('/team-lead') 
                 ? "Search my tasks, documents, or modules..." 
                 : "Search employees, reports, or modules..."
             }

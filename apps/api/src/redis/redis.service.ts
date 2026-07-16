@@ -19,8 +19,13 @@ export class RedisService implements OnModuleDestroy {
       port,
       password,
       tls: tlsEnabled ? {} : undefined,
-      maxRetriesPerRequest: 3,
+      maxRetriesPerRequest: null,
+      enableOfflineQueue: true,
       lazyConnect: true,
+      retryStrategy: (times) => {
+        // Exponential backoff: 500ms, 1s, 1.5s..., maxing out at 5 seconds.
+        return Math.min(times * 500, 5000);
+      },
     });
 
     this.client.on("error", (error) => {

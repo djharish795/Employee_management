@@ -38,8 +38,9 @@ export class TasksService {
     
     const isQa = employee && (employee.department?.name === 'QA' || employee.designation?.title?.includes('QA'));
     const isLeadOrManager = RbacGroups.LEAD_OR_MANAGER.includes(user.role as any);
+    const isCamOeOm = ['CAM', 'OE', 'OM'].includes(user.role as string);
     
-    if (!isLeadOrManager && !isQa) {
+    if (!isLeadOrManager && !isQa && !isCamOeOm) {
       throw new ForbiddenException("You do not have permission to create tasks. Standard members can only comment.");
     }
 
