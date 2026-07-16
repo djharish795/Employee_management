@@ -186,6 +186,7 @@ export class AssetRequestsController {
   constructor(private readonly assetsService: AssetsService) { }
 
   @Get()
+  @Permissions(Permission.READ_OWN_PROFILE)
   async findRequests(
     @CurrentUser() user: any,
     @Query("status") status?: string
@@ -193,8 +194,8 @@ export class AssetRequestsController {
     return this.assetsService.findRequests(user.role as UserRole, user.employeeId, status);
   }
 
-  @RequirePermissions(RbacPermissions.ASSETS_CREATE)
   @Post()
+  @Permissions(Permission.READ_OWN_PROFILE)
   async createRequest(
     @CurrentUser() user: any,
     @Body() dto: CreateAssetRequestDto
@@ -203,7 +204,6 @@ export class AssetRequestsController {
   }
 
   @RequirePermissions(RbacPermissions.ASSETS_ALLOCATE)
-  @Patch(":id/respond")
   @Permissions(Permission.READ_EMPLOYEES)
   async respondToRequest(
     @CurrentUser() user: any,

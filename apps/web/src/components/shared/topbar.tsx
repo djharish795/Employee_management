@@ -170,9 +170,16 @@ export function Topbar() {
           <Search className="w-4 h-4 mr-2.5 flex-shrink-0 text-slate-400" />
           <input
             ref={inputRef}
-            type="text"
+            type="search"
+            name="search-query-topbar"
+            autoComplete="off"
+            spellCheck="false"
             className="flex-1 bg-transparent border-none focus:outline-none text-sm text-slate-900 dark:text-white placeholder:text-slate-400 font-medium"
-            placeholder="Search employees, reports, or modules..."
+            placeholder={
+              !role || role.toUpperCase() === "EMPLOYEE" 
+                ? "Search my tasks, documents, or modules..." 
+                : "Search employees, reports, or modules..."
+            }
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);

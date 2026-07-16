@@ -336,11 +336,11 @@ export default function DashboardPanel() {
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">This Month</div>
             <div className="text-2xl font-bold text-slate-900 mt-1">{defaultKpis.thisMonthDays ?? 0} days</div>
           </div>
-          <div className="bg-white border border-slate-200 border-l-[3px] border-l-orange-400 p-5 rounded-xl shadow-sm">
+          <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Late Arrivals</div>
             <div className="text-2xl font-bold text-orange-500 mt-1">{defaultKpis.lateArrivals ?? 0}</div>
           </div>
-          <div className="bg-white border border-slate-200 border-l-[3px] border-l-blue-500 p-5 rounded-xl shadow-sm">
+          <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">WFH Days</div>
             <div className="text-2xl font-bold text-blue-500 mt-1">{defaultKpis.wfhDays ?? 0}</div>
           </div>

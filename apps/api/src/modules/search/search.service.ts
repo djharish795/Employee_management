@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { UserRole } from '@naprocs/types';
+import { UserRole, Permission, hasPermission } from '@naprocs/types';
 import { SEARCH_REGISTRY, SearchEntity } from './search.registry';
 
 @Injectable()
@@ -48,36 +48,38 @@ export class SearchService {
     // Employees Directory is accessible to ALL_ROLES usually.
     const dynamicResults: { entity: SearchEntity, score: number }[] = [];
     
-    // Search Employees
-    const employees = await this.prisma.employee.findMany({
-      where: {
-        OR: [
-          { firstName: { contains: q, mode: 'insensitive' } },
-          { lastName: { contains: q, mode: 'insensitive' } },
-          { officialEmail: { contains: q, mode: 'insensitive' } }
-        ]
-      },
-      take: 50
-    });
-
-    for (const emp of employees) {
-      dynamicResults.push({
-        entity: {
-          id: `emp-${emp.id}`,
-          title: `${emp.firstName} ${emp.lastName}`,
-          description: `Employee • General`,
-          route: `/employees/${emp.id}`,
-          parentModule: 'Organisation',
-          category: 'PERSON',
-          permissions: Object.values(UserRole), // All roles can see profiles
-          keywords: [emp.officialEmail, emp.firstName, emp.lastName].filter(Boolean) as string[],
-          synonyms: [],
-          actionType: 'NAVIGATE',
-          icon: 'User',
-          priority: 3
+    // Search Employees (Only if user has global read permission)
+    if (hasPermission(userRole, Permission.READ_EMPLOYEES)) {
+      const employees = await this.prisma.employee.findMany({
+        where: {
+          OR: [
+            { firstName: { contains: q, mode: 'insensitive' } },
+            { lastName: { contains: q, mode: 'insensitive' } },
+            { officialEmail: { contains: q, mode: 'insensitive' } }
+          ]
         },
-        score: 60 // Base score for dynamic matches
+        take: 50
       });
+
+      for (const emp of employees) {
+        dynamicResults.push({
+          entity: {
+            id: `emp-${emp.id}`,
+            title: `${emp.firstName} ${emp.lastName}`,
+            description: `Employee • General`,
+            route: `/employees/${emp.id}`,
+            parentModule: 'Organisation',
+            category: 'PERSON',
+            permissions: Object.values(UserRole), // Base permissions, actual block is above
+            keywords: [emp.officialEmail, emp.firstName, emp.lastName].filter(Boolean) as string[],
+            synonyms: [],
+            actionType: 'NAVIGATE',
+            icon: 'User',
+            priority: 3
+          },
+          score: 60 // Base score for dynamic matches
+        });
+      }
     }
 
     // Combine, sort by score descending, and return top 15
