@@ -10,12 +10,15 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { useNotifications } from '@/hooks/use-notifications';
+import { useRbac } from '@/hooks/use-rbac';
+import { Permission } from '@naprocs/types';
 
 export function OeSidebar() {
   const pathname  = usePathname();
   const router    = useRouter();
   const clearSession = useAuthStore((state) => state.clearSession);
   const { unreadCount } = useNotifications();
+  const { hasPermission } = useRbac();
   const role = 'OE';
 
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -28,6 +31,13 @@ export function OeSidebar() {
     clearSession();
     window.location.href = '/login';
   };
+
+  const otherItems: any[] = [
+    { title: 'Notifications', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined, href: '/notifications' },
+  ];
+  if (hasPermission(Permission.ACCESS_SETTINGS)) {
+    otherItems.push({ title: 'Settings', icon: Settings, href: '/settings' });
+  }
 
   const navGroups = [
     {
@@ -52,10 +62,7 @@ export function OeSidebar() {
     },
     {
       label: 'OTHER',
-      items: [
-        { title: 'Notifications', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined, href: '/notifications' },
-        { title: 'Settings', icon: Settings, href: '/settings' },
-      ]
+      items: otherItems
     }
   ];
 

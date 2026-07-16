@@ -10,12 +10,15 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { useNotifications } from '@/hooks/use-notifications';
+import { useRbac } from '@/hooks/use-rbac';
+import { Permission } from '@naprocs/types';
 
 export function CamSidebar() {
   const pathname  = usePathname();
   const router    = useRouter();
   const clearSession = useAuthStore((state) => state.clearSession);
   const { unreadCount } = useNotifications();
+  const { hasPermission } = useRbac();
   const storeRole = useAuthStore((state) => state.role) || 'CAM';
   const accessToken = useAuthStore((state) => state.accessToken);
   const photoUrl = useAuthStore((state) => state.photoUrl);
@@ -50,6 +53,13 @@ export function CamSidebar() {
     window.location.href = '/login';
   };
 
+  const otherItems: any[] = [
+    { title: 'Notifications', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined, href: '/notifications' },
+  ];
+  if (hasPermission(Permission.ACCESS_SETTINGS)) {
+    otherItems.push({ title: 'Settings', icon: Settings, href: '/settings' });
+  }
+
   const navGroups = [
     {
       label: 'CAM PORTAL',
@@ -73,10 +83,7 @@ export function CamSidebar() {
     },
     {
       label: 'OTHER',
-      items: [
-        { title: 'Notifications', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined, href: '/notifications' },
-        { title: 'Settings', icon: Settings, href: '/settings' },
-      ]
+      items: otherItems
     }
   ];
 

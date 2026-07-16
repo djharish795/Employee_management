@@ -10,7 +10,8 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { useNotifications } from '@/hooks/use-notifications';
-import { getDashboardPathForRole } from '@naprocs/types';
+import { getDashboardPathForRole, Permission } from '@naprocs/types';
+import { useRbac } from '@/hooks/use-rbac';
 
 interface SidebarProps {
   activeModule?: string;
@@ -18,7 +19,7 @@ interface SidebarProps {
 
 
 
-const getNavGroups = (role: string, unreadCount: number) => {
+const getNavGroups = (role: string, unreadCount: number, hasSettingsAccess: boolean) => {
   if (role === 'CEO') {
     return [
       {
@@ -62,6 +63,7 @@ const getNavGroups = (role: string, unreadCount: number) => {
         label: 'OTHER',
         items: [
           { title: 'Notifications', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined, href: '/notifications' },
+          ...(hasSettingsAccess ? [{ title: 'Settings', icon: Settings, href: '/settings' }] : []),
         ]
       }
     ];
@@ -130,7 +132,7 @@ const getNavGroups = (role: string, unreadCount: number) => {
         label: 'OTHER',
         items: [
           { title: 'Notifications', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined, href: '/notifications' },
-          { title: 'Settings', icon: Settings, href: '/settings' },
+          ...(hasSettingsAccess ? [{ title: 'Settings', icon: Settings, href: '/settings' }] : []),
         ]
       }
     ];
@@ -179,12 +181,23 @@ const getNavGroups = (role: string, unreadCount: number) => {
     mainItems.push({ title: 'Audit Log', icon: History, href: '/audit' });
   }
 
-  return [
+  const groups = [
     {
       label: 'MAIN',
       items: mainItems
     }
   ];
+
+  if (hasSettingsAccess) {
+    groups.push({
+      label: 'OTHER',
+      items: [
+        { title: 'Settings', icon: Settings, href: '/settings' }
+      ]
+    });
+  }
+
+  return groups;
 };
 
 export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
@@ -192,6 +205,8 @@ export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
   const router    = useRouter();
   const clearSession = useAuthStore((state) => state.clearSession);
   const { unreadCount } = useNotifications();
+  const { hasPermission } = useRbac();
+  const hasSettingsAccess = hasPermission(Permission.ACCESS_SETTINGS);
   const storeRole = useAuthStore((state) => state.role);
   const [role, setRole] = useState(storeRole || 'EMPLOYEE');
 
@@ -252,7 +267,7 @@ export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
 
       {/* Navigation */}
       <nav className={`flex-1 space-y-6 overflow-y-auto ${collapsed ? 'px-2 py-4' : 'px-3 py-2'}`}>
-        {getNavGroups(role, unreadCount).map((group, gIndex) => (
+        {getNavGroups(role, unreadCount, hasSettingsAccess).map((group, gIndex) => (
           <div key={group.label || gIndex} className="space-y-1.5">
             {!collapsed && group.label && (
               <div className="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 mt-2">

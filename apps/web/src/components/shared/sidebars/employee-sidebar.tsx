@@ -9,6 +9,8 @@ import {
   MessageSquare, CheckSquare
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
+import { useRbac } from '@/hooks/use-rbac';
+import { Permission } from '@naprocs/types';
 
 const NAV_ITEMS = [
   { title: 'Dashboard',     icon: LayoutDashboard, href: '/employee/dashboard' },
@@ -26,6 +28,7 @@ export function EmployeeSidebar() {
   const pathname  = usePathname();
   const router    = useRouter();
   const clearSession = useAuthStore((state) => state.clearSession);
+  const { hasPermission } = useRbac();
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed]   = useState(false);
@@ -37,6 +40,13 @@ export function EmployeeSidebar() {
     clearSession();
     window.location.href = '/login';
   };
+
+  const filteredNavItems = NAV_ITEMS.filter(item => {
+    if (item.href === '/settings') {
+      return hasPermission(Permission.ACCESS_SETTINGS);
+    }
+    return true;
+  });
 
   const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => (
     <>
@@ -76,7 +86,7 @@ export function EmployeeSidebar() {
 
       {/* Navigation */}
       <nav className={`flex-1 space-y-0.5 overflow-y-auto ${collapsed ? 'px-2' : 'px-3'}`}>
-        {NAV_ITEMS.map((item) => {
+        {filteredNavItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
             <Link

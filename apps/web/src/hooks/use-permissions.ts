@@ -1,7 +1,10 @@
 import { useAuthStore } from "@/store/auth";
+import { useRbac } from "./use-rbac";
+import { Permission } from "@naprocs/types";
 
 export function usePermissions() {
   const role = useAuthStore((state) => state.role);
+  const { hasPermission } = useRbac();
 
   const canViewAudit = ["SUPER_ADMIN", "CEO", "CTO", "HR"].includes(role || "");
   const canManageEmployees = ["SUPER_ADMIN", "CHRO", "HR", "IT"].includes(role || "");
@@ -12,7 +15,7 @@ export function usePermissions() {
   
   const canManageLeaves = ["SUPER_ADMIN", "CEO", "CTO", "HR", "CHRO", "MANAGER", "TEAM_LEAD", "OM"].includes(role || "");
   const canManageCompliance = ["SUPER_ADMIN", "HR", "CHRO"].includes(role || "");
-  const canManageSettings = ["SUPER_ADMIN", "IT"].includes(role || "");
+  const canManageSettings = hasPermission(Permission.ACCESS_SETTINGS);
   const canManageOrg = ["SUPER_ADMIN", "HR", "CHRO"].includes(role || "");
 
   // specific module overrides

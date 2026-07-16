@@ -79,4 +79,87 @@ export enum Permission {
   READ_AUDIT = "READ_AUDIT",
   APPROVE_FIELD_REQUESTS = "APPROVE_FIELD_REQUESTS",
   MANAGE_PROJECTS = "MANAGE_PROJECTS",
+  ACCESS_SETTINGS = "ACCESS_SETTINGS",
+}
+
+export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
+  [UserRole.EMPLOYEE]: [
+    Permission.READ_OWN_PROFILE,
+    Permission.WRITE_OWN_PROFILE,
+  ],
+  [UserRole.MANAGER]: [
+    Permission.READ_OWN_PROFILE,
+    Permission.WRITE_OWN_PROFILE,
+    Permission.READ_TEAM_PROFILES,
+  ],
+  [UserRole.TEAM_LEAD]: [
+    Permission.READ_OWN_PROFILE,
+    Permission.WRITE_OWN_PROFILE,
+    Permission.READ_TEAM_PROFILES,
+  ],
+  [UserRole.HR]: [
+    Permission.READ_EMPLOYEES,
+    Permission.WRITE_EMPLOYEES,
+    Permission.READ_AUDIT,
+    Permission.WRITE_OWN_PROFILE,
+  ],
+  [UserRole.CHRO]: [
+    Permission.READ_EMPLOYEES,
+    Permission.WRITE_EMPLOYEES,
+    Permission.WRITE_OWN_PROFILE,
+  ],
+  [UserRole.SUPER_ADMIN]: [
+    Permission.READ_EMPLOYEES,
+    Permission.WRITE_EMPLOYEES,
+    Permission.READ_AUDIT,
+    Permission.WRITE_OWN_PROFILE,
+  ],
+  [UserRole.FINANCE]: [
+    Permission.READ_EMPLOYEES,
+  ],
+  [UserRole.CEO]: [
+    Permission.READ_EMPLOYEES,
+    Permission.READ_AUDIT,
+    Permission.MANAGE_PROJECTS,
+    Permission.ACCESS_SETTINGS,
+  ],
+  [UserRole.CTO]: [
+    Permission.READ_EMPLOYEES,
+    Permission.READ_AUDIT,
+    Permission.MANAGE_PROJECTS,
+  ],
+  [UserRole.COO]: [
+    Permission.READ_EMPLOYEES,
+  ],
+  [UserRole.OPERATIONS_HEAD]: [
+    Permission.READ_EMPLOYEES,
+    Permission.APPROVE_FIELD_REQUESTS,
+  ],
+  [UserRole.CFO]: [
+    Permission.READ_EMPLOYEES,
+  ],
+  [UserRole.IT]: [
+    Permission.READ_EMPLOYEES,
+  ],
+  [UserRole.CAM]: [
+    Permission.READ_EMPLOYEES,
+  ],
+  [UserRole.OM]: [
+    Permission.READ_EMPLOYEES,
+    Permission.APPROVE_FIELD_REQUESTS,
+  ],
+  [UserRole.OE]: [
+    Permission.READ_EMPLOYEES,
+  ],
+};
+
+export function hasPermission(role: string | null | undefined, permission: Permission): boolean {
+  if (!role) return false;
+  const userRole = role.toUpperCase() as UserRole;
+  const permissions = ROLE_PERMISSIONS[userRole] || [];
+  // Universally grant own profile read access to all roles
+  if (permission === Permission.READ_OWN_PROFILE) {
+    return true;
+  }
+  return permissions.includes(permission);
 }

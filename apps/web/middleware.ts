@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
-import { getDashboardPathForRole } from '@naprocs/types';
+import { getDashboardPathForRole, hasPermission, Permission } from '@naprocs/types';
 
 // Roles that may act as approvers in the Leave Approvals queue
 const leaveApproverRoles = new Set(['HR', 'CHRO', 'MANAGER', 'TEAM_LEAD', 'CTO', 'SUPER_ADMIN', 'IT', 'OM', 'OPERATIONS_HEAD']);
@@ -102,8 +102,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/access-restricted', request.url));
     }
 
-    // 6. Settings - Admin & HR mostly, except own profile (but settings module is global config here)
-    if (pathname.startsWith('/settings') && !['SUPER_ADMIN', 'IT', 'HR', 'CHRO'].includes(role)) {
+    // 6. Settings - Governed by ACCESS_SETTINGS permission
+    if (pathname.startsWith('/settings') && !hasPermission(role, Permission.ACCESS_SETTINGS)) {
       return NextResponse.redirect(new URL('/access-restricted', request.url));
     }
 
