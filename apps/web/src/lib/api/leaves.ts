@@ -69,6 +69,7 @@ export const applyLeave = async (payload: {
   startDate: string;
   endDate: string;
   reason: string;
+  attachmentUrl?: string;
   isHalfDay?: boolean;
   halfDaySession?: string | null;
 }): Promise<{ message: string; data: any }> => {
