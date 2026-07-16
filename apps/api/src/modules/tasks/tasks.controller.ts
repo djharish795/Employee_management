@@ -105,6 +105,6 @@ export class TasksController {
   @Delete(":id")
   @Permissions(Permission.WRITE_OWN_PROFILE)
   async deleteTask(@CurrentUser() user: any, @Param("id") id: string): Promise<any> {
-    return this.tasksService.deleteTask(id, user.employeeId);
+    return this.tasksService.deleteTask(id, user);
   }
 }

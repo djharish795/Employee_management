@@ -78,6 +78,17 @@ export class TasksService {
         data: { issueCounter: { increment: 1 } }
       });
       issueKey = `${project.key || 'TASK'}-${project.issueCounter}`;
+    } else if (dto.assigneeId && dto.assigneeId !== creatorId) {
+      if (!isManagerOrHigher) {
+        if (user.role === RbacRoles.TEAM_LEAD) {
+          const assigneeRecord = await this.prisma.employee.findUnique({ where: { id: dto.assigneeId } });
+          if (assigneeRecord?.reportingManagerId !== creatorId) {
+            throw new ForbiddenException("You can only assign generic tasks to yourself or your direct reports.");
+          }
+        } else {
+          throw new ForbiddenException("You can only assign generic tasks to yourself.");
+        }
+      }
     }
 
     const task = await this.tasksRepo.createTask(creatorId, {
@@ -118,10 +129,11 @@ export class TasksService {
   async updateTask(taskId: string, user: any, dto: any): Promise<any> {
     const task = await this.getTask(taskId);
 
-    // If changing status, only allow Assignee
+    // If changing status, allow Assignee or Manager+
     if (dto.status && dto.status !== task.status) {
-      if (user.employeeId !== task.assigneeId) {
-        throw new ForbiddenException("Only the assigned employee can change the status of this task.");
+      const isManagerOrHigher = RbacGroups.MANAGER_OR_HIGHER.includes(user.role as any);
+      if (user.employeeId !== task.assigneeId && !isManagerOrHigher) {
+        throw new ForbiddenException("Only the assigned employee or a Manager can change the status of this task.");
       }
     }
 
@@ -201,10 +213,6 @@ export class TasksService {
   }
 
   async markMentionsAsRead(taskId: string, employeeId: string, email: string): Promise<void> {
-    // Only update comments that mention this user and haven't been viewed by them yet
-    // Since updateMany doesn't easily filter by "not in array", we fetch then update, or just push.
-    // Pushing an existing value might duplicate it, but it's fine for a simple viewedBy array,
-    // or we can just fetch and update.
     const comments = await (this.prisma as any).taskComment.findMany({
       where: {
         taskId,
@@ -212,13 +220,17 @@ export class TasksService {
       }
     });
 
-    for (const comment of comments) {
-      if (!comment.viewedBy.includes(employeeId)) {
-        await (this.prisma as any).taskComment.update({
-          where: { id: comment.id },
-          data: { viewedBy: { push: employeeId } }
-        });
-      }
+    const commentsToUpdate = comments.filter((c: any) => !c.viewedBy.includes(employeeId));
+    
+    if (commentsToUpdate.length > 0) {
+      await this.prisma.$transaction(
+        commentsToUpdate.map((comment: any) => 
+          (this.prisma as any).taskComment.update({
+            where: { id: comment.id },
+            data: { viewedBy: { push: employeeId } }
+          })
+        )
+      );
     }
   }
 
@@ -238,10 +250,14 @@ export class TasksService {
     return action;
   }
 
-  async deleteTask(taskId: string, employeeId: string): Promise<any> {
+  async deleteTask(taskId: string, user: any): Promise<any> {
     const task = await this.tasksRepo.findById(taskId);
     if (!task) throw new NotFoundException("Task not found");
-    if (task.creatorId !== employeeId && task.assigneeId !== employeeId) {
+    
+    const isManagerOrHigher = RbacGroups.MANAGER_OR_HIGHER.includes(user.role as any);
+    const hasOverride = user.role === 'SUPER_ADMIN' || user.role === 'IT' || isManagerOrHigher;
+    
+    if (task.creatorId !== user.employeeId && task.assigneeId !== user.employeeId && !hasOverride) {
       throw new NotFoundException("Task not found"); // Masking forbidden as not found
     }
     const result = await this.tasksRepo.deleteTask(taskId);
@@ -249,7 +265,7 @@ export class TasksService {
     this.auditService.logDelete({
       moduleName: 'Tasks',
       entityId: taskId,
-      actorId: employeeId,
+      actorId: user.employeeId,
       metadata: { title: task.title }
     });
 

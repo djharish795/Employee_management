@@ -118,7 +118,7 @@ export function Topbar() {
       }
       setLoading(true);
       try {
-        const scope = pathname.startsWith('/team-lead') ? 'team' : 'individual';
+        const scope = pathname.startsWith('/team-lead') ? 'team' : (pathname.startsWith('/hr') ? 'global' : 'individual');
         const response = await apiClient.get(`/search?q=${encodeURIComponent(debouncedQuery)}&scope=${scope}`);
         const searchData = Array.isArray(response.data) ? response.data : (response.data?.data || []);
         setResults(searchData);

@@ -54,7 +54,8 @@ export class SearchService {
         OR: [
           { firstName: { contains: q, mode: 'insensitive' } },
           { lastName: { contains: q, mode: 'insensitive' } },
-          { officialEmail: { contains: q, mode: 'insensitive' } }
+          { officialEmail: { contains: q, mode: 'insensitive' } },
+          { employeeId: { contains: q, mode: 'insensitive' } }
         ]
       };
 

@@ -337,7 +337,7 @@ export class LeavesService {
       if (isEmergency) {
         const matrix = await this.prisma.approvalMatrix.findMany({ where: { isEmergency: true }, orderBy: { stepOrder: 'asc' } });
         if (matrix.length > 0) {
-          approvalQueue = matrix.map(m => ({ role: m.approverRoleId, status: 'PENDING' }));
+          approvalQueue = matrix.map((m: any) => ({ role: m.approverRoleId, status: 'PENDING' }));
         } else {
           approvalQueue = [
             { role: 'CTO', status: 'PENDING' },
@@ -1066,16 +1066,16 @@ export class LeavesService {
       const ids = new Set<string>();
       hrSubordinates.forEach((emp: any) => ids.add(emp.id));
       projectMembers.forEach((pm: any) => ids.add(pm.employeeId));
-      
+
       teamIds = Array.from(ids);
-      
+
       if (teamIds.length === 0) {
         return [];
       }
     }
 
     return this.prisma.leaveRequest.findMany({
-      where: { 
+      where: {
         status: 'APPROVED',
         ...(teamIds ? { employeeId: { in: teamIds } } : {})
       },
