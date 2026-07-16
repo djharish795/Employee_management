@@ -54,3 +54,10 @@ export const actionRegularization = async (id: string, action: "APPROVE" | "REJE
   const { data } = await apiClient.patch(`/attendance/regularizations/${id}/action`, { action, approver });
   return data;
 };
+
+export const fetchTeamAttendanceView = async (dateStr?: string): Promise<any> => {
+  const params = new URLSearchParams();
+  if (dateStr) params.append("date", dateStr);
+  const { data } = await apiClient.get(`/attendance/team-view?${params.toString()}`);
+  return data;
+};

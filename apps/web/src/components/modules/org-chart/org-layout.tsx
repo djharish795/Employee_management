@@ -19,7 +19,8 @@ export default function OrgLayout({ children }: OrgLayoutProps) {
   const activeRole = role as any;
   const pathname = usePathname();
   const currentUserRole = useAuthStore((state) => state.role) || "EMPLOYEE";
-  const effectiveRole = currentUserRole;
+  const isEmployeeLevel = ["EMPLOYEE", "MANAGER", "TEAM_LEAD"].includes(currentUserRole);
+  const effectiveRole = isEmployeeLevel ? "EMPLOYEE" : activeRole;
 
   const navItems = React.useMemo(() => {
     const items = [

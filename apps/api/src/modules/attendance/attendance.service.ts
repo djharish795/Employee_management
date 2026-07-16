@@ -904,4 +904,204 @@ export class AttendanceService {
       });
     }
   }
+
+  async getTeamAttendanceView(employeeId: string, dateStr: string) {
+    const today = new Date(dateStr);
+    today.setUTCHours(0, 0, 0, 0);
+
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    const daysInMonth = lastDay.getDate();
+
+    // 1. Get unified team (HR reports + Project Members)
+    const hrSubordinates = await this.prisma.employee.findMany({
+      where: { reportingManagerId: employeeId, status: { not: "EXITED" } },
+      select: { id: true, firstName: true, lastName: true }
+    });
+
+    const tlProjects = await this.prisma.projectAssignment.findMany({
+      where: { employeeId: employeeId, projectRole: "TL", releasedAt: null },
+      select: { projectId: true }
+    });
+    const tlProjectIds = tlProjects.map((p: any) => p.projectId);
+
+    const projectMembers = await this.prisma.projectAssignment.findMany({
+      where: {
+        projectId: { in: tlProjectIds },
+        projectRole: { in: ["TR", "TS"] },
+        releasedAt: null,
+        employeeId: { not: employeeId }
+      },
+      include: {
+        employee: {
+          select: { id: true, firstName: true, lastName: true }
+        }
+      }
+    });
+
+    const employeeMap = new Map();
+    hrSubordinates.forEach((emp: any) => employeeMap.set(emp.id, emp));
+    projectMembers.forEach((assignment: any) => {
+      if (assignment.employee && !employeeMap.has(assignment.employeeId)) {
+        employeeMap.set(assignment.employeeId, assignment.employee);
+      }
+    });
+
+    const team = Array.from(employeeMap.values());
+    const teamIds = team.map(emp => emp.id);
+
+    // 2. Get today's attendance for the team
+    const todayRecords = await this.prisma.attendanceRecord.findMany({
+      where: {
+        date: today,
+        employeeId: { in: teamIds }
+      },
+      select: {
+        id: true,
+        employeeId: true,
+        status: true,
+        checkInTime: true,
+        checkOutTime: true,
+        workHours: true
+      }
+    });
+    const recordMap = new Map(todayRecords.map(r => [r.employeeId, r]));
+
+    // 3. Get today's leaves for the team
+    const todayLeaves = await this.prisma.leaveRequest.findMany({
+      where: {
+        employeeId: { in: teamIds },
+        startDate: { lte: today },
+        endDate: { gte: today },
+        status: "APPROVED"
+      }
+    });
+    const leaveMap = new Map(todayLeaves.map(l => [l.employeeId, l]));
+
+    // 4. Calculate KPIs
+    let presentCount = 0;
+    let lateCount = 0;
+    let leaveCount = 0;
+
+    const realTimeStatus = team.map(emp => {
+      const record = recordMap.get(emp.id);
+      const leave = leaveMap.get(emp.id);
+      let status = "Absent";
+      
+      if (leave) {
+        status = "On leave";
+        leaveCount++;
+      } else if (record) {
+        status = record.status === "LATE" ? "Late" : "Present";
+        if (status === "Present") presentCount++;
+        if (status === "Late") lateCount++;
+      }
+
+      let hoursStr = "-";
+      if (record?.checkInTime && !record?.checkOutTime) {
+        const diffMs = Date.now() - record.checkInTime.getTime();
+        const hrs = Math.floor(diffMs / 3600000);
+        const mins = Math.floor((diffMs % 3600000) / 60000);
+        hoursStr = `${hrs}h ${mins}m so far`;
+      } else if (record?.workHours) {
+        hoursStr = `${record.workHours}h (checked out)`;
+      }
+
+      const checkInFormat = record?.checkInTime ? new Date(record.checkInTime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }) : "-";
+      const checkOutFormat = record?.checkOutTime ? new Date(record.checkOutTime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }) : "-";
+
+      return {
+        id: emp.id,
+        name: `${emp.firstName} ${emp.lastName}`,
+        initials: `${emp.firstName.charAt(0)}${emp.lastName.charAt(0)}`.toUpperCase(),
+        status,
+        checkIn: checkInFormat,
+        checkOut: checkOutFormat,
+        hours: hoursStr
+      };
+    });
+
+    // 5. Monthly Heatmap Data
+    const monthlyRecords = await this.prisma.attendanceRecord.findMany({
+      where: {
+        date: { gte: firstDay, lte: lastDay },
+        employeeId: { in: teamIds }
+      },
+      select: {
+        employeeId: true,
+        date: true,
+        status: true
+      }
+    });
+
+    const monthlyLeaves = await this.prisma.leaveRequest.findMany({
+      where: {
+        employeeId: { in: teamIds },
+        status: "APPROVED",
+        OR: [
+          { startDate: { gte: firstDay, lte: lastDay } },
+          { endDate: { gte: firstDay, lte: lastDay } },
+          { startDate: { lte: firstDay }, endDate: { gte: lastDay } }
+        ]
+      }
+    });
+
+    const memberMonthlyMap = new Map();
+    team.forEach(emp => {
+      // prefill days with absent or future depending on if it's in the future
+      const days = Array.from({ length: daysInMonth }, (_, i) => {
+        const d = new Date(today.getFullYear(), today.getMonth(), i + 1);
+        if (d > new Date()) return "FUTURE";
+        // Check weekends
+        const dayOfWeek = d.getDay();
+        if (dayOfWeek === 0 || dayOfWeek === 6) return "WEEKEND";
+        return "ABSENT";
+      });
+      memberMonthlyMap.set(emp.id, days);
+    });
+
+    // Populate Leaves
+    monthlyLeaves.forEach(leave => {
+      const days = memberMonthlyMap.get(leave.employeeId);
+      if (days) {
+        const lStart = new Date(leave.startDate);
+        const lEnd = new Date(leave.endDate);
+        for (let d = new Date(lStart); d <= lEnd; d.setDate(d.getDate() + 1)) {
+          if (d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()) {
+            const dayIdx = d.getDate() - 1;
+            if (days[dayIdx] !== "FUTURE") days[dayIdx] = "LEAVE";
+          }
+        }
+      }
+    });
+
+    // Populate Attendance Records
+    monthlyRecords.forEach(record => {
+      const days = memberMonthlyMap.get(record.employeeId);
+      if (days) {
+        const dayIdx = new Date(record.date).getDate() - 1;
+        if (days[dayIdx] !== "FUTURE") {
+          days[dayIdx] = record.status === "LATE" ? "LATE" : "PRESENT";
+        }
+      }
+    });
+
+    const heatmapData = team.map(emp => ({
+      id: emp.id,
+      name: `${emp.firstName} ${emp.lastName}`,
+      initials: `${emp.firstName.charAt(0)}${emp.lastName.charAt(0)}`.toUpperCase(),
+      days: memberMonthlyMap.get(emp.id)
+    }));
+
+    return {
+      kpis: {
+        directReportsCount: team.length,
+        presentCount,
+        lateCount,
+        leaveCount
+      },
+      realTimeStatus,
+      heatmapData
+    };
+  }
 }
