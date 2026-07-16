@@ -29,8 +29,19 @@ export class InAppNotificationService implements OnGatewayConnection, OnGatewayD
 
   async handleConnection(client: Socket) {
     try {
-      const token = client.handshake.auth?.token || client.handshake.headers?.authorization?.split(' ')[1];
+      let token = client.handshake.auth?.token || client.handshake.headers?.authorization?.split(' ')[1];
       
+      if (!token && client.handshake.headers?.cookie) {
+        const cookies = client.handshake.headers.cookie.split(';');
+        for (const cookie of cookies) {
+          const [name, val] = cookie.trim().split('=');
+          if (name === 'token') {
+            token = decodeURIComponent(val);
+            break;
+          }
+        }
+      }
+
       if (!token) {
         this.logger.warn(`Client disconnected due to missing token: ${client.id}`);
         client.disconnect();

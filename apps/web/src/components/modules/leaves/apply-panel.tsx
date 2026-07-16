@@ -109,6 +109,15 @@ export default function ApplyPanel() {
     return true;
   };
 
+  const validateLeaveStep2 = () => {
+    setDateError("");
+    if (leaveTypeCode === 'SL' && leaveDays > 3 && !fileName.trim()) {
+      setDateError("A medical certificate (attachment) is required for sick leave exceeding 3 consecutive days.");
+      return false;
+    }
+    return true;
+  };
+
   // ── Leave Apply Mutation ────────────────────────────────────────────────
   const leaveMutation = useMutation({
     mutationFn: async () => {
@@ -119,6 +128,7 @@ export default function ApplyPanel() {
         startDate,
         endDate,
         reason: `${leaveReason}${emergencyPhone ? ` | Emergency: ${emergencyPhone}` : ""}${delegateName ? ` | Delegate: ${delegateName}` : ""}`,
+        attachmentUrl: fileName || undefined,
         isHalfDay: isHalfDayType,
         halfDaySession: isHalfDayType ? "FIRST_DAY" : null
       });
@@ -292,11 +302,26 @@ export default function ApplyPanel() {
                     <input type="text" placeholder="e.g. Arjun Mehta" value={delegateName} onChange={(e) => setDelegateName(e.target.value)}
                       className="w-full h-10 px-3.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
                   </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Medical Certificate / Document URL</label>
+                    <input type="text" placeholder="https://s3.aws.com/..." value={fileName} onChange={(e) => setFileName(e.target.value)}
+                      className="w-full h-10 px-3.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+                    {leaveTypeCode === 'SL' && leaveDays > 3 && (
+                      <p className="text-[10px] text-rose-500 font-bold">Required for Sick Leave exceeding 3 days.</p>
+                    )}
+                  </div>
+                  
+                  {dateError && (
+                    <div className="flex items-center gap-2 text-rose-600 bg-rose-50/50 border border-rose-100 p-3 rounded-lg text-[11px] font-bold">
+                      <AlertTriangle className="w-4 h-4 flex-shrink-0" /> {dateError}
+                    </div>
+                  )}
+
                   <div className="flex gap-3">
                     <button onClick={() => setLeaveStep(1)} className="flex-1 h-10 border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5">
                       <ArrowLeft className="w-4 h-4" /> Back
                     </button>
-                    <button onClick={() => setLeaveStep(3)} className="flex-1 h-10 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5">
+                    <button onClick={() => { if (validateLeaveStep2()) setLeaveStep(3); }} className="flex-1 h-10 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5">
                       Review Application <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>

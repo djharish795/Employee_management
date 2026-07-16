@@ -250,6 +250,12 @@ export class LeavesService {
     const startDate = new Date(data.startDate);
     const endDate = new Date(data.endDate);
 
+    const durationDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const isSickLeave = leaveTypes.some(lt => lt.code === 'SL');
+    if (isSickLeave && durationDays > 3 && (!data.attachmentUrl || data.attachmentUrl.trim() === '')) {
+      throw new BadRequestException('A medical certificate (attachment) is required for sick leave exceeding 3 consecutive days.');
+    }
+
     // 1. Backdated Check (3 days max grace period)
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
