@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { 
   UserPlus, 
   Phone, 
@@ -44,9 +45,9 @@ export default function CamDashboardPanel() {
           <button className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
             <Download className="w-4 h-4 text-slate-500" /> Export Report
           </button>
-          <button className="flex items-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-slate-950 rounded-lg hover:bg-slate-800 transition-colors shadow-sm">
+          <Link href="/cam/workspace" className="flex items-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-slate-950 rounded-lg hover:bg-slate-800 transition-colors shadow-sm">
             <Play className="w-4.5 h-4.5 fill-current" /> Launch Workspace
-          </button>
+          </Link>
         </div>
       </div>
 

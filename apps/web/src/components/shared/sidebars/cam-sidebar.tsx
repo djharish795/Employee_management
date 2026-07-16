@@ -65,8 +65,9 @@ export function CamSidebar() {
       label: 'CAM PORTAL',
       items: [
         { title: 'Dashboard', icon: LayoutDashboard, href: '/cam/dashboard' },
-        { title: 'Scheduler', icon: Calendar, href: '/cam/scheduler' },
+        { title: 'Workspace', icon: Briefcase, href: '/cam/workspace' },
         { title: 'Meetings', icon: CalendarCheck, href: '/cam/meetings' },
+        { title: 'Scheduler', icon: Calendar, href: '/cam/scheduler' },
         { title: 'Team Chat', icon: MessageSquare, href: '/cam/team-chat' },
         { title: 'Reports', icon: BarChart3, href: '/cam/reports' },
       ]
