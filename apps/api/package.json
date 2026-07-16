@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "cross-env NODE_OPTIONS=--max_old_space_size=4096 nest start --watch",
+    "dev": "node kill-port.js && cross-env NODE_OPTIONS=--max_old_space_size=4096 nest start --watch",
     "build": "cross-env NODE_OPTIONS=--max_old_space_size=4096 nest build",
     "start": "node dist/main.js",
     "start:prod": "node dist/main.js",
