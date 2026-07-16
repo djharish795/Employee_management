@@ -128,11 +128,8 @@ export default function HierarchyPanel() {
     return { ...emp, children: [], directReportsCount: 0, totalReportsCount: 0 };
   };
 
-  // Find root node (The CEO - explicitly filters out any old/legacy disconnected charts)
-  const rootNodes = flatEmployees.filter((e: OrgEmployee) =>
-    !e.managerId &&
-    (e.designation?.toUpperCase().includes('CEO') || e.designation?.toUpperCase().includes('CHIEF EXECUTIVE'))
-  );
+  // Find root node (Anyone without a reporting manager is at the top of the tree)
+  const rootNodes = flatEmployees.filter((e: OrgEmployee) => !e.managerId);
   const rootTreeNodes = rootNodes.map((root: OrgEmployee) => {
     const node = toOrgTreeNode(root);
     if (node) node.children = buildTree(flatEmployees, node.id);

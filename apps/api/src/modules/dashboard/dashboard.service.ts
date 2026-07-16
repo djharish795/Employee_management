@@ -375,8 +375,8 @@ export class DashboardService {
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
 
-    // 1. Get subordinates
-    const subordinates = await this.prisma.employee.findMany({
+    // 1. Get subordinates (Global HR)
+    const hrSubordinates = await this.prisma.employee.findMany({
       where: { reportingManagerId: employeeId, status: { not: "EXITED" } },
       include: {
         department: true,
@@ -388,6 +388,44 @@ export class DashboardService {
       }
     });
 
+    // 1b. Get Project Members
+    const tlProjects = await this.prisma.projectAssignment.findMany({
+      where: { employeeId: employeeId, projectRole: "TL", releasedAt: null },
+      select: { projectId: true }
+    });
+    const tlProjectIds = tlProjects.map((p: any) => p.projectId);
+
+    const projectMembers = await this.prisma.projectAssignment.findMany({
+      where: {
+        projectId: { in: tlProjectIds },
+        projectRole: { in: ["TR", "TS"] },
+        releasedAt: null,
+        employeeId: { not: employeeId }
+      },
+      include: {
+        employee: {
+          include: {
+            department: true,
+            designation: true,
+            projectAssignments: {
+              where: { releasedAt: null },
+              include: { project: true }
+            }
+          }
+        }
+      }
+    });
+
+    // Merge them and remove duplicates
+    const employeeMap = new Map();
+    hrSubordinates.forEach((emp: any) => employeeMap.set(emp.id, emp));
+    projectMembers.forEach((assignment: any) => {
+      if (assignment.employee && !employeeMap.has(assignment.employeeId)) {
+        employeeMap.set(assignment.employeeId, assignment.employee);
+      }
+    });
+
+    const subordinates = Array.from(employeeMap.values());
     const directReportsCount = subordinates.length;
 
     // 2. Attendance Stats for Subordinates Today
@@ -396,6 +434,14 @@ export class DashboardService {
       where: {
         date: today,
         employeeId: { in: subIds }
+      },
+      select: {
+        id: true,
+        employeeId: true,
+        status: true,
+        checkInTime: true,
+        checkOutTime: true,
+        date: true
       }
     });
 

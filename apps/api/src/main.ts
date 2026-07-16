@@ -25,6 +25,51 @@ async function bootstrap() {
   app.setGlobalPrefix(`api/${apiVersion}`);
 
   const port = Number(process.env.PORT ?? 3001);
+
+  // In development, automatically kill any ghost processes holding the port before binding.
+  // This permanently fixes EADDRINUSE errors during nest start --watch hot reloads on Windows.
+  if (process.env.NODE_ENV !== 'production') {
+    try {
+      const { execSync } = require('child_process');
+      let killed = false;
+      if (process.platform === 'win32') {
+        const output = execSync(`netstat -ano | findstr :${port}`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
+        const lines = output.split('\n').filter(Boolean);
+        const pids = new Set<string>();
+        for (const line of lines) {
+          if (line.includes('LISTENING')) {
+            const parts = line.trim().split(/\s+/);
+            const pid = parts[parts.length - 1];
+            if (pid && pid !== '0' && pid !== String(process.pid)) pids.add(pid);
+          }
+        }
+        for (const pid of pids) {
+          try { 
+            execSync(`taskkill /PID ${pid} /F`, { stdio: 'ignore' }); 
+            killed = true;
+          } catch (e) {}
+        }
+      } else {
+        const output = execSync(`lsof -ti tcp:${port}`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
+        const pids = output.split('\n').filter(Boolean);
+        for (const pid of pids) {
+          if (pid !== String(process.pid)) {
+            try { 
+              execSync(`kill -9 ${pid}`, { stdio: 'ignore' }); 
+              killed = true;
+            } catch (e) {}
+          }
+        }
+      }
+      if (killed) {
+        // Wait 1.5 seconds for the OS to release the socket after forcefully terminating the ghost process
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
+    } catch (e) {
+      // Ignore if no process is found
+    }
+  }
+
   await app.listen(port, "0.0.0.0");
   console.log(`API listening on http://localhost:${port}/api/${apiVersion}`);
 }

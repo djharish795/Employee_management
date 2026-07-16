@@ -19,6 +19,10 @@ const IconMap: Record<string, React.ElementType> = {
 };
 
 export function Topbar() {
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -48,10 +52,10 @@ export function Topbar() {
     userEmail = lastKnownRef.current.email;
   }
 
-  let displayRole = accessToken ? (role || "Employee") : lastKnownRef.current.role;
+  let displayRole = (isMounted && accessToken) ? (role || "Employee") : lastKnownRef.current.role;
   if (displayRole === 'OM') displayRole = 'Operations Manager';
   else if (displayRole === 'OE') displayRole = 'Operations Executive';
-  const displayPhotoUrl = accessToken ? photoUrl : lastKnownRef.current.photoUrl;
+  const displayPhotoUrl = (isMounted && accessToken) ? photoUrl : lastKnownRef.current.photoUrl;
 
   const handleLogout = () => {
     setIsDropdownOpen(false);
@@ -351,14 +355,14 @@ export function Topbar() {
           >
             {/* Hide text name on mobile, show only avatar */}
             <div className="hidden sm:flex text-right flex-col">
-              <span className="text-sm font-bold text-slate-900 dark:text-white leading-tight">{userEmail}</span>
-              <span className="text-[11px] font-semibold tracking-wide text-slate-500 dark:text-slate-400">{displayRole}</span>
+              <span className="text-sm font-bold text-slate-900 dark:text-white leading-tight">{isMounted ? userEmail : "User"}</span>
+              <span className="text-[11px] font-semibold tracking-wide text-slate-500 dark:text-slate-400">{isMounted ? displayRole : "Employee"}</span>
             </div>
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-700 dark:text-slate-300 font-bold text-sm uppercase transition-colors">
-              {displayPhotoUrl ? (
+              {displayPhotoUrl && isMounted ? (
                 <Image src={displayPhotoUrl} alt="Profile" className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
               ) : (
-                userEmail.charAt(0)
+                isMounted ? userEmail.charAt(0) : "U"
               )}
             </div>
           </div>

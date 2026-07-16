@@ -15,7 +15,8 @@
     "studio": "cross-env NODE_OPTIONS=--max-old-space-size=8192 dotenv -e ../../apps/api/.env -e ../../apps/api/.env.local -- prisma studio"
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0"
+    "@prisma/client": "^5.22.0",
+    "pg": "^8.22.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

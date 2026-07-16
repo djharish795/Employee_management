@@ -27,6 +27,8 @@ interface AuthState {
   setAuthSession: (params: { role: string; employeeId: string | null; isTeamLead?: boolean; accessToken?: string; refreshToken?: string; }) => void;
   setPhotoUrl: (url: string | null) => void;
   clearSession: () => void;
+  accessToken?: string;
+  refreshToken?: string;
 }
 
 export const useAuthStore = create<AuthState>()(

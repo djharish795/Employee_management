@@ -1,41 +1,50 @@
 "use client";
 
-import React, { useState } from 'react';
-import { ArrowRight, AlertTriangle } from 'lucide-react';
+import React from 'react';
+import { ArrowRight, AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-
-// Placeholder data structures for backend team to replace with API calls
-const mockTeamToday = [
-  { id: '1', initials: 'PJ', name: 'Pooja J.', bgClass: 'bg-orange-100 text-orange-700', status: 'Present', statusClass: 'bg-emerald-50 text-emerald-700 border-emerald-100', time: '9:10 AM', task: 'API rate limiting' },
-  { id: '2', initials: 'KR', name: 'Karthik R.', bgClass: 'bg-blue-100 text-blue-700', status: 'Present', statusClass: 'bg-emerald-50 text-emerald-700 border-emerald-100', time: '9:25 AM', task: 'DB migration script' },
-  { id: '3', initials: 'DN', name: 'Divya N.', bgClass: 'bg-orange-100 text-orange-700', status: 'Late', statusClass: 'bg-orange-50 text-orange-600 border-orange-100', time: '10:45 AM', task: 'Code review backlog' },
-  { id: '4', initials: 'SK', name: 'Sameer K.', bgClass: 'bg-rose-100 text-rose-700', status: 'On leave', statusClass: 'bg-slate-100 text-slate-500 border-slate-200', time: '—', task: '—', isDimmed: true },
-];
-
-const mockApprovals = [
-  { id: '1', name: 'Divya N.', type: 'Sick leave • 2 days', status: 'Pending' },
-  { id: '2', name: 'Sameer K.', type: 'Casual leave • 1 day', status: 'Pending' },
-];
-
-const mockTasksTodo = [
-  { id: '1', title: 'Update API docs', tag: 'DOCS' },
-  { id: '2', title: 'Prepare sprint demo', tag: 'MANAGEMENT' },
-];
-
-const mockTasksInProgress = [
-  { id: '3', title: 'DB migration script', tag: 'DATABASE', assignee: 'KR', tagColor: 'bg-blue-50 text-blue-600 border-blue-100' },
-  { id: '4', title: 'Code review backlog', tag: 'REVIEW', assignee: 'DN', tagColor: 'bg-blue-50 text-blue-600 border-blue-100' },
-];
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api/client';
 
 export default function TeamDashboardPage() {
-  const [teamToday, setTeamToday] = useState(mockTeamToday);
-  const [approvals, setApprovals] = useState(mockApprovals);
-  const [tasksTodo, setTasksTodo] = useState(mockTasksTodo);
-  const [tasksInProgress, setTasksInProgress] = useState(mockTasksInProgress);
-  
-  // Mock current date as shown in design
-  const currentDate = "Thursday, 15 January 2025";
+  const { data, isLoading } = useQuery({
+    queryKey: ['teamLeadDashboard'],
+    queryFn: async () => {
+      const res = await apiClient.get('/dashboard/team-lead-overview');
+      return res.data;
+    }
+  });
+
+  const currentDate = new Intl.DateTimeFormat('en-GB', { 
+    weekday: 'long', 
+    day: 'numeric', 
+    month: 'long', 
+    year: 'numeric' 
+  }).format(new Date());
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 w-full bg-slate-50 min-h-screen flex flex-col items-center justify-center font-sans">
+        <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-4" />
+        <p className="text-sm font-bold text-slate-500">Loading team data...</p>
+      </div>
+    );
+  }
+
+  const kpis = data?.kpiData || {
+    directReportsCount: 0,
+    presentTodayCount: 0,
+    presentTodayPercentage: 0,
+    pendingApprovalsCount: 0,
+    tasksInProgressCount: 0
+  };
+
+  const teamToday = data?.teamToday || [];
+  const approvals = data?.pendingApprovals || [];
+  const tasksTodo = data?.taskBoardSnapshot?.todo || [];
+  const tasksInProgress = data?.taskBoardSnapshot?.inProgress || [];
+  const tasksBlocked = data?.taskBoardSnapshot?.blocked || [];
 
   return (
     <div className="flex-1 w-full bg-slate-50 min-h-screen flex flex-col font-sans overflow-x-hidden p-6 md:p-8">
@@ -55,29 +64,29 @@ export default function TeamDashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
         <KpiCard 
           title="DIRECT REPORTS" 
-          value="4" 
+          value={kpis.directReportsCount} 
           subtitle="Backend sub-team" 
         />
         <KpiCard 
           title="PRESENT TODAY" 
           value={
             <div className="flex items-center gap-2">
-              <span className="text-emerald-600">3</span>
+              <span className="text-emerald-600">{kpis.presentTodayCount}</span>
               <span className="text-slate-300">/</span>
-              <span>4</span>
-              <span className="ml-2 text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full uppercase tracking-wider">75% present</span>
+              <span>{kpis.directReportsCount}</span>
+              <span className="ml-2 text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full uppercase tracking-wider">{kpis.presentTodayPercentage}% present</span>
             </div>
           }
           subtitle="Attendance active" 
         />
         <KpiCard 
           title="PENDING APPROVALS" 
-          value={<span className="text-orange-500">2</span>} 
+          value={<span className="text-orange-500">{kpis.pendingApprovalsCount}</span>} 
           subtitle="Leave requests" 
         />
         <KpiCard 
           title="TASKS IN PROGRESS" 
-          value="7" 
+          value={kpis.tasksInProgressCount} 
           subtitle="Across the team" 
         />
       </div>
@@ -105,7 +114,11 @@ export default function TeamDashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {teamToday.map(member => (
+                {teamToday.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-8 text-center text-slate-500 text-sm font-medium">No team members found.</td>
+                  </tr>
+                ) : teamToday.map((member: any) => (
                   <TeamRow 
                     key={member.id}
                     initials={member.initials} 
@@ -129,7 +142,9 @@ export default function TeamDashboardPage() {
             <h2 className="text-lg font-bold text-slate-900">Pending approvals</h2>
           </div>
           <div className="p-6 space-y-4 flex-1">
-            {approvals.map(approval => (
+            {approvals.length === 0 ? (
+              <div className="text-center text-slate-500 text-sm font-medium py-8">No pending approvals.</div>
+            ) : approvals.map((approval: any) => (
               <ApprovalCard 
                 key={approval.id}
                 name={approval.name} 
@@ -160,15 +175,15 @@ export default function TeamDashboardPage() {
           {/* TO DO */}
           <div className="flex flex-col gap-4">
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">TO DO ({tasksTodo.length})</h3>
-            {tasksTodo.map(task => (
+            {tasksTodo.map((task: any) => (
               <SnapshotTaskCard key={task.id} title={task.title} tag={task.tag} />
             ))}
           </div>
           
           {/* IN PROGRESS */}
           <div className="flex flex-col gap-4">
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">IN PROGRESS (7)</h3>
-            {tasksInProgress.map(task => (
+            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">IN PROGRESS ({tasksInProgress.length})</h3>
+            {tasksInProgress.map((task: any) => (
               <SnapshotTaskCard 
                 key={task.id} 
                 title={task.title} 
@@ -181,19 +196,20 @@ export default function TeamDashboardPage() {
 
           {/* BLOCKED */}
           <div className="flex flex-col gap-4">
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">BLOCKED (1)</h3>
+            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">BLOCKED ({tasksBlocked.length})</h3>
             
-            {/* Blocked Card */}
-            <div className="bg-white p-4 rounded-xl border border-dashed border-red-400 shadow-sm flex flex-col gap-3">
-              <div className="flex items-start justify-between">
-                <h4 className="font-bold text-slate-900 leading-snug">Payment gateway integration</h4>
-                <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+            {tasksBlocked.map((task: any) => (
+              <div key={task.id} className="bg-white p-4 rounded-xl border border-dashed border-red-400 shadow-sm flex flex-col gap-3">
+                <div className="flex items-start justify-between">
+                  <h4 className="font-bold text-slate-900 leading-snug">{task.title}</h4>
+                  <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                </div>
+                <div className="flex flex-col gap-2 items-start mt-1">
+                  <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider">Blocked since {task.dateBlocked}</span>
+                  <span className="text-[10px] font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full uppercase tracking-wider">CRITICAL</span>
+                </div>
               </div>
-              <div className="flex flex-col gap-2 items-start mt-1">
-                <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider">Blocked since 13 Jan</span>
-                <span className="text-[10px] font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full uppercase tracking-wider">CRITICAL</span>
-              </div>
-            </div>
+            ))}
             
           </div>
         </div>

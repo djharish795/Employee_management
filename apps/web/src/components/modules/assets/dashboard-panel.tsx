@@ -93,7 +93,7 @@ const CATEGORY_DISTRIBUTION = [
 export default function DashboardPanel() {
   const { role } = usePermissions();
   const activeRole = role as any;
-  const isEmployee = activeRole === "EMPLOYEE";
+  const isEmployee = ["EMPLOYEE", "MANAGER", "TEAM_LEAD"].includes(activeRole);
   const { isAdmin: isITOrAdmin } = usePermissions();
 
   const { data: summaryKpis } = useQuery({

@@ -54,7 +54,7 @@ export class KnowledgeRepository {
     });
   }
 
-  async findById(id: string) {
+  async findById(id: string, employeeId?: string) {
     return this.prisma.knowledgeDoc.findUnique({
       where: { id },
       include: {
@@ -66,11 +66,16 @@ export class KnowledgeRepository {
             officialEmail: true,
           },
         },
+        ...(employeeId ? {
+          acknowledgements: {
+            where: { employeeId }
+          }
+        } : {})
       },
     });
   }
 
-  async findBySlug(slug: string) {
+  async findBySlug(slug: string, employeeId?: string) {
     return this.prisma.knowledgeDoc.findUnique({
       where: { slug },
       include: {
@@ -82,6 +87,11 @@ export class KnowledgeRepository {
             officialEmail: true,
           },
         },
+        ...(employeeId ? {
+          acknowledgements: {
+            where: { employeeId }
+          }
+        } : {})
       },
     });
   }

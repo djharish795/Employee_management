@@ -88,6 +88,18 @@ export class AttendanceController {
     return this.attendanceService.getAllLogs(query, user);
   }
 
+  @Get("team-view")
+  @Permissions(Permission.READ_TEAM_PROFILES)
+  async getTeamAttendanceView(
+    @CurrentUser() user: any,
+    @Query('date') dateStr: string
+  ) {
+    if (!dateStr) {
+      dateStr = new Date().toISOString();
+    }
+    return this.attendanceService.getTeamAttendanceView(user.employeeId, dateStr);
+  }
+
   @Get("regularizations")
   @Permissions(Permission.READ_OWN_PROFILE)
   async getRegularizations(@CurrentUser() user: any) {

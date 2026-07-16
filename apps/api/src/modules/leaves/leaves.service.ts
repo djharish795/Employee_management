@@ -1038,13 +1038,52 @@ export class LeavesService {
     return { message: `Successfully carried forward leaves for ${carriedOverCount} employees.` };
   }
 
-  async getCalendar(): Promise<unknown> {
+  async getCalendar(employeeId?: string): Promise<unknown> {
+    let teamIds: string[] | undefined = undefined;
+
+    if (employeeId) {
+      const hrSubordinates = await this.prisma.employee.findMany({
+        where: { reportingManagerId: employeeId, status: { not: "EXITED" } },
+        select: { id: true }
+      });
+
+      const tlProjects = await this.prisma.projectAssignment.findMany({
+        where: { employeeId: employeeId, projectRole: "TL", releasedAt: null },
+        select: { projectId: true }
+      });
+      const tlProjectIds = tlProjects.map((p: any) => p.projectId);
+
+      const projectMembers = await this.prisma.projectAssignment.findMany({
+        where: {
+          projectId: { in: tlProjectIds },
+          projectRole: { in: ["TR", "TS"] },
+          releasedAt: null,
+          employeeId: { not: employeeId }
+        },
+        select: { employeeId: true }
+      });
+
+      const ids = new Set<string>();
+      hrSubordinates.forEach((emp: any) => ids.add(emp.id));
+      projectMembers.forEach((pm: any) => ids.add(pm.employeeId));
+      
+      teamIds = Array.from(ids);
+      
+      if (teamIds.length === 0) {
+        return [];
+      }
+    }
+
     return this.prisma.leaveRequest.findMany({
-      where: { status: 'APPROVED' },
+      where: { 
+        status: 'APPROVED',
+        ...(teamIds ? { employeeId: { in: teamIds } } : {})
+      },
       include: {
         employee: { include: { department: true } },
         leaveType: true
-      }
+      },
+      orderBy: { startDate: 'asc' }
     });
   }
 
