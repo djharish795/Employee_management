@@ -89,14 +89,6 @@ export function Sidebar() {
         <p className="text-xs text-slate-500 font-medium tracking-wide mt-0.5">{roleTitle} Dashboard</p>
       </div>
 
-      {/* Action Button */}
-      <div className="px-4 pb-6">
-        <button className="w-full bg-slate-900 hover:bg-slate-900 text-white flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm">
-          <Plus className="w-4 h-4" />
-          <span>New Request</span>
-        </button>
-      </div>
-
       {/* Navigation */}
       <nav className="flex-1 px-3 space-y-1">
         {navItems.map((item) => {

@@ -271,7 +271,7 @@ export default function HrDashboardPage() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => {
-                  const csvData = "Metric,Value\\nHeadcount," + data.headcount.total + "\\nPresent," + data.attendance.present + "\\nAbsent," + data.attendance.absent;
+                  const csvData = "Metric,Value\\nHeadcount," + data.headcount.total + "\\nPresent," + data.attendance.present + "\\nLeaves," + data.attendance.absent;
                   const blob = new Blob([csvData], { type: 'text/csv' });
                   const url = window.URL.createObjectURL(blob);
                   const a = document.createElement('a');
@@ -326,7 +326,7 @@ export default function HrDashboardPage() {
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-sm bg-red-500 dark:bg-red-500"></div>
-                  <span className="text-slate-600 dark:text-slate-400 font-medium">Absent ({absentPct}%)</span>
+                  <span className="text-slate-600 dark:text-slate-400 font-medium">Leaves ({absentPct}%)</span>
                 </div>
                 <span className="font-bold text-red-600 dark:text-red-400">{data.attendance.absent}</span>
               </div>
