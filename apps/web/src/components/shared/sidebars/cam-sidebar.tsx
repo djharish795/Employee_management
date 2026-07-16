@@ -66,6 +66,7 @@ export function CamSidebar() {
       items: [
         { title: 'Dashboard', icon: LayoutDashboard, href: '/cam/dashboard' },
         { title: 'Scheduler', icon: Calendar, href: '/cam/scheduler' },
+        { title: 'Meetings', icon: CalendarCheck, href: '/cam/meetings' },
         { title: 'Team Chat', icon: MessageSquare, href: '/cam/team-chat' },
         { title: 'Reports', icon: BarChart3, href: '/cam/reports' },
       ]
