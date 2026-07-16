@@ -50,6 +50,7 @@ export const useAuthStore = create<AuthState>()(
       clearSession: () => {
         if (typeof document !== "undefined") {
           document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+          document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
         }
         set({
           tempSession: null,

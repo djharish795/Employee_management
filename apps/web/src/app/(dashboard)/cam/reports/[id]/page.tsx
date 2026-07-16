@@ -8,6 +8,10 @@ import {
 } from 'lucide-react';
 import { useRbac } from '@/hooks/use-rbac';
 import { Permission } from '@naprocs/types';
+import { fetchFieldWorkDetails, updateFieldWork, approveFieldWork, rejectFieldWork } from '@/lib/api/field-work';
+import { fetchMyProfile } from '@/lib/api/profile';
+import { apiClient } from '@/lib/api/client';
+import { useAuthStore } from '@/store/auth';
 
 export default function FieldWorkRequestDetailsPage() {
   const router = useRouter();
@@ -17,79 +21,58 @@ export default function FieldWorkRequestDetailsPage() {
   const [request, setRequest] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isTeamRequest, setIsTeamRequest] = useState(false);
+  const [viewUrl, setViewUrl] = useState<string | null>(null);
 
   const { hasPermission } = useRbac();
   const canApprove = hasPermission(Permission.APPROVE_FIELD_REQUESTS);
-
-  // Mockup fallback matching the screenshot perfectly
-  const mockFallback = {
-    id: 'REQ-2023-0482',
-    employeeName: 'John S. Miller',
-    employeeId: 'EMS-77492',
-    department: 'Technical Operations',
-    reportingManager: 'Sarah Jenkins',
-    client: 'Naprocs Global Solutions Ltd.',
-    destination: 'Regional Headquarters, Site B, Singapore',
-    purpose: 'Annual hardware audit and system synchronization for high-density server racks. Verification of cooling efficiency and backup power redundancy protocols.',
-    date: '2023-10-24',
-    startTime: '09:00',
-    endTime: '17:00',
-    description: 'Conduct thorough inspection of Series-X enclosures. Check cabling integrity, swap redundant PSU units if required, and update firmware on peripheral controllers. Full report expected within 24 hours of site exit.',
-    transportation: 'company',
-    returnTime: '18:00',
-    contact: '+65 9123 4567',
-    remarks: 'Awaiting site credentials confirmation.',
-    status: 'Under Review',
-    fileName: 'Site_Safety_Protocol.pdf',
-    createdAt: '2023-10-18T14:32:00.000Z'
-  };
+  const accessToken = useAuthStore((state) => state.accessToken);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Check team requests first
-      const storedTeam = localStorage.getItem('team_field_requests');
-      if (storedTeam) {
-        const list = JSON.parse(storedTeam);
-        const found = list.find((item: any) => item.id === requestId);
-        if (found) {
-          setRequest(found);
-          setIsTeamRequest(true);
-          setIsLoading(false);
-          return;
-        }
-      }
+    async function loadRequest() {
+      if (!accessToken) return;
+      try {
+        const data = await fetchFieldWorkDetails(requestId);
+        setRequest(data);
 
-      // Check own requests
-      const stored = localStorage.getItem('field_work_requests');
-      if (stored) {
-        const list = JSON.parse(stored);
-        const found = list.find((item: any) => item.id === requestId);
-        if (found) {
-          setRequest(found);
+        try {
+          const myProfile = await fetchMyProfile();
+          setIsTeamRequest(data.employeeId !== myProfile.id);
+        } catch (profileErr) {
+          console.error("Failed to load user profile", profileErr);
           setIsTeamRequest(false);
-          setIsLoading(false);
-          return;
         }
-      }
-      
-      // Fallback for mock IDs
-      setRequest(mockFallback);
-      setIsTeamRequest(false);
-      setIsLoading(false);
-    }
-  }, [requestId]);
 
-  const handleCancelRequest = () => {
-    if (confirm("Are you sure you want to cancel this request? Canceled requests cannot be reinstated.")) {
-      // Remove from localStorage if it exists
-      const stored = localStorage.getItem('field_work_requests');
-      if (stored) {
-        const list = JSON.parse(stored);
-        const filtered = list.filter((item: any) => item.id !== requestId);
-        localStorage.setItem('field_work_requests', JSON.stringify(filtered));
+        if (data.objectKey) {
+          try {
+            const { data: viewData } = await apiClient.get('/documents/view-url', {
+              params: { objectKey: data.objectKey }
+            });
+            setViewUrl(viewData?.data?.url || null);
+          } catch (docErr) {
+            console.error("Failed to load S3 download URL", docErr);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load request details from backend", error);
+        setRequest(null);
+        setIsTeamRequest(false);
+      } finally {
+        setIsLoading(false);
       }
-      alert("Request canceled successfully.");
-      router.push('/cam/reports');
+    }
+    loadRequest();
+  }, [requestId, accessToken]);
+
+  const handleCancelRequest = async () => {
+    if (confirm("Are you sure you want to cancel this request? Canceled requests cannot be reinstated.")) {
+      try {
+        await updateFieldWork(requestId, { status: 'CANCELLED' });
+        alert("Request canceled successfully.");
+        router.push('/cam/reports');
+      } catch (error: any) {
+        console.error("Failed to cancel request", error);
+        alert(error?.response?.data?.message || "Failed to cancel request.");
+      }
     }
   };
 
@@ -98,26 +81,66 @@ export default function FieldWorkRequestDetailsPage() {
     alert("Coordinates copied to clipboard: 1.290270, 103.851959");
   };
 
-  const handleApproveReject = (newStatus: 'Approved' | 'Rejected') => {
-    const storedTeam = localStorage.getItem('team_field_requests');
-    if (storedTeam) {
-      const list = JSON.parse(storedTeam);
-      const updated = list.map((item: any) => {
-        if (item.id === requestId) {
-          return { ...item, status: newStatus };
-        }
-        return item;
+  const handleDownloadPdf = async () => {
+    try {
+      const response = await apiClient.get(`/field-work-requests/${requestId}/pdf`, {
+        responseType: "blob"
       });
-      localStorage.setItem('team_field_requests', JSON.stringify(updated));
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `Field_Work_Request_${requestId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Failed to download PDF", error);
+      alert("Failed to download request PDF.");
     }
-    alert(`Request ${newStatus.toLowerCase()} successfully.`);
-    router.push('/cam/reports');
+  };
+
+  const handleApproveReject = async (newStatus: 'Approved' | 'Rejected') => {
+    try {
+      if (newStatus === 'Approved') {
+        await approveFieldWork(requestId);
+      } else {
+        const reason = prompt("Please enter the reason for rejection:") || "Rejected by manager";
+        await rejectFieldWork(requestId, reason);
+      }
+      alert(`Request ${newStatus.toLowerCase()} successfully.`);
+      router.push('/cam/reports');
+    } catch (error: any) {
+      console.error(`Failed to ${newStatus.toLowerCase()} request`, error);
+      alert(error?.response?.data?.message || `Failed to ${newStatus.toLowerCase()} request.`);
+    }
   };
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-72px)] bg-slate-50 dark:bg-slate-950">
         <div className="w-8 h-8 border-4 border-slate-300 dark:border-slate-800 border-t-slate-900 dark:border-t-white rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!request) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-72px)] bg-slate-50 dark:bg-slate-950 p-6">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-8 max-w-md w-full text-center shadow-lg">
+          <XCircle className="w-12 h-12 text-rose-500 mx-auto mb-4" />
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Request Not Found</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 leading-relaxed">
+            The requested field work request could not be found or you do not have permission to view it.
+          </p>
+          <button 
+            onClick={() => router.push('/cam/reports')}
+            className="w-full h-10 bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:bg-slate-800 dark:hover:bg-slate-100 rounded-lg text-sm font-bold shadow-sm transition-colors"
+          >
+            Back to Reports
+          </button>
+        </div>
       </div>
     );
   }
@@ -189,7 +212,7 @@ export default function FieldWorkRequestDetailsPage() {
           </div>
           
           <div className="flex items-center gap-3">
-            {canApprove && isTeamRequest && request.status === 'Under Review' ? (
+            {canApprove && isTeamRequest && (request.status === 'PENDING' || request.status === 'Pending' || request.status === 'Under Review') ? (
               <>
                 <button 
                   onClick={() => handleApproveReject('Approved')}
@@ -206,17 +229,22 @@ export default function FieldWorkRequestDetailsPage() {
               </>
             ) : (
               <>
-                <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-750 rounded-lg text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm">
+                <button 
+                  onClick={handleDownloadPdf}
+                  className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-750 rounded-lg text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm"
+                >
                   <Download className="w-4 h-4" />
                   Download PDF
                 </button>
-                <button 
-                  onClick={() => alert("Edit mode is only available for drafts.")}
-                  className="flex items-center gap-2 px-4 py-2 bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:bg-slate-800 dark:hover:bg-slate-100 rounded-lg text-sm font-bold transition-all shadow-sm"
-                >
-                  <PenSquare className="w-4 h-4" />
-                  Edit Request
-                </button>
+                {(request.status === 'DRAFT' || request.status === 'Draft') && (
+                  <button 
+                    onClick={() => router.push(`/cam/reports/field-request?id=${request.id}`)}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:bg-slate-800 dark:hover:bg-slate-100 rounded-lg text-sm font-bold transition-all shadow-sm"
+                  >
+                    <PenSquare className="w-4 h-4" />
+                    Edit Request
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -326,40 +354,48 @@ export default function FieldWorkRequestDetailsPage() {
                 </h3>
 
                 <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-2.5 border border-slate-100 dark:border-slate-800 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-950 transition-colors">
-                    <FileText className="w-4.5 h-4.5 text-slate-400" />
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate max-w-[200px]">
-                      {request.fileName || 'Site_Safety_Protocol.pdf'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 p-2.5 border border-slate-100 dark:border-slate-800 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-950 transition-colors">
-                    <Image className="w-4.5 h-4.5 text-slate-400" />
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate max-w-[200px]">
-                      Rack_Layout_Diagram.jpg
-                    </span>
-                  </div>
+                  {request.fileName ? (
+                    <a 
+                      href={viewUrl || "#"} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-2.5 border border-slate-100 dark:border-slate-800 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-950 transition-colors cursor-pointer"
+                    >
+                      <FileText className="w-4.5 h-4.5 text-slate-400" />
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-350 truncate max-w-[200px] hover:underline">
+                        {request.fileName}
+                      </span>
+                    </a>
+                  ) : (
+                    <div className="flex items-center gap-3 p-2.5 border border-slate-100 dark:border-slate-800 rounded-lg text-slate-400 italic text-xs">
+                      <FileText className="w-4.5 h-4.5 text-slate-300" />
+                      No attachments uploaded
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
 
         {/* Danger Zone Block */}
-        <div className="mt-8 border-t border-slate-200 dark:border-slate-800 pt-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h4 className="text-sm font-bold text-rose-600 flex items-center gap-1.5">
-              <AlertTriangle className="w-4 h-4" />
-              Danger Zone
-            </h4>
-            <p className="text-xs font-semibold text-slate-500 mt-1">Canceled requests cannot be reinstated.</p>
+        {!isTeamRequest && (request.status === 'DRAFT' || request.status === 'Draft' || request.status === 'PENDING' || request.status === 'Pending') && (
+          <div className="mt-8 border-t border-slate-200 dark:border-slate-800 pt-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h4 className="text-sm font-bold text-rose-600 flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4" />
+                Danger Zone
+              </h4>
+              <p className="text-xs font-semibold text-slate-500 mt-1">Canceled requests cannot be reinstated.</p>
+            </div>
+            <button 
+              onClick={handleCancelRequest}
+              className="flex items-center gap-1.5 px-4 py-2 border border-rose-350 hover:bg-rose-50 text-rose-600 rounded-lg text-xs font-bold transition-colors"
+            >
+              <XCircle className="w-4 h-4" />
+              Cancel This Request
+            </button>
           </div>
-          <button 
-            onClick={handleCancelRequest}
-            className="flex items-center gap-1.5 px-4 py-2 border border-rose-350 hover:bg-rose-50 text-rose-600 rounded-lg text-xs font-bold transition-colors"
-          >
-            <XCircle className="w-4 h-4" />
-            Cancel This Request
-          </button>
-        </div>
+        )}
 
       </div>
     </div>
