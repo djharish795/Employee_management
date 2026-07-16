@@ -9,6 +9,8 @@ import {
   MessageSquare, CheckSquare, Users, Star
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
+import { useRbac } from '@/hooks/use-rbac';
+import { Permission } from '@naprocs/types';
 
 const INDIVIDUAL_NAV_ITEMS = [
   { title: 'Dashboard',     icon: LayoutDashboard, href: '/employee/dashboard' },
@@ -34,6 +36,7 @@ export function TeamLeadSidebar() {
   const pathname  = usePathname();
   const router    = useRouter();
   const clearSession = useAuthStore((state) => state.clearSession);
+  const { hasPermission } = useRbac();
 
   const [workspace, setWorkspace] = useState<'individual' | 'team'>('team');
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -123,14 +126,16 @@ export function TeamLeadSidebar() {
 
       {/* Footer Settings & Logout */}
       <div className={`p-4 mt-auto border-t border-slate-100 ${collapsed ? 'px-2 space-y-1' : 'space-y-1'}`}>
-        <Link
-          href="/settings"
-          title={collapsed ? 'Settings' : undefined}
-          className={`flex items-center gap-3 px-3 py-2.5 w-full text-left rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors ${collapsed ? 'justify-center' : ''}`}
-        >
-          <Settings className="w-4 h-4 text-slate-400 flex-shrink-0" />
-          {!collapsed && 'Settings'}
-        </Link>
+        {hasPermission(Permission.ACCESS_SETTINGS) && (
+          <Link
+            href="/settings"
+            title={collapsed ? 'Settings' : undefined}
+            className={`flex items-center gap-3 px-3 py-2.5 w-full text-left rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors ${collapsed ? 'justify-center' : ''}`}
+          >
+            <Settings className="w-4 h-4 text-slate-400 flex-shrink-0" />
+            {!collapsed && 'Settings'}
+          </Link>
+        )}
         <button
           onClick={handleLogout}
           title={collapsed ? 'Logout' : undefined}
