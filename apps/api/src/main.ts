@@ -31,6 +31,7 @@ async function bootstrap() {
   if (process.env.NODE_ENV !== 'production') {
     try {
       const { execSync } = require('child_process');
+      let killed = false;
       if (process.platform === 'win32') {
         const output = execSync(`netstat -ano | findstr :${port}`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
         const lines = output.split('\n').filter(Boolean);
@@ -43,16 +44,26 @@ async function bootstrap() {
           }
         }
         for (const pid of pids) {
-          try { execSync(`taskkill /PID ${pid} /F`, { stdio: 'ignore' }); } catch (e) {}
+          try { 
+            execSync(`taskkill /PID ${pid} /F`, { stdio: 'ignore' }); 
+            killed = true;
+          } catch (e) {}
         }
       } else {
         const output = execSync(`lsof -ti tcp:${port}`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
         const pids = output.split('\n').filter(Boolean);
         for (const pid of pids) {
           if (pid !== String(process.pid)) {
-            try { execSync(`kill -9 ${pid}`, { stdio: 'ignore' }); } catch (e) {}
+            try { 
+              execSync(`kill -9 ${pid}`, { stdio: 'ignore' }); 
+              killed = true;
+            } catch (e) {}
           }
         }
+      }
+      if (killed) {
+        // Wait 1.5 seconds for the OS to release the socket after forcefully terminating the ghost process
+        await new Promise(resolve => setTimeout(resolve, 1500));
       }
     } catch (e) {
       // Ignore if no process is found
