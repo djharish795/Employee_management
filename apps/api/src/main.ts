@@ -1,10 +1,12 @@
 import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
+import * as cookieParser from "cookie-parser";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableShutdownHooks();
+  app.use(cookieParser());
 
   app.enableCors({
     origin: process.env.WS_CORS_ORIGIN ?? "http://localhost:3000",

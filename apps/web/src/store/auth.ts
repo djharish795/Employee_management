@@ -16,16 +16,13 @@ export interface DeviceDetails {
 interface AuthState {
   tempSession: TempSession | null;
   deviceDetails: DeviceDetails | null;
-  accessToken: string | null;
-  refreshToken: string | null;
   role: string | null;
   employeeId: string | null;
   photoUrl: string | null;
   isTeamLead: boolean;
   setTempSession: (session: TempSession | null) => void;
   setDeviceDetails: (details: DeviceDetails | null) => void;
-  setAuthSession: (params: { accessToken: string; refreshToken: string; role: string; employeeId: string | null; isTeamLead?: boolean }) => void;
-  updateTokens: (accessToken: string, refreshToken: string) => void;
+  setAuthSession: (params: { role: string; employeeId: string | null; isTeamLead?: boolean; accessToken?: string; refreshToken?: string; }) => void;
   setPhotoUrl: (url: string | null) => void;
   clearSession: () => void;
 }
@@ -35,27 +32,23 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       tempSession: null,
       deviceDetails: null,
-      accessToken: null,
-      refreshToken: null,
       role: null,
       employeeId: null,
       photoUrl: null,
       isTeamLead: false,
       setTempSession: (session) => set({ tempSession: session }),
       setDeviceDetails: (details) => set({ deviceDetails: details }),
-      setAuthSession: ({ accessToken, refreshToken, role, employeeId, isTeamLead = false }) =>
-        set({ accessToken, refreshToken, role, employeeId, isTeamLead, tempSession: null }),
-      updateTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
+      setAuthSession: ({ role, employeeId, isTeamLead = false }) =>
+        set({ role, employeeId, isTeamLead, tempSession: null }),
       setPhotoUrl: (url) => set({ photoUrl: url }),
       clearSession: () => {
         if (typeof document !== "undefined") {
-          document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+          fetch(`${apiUrl.split('#')[0].trim()}/auth/logout`, { method: "POST", credentials: "include" }).catch(() => {});
         }
         set({
           tempSession: null,
           deviceDetails: null,
-          accessToken: null,
-          refreshToken: null,
           role: null,
           employeeId: null,
           photoUrl: null,

@@ -358,7 +358,10 @@ export function TasksClient({ mode = "INDIVIDUAL" }: TasksClientProps) {
           userRole={role}
           isQa={isQa}
           onTaskCreated={(newTask) => {
-            setTasks([newTask, ...tasks]);
+            setTasks((prev) => {
+              if (prev.some(t => t.id === newTask.id)) return prev;
+              return [newTask, ...prev];
+            });
           }}
         />
       )}

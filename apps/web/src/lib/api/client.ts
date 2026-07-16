@@ -6,21 +6,7 @@ apiUrl = apiUrl.split('#')[0].trim();
 
 export const apiClient = axios.create({
   baseURL: apiUrl,
-});
-
-// Request Interceptor: Inject Token
-apiClient.interceptors.request.use((config) => {
-  if (typeof window !== "undefined") {
-    const tokenMatch = document.cookie.match(new RegExp("(^| )token=([^;]+)"));
-    const cookieToken = tokenMatch ? tokenMatch[2] : null;
-    const storeToken = useAuthStore.getState().accessToken;
-
-    const token = cookieToken || storeToken;
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-  }
-  return config;
+  withCredentials: true,
 });
 
 // Response Interceptor: Handle 401 & Token Refresh
@@ -55,8 +41,7 @@ apiClient.interceptors.response.use(
         return new Promise(function (resolve, reject) {
           failedQueue.push({ resolve, reject });
         })
-          .then((token) => {
-            originalRequest.headers.Authorization = "Bearer " + token;
+          .then(() => {
             return apiClient(originalRequest);
           })
           .catch((err) => {
@@ -67,43 +52,18 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = useAuthStore.getState().refreshToken;
-
-      if (!refreshToken) {
-        // No refresh token available, force logout
-        useAuthStore.getState().clearSession();
-        window.location.href = "/login";
-        return Promise.reject(error);
-      }
-
       try {
-        const { data } = await axios.post(
-          `${apiUrl}/auth/refresh`,
-          { refreshToken }
-        );
-
-        if (data.token && data.refreshToken) {
-          useAuthStore.getState().setAuthSession({
-            accessToken: data.token,
-            refreshToken: data.refreshToken,
-            role: data.role || "EMPLOYEE",
-            employeeId: data.employeeId ?? null,
-            isTeamLead: data.isTeamLead ?? false,
-          });
-          document.cookie = `token=${data.token}; path=/; max-age=86400; SameSite=Strict`;
-
-          processQueue(null, data.token);
-          
-          originalRequest.headers.Authorization = "Bearer " + data.token;
-          return apiClient(originalRequest);
-        } else {
-          throw new Error("Invalid refresh response");
-        }
-      } catch (err) {
-        processQueue(err, null);
+        await axios.post(`${apiUrl}/auth/refresh`, {}, { withCredentials: true });
+        
+        processQueue(null);
+        return apiClient(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
         useAuthStore.getState().clearSession();
-        window.location.href = "/login";
-        return Promise.reject(err);
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
+        return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
       }

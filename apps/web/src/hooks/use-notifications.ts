@@ -21,7 +21,13 @@ export function useNotifications() {
 
   // Initialize WebSockets for realtime badge updates
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      if (socket) {
+        socket.disconnect();
+        socket = null;
+      }
+      return;
+    }
 
     if (!socket) {
       let wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3001";
@@ -43,10 +49,8 @@ export function useNotifications() {
     }
 
     return () => {
-      if (socket) {
-        socket.disconnect();
-        socket = null;
-      }
+      // Intentionally empty. Do NOT disconnect the global socket here,
+      // otherwise unmounting any single component destroys it for the whole app.
     };
   }, [token, queryClient]);
 
