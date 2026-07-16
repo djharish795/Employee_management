@@ -100,11 +100,11 @@ export class HolidaysService {
     
     // Calculate tomorrow's date at midnight UTC
     const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0, 0, 0, 0);
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+    tomorrow.setUTCHours(0, 0, 0, 0);
 
     const nextDay = new Date(tomorrow);
-    nextDay.setDate(tomorrow.getDate() + 1);
+    nextDay.setUTCDate(tomorrow.getUTCDate() + 1);
 
     // Find any holiday falling exactly tomorrow
     const upcomingHolidays = await this.prisma.companyHoliday.findMany({

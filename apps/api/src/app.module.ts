@@ -3,6 +3,7 @@ import { APP_FILTER, APP_INTERCEPTOR } from "@nestjs/core";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { ScheduleModule } from "@nestjs/schedule";
+import { BullModule } from "@nestjs/bullmq";
 import { AuthModule } from "./modules/auth/auth.module";
 import { DocumentsModule } from "./modules/documents/documents.module";
 import { LeavesModule } from "./modules/leaves/leaves.module";
@@ -53,6 +54,25 @@ import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
       }),
     }),
     ScheduleModule.forRoot(),
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const tlsEnabled = config.get<string>('REDIS_TLS', 'false') === 'true';
+        return {
+          connection: {
+            host: config.get<string>('REDIS_HOST', 'localhost'),
+            port: Number(config.get<string>('REDIS_PORT', '6379')),
+            password: config.get<string>('REDIS_PASSWORD') || undefined,
+            tls: tlsEnabled ? {} : undefined,
+            // Prevent BullMQ from crashing the process on transient Redis errors:
+            maxRetriesPerRequest: null,
+            enableReadyCheck: false,
+            retryStrategy: (times: number) => Math.min(times * 500, 5000),
+          },
+        };
+      },
+    }),
     PrismaModule,
     RedisModule,
     HealthModule,

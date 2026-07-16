@@ -17,8 +17,9 @@ export class TasksService {
     private readonly auditService: AuditService,
   ) { }
 
-  async getMyTasks(employeeId: string): Promise<any> {
-    return this.tasksRepo.findTasksByEmployee(employeeId);
+  async getMyTasks(user: any): Promise<any> {
+    const isTrTs = ['TR', 'TS', 'TRAINEE', 'TECHNICAL_SUPPORT'].includes(user.role);
+    return this.tasksRepo.findTasksByEmployee(user.employeeId, isTrTs);
   }
 
   async getProjectTasks(projectId: string): Promise<any> {
@@ -103,11 +104,10 @@ export class TasksService {
       );
     }
     
-    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
     this.auditService.logCreate({
       moduleName: 'Tasks',
       entityId: task.id,
-      actorId: 'unknown',
+      actorId: user.employeeId,
       metadata: { title: task.title, status: task.status }
     });
 
@@ -126,11 +126,10 @@ export class TasksService {
 
     const updatedTask = await this.tasksRepo.updateTask(taskId, dto);
 
-    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
     this.auditService.logUpdate({
       moduleName: 'Tasks',
       entityId: taskId,
-      actorId: 'unknown',
+      actorId: user.employeeId,
       oldValue: { status: task.status },
       newValue: dto
     });
@@ -246,11 +245,10 @@ export class TasksService {
     }
     const result = await this.tasksRepo.deleteTask(taskId);
     
-    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
     this.auditService.logDelete({
       moduleName: 'Tasks',
       entityId: taskId,
-      actorId: 'unknown',
+      actorId: employeeId,
       metadata: { title: task.title }
     });
 

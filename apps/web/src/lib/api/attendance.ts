@@ -6,8 +6,8 @@ export const fetchTodayStatus = async (): Promise<{ state: "IN" | "BREAK" | "OUT
   return data;
 };
 
-export const fetchMyLogs = async (): Promise<AttendanceLog[]> => {
-  const { data } = await apiClient.get("/attendance/my-logs");
+export const fetchMyLogs = async (page = 1, limit = 100): Promise<AttendanceLog[]> => {
+  const { data } = await apiClient.get(`/attendance/my-logs?page=${page}&limit=${limit}`);
   // Assuming the backend returns { data: AttendanceLog[], total: number }
   return data.data; 
 };
@@ -18,7 +18,7 @@ export const fetchMyKpis = async (): Promise<AttendanceKPIs> => {
 };
 
 export const submitPunch = async (action: "IN" | "BREAK" | "OUT"): Promise<{ state: "IN" | "BREAK" | "OUT", startTime: number, offset: number }> => {
-  const { data } = await apiClient.post("/attendance/punch", { action });
+  const { data } = await apiClient.post("/attendance/punch", { action, idempotencyKey: crypto.randomUUID() });
   return data;
 };
 

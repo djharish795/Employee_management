@@ -20,7 +20,7 @@ export class TasksController {
   @Permissions(Permission.READ_OWN_PROFILE)
   async getMyTasks(@CurrentUser() user: any): Promise<any> {
     const employeeId = user.employeeId;
-    const tasks = await this.tasksService.getMyTasks(employeeId);
+    const tasks = await this.tasksService.getMyTasks(user);
     
     // Attach isMentioned flag based on mentions in comments
     const userEmail = user.email;

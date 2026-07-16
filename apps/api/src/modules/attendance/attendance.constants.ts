@@ -17,7 +17,11 @@ export function isLateArrival(checkInTime: Date): boolean {
   const zoned = toZonedTime(checkInTime, 'Asia/Kolkata');
   const h = zoned.getHours();
   const m = zoned.getMinutes();
-  return h > 10 || (h === 10 && m > 15);
+  
+  const shiftH = parseInt(process.env.SHIFT_START_HH || '10', 10);
+  const shiftM = parseInt(process.env.SHIFT_START_MM || '15', 10);
+  
+  return h > shiftH || (h === shiftH && m > shiftM);
 }
 
 /**
