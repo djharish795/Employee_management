@@ -7,6 +7,7 @@ export interface AttendanceLog {
   remarks: string;
   totalBreakSeconds?: number;
   breakHistory?: Array<{ start: string; end: string | null }>;
+  punchHistory?: Array<{ action: "IN" | "OUT" | "BREAK"; time: string }>;
 }
 
 export interface RegularizationRequest {

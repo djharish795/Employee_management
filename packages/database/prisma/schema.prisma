@@ -261,6 +261,7 @@ model AttendanceRecord {
   totalBreakSeconds     Int              @default(0)
   currentBreakStartTime DateTime?
   breakHistory          Json?            @default("[]")
+  punchHistory          Json?            @default("[]")
   updatedAt             DateTime         @updatedAt
   workHours             Decimal?         @db.Decimal(5, 2)
   employee              Employee         @relation(fields: [employeeId], references: [id])

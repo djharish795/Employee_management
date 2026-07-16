@@ -5,6 +5,20 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, Filter, Download, ArrowUpDown, Calendar, RefreshCcw } from "lucide-react";
 import { AttendanceLog } from "@/types/attendance";
 
+const formatDecimalHoursToHMS = (hoursDecimal: number): string => {
+  if (!hoursDecimal || hoursDecimal === 0) return "0s";
+  const totalSeconds = Math.round(hoursDecimal * 3600);
+  const hrs = Math.floor(totalSeconds / 3600);
+  const mins = Math.floor((totalSeconds % 3600) / 60);
+  const secs = totalSeconds % 60;
+  
+  const parts = [];
+  if (hrs > 0) parts.push(`${hrs}h`);
+  if (mins > 0) parts.push(`${mins}m`);
+  if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+  return parts.join(" ");
+};
+
 import { fetchMyLogs, fetchAllLogs } from "@/lib/api/attendance";
 
 const formatTimeValue = (val: string | null | undefined): string => {
@@ -40,7 +54,7 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
       const formattedDate = new Date(log.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
       const formattedCheckIn = formatTimeValue(log.checkIn);
       const formattedCheckOut = formatTimeValue(log.checkOut);
-      const formattedHours = typeof log.hoursWorked === 'number' ? `${log.hoursWorked.toFixed(1)}h` : log.hoursWorked;
+      const formattedHours = typeof log.hoursWorked === 'number' ? formatDecimalHoursToHMS(log.hoursWorked) : log.hoursWorked;
       
       // Calculate formatted break
       let formattedBreak = "—";
@@ -102,7 +116,7 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
         const displayDate = new Date(log.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
         const displayCheckIn = formatTimeValue(log.checkIn);
         const displayCheckOut = formatTimeValue(log.checkOut);
-        const displayHours = typeof log.hoursWorked === 'number' ? `${log.hoursWorked.toFixed(1)}h` : log.hoursWorked;
+        const displayHours = typeof log.hoursWorked === 'number' ? formatDecimalHoursToHMS(log.hoursWorked) : log.hoursWorked;
         let displayBreak = "—";
         if (log.totalBreakSeconds && log.totalBreakSeconds > 0) {
           const breakMins = Math.round(log.totalBreakSeconds / 60);
@@ -139,8 +153,8 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
       };
 
       const headers = isOrgMode 
-        ? ["Employee", "Date", "Check In", "Check Out", "Hours Worked", "Break Time", "Status", "Remarks"]
-        : ["Date", "Check In", "Check Out", "Hours Worked", "Break Time", "Status", "Remarks"];
+        ? ["Employee", "Date", "Check In", "Check Out", "Time Worked", "Break Time", "Status", "Remarks"]
+        : ["Date", "Check In", "Check Out", "Time Worked", "Break Time", "Status", "Remarks"];
         
       const rows = result.map((log) => {
         const row = [
@@ -182,6 +196,8 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  
+  const [activeTooltipLogId, setActiveTooltipLogId] = useState<string | null>(null);
 
   // Reset to page 1 when filters change
   React.useEffect(() => {
@@ -193,6 +209,17 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
 
   return (
     <div className="space-y-6">
+      {/* Invisible overlay to close tooltip when clicking outside */}
+      {activeTooltipLogId && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={(e) => {
+            e.stopPropagation();
+            setActiveTooltipLogId(null);
+          }} 
+        />
+      )}
+
       {/* Filtering Bar */}
       <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3 flex-1">
@@ -269,7 +296,7 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
                   <th className="px-6 py-4">Date</th>
                   <th className="px-6 py-4">Check In</th>
                   <th className="px-6 py-4">Check Out</th>
-                  <th className="px-6 py-4">Hours Worked</th>
+                  <th className="px-6 py-4">Time Worked</th>
                   <th className="px-6 py-4">Break Time</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4">Remarks</th>
@@ -294,7 +321,39 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="font-bold text-slate-900">{log.displayDate}</div>
                       </td>
-                      <td className="px-6 py-4 font-mono text-slate-500">{log.displayCheckIn}</td>
+                      <td className="px-6 py-4 font-mono text-slate-500">
+                        <div className="relative flex flex-col">
+                          <span>{log.displayCheckIn}</span>
+                          {log.punchHistory && log.punchHistory.length > 2 && (
+                            <span 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveTooltipLogId(activeTooltipLogId === log.date ? null : log.date);
+                              }}
+                              className="text-[10px] font-bold text-blue-500 mt-1 uppercase bg-blue-50 hover:bg-blue-100 rounded-full px-2 py-0.5 inline-block w-max cursor-pointer transition-colors"
+                            >
+                              Split Shift
+                            </span>
+                          )}
+                          {/* Tooltip for detailed timeline */}
+                          {log.punchHistory && log.punchHistory.length > 0 && (
+                            <div 
+                              onClick={(e) => e.stopPropagation()}
+                              className={`absolute left-0 top-full mt-2 flex-col gap-1 bg-slate-900 text-white text-[11px] p-3 rounded-lg shadow-xl z-50 min-w-[150px] ${activeTooltipLogId === log.date ? 'flex' : 'hidden'}`}
+                            >
+                              <div className="font-bold text-slate-400 mb-1 border-b border-slate-700 pb-1">Punch Timeline</div>
+                              {log.punchHistory.map((p: any, i: number) => (
+                                <div key={i} className="flex justify-between gap-4">
+                                  <span className={p.action === "IN" ? "text-emerald-400 font-bold" : p.action === "BREAK" ? "text-amber-400" : "text-rose-400"}>
+                                    {p.action}
+                                  </span>
+                                  <span className="font-mono text-slate-300">{formatTimeValue(p.time)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-6 py-4 font-mono text-slate-500">{log.displayCheckOut}</td>
                       <td className="px-6 py-4 font-bold text-slate-900">{log.displayHours}</td>
                       <td className="px-6 py-4 font-bold text-amber-600">{log.displayBreak}</td>

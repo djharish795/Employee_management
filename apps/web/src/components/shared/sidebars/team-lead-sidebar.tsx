@@ -38,12 +38,18 @@ export function TeamLeadSidebar() {
   const clearSession = useAuthStore((state) => state.clearSession);
   const { hasPermission } = useRbac();
 
-  const [workspace, setWorkspace] = useState<'individual' | 'team'>('team');
+  const [workspace, setWorkspace] = useState<'individual' | 'team'>(
+    pathname.startsWith('/team-lead') ? 'team' : 'individual'
+  );
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed]   = useState(false);
   const [mounted, setMounted]       = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    setWorkspace(pathname.startsWith('/team-lead') ? 'team' : 'individual');
+  }, [pathname]);
 
   const handleLogout = () => {
     clearSession();
@@ -58,7 +64,7 @@ export function TeamLeadSidebar() {
       <div className={`p-5 pb-4 flex items-center ${collapsed ? 'justify-center px-3' : 'justify-between'}`}>
         {!collapsed && (
           <div>
-            <h2 className="text-lg font-bold text-slate-900 tracking-tight leading-snug">HRMS Prime</h2>
+            <h2 className="text-lg font-bold text-slate-900 tracking-tight leading-snug">Naprocs EMS</h2>
             <p className="text-[11px] text-slate-500 font-medium tracking-wide mt-0.5">My Workspace</p>
           </div>
         )}
@@ -76,7 +82,10 @@ export function TeamLeadSidebar() {
         <div className="px-4 pb-5">
           <div className="flex bg-slate-100 p-1 rounded-lg">
             <button
-              onClick={() => setWorkspace('individual')}
+              onClick={() => {
+                setWorkspace('individual');
+                router.push('/employee/dashboard');
+              }}
               className={`flex-1 text-xs font-semibold py-1.5 rounded-md transition-all ${
                 workspace === 'individual'
                   ? 'bg-slate-900 text-white shadow-sm'
@@ -86,7 +95,10 @@ export function TeamLeadSidebar() {
               Individual
             </button>
             <button
-              onClick={() => setWorkspace('team')}
+              onClick={() => {
+                setWorkspace('team');
+                router.push('/team-lead/dashboard');
+              }}
               className={`flex-1 text-xs font-semibold py-1.5 rounded-md transition-all ${
                 workspace === 'team'
                   ? 'bg-slate-900 text-white shadow-sm'

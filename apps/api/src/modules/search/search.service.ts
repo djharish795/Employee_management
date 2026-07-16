@@ -7,7 +7,7 @@ import { SEARCH_REGISTRY, SearchEntity } from './search.registry';
 export class SearchService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async globalSearch(query: string, userRole: UserRole): Promise<SearchEntity[]> {
+  async globalSearch(query: string, userRole: UserRole, scope: string = 'global', employeeId?: string): Promise<SearchEntity[]> {
     const q = query.toLowerCase().trim();
     if (!q) return [];
 
@@ -44,22 +44,36 @@ export class SearchService {
       return { entity, score };
     }).filter(item => item.score > 0);
 
-    // 3. Dynamic Database Searches (Only if user has access to those modules)
-    // Employees Directory is accessible to ALL_ROLES usually.
+    // 3. Dynamic Database Searches
     const dynamicResults: { entity: SearchEntity, score: number }[] = [];
     
-    // Search Employees (Only if user has global read permission)
-    if (hasPermission(userRole, Permission.READ_EMPLOYEES)) {
-      const employees = await this.prisma.employee.findMany({
-        where: {
-          OR: [
-            { firstName: { contains: q, mode: 'insensitive' } },
-            { lastName: { contains: q, mode: 'insensitive' } },
-            { officialEmail: { contains: q, mode: 'insensitive' } }
-          ]
-        },
-        take: 50
-      });
+    // Search Employees only if not in individual scope
+    if (scope !== 'individual') {
+      let canSearchEmployees = false;
+      let employeeWhereClause: any = {
+        OR: [
+          { firstName: { contains: q, mode: 'insensitive' } },
+          { lastName: { contains: q, mode: 'insensitive' } },
+          { officialEmail: { contains: q, mode: 'insensitive' } }
+        ]
+      };
+
+      if (hasPermission(userRole, Permission.READ_EMPLOYEES)) {
+        canSearchEmployees = true;
+      } else if (hasPermission(userRole, Permission.READ_TEAM_PROFILES) && employeeId) {
+        canSearchEmployees = true;
+        // Restrict search to direct reports only
+        employeeWhereClause = {
+          ...employeeWhereClause,
+          reportingManagerId: employeeId
+        };
+      }
+
+      if (canSearchEmployees) {
+        const employees = await this.prisma.employee.findMany({
+          where: employeeWhereClause,
+          take: 50
+        });
 
       for (const emp of employees) {
         dynamicResults.push({
@@ -81,6 +95,7 @@ export class SearchService {
         });
       }
     }
+  }
 
     // Combine, sort by score descending, and return top 15
     const combined = [...scoredModules, ...dynamicResults];
