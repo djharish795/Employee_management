@@ -38,6 +38,8 @@ import { ProjectsModule } from './modules/projects/projects.module';
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
 import { SettingsModule } from './modules/settings/settings.module';
 
+import { CrmModule } from "./modules/crm/crm.module";
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -103,6 +105,7 @@ import { SettingsModule } from './modules/settings/settings.module';
     LifecycleModule,
     ProjectsModule,
     SettingsModule,
+    CrmModule,
   ],
   providers: [
     {

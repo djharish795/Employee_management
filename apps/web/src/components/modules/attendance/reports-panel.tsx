@@ -32,14 +32,15 @@ export default function ReportsPanel() {
   const handleExportTimesheet = async () => {
     try {
       const logs = await fetchAllLogs(1, 2000); // Fetch up to 2000 logs
+      const logList = Array.isArray(logs) ? logs : (logs?.data || []);
       const rows = [
         ["Date", "Employee Name", "Check In", "Check Out", "Hours Worked", "Status", "Remarks"],
-        ...logs.map(log => [
+        ...logList.map((log: any) => [
           log.date,
-          (log as any).employeeName || "Unknown",
+          log.employeeName || "Unknown",
           log.checkIn,
           log.checkOut,
-          log.hoursWorked.toString(),
+          log.hoursWorked?.toString() || "0",
           log.status,
           `"${(log.remarks || "").replace(/"/g, '""')}"`
         ])

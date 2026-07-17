@@ -272,7 +272,7 @@ export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
                 {group.label}
               </div>
             )}
-            {group.items.map((item) => {
+            {group.items.map((item: any) => {
               if (item.locked) {
                 return (
                   <div key={item.title} className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 dark:text-slate-600 cursor-not-allowed ${collapsed ? 'justify-center' : ''}`}>
