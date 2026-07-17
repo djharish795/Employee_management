@@ -12,26 +12,17 @@ interface DashboardPanelProps {
 
 }
 
-const RECENT_CHANGES = [
-  { id: 1, action: "Updated Password Policy", actor: "IT Admin (john.d)", time: "2 hours ago", type: "security" },
-  { id: 2, action: "Added New Department: Data Science", actor: "HR Admin (sarah.m)", time: "5 hours ago", type: "org" },
-  { id: 3, action: "Modified 'Manager' Role Permissions", actor: "Super Admin", time: "1 day ago", type: "permissions" },
-  { id: 4, action: "Connected Slack Integration", actor: "IT Admin (john.d)", time: "1 day ago", type: "integration" },
-];
+import { apiClient } from "@/lib/api/client";
 
 export default function SettingsDashboardPanel() {
   const { role } = usePermissions();
   const activeRole = role as any;
-  const { data: kpis } = useQuery<SettingsKPIs>({
+  const { data: kpis } = useQuery<any>({
     queryKey: ["settingsKPIs", activeRole],
-    queryFn: async () => ({
-      totalUsers: 450,
-      activeRoles: 12,
-      securityAlerts: 3,
-      activeWorkflows: 8,
-      integrationsConnected: 4,
-      complianceStatus: "HEALTHY",
-    }),
+    queryFn: async () => {
+      const res = await apiClient.get('/settings/dashboard');
+      return res.data?.data || res.data;
+    },
   });
 
   if (!kpis) return null;
@@ -106,7 +97,7 @@ export default function SettingsDashboardPanel() {
               <p className="text-xs font-medium text-slate-500 mt-0.5">Audit log of administrative actions.</p>
             </div>
             <div className="flex-1 overflow-auto p-2">
-              {RECENT_CHANGES.map((activity) => (
+              {kpis.recentChanges && kpis.recentChanges.map((activity: any) => (
                 <div key={activity.id} className="flex items-start gap-4 p-4 hover:bg-slate-50 border-b border-slate-50 last:border-0 transition-colors">
                   <div className="mt-0.5">
                     {activity.type === "security" && <Shield className="w-5 h-5 text-indigo-500" />}

@@ -26,7 +26,6 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
       { title: "Overview", href: "/settings", icon: Settings },
       { title: "Organization", href: "/settings/organization", icon: Building2 },
       { title: "Users & Roles", href: "/settings/users", icon: Users },
-      { title: "Permissions", href: "/settings/permissions", icon: Shield },
       { title: "Security & Auth", href: "/settings/security", icon: Lock },
       { title: "Notifications", href: "/settings/notifications", icon: Bell },
       { title: "Workflows", href: "/settings/workflows", icon: Workflow },
@@ -35,7 +34,7 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
     ];
 
     if (activeRole === "COMPLIANCE_OFFICER") {
-      items = items.filter(item => ["/settings", "/settings/compliance", "/settings/permissions", "/settings/organization"].includes(item.href));
+      items = items.filter(item => ["/settings", "/settings/compliance", "/settings/organization"].includes(item.href));
     }
     if (activeRole === "HR_ADMIN") {
       items = items.filter(item => ["/settings", "/settings/organization", "/settings/users", "/settings/workflows", "/settings/notifications"].includes(item.href));
@@ -51,15 +50,9 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
     <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
       
       {/* ── Left Admin Sidebar ─────────────────────────────────────────── */}
-      <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 z-20 border-r border-slate-800">
-        <div className="h-16 flex items-center px-6 border-b border-slate-800">
-          <Link href="/" className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-xs font-bold uppercase tracking-wider">
-            <ArrowLeft className="w-4 h-4" /> Exit Admin
-          </Link>
-        </div>
-        
+      <aside className="w-64 bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-400 flex flex-col flex-shrink-0 z-20 border-r border-slate-200 dark:border-slate-800">
         <div className="p-6">
-          <h2 className="text-white text-lg font-black tracking-tight leading-tight">Enterprise Administration</h2>
+          <h2 className="text-slate-900 dark:text-white text-lg font-black tracking-tight leading-tight">Enterprise Administration</h2>
           <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider mt-1">Control Center</p>
         </div>
 
@@ -71,13 +64,13 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-teal-500/10 text-teal-400"
-                    : "hover:bg-slate-800 hover:text-white"
+                    ? "bg-slate-100 dark:bg-slate-800/50 text-slate-900 dark:text-white font-semibold"
+                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-teal-400' : 'text-slate-500'}`} />
+                <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`} />
                 {item.title}
               </Link>
             );
