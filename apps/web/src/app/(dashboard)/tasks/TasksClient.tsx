@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Task, tasksApi } from "@/lib/api/tasks";
 import { apiClient } from "@/lib/api/client";
-import { Loader2, KanbanSquare, LayoutList, PieChart, Briefcase, Plus, Search, Filter, Box, CheckCircle2, CircleDashed } from "lucide-react";
+import { Loader2, KanbanSquare, LayoutList, PieChart, Briefcase, Plus, Search, Filter, Box, CheckCircle2, CircleDashed, AlertCircle } from "lucide-react";
 import { TaskKanbanBoard } from "@/components/modules/tasks/TaskKanbanBoard";
 import { ProjectTeamTab } from "@/components/modules/tasks/ProjectTeamTab";
 import { TaskSummaryView } from "./views/TaskSummaryView";
@@ -23,6 +23,7 @@ export function TasksClient({ mode = "INDIVIDUAL" }: TasksClientProps) {
   const [selectedProject, setSelectedProject] = useState<string>("MY_TASKS");
   const [activeTab, setActiveTab] = useState<"SUMMARY" | "LIST" | "BOARD" | "TEAM">("BOARD");
   const [loading, setLoading] = useState(true);
+  const [accessDenied, setAccessDenied] = useState(false);
   
   // For Modals
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -102,8 +103,11 @@ export function TasksClient({ mode = "INDIVIDUAL" }: TasksClientProps) {
             console.error("Could not fetch employee details", e);
           }
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error(err);
+        if (err?.response?.status === 403) {
+          setAccessDenied(true);
+        }
       } finally {
         setLoading(false);
       }
@@ -141,6 +145,19 @@ export function TasksClient({ mode = "INDIVIDUAL" }: TasksClientProps) {
   const activeProjectName = selectedProject === "MY_TASKS" 
     ? (globalFilter === "OPEN" ? "My open work items" : globalFilter === "DONE" ? "Done work items" : "All work items")
     : projects.find(p => p.id === selectedProject)?.name || "Workspace";
+
+  if (accessDenied) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full bg-slate-50 text-slate-500 space-y-4">
+        <AlertCircle className="w-12 h-12 text-slate-400" />
+        <h2 className="text-xl font-bold text-slate-700">Access Restricted</h2>
+        <p className="text-sm max-w-md text-center">
+          The Tasks module is strictly reserved for the QA and Technical Departments. 
+          If you believe this is an error, please contact your administrator.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full bg-white overflow-hidden text-gray-900 font-sans">

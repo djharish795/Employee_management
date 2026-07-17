@@ -11,6 +11,7 @@ import {
 import { useAuthStore } from '@/store/auth';
 import { useRbac } from '@/hooks/use-rbac';
 import { Permission } from '@naprocs/types';
+import { apiClient } from '@/lib/api/client';
 
 const NAV_ITEMS = [
   { title: 'Dashboard',     icon: LayoutDashboard, href: '/employee/dashboard' },
@@ -33,8 +34,25 @@ export function EmployeeSidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed]   = useState(false);
   const [mounted, setMounted]       = useState(false);
+  const [showTasks, setShowTasks]   = useState(false);
 
-  React.useEffect(() => { setMounted(true); }, []);
+  React.useEffect(() => {
+    setMounted(true);
+    
+    // Check if user has technical department or project assignments
+    apiClient.get('/profile/me').then(res => {
+      const deptCode = res.data?.department?.code || '';
+      const isTechnical = ['ENG', 'TECH', 'QA'].includes(deptCode);
+      const hasProjectAssignment = res.data?.user?.hasProjectAssignment;
+      
+      const role = useAuthStore.getState().role;
+      const hasGlobalRole = ['CEO', 'CTO', 'DM', 'SPM', 'PM', 'TL', 'OM'].includes(role || '');
+      
+      if (isTechnical || hasProjectAssignment || hasGlobalRole) {
+        setShowTasks(true);
+      }
+    }).catch(e => console.error(e));
+  }, []);
 
   const handleLogout = () => {
     clearSession();
@@ -69,8 +87,9 @@ export function EmployeeSidebar() {
 
 
       {/* Navigation */}
-      <nav className={`flex-1 space-y-0.5 overflow-y-auto ${collapsed ? 'px-2' : 'px-3'}`}>
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {filteredNavItems.map((item) => {
+          if (item.title === 'Tasks' && !showTasks) return null;
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
             <Link

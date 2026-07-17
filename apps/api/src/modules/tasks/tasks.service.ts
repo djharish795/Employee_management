@@ -17,13 +17,50 @@ export class TasksService {
     private readonly auditService: AuditService,
   ) { }
 
+  private async validateTaskScreenAccess(user: any) {
+    if (['SUPER_ADMIN', 'CEO', 'CTO'].includes(user.role)) return { isAllowed: true, isAssigner: true, title: user.role };
+    
+    const emp = await this.prisma.employee.findUnique({
+      where: { id: user.employeeId },
+      include: { 
+        designation: true,
+        department: true,
+        projectAssignments: {
+          where: { releasedAt: null }
+        }
+      }
+    });
+    
+    if (!emp) throw new ForbiddenException("Employee not found");
+    
+    const isTechnicalDepartment = ['ENG', 'TECH', 'QA'].includes(emp.department?.code || '');
+    const hasProjectAssignment = emp.projectAssignments.length > 0;
+    
+    if (!isTechnicalDepartment && !hasProjectAssignment && !['CEO', 'CTO', 'DM', 'SPM', 'PM', 'TL', 'OM'].includes(user.role)) {
+      throw new ForbiddenException("You do not have access to the Tasks module. This module is restricted to Technical departments and active project members.");
+    }
+    
+    // Check if they are an assigner either globally or via project role
+    const GLOBAL_ASSIGNERS = ['CEO', 'CTO', 'DM', 'SPM', 'PM', 'TL', 'OM'];
+    const hasGlobalAssignerRole = GLOBAL_ASSIGNERS.includes(user.role);
+    
+    const PROJECT_ASSIGNER_ROLES = ['DM', 'SPM', 'PM', 'TL'];
+    const hasProjectAssignerRole = emp.projectAssignments.some(pa => PROJECT_ASSIGNER_ROLES.includes(pa.projectRole));
+    
+    const isAssigner = hasGlobalAssignerRole || hasProjectAssignerRole;
+    
+    return { isAllowed: true, isAssigner, title: emp.designation?.title || user.role };
+  }
+
   async getMyTasks(user: any): Promise<any> {
+    await this.validateTaskScreenAccess(user);
     const isTrTs = ['TR', 'TS', 'TRAINEE', 'TECHNICAL_SUPPORT'].includes(user.role);
     return this.tasksRepo.findTasksByEmployee(user.employeeId, isTrTs);
   }
 
   async getProjectTasks(projectId: string, user?: any): Promise<any> {
     if (user) {
+      await this.validateTaskScreenAccess(user);
       const isManagerOrHigher = RbacGroups.MANAGER_OR_HIGHER.includes(user.role as any);
       if (!isManagerOrHigher) {
         const assignment = await this.prisma.projectAssignment.findFirst({
@@ -38,6 +75,7 @@ export class TasksService {
   }
 
   async createTask(user: any, dto: any): Promise<any> {
+    const access = await this.validateTaskScreenAccess(user);
     this.logger.debug("Creating task...", { user, dto });
     const creatorId = user.employeeId;
 
@@ -135,9 +173,38 @@ export class TasksService {
   }
 
   async updateTask(taskId: string, user: any, dto: any): Promise<any> {
+    const access = await this.validateTaskScreenAccess(user);
     const task = await this.getTask(taskId);
 
     const isManagerOrHigher = RbacGroups.MANAGER_OR_HIGHER.includes(user.role as any);
+
+    if (!access.isAssigner && !isManagerOrHigher) {
+      if (task.assigneeId !== user.employeeId) {
+        throw new ForbiddenException("You can only participate in tasks assigned to you.");
+      }
+      
+      const creator = await this.prisma.employee.findUnique({
+        where: { id: task.creatorId },
+        include: { 
+          user: true,
+          projectAssignments: {
+            where: { releasedAt: null }
+          }
+        }
+      });
+      
+      const GLOBAL_ASSIGNERS = ['CEO', 'CTO', 'DM', 'SPM', 'PM', 'TL', 'OM'];
+      const hasGlobalAssignerRole = GLOBAL_ASSIGNERS.includes(creator?.user?.role as string);
+      
+      const PROJECT_ASSIGNER_ROLES = ['DM', 'SPM', 'PM', 'TL'];
+      const hasProjectAssignerRole = creator?.projectAssignments?.some(pa => PROJECT_ASSIGNER_ROLES.includes(pa.projectRole)) || false;
+      
+      const isCreatorAssigner = hasGlobalAssignerRole || hasProjectAssignerRole;
+      
+      if (!isCreatorAssigner) {
+        throw new ForbiddenException("You can only participate in tasks assigned by a Team Lead or higher manager.");
+      }
+    }
 
     // General update check
     const isCreator = user.employeeId === task.creatorId;

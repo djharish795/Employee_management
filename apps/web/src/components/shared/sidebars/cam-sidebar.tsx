@@ -74,7 +74,6 @@ export function CamSidebar() {
     {
       label: 'MY WORKPLACE',
       items: [
-        { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
         { title: 'Connect', icon: MessageSquare, href: '/connect' },
         { title: 'Attendance', icon: CalendarCheck, href: '/attendance' },
         { title: 'Leaves', icon: Calendar, href: '/leaves' },

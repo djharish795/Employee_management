@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Logger, HttpException } from '@nestjs/common';
 
 const logger = new Logger('RetryUtil');
 
@@ -24,6 +24,10 @@ export async function withRetry<T>(
     try {
       return await operation();
     } catch (error: any) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      
       if (attempt >= maxRetries) {
         logger.error(`Operation failed after ${maxRetries} retries`, error.stack || error);
         throw error;

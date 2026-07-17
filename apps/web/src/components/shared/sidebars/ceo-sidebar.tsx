@@ -140,9 +140,13 @@ const getNavGroups = (role: string, unreadCount: number, hasSettingsAccess: bool
 
   const mainItems: any[] = [
     { title: 'Dashboard', icon: LayoutDashboard, href: getDashboardPathForRole(role) },
-    { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
     { title: 'Connect', icon: MessageSquare, href: '/connect' },
   ];
+
+  const ALLOWED_TASK_ROLES = ['CTO', 'CEO', 'DM', 'SPM', 'PM', 'TL', 'TR', 'TS', 'QM', 'QA', 'QE', 'OM'];
+  if (ALLOWED_TASK_ROLES.includes(role)) {
+    mainItems.splice(1, 0, { title: 'Tasks', icon: CheckSquare, href: '/tasks' });
+  }
 
   if (['HR', 'CEO'].includes(role)) {
     mainItems.push({ 

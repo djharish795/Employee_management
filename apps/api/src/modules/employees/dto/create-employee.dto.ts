@@ -70,12 +70,12 @@ export class CreateEmployeeDto {
   pan?: string;
 
   @IsString()
-  @IsOptional()
-  departmentId?: string;
+  @IsNotEmpty()
+  departmentId!: string;
 
   @IsString()
-  @IsOptional()
-  designationId?: string;
+  @IsNotEmpty()
+  designationId!: string;
 
   @IsString()
   @IsOptional()
