@@ -20,7 +20,7 @@ async function seedUser(email: string, employeeId: string, firstName: string, ro
     data: {
       employeeId,
       firstName,
-      lastName: 'CEM',
+      lastName: role,
       officialEmail: email,
       status: 'ACTIVE',
     }
