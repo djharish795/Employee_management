@@ -222,6 +222,69 @@ export default function RequirementsManagementPage() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+
+  // Reports Sidebar State
+  const [showReportsDrawer, setShowReportsDrawer] = useState(false);
+  const [isAddReportModalOpen, setIsAddReportModalOpen] = useState(false);
+
+  // New Report Form State
+  const [newReportTitle, setNewReportTitle] = useState('');
+  const [newReportAuthor, setNewReportAuthor] = useState('Divya CRM');
+  const [newReportPriority, setNewReportPriority] = useState('MEDIUM');
+  const [newReportStatus, setNewReportStatus] = useState('PENDING');
+  const [newReportContent, setNewReportContent] = useState('');
+
+  const [requirementReports, setRequirementReports] = useState<Record<string, any[]>>({
+    'REQ-2023-0812': [
+      { id: 'RPT-101', title: 'Weekly Status Report: Round Robin Setup', author: 'Sarah Mitchell', date: 'Oct 20, 2023', priority: 'CRITICAL', status: 'APPROVED', content: 'Round-robin territorial distribution logic has been implemented. Waiting for security clearance on user tables.' },
+      { id: 'RPT-102', title: 'Incident Report: Geo-Mapping Desync', author: 'John Doe', date: 'Oct 22, 2023', priority: 'HIGH', status: 'PENDING', content: 'Discovered a routing loop when a lead is assigned to a territory with no active representatives. Checking territory mapping tables.' },
+      { id: 'RPT-103', title: 'Daily Standup Log: Testing Round-Robin', author: 'Alex Sterling', date: 'Oct 24, 2023', priority: 'MEDIUM', status: 'APPROVED', content: 'Initial testing complete. Territory validation runs with mock customer profiles.' }
+    ],
+    'REQ-2023-0813': [
+      { id: 'RPT-201', title: 'Weekly Status Report: Sales Pipeline Sync', author: 'Swetha CEM', date: 'Oct 21, 2023', priority: 'HIGH', status: 'APPROVED', content: 'Salesforce API sync completed. Resolved field mapping conflicts for currency fields.' },
+      { id: 'RPT-202', title: 'Daily Standup Log: Dashboard Widgets', author: 'John Doe', date: 'Oct 23, 2023', priority: 'MEDIUM', status: 'APPROVED', content: 'Refined client validation triggers and performance charts.' }
+    ],
+    'REQ-2023-0814': [
+      { id: 'RPT-301', title: 'Weekly Status Report: Active Sync Validation', author: 'Julian Vancore', date: 'Oct 18, 2023', priority: 'MEDIUM', status: 'APPROVED', content: 'OAuth authentication flows verified for Microsoft Exchange synchronization.' }
+    ],
+    'REQ-2023-0815': [
+      { id: 'RPT-401', title: 'Weekly Status Report: PDF Export Hook', author: 'Sandya Rani', date: 'Oct 19, 2023', priority: 'LOW', status: 'APPROVED', content: 'Custom PDF print templates designed. High-load print tasks queued.' }
+    ],
+    'REQ-2023-0816': [
+      { id: 'RPT-501', title: 'Incident Report: iOS Push Tokens', author: 'Junaid', date: 'Oct 22, 2023', priority: 'CRITICAL', status: 'REJECTED', content: 'APNS keys are invalid or expired. Handoff failed validation.' }
+    ]
+  });
+
+  const handleAddReport = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedReq || !newReportTitle.trim() || !newReportContent.trim()) return;
+
+    const newReport = {
+      id: `RPT-${Math.floor(100 + Math.random() * 900)}`,
+      title: newReportTitle.trim(),
+      author: newReportAuthor.trim(),
+      date: new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }),
+      priority: newReportPriority,
+      status: newReportStatus,
+      content: newReportContent.trim()
+    };
+
+    const currentReqReports = requirementReports[selectedReq.id] || [];
+    const updatedReports = {
+      ...requirementReports,
+      [selectedReq.id]: [newReport, ...currentReqReports]
+    };
+
+    setRequirementReports(updatedReports);
+    toast.success("Operational report submitted successfully!");
+
+    // Reset Form
+    setNewReportTitle('');
+    setNewReportContent('');
+    setNewReportPriority('MEDIUM');
+    setNewReportStatus('PENDING');
+    setIsAddReportModalOpen(false);
+  };
   
   // Form State
   const [formId, setFormId] = useState('');
@@ -505,7 +568,7 @@ export default function RequirementsManagementPage() {
       <Toaster position="top-right" />
 
       {/* Left Pane: Requirements List Table */}
-      <div className="w-[50%] flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 h-full overflow-hidden">
+      <div className={`${showReportsDrawer ? 'w-[35%]' : 'w-[50%]'} flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 h-full overflow-hidden transition-all duration-300`}>
         
         {/* Header Title section */}
         <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
@@ -626,7 +689,7 @@ export default function RequirementsManagementPage() {
       </div>
 
       {/* Right Pane: Detailed Panel */}
-      <div className="w-[50%] flex flex-col bg-slate-50 dark:bg-slate-950 h-full overflow-hidden">
+      <div className={`${showReportsDrawer ? 'w-[35%]' : 'w-[50%]'} flex flex-col bg-slate-50 dark:bg-slate-950 h-full overflow-hidden transition-all duration-300`}>
         {selectedReq ? (
           <>
             {/* Detail Panel Header */}
@@ -650,6 +713,17 @@ export default function RequirementsManagementPage() {
                 <p className="text-xs text-slate-400 font-semibold">{selectedReq.clientName}</p>
               </div>
               <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setShowReportsDrawer(!showReportsDrawer)}
+                  className={`flex items-center gap-1.5 px-3 py-2 border rounded-lg text-xs font-black transition-colors ${
+                    showReportsDrawer 
+                      ? 'bg-blue-600 text-white border-blue-650' 
+                      : 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900/50 hover:bg-blue-100 text-blue-700 dark:text-blue-400'
+                  }`}
+                  title="View Reports"
+                >
+                  <FileText className="w-4 h-4" /> View Reports
+                </button>
                 <button 
                   onClick={() => handleOpenEditModal(selectedReq)}
                   className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-slate-650 dark:text-slate-350 transition-colors"
@@ -1265,6 +1339,157 @@ export default function RequirementsManagementPage() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Right Pane (Reports Sidebar) */}
+      {showReportsDrawer && (
+        <div className="w-[30%] border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 h-full flex flex-col overflow-hidden transition-all duration-300">
+          {/* Header */}
+          <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-shrink-0 bg-slate-50/50 dark:bg-slate-900/20">
+            <div>
+              <h3 className="text-sm font-black text-slate-950 dark:text-white flex items-center gap-2">
+                <FileText className="w-4 h-4 text-blue-600" /> Operational Reports
+              </h3>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5">
+                Related to {selectedReq ? selectedReq.title : ''}
+              </p>
+            </div>
+            <button 
+              onClick={() => setShowReportsDrawer(false)}
+              className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-650 dark:hover:text-slate-350 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          
+          {/* Reports List Body */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            {selectedReq && requirementReports[selectedReq.id]?.length > 0 ? (
+              requirementReports[selectedReq.id].map((rpt) => (
+                <div key={rpt.id} className="p-4 border border-slate-200 dark:border-slate-800/80 rounded-xl bg-white dark:bg-slate-900 shadow-sm space-y-3">
+                  <div className="flex justify-between items-start">
+                    <span className="text-[9px] font-black uppercase text-blue-600 bg-blue-50 dark:bg-blue-950/20 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-900/50 tracking-wider">
+                      {rpt.id}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${
+                      rpt.status === 'APPROVED' ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border-emerald-150' :
+                      rpt.status === 'REJECTED' ? 'bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-450 border-rose-150' :
+                      'bg-amber-50 dark:bg-amber-950/20 text-amber-700 border-amber-150'
+                    }`}>
+                      {rpt.status}
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-black text-slate-900 dark:text-white leading-snug">{rpt.title}</h4>
+                  <p className="text-[11px] leading-relaxed text-slate-550 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800">{rpt.content}</p>
+                  <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 dark:text-slate-500 pt-1 border-t border-slate-50 dark:border-slate-800">
+                    <span>By: <span className="text-slate-700 dark:text-slate-350">{rpt.author}</span></span>
+                    <span>{rpt.date}</span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="py-12 text-center flex flex-col items-center justify-center">
+                <FileText className="w-8 h-8 text-slate-355 dark:text-slate-650 mb-2.5 animate-pulse" />
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-200">No reports submitted</p>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">There are no operational reports for this requirement.</p>
+              </div>
+            )}
+          </div>
+          
+          {/* Add Report Button */}
+          <div className="p-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-2 flex-shrink-0 shadow-inner">
+            <button 
+              onClick={() => setIsAddReportModalOpen(true)}
+              className="w-full py-2.5 text-xs font-black uppercase tracking-wider text-white bg-slate-800 hover:bg-slate-700 dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950 rounded-lg transition-colors shadow-sm text-center"
+            >
+              Add Operational Report
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Add Report Modal Dialog */}
+      {isAddReportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
+          <form onSubmit={handleAddReport} className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20">
+              <h3 className="font-black text-slate-900 dark:text-white flex items-center gap-2 text-base">
+                <FileText className="w-5 h-5 text-blue-600" /> New Operational Report
+              </h3>
+              <button 
+                type="button"
+                onClick={() => setIsAddReportModalOpen(false)} 
+                className="text-slate-400 hover:text-slate-650 dark:hover:text-slate-350 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Report Title</label>
+                <input 
+                  type="text" 
+                  value={newReportTitle}
+                  onChange={(e) => setNewReportTitle(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-transparent text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white font-semibold" 
+                  placeholder="e.g. Weekly Status Report: Round Robin Setup" 
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Author Name</label>
+                  <input 
+                    type="text" 
+                    value={newReportAuthor}
+                    onChange={(e) => setNewReportAuthor(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-transparent text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white font-semibold" 
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Priority</label>
+                  <select 
+                    value={newReportPriority}
+                    onChange={(e) => setNewReportPriority(e.target.value)}
+                    className="w-full h-[34px] px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white font-semibold"
+                  >
+                    <option value="CRITICAL">Critical</option>
+                    <option value="HIGH">High</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="LOW">Low</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Report Details & Content</label>
+                <textarea 
+                  value={newReportContent}
+                  onChange={(e) => setNewReportContent(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-transparent text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white" 
+                  placeholder="Outline report details, sync outcome, blockers resolved..." 
+                  rows={4}
+                  required
+                />
+              </div>
+            </div>
+            <div className="p-4 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3 border-t border-slate-100 dark:border-slate-800">
+              <button 
+                type="button"
+                onClick={() => setIsAddReportModalOpen(false)} 
+                className="px-4 py-2 rounded-lg text-xs font-bold text-slate-650 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit"
+                className="px-4 py-2 rounded-lg text-xs font-bold bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:bg-slate-850 dark:hover:bg-slate-100 shadow-sm transition-colors"
+              >
+                Submit Report
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>
