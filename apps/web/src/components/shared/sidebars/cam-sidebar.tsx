@@ -122,7 +122,7 @@ export function CamSidebar() {
       {/* Quick Action */}
       {!collapsed && (
         <div className="px-4 pb-5">
-          <button className="w-full bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm">
+          <button className="w-full bg-slate-800 dark:bg-slate-800 hover:bg-slate-700 dark:hover:bg-slate-700 text-white flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm">
             <Plus className="w-4 h-4" />
             <span>New Lead</span>
           </button>
@@ -130,7 +130,7 @@ export function CamSidebar() {
       )}
       {collapsed && (
         <div className="px-3 pb-5">
-          <button className="w-full bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white flex items-center justify-center py-2.5 rounded-lg transition-colors shadow-sm" title="New Lead">
+          <button className="w-full bg-slate-800 dark:bg-slate-800 hover:bg-slate-700 dark:hover:bg-slate-700 text-white flex items-center justify-center py-2.5 rounded-lg transition-colors shadow-sm" title="New Lead">
             <Plus className="w-4 h-4" />
           </button>
         </div>
@@ -181,7 +181,7 @@ export function CamSidebar() {
                       collapsed ? 'justify-center' : ''
                     } ${
                       isActive
-                        ? 'bg-slate-900 dark:bg-slate-800 text-white font-semibold shadow-sm'
+                        ? 'bg-slate-800 dark:bg-slate-800 text-white font-semibold shadow-sm'
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >

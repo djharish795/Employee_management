@@ -451,7 +451,7 @@ export default function LeadsWorkspacePage() {
           </h2>
           <button 
             onClick={() => setIsNewClientModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-950 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition-all shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm"
           >
             <Plus className="w-3.5 h-3.5" /> New Client
           </button>
@@ -464,7 +464,7 @@ export default function LeadsWorkspacePage() {
               onClick={() => setActiveTab('Active')}
               className={`flex-1 text-center py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border ${
                 activeTab === 'Active'
-                  ? 'bg-slate-950 text-white border-slate-950 shadow-sm'
+                  ? 'bg-slate-800 text-white border-slate-800 shadow-sm'
                   : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
               }`}
             >
@@ -474,7 +474,7 @@ export default function LeadsWorkspacePage() {
               onClick={() => setActiveTab('Incoming')}
               className={`flex-1 text-center py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border flex items-center justify-center gap-1.5 ${
                 activeTab === 'Incoming'
-                  ? 'bg-slate-950 text-white border-slate-950 shadow-sm'
+                  ? 'bg-slate-800 text-white border-slate-800 shadow-sm'
                   : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
               }`}
             >
@@ -585,9 +585,9 @@ export default function LeadsWorkspacePage() {
                       {selectedClient.id}
                     </span>
                     <span className={`inline-block px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded border ${
-                      selectedClient.clientHealth === 'On Track' ? 'bg-slate-900 text-white border-slate-950' :
+                      selectedClient.clientHealth === 'On Track' ? 'bg-slate-800 text-white border-slate-800' :
                       selectedClient.clientHealth === 'Awaiting Client' ? 'bg-slate-100 text-slate-700 border-slate-300' :
-                      selectedClient.clientHealth === 'Blocked' ? 'bg-slate-100 text-slate-900 border-slate-950 font-bold border-2' :
+                      selectedClient.clientHealth === 'Blocked' ? 'bg-slate-100 text-slate-800 border-slate-700 font-bold border-2' :
                       'bg-slate-200 text-slate-800 border-slate-400'
                     }`}>
                       {selectedClient.clientHealth}
@@ -615,7 +615,7 @@ export default function LeadsWorkspacePage() {
                   </div>
                   <button 
                     onClick={handleUpdateStage}
-                    className="px-4 py-2.5 text-xs font-black uppercase tracking-wider text-white bg-slate-950 rounded-lg hover:bg-slate-800 transition-colors shadow-sm"
+                    className="px-4 py-2.5 text-xs font-black uppercase tracking-wider text-white bg-slate-800 rounded-lg hover:bg-slate-700 transition-colors shadow-sm"
                   >
                     Update Stage
                   </button>
@@ -633,7 +633,7 @@ export default function LeadsWorkspacePage() {
                   <div className="flex items-center justify-between relative px-6 py-4">
                     <div className="absolute top-8 left-16 right-16 h-0.5 bg-slate-100 rounded-full z-0">
                       <div 
-                        className="h-full bg-slate-950 transition-all duration-300"
+                        className="h-full bg-slate-800 transition-all duration-300"
                         style={{ width: `${((selectedClient.stage - 1) / (STAGE_LABELS.length - 1)) * 100}%` }}
                       ></div>
                     </div>
@@ -644,8 +644,8 @@ export default function LeadsWorkspacePage() {
                       return (
                         <div key={label} className="flex flex-col items-center gap-2.5 relative z-10 w-24">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center border-4 border-white shadow-sm transition-all duration-300 ${
-                            isActive ? 'bg-slate-950 text-white font-extrabold ring-2 ring-slate-200' :
-                            isCompleted ? 'bg-slate-950 text-white' :
+                            isActive ? 'bg-slate-800 text-white font-extrabold ring-2 ring-slate-200' :
+                            isCompleted ? 'bg-slate-800 text-white' :
                             'bg-slate-100 text-slate-400'
                           }`}>
                             {isCompleted ? <Check className="w-3.5 h-3.5" /> : stepNum}
@@ -927,7 +927,7 @@ export default function LeadsWorkspacePage() {
                   <button className="flex-1 sm:flex-initial px-4 py-2.5 text-xs font-black uppercase tracking-wider text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
                     Schedule Follow Up
                   </button>
-                  <button className="flex-1 sm:flex-initial px-5 py-2.5 text-xs font-black uppercase tracking-wider text-white bg-slate-950 rounded-lg hover:bg-slate-800 transition-colors shadow-sm">
+                  <button className="flex-1 sm:flex-initial px-5 py-2.5 text-xs font-black uppercase tracking-wider text-white bg-slate-800 rounded-lg hover:bg-slate-700 transition-colors shadow-sm">
                     Schedule Meeting
                   </button>
                 </div>
@@ -966,7 +966,7 @@ export default function LeadsWorkspacePage() {
                   </button>
                   <button 
                     onClick={() => handleAcceptAssignment(selectedIncoming.id)}
-                    className="px-5 py-2.5 text-xs font-black uppercase tracking-wider text-white bg-slate-950 rounded-lg hover:bg-slate-800 transition-colors shadow-sm flex items-center gap-1.5"
+                    className="px-5 py-2.5 text-xs font-black uppercase tracking-wider text-white bg-slate-800 rounded-lg hover:bg-slate-700 transition-colors shadow-sm flex items-center gap-1.5"
                   >
                     <UserCheck className="w-4 h-4" /> Accept Assignment
                   </button>

@@ -270,7 +270,7 @@ export default function RequirementsManagementPage() {
             <button className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 transition-all">
               <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" /> Filter
             </button>
-            <button className="flex items-center gap-1.5 px-4.5 py-1.5 bg-slate-950 hover:bg-slate-800 text-white rounded-lg text-xs font-black transition-all shadow-sm">
+            <button className="flex items-center gap-1.5 px-4.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-black transition-all shadow-sm">
               <Plus className="w-3.5 h-3.5" /> New Requirement
             </button>
           </div>
@@ -393,7 +393,7 @@ export default function RequirementsManagementPage() {
                   {/* Connect line */}
                   <div className="absolute top-[13px] left-6 right-6 h-0.5 bg-slate-100 z-0">
                     <div 
-                      className="h-full bg-slate-950 transition-all duration-300"
+                      className="h-full bg-slate-800 transition-all duration-300"
                       style={{ 
                         width: selectedReq.status === 'Approved' ? '100%' :
                                selectedReq.status === 'Awaiting Client' ? '66%' :
@@ -419,8 +419,8 @@ export default function RequirementsManagementPage() {
                     return (
                       <div key={stage} className="flex flex-col items-center gap-1.5 relative z-10">
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 border-white shadow-sm transition-all duration-300 ${
-                          isActive ? 'bg-slate-950 text-white font-extrabold scale-110' :
-                          isPassed ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-400'
+                          isActive ? 'bg-slate-800 text-white font-extrabold scale-110' :
+                          isPassed ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-400'
                         }`}>
                           {isPassed ? <CheckCircle2 className="w-3.5 h-3.5" /> : stepNum}
                         </div>
@@ -602,7 +602,7 @@ export default function RequirementsManagementPage() {
             <div className="p-4 bg-white border-t border-slate-200 flex items-center justify-between gap-3 flex-shrink-0 shadow-inner">
               <button 
                 onClick={handleSaveChanges}
-                className="flex-1 py-2.5 text-xs font-black uppercase tracking-wider text-white bg-slate-950 rounded-lg hover:bg-slate-800 transition-colors shadow-sm text-center"
+                className="flex-1 py-2.5 text-xs font-black uppercase tracking-wider text-white bg-slate-800 rounded-lg hover:bg-slate-700 transition-colors shadow-sm text-center"
               >
                 Save Changes
               </button>
