@@ -11,6 +11,7 @@ import { TaskListView } from "./views/TaskListView";
 import { TaskDetailsModal } from "@/components/modules/tasks/TaskDetailsModal";
 import { NewTaskModal } from "@/components/modules/tasks/NewTaskModal";
 import { useAuthStore } from "@/store/auth";
+import { useSearchStore } from "@/store/search";
 
 interface TasksClientProps {
   mode?: "INDIVIDUAL" | "TEAM";
@@ -38,7 +39,7 @@ export function TasksClient({ mode = "INDIVIDUAL" }: TasksClientProps) {
 
   // Filter States
   const [globalFilter, setGlobalFilter] = useState<"ALL" | "OPEN" | "DONE">("ALL");
-  const [searchQuery, setSearchQuery] = useState("");
+  const searchQuery = useSearchStore(state => state.globalSearchQuery);
   const [assigneeFilter, setAssigneeFilter] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
@@ -62,16 +63,32 @@ export function TasksClient({ mode = "INDIVIDUAL" }: TasksClientProps) {
         if (selectedProject === "MY_TASKS") {
           const t = await tasksApi.getMyTasks();
           setTasks(t);
-          setProjectMembers([]);
         } else {
           const t = await tasksApi.getProjectTasks(selectedProject);
           setTasks(t);
-          
-          // Fetch project details for assignments
-          const pRes = await apiClient.get(`/projects/${selectedProject}`);
-          if (pRes.data && pRes.data.assignments) {
-            setProjectMembers(pRes.data.assignments.map((a: any) => a.employee).filter(Boolean));
+        }
+
+        // Fetch project details for assignments, or all employees if in MY_TASKS
+        if (selectedProject !== "MY_TASKS") {
+          try {
+            const pRes = await apiClient.get(`/projects/${selectedProject}`);
+            if (pRes.data && pRes.data.assignments) {
+              setProjectMembers(pRes.data.assignments.map((a: any) => a.employee).filter(Boolean));
+            } else {
+              setProjectMembers([]);
+            }
+          } catch (e) {
+            setProjectMembers([]);
           }
+        } else if (['MANAGER', 'TEAM_LEAD', 'CTO', 'CEO', 'SUPER_ADMIN', 'HR'].includes(role || '')) {
+          try {
+            const empRes = await apiClient.get('/employees?limit=1000');
+            setProjectMembers(empRes.data?.data || empRes.data || []);
+          } catch (e) {
+            setProjectMembers([]);
+          }
+        } else {
+          setProjectMembers([]);
         }
 
         // Check if user is QA
@@ -96,14 +113,20 @@ export function TasksClient({ mode = "INDIVIDUAL" }: TasksClientProps) {
 
   // Refetch members when modal opens to ensure we have the latest (e.g. if added via Team Tab)
   useEffect(() => {
-    if (isNewTaskOpen && selectedProject !== "MY_TASKS") {
-      apiClient.get(`/projects/${selectedProject}`).then(pRes => {
-        if (pRes.data && pRes.data.assignments) {
-          setProjectMembers(pRes.data.assignments.map((a: any) => a.employee).filter(Boolean));
-        }
-      }).catch(err => console.error("Could not refresh project members", err));
+    if (isNewTaskOpen) {
+      if (selectedProject !== "MY_TASKS") {
+        apiClient.get(`/projects/${selectedProject}`).then(pRes => {
+          if (pRes.data && pRes.data.assignments) {
+            setProjectMembers(pRes.data.assignments.map((a: any) => a.employee).filter(Boolean));
+          }
+        }).catch(() => setProjectMembers([]));
+      } else if (['MANAGER', 'TEAM_LEAD', 'CTO', 'CEO', 'SUPER_ADMIN', 'HR'].includes(role || '')) {
+        apiClient.get('/employees?limit=1000').then(empRes => {
+          setProjectMembers(empRes.data?.data || empRes.data || []);
+        }).catch(() => setProjectMembers([]));
+      }
     }
-  }, [isNewTaskOpen, selectedProject]);
+  }, [isNewTaskOpen, selectedProject, role]);
 
   // Derived Filtered Tasks
   const filteredTasks = tasks.filter(t => {
@@ -180,22 +203,12 @@ export function TasksClient({ mode = "INDIVIDUAL" }: TasksClientProps) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 bg-white">
         {/* Header & Tabs */}
-        <div className="border-b border-[#DFE1E6] pt-6 px-8 flex flex-col bg-white z-10">
+        <div className="relative border-b border-[#DFE1E6] pt-6 px-8 flex flex-col bg-white z-50">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-4">
               <h1 className="text-2xl font-semibold text-[#172B4D]">{activeProjectName}</h1>
             </div>
             <div className="flex items-center space-x-3">
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input 
-                  type="text" 
-                  placeholder="Search work items..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-4 py-1.5 border border-[#DFE1E6] rounded-md text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#4C9AFF] focus:border-transparent outline-none w-64"
-                />
-              </div>
               
               {/* Only show Create button if Team Lead, Manager+, or QA */}
               {(isTeamLead || isQa || ['CTO', 'CEO', 'MANAGER', 'SUPER_ADMIN'].includes(role || '')) && (
@@ -210,7 +223,7 @@ export function TasksClient({ mode = "INDIVIDUAL" }: TasksClientProps) {
             </div>
           </div>
           
-          <div className="flex items-center space-x-6 pb-0">
+          <div className="flex items-center space-x-6 pb-0 relative z-50">
             {selectedProject !== "MY_TASKS" && (
               <>
                 <button 
@@ -255,7 +268,7 @@ export function TasksClient({ mode = "INDIVIDUAL" }: TasksClientProps) {
             )}
 
             {/* Quick Filters */}
-            <div className="flex items-center space-x-2 ml-auto mb-2 relative">
+            <div className="flex items-center space-x-2 ml-auto mb-2 relative z-[100]">
               <div className="relative">
                 <button 
                   onClick={() => { setShowAssigneeDropdown(!showAssigneeDropdown); setShowStatusDropdown(false); }}
@@ -265,10 +278,10 @@ export function TasksClient({ mode = "INDIVIDUAL" }: TasksClientProps) {
                   <Filter className="w-3 h-3" />
                 </button>
                 {showAssigneeDropdown && (
-                  <div className="absolute right-0 mt-1 w-48 bg-white border border-[#DFE1E6] rounded-md shadow-lg py-1 z-50">
+                  <div className="absolute right-0 mt-1 w-48 bg-white border border-[#DFE1E6] rounded-md shadow-lg py-1 z-50 max-h-60 overflow-y-auto">
                     <button onClick={() => { setAssigneeFilter(null); setShowAssigneeDropdown(false); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">All Assignees</button>
-                    {projectMembers.map(m => (
-                      <button key={m.id} onClick={() => { setAssigneeFilter(m.id); setShowAssigneeDropdown(false); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 truncate">
+                    {Array.from(new Map([...projectMembers, ...tasks.map(t => t.assignee).filter(Boolean)].filter(m => m && m.firstName).map(m => [m.id || m.firstName, m])).values()).map((m: any, i) => (
+                      <button key={m.id || i} onClick={() => { setAssigneeFilter(m.id); setShowAssigneeDropdown(false); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 truncate">
                         {m.firstName} {m.lastName}
                       </button>
                     ))}
@@ -285,7 +298,7 @@ export function TasksClient({ mode = "INDIVIDUAL" }: TasksClientProps) {
                   <Filter className="w-3 h-3" />
                 </button>
                 {showStatusDropdown && (
-                  <div className="absolute right-0 mt-1 w-48 bg-white border border-[#DFE1E6] rounded-md shadow-lg py-1 z-50">
+                  <div className="absolute right-0 mt-1 w-48 bg-white border border-[#DFE1E6] rounded-md shadow-lg py-1 z-50 max-h-60 overflow-y-auto">
                     <button onClick={() => { setStatusFilter(null); setShowStatusDropdown(false); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">All Statuses</button>
                     {['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'QA', 'DONE', 'BLOCKED'].map(s => (
                       <button key={s} onClick={() => { setStatusFilter(s); setShowStatusDropdown(false); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
@@ -300,7 +313,7 @@ export function TasksClient({ mode = "INDIVIDUAL" }: TasksClientProps) {
         </div>
         
         {/* Tab Content */}
-        <div className="flex-1 overflow-auto bg-white">
+        <div className="flex-1 overflow-auto bg-white relative z-0">
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="w-8 h-8 animate-spin text-[#0052CC]" />
@@ -355,6 +368,7 @@ export function TasksClient({ mode = "INDIVIDUAL" }: TasksClientProps) {
           onClose={() => setIsNewTaskOpen(false)}
           projectId={selectedProject}
           projectMembers={projectMembers}
+          projects={projects}
           userRole={role}
           isQa={isQa}
           onTaskCreated={(newTask) => {

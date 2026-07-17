@@ -137,9 +137,6 @@ export default function CtoDashboardPage() {
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Engineering Headcount</div>
             <div className="flex items-end justify-between">
               <span className="text-4xl font-extrabold text-slate-900">{metrics?.headcount || '--'}</span>
-              <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[11px] font-bold rounded border border-emerald-100 flex items-center gap-1 mb-1">
-                ↗ {metrics?.headcountGrowth || '--'}%
-              </span>
             </div>
           </div>
 
@@ -209,20 +206,23 @@ export default function CtoDashboardPage() {
               ) : orgBreakdown.length === 0 ? (
                 <div className="py-12 text-center text-sm font-medium text-slate-400">Waiting for backend org data...</div>
               ) : (
-                orgBreakdown.map(org => {
-                  const percentage = (org.count / org.total) * 100;
-                  return (
-                    <div key={org.name}>
-                      <div className="flex justify-between items-end mb-2">
-                        <span className="text-sm font-bold text-slate-700">{org.name}</span>
-                        <span className="text-xs font-semibold text-slate-500">{org.count} Engineers</span>
+                (() => {
+                  const maxCount = Math.max(...orgBreakdown.map(o => o.count), 0);
+                  return orgBreakdown.map(org => {
+                    const percentage = maxCount === 0 ? 0 : (org.count / maxCount) * 100;
+                    return (
+                      <div key={org.name}>
+                        <div className="flex justify-between items-end mb-2">
+                          <span className="text-sm font-bold text-slate-700">{org.name}</span>
+                          <span className="text-xs font-semibold text-slate-500">{org.count} Members</span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-blue-600 rounded-full" style={{ width: `${percentage}%` }}></div>
+                        </div>
                       </div>
-                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-blue-600 rounded-full" style={{ width: `${percentage}%` }}></div>
-                      </div>
-                    </div>
-                  );
-                })
+                    );
+                  });
+                })()
               )}
             </div>
           </div>

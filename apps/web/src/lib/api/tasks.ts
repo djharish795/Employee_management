@@ -67,7 +67,7 @@ export const tasksApi = {
 
   createTask: async (data: Partial<Task>): Promise<Task> => {
     const response = await apiClient.post(API_BASE_URL, data);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   updateTask: async (id: string, data: Partial<Task>): Promise<Task> => {

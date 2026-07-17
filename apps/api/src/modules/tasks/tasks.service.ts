@@ -65,7 +65,7 @@ export class TasksService {
     let issueKey: string | null = null;
 
     if (dto.projectId) {
-      if (dto.assigneeId) {
+      if (dto.assigneeId && !isManagerOrHigher) {
         // Validate assignee is in project
         const assignment = await this.prisma.projectAssignment.findUnique({
           where: {
