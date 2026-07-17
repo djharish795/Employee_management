@@ -22,6 +22,7 @@ import { fetchMyProfile } from "@/lib/api/profile";
 import { assetsApi } from "@/lib/api/assets";
 import { workflowsApi } from "@/lib/api/workflows";
 import { fetchNotifications } from "@/lib/api/notifications";
+import EarlyCheckoutModal from "@/components/shared/early-checkout-modal";
 
 import { formatDistanceToNow } from 'date-fns';
 
@@ -39,6 +40,7 @@ export default function EmployeeDashboardV2() {
 
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [mounted, setMounted] = useState(false);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
 
   React.useEffect(() => {
     setMounted(true);
@@ -116,10 +118,22 @@ export default function EmployeeDashboardV2() {
     },
   });
 
+  const getSecondsElapsed = () => {
+    let secs = todayQuery.data?.offset || 0;
+    if ((todayState === "IN" || todayState === "BREAK") && todayQuery.data?.startTime) {
+      secs += Math.floor((Date.now() - new Date(todayQuery.data.startTime).getTime()) / 1000);
+    }
+    return secs;
+  };
+
   const handlePunch = () => {
     if (punchMutation.isPending) return;
     const nextAction = isPunchedIn ? "OUT" : "IN";
-    punchMutation.mutate(nextAction);
+    if (nextAction === "OUT") {
+      setShowCheckoutModal(true);
+    } else {
+      punchMutation.mutate(nextAction);
+    }
   };
 
   // ── Formatted clock-in time ───────────────────────────────────────────────
@@ -190,6 +204,16 @@ export default function EmployeeDashboardV2() {
 
   return (
     <div className="space-y-6">
+      <EarlyCheckoutModal
+        isOpen={showCheckoutModal}
+        secondsElapsed={getSecondsElapsed()}
+        isPending={punchMutation.isPending}
+        onClose={() => setShowCheckoutModal(false)}
+        onConfirm={() => {
+          setShowCheckoutModal(false);
+          punchMutation.mutate("OUT");
+        }}
+      />
       {/* Header section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
