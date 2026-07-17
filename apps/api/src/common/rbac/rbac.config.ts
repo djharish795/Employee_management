@@ -97,6 +97,10 @@ export const RbacPermissions = {
   ENGAGEMENT_READ: 'engagement.read',
   ENGAGEMENT_MANAGE: 'engagement.manage',
 
+  // Settings
+  SETTINGS_VIEW: 'settings.view',
+  SETTINGS_MANAGE: 'settings.manage',
+
   // Talent & Succession
   TALENT_READ: 'talent.read',
   TALENT_MANAGE: 'talent.manage',
@@ -126,8 +130,6 @@ export const RbacPermissions = {
 
   // System
   AUDIT_READ: 'audit.read',
-  SETTINGS_VIEW: 'settings.view',
-  SETTINGS_MANAGE: 'settings.manage',
   ROLES_READ: 'roles.read',
   ROLES_MANAGE: 'roles.manage',
 } as const;

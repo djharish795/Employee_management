@@ -1210,6 +1210,10 @@ model ConnectSettings {
   minNoticeHours          Int      @default(2)
   emailNotifications      Boolean  @default(true)
   systemNotifications     Boolean  @default(true)
+  slackEnabled            Boolean  @default(false)
+  googleWorkspaceEnabled  Boolean  @default(false)
+  zoomEnabled             Boolean  @default(false)
+  awsEnabled              Boolean  @default(false)
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 
@@ -1849,4 +1853,14 @@ model ApprovalMatrix {
   updatedAt       DateTime @updatedAt
 
   @@map("approval_matrix")
+}
+
+model WorkflowDefinition {
+  id        String   @id @default(cuid())
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("workflow_definitions")
 }
