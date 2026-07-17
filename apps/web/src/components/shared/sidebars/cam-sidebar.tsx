@@ -65,9 +65,10 @@ export function CamSidebar() {
   }
 
   // ─── Shared Operations items (Reports + Scheduler) for CRM, CEM, OM ───
+  const opsPrefix = storeRole === 'CRM' ? '/crm' : (storeRole === 'OM' ? '/om' : '/cam');
   const sharedOpsItems = [
-    { title: 'Reports', icon: FileBarChart, href: '/cam/reports' },
-    { title: 'Scheduler', icon: Clock, href: '/cam/scheduler' },
+    { title: 'Reports', icon: FileBarChart, href: `${opsPrefix}/reports` },
+    { title: 'Scheduler', icon: Clock, href: `${opsPrefix}/scheduler` },
   ];
 
   // ─── Build nav groups based on role ───────────────────────────────────
@@ -77,10 +78,10 @@ export function CamSidebar() {
         {
           label: 'CRM PORTAL',
           items: [
-            { title: 'Client Workspace', icon: Briefcase, href: '/cam/workspace' },
-            { title: 'Dashboard', icon: LayoutDashboard, href: '/om/dashboard' },
-            { title: 'Meetings', icon: Calendar, href: '/cam/meetings' },
-            { title: 'Requirements', icon: ShieldCheck, href: '/cam/requirements' },
+            { title: 'Client Workspace', icon: Briefcase, href: '/crm/workspace' },
+            { title: 'Dashboard', icon: LayoutDashboard, href: '/crm/dashboard' },
+            { title: 'Meetings', icon: Calendar, href: '/crm/meetings' },
+            { title: 'Requirements', icon: ShieldCheck, href: '/crm/requirements' },
           ]
         },
         {
