@@ -15,6 +15,8 @@ export function TaskKanbanBoard({ initialTasks, projectId, onTaskUpdated }: { in
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const currentUserId = useAuthStore((state) => state.employeeId);
+  const role = useAuthStore((state) => state.role);
+  const isTeamLead = useAuthStore((state) => state.isTeamLead);
 
   useEffect(() => {
     setTasks(initialTasks);
@@ -121,13 +123,15 @@ export function TaskKanbanBoard({ initialTasks, projectId, onTaskUpdated }: { in
                       >
                         {task.priority}
                       </span>
-                      <button 
-                        onClick={() => handleDelete(task.id)}
-                        className="text-gray-400 hover:text-red-500 transition-colors ml-2"
-                        title="Delete task"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {(isTeamLead || role === 'CTO') && (
+                        <button 
+                          onClick={() => handleDelete(task.id)}
+                          className="text-gray-400 hover:text-red-500 transition-colors ml-2"
+                          title="Delete task"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                     
                     <div className="flex mt-2">

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Req, UseGuards } from "@nestjs/common";
+import { Controller, Get, Post, Patch, Delete, Body, Param, Req, UseGuards, ForbiddenException } from "@nestjs/common";
 import { TasksService } from "./tasks.service";
 import { Request } from "express";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
@@ -50,6 +50,9 @@ export class TasksController {
   @Post()
   @Permissions(Permission.WRITE_OWN_PROFILE)
   async createTask(@CurrentUser() user: any, @Body() dto: any): Promise<any> {
+    if (user.role !== 'TEAM_LEAD' && user.role !== 'CTO') {
+      throw new ForbiddenException("Only Team Leads and CTO can create tasks");
+    }
     return this.tasksService.createTask(user, dto);
   }
 
@@ -105,6 +108,9 @@ export class TasksController {
   @Delete(":id")
   @Permissions(Permission.WRITE_OWN_PROFILE)
   async deleteTask(@CurrentUser() user: any, @Param("id") id: string): Promise<any> {
+    if (user.role !== 'TEAM_LEAD' && user.role !== 'CTO') {
+      throw new ForbiddenException("Only Team Leads and CTO can delete tasks");
+    }
     return this.tasksService.deleteTask(id, user);
   }
 }
