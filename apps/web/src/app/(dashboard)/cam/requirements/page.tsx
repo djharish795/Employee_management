@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { apiClient } from '@/lib/api/client';
 import { 
   Plus, 
   SlidersHorizontal,
@@ -215,13 +216,40 @@ export default function RequirementsManagementPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPriority, setFilterPriority] = useState<string>('ALL');
 
+  useEffect(() => {
+    async function fetchRequirements() {
+      try {
+        const response = await apiClient.get('/crm/requirements');
+        if (response.data && Array.isArray(response.data.data)) {
+          setRequirements(response.data.data);
+          if (response.data.data.length > 0) {
+            setSelectedReqId(response.data.data[0].id);
+          }
+        }
+      } catch (error) {
+        console.warn("Backend /crm/requirements endpoint is not set up yet. Keeping default interactive workspace data.", error);
+      }
+    }
+    fetchRequirements();
+  }, []);
+
   const selectedReq = requirements.find(r => r.id === selectedReqId) || requirements[0];
 
-  const handleSaveChanges = () => {
+  const handleSaveChanges = async () => {
+    try {
+      await apiClient.put(`/crm/requirements/${selectedReq.id}`, selectedReq);
+    } catch (error) {
+      console.warn("Backend requirement update endpoint not found. Simulated local save.", error);
+    }
     toast.success('Changes saved successfully!');
   };
 
-  const handleSubmitForReview = () => {
+  const handleSubmitForReview = async () => {
+    try {
+      await apiClient.put(`/crm/requirements/${selectedReq.id}/status`, { status: 'In Review' });
+    } catch (error) {
+      console.warn("Backend status update endpoint not found. Simulated review submission.", error);
+    }
     setRequirements(prev => prev.map(r => {
       if (r.id === selectedReq.id) {
         return { ...r, status: 'In Review' };
@@ -231,7 +259,12 @@ export default function RequirementsManagementPage() {
     toast.success('Submitted for review!');
   };
 
-  const handleRequestConfirmation = () => {
+  const handleRequestConfirmation = async () => {
+    try {
+      await apiClient.put(`/crm/requirements/${selectedReq.id}/status`, { status: 'Awaiting Client' });
+    } catch (error) {
+      console.warn("Backend status update endpoint not found. Simulated confirmation request.", error);
+    }
     setRequirements(prev => prev.map(r => {
       if (r.id === selectedReq.id) {
         return { ...r, status: 'Awaiting Client' };

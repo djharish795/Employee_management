@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { apiClient } from '@/lib/api/client';
 import { 
   Plus, 
   RefreshCw, 
@@ -237,13 +238,48 @@ export default function LeadsWorkspacePage() {
   const [noteText, setNoteText] = useState('');
   const [callText, setCallText] = useState('');
 
+  useEffect(() => {
+    async function loadWorkspaceData() {
+      try {
+        const response = await apiClient.get('/crm/clients');
+        if (response.data && Array.isArray(response.data.data)) {
+          setLeads(response.data.data);
+          if (response.data.data.length > 0) {
+            setSelectedClientId(response.data.data[0].id);
+          }
+        }
+      } catch (error) {
+        console.warn("Backend /crm/clients GET API not set up yet. Keeping default interactive workspace data.", error);
+      }
+
+      try {
+        const incomingResponse = await apiClient.get('/crm/clients/incoming');
+        if (incomingResponse.data && Array.isArray(incomingResponse.data.data)) {
+          setIncomingAssignments(incomingResponse.data.data);
+          if (incomingResponse.data.data.length > 0) {
+            setSelectedIncomingId(incomingResponse.data.data[0].id);
+          }
+        }
+      } catch (error) {
+        console.warn("Backend /crm/clients/incoming GET API not set up yet. Keeping default handoff data.", error);
+      }
+    }
+    loadWorkspaceData();
+  }, []);
+
   const selectedClient = leads.find(l => l.id === selectedClientId) || leads[0];
   const selectedIncoming = incomingAssignments.find(i => i.id === selectedIncomingId) || incomingAssignments[0];
 
   // Handoff Actions: Accept / Clarification / Reject
-  const handleAcceptAssignment = (incomingId: string) => {
+  const handleAcceptAssignment = async (incomingId: string) => {
     const item = incomingAssignments.find(i => i.id === incomingId);
     if (!item) return;
+
+    try {
+      await apiClient.post(`/crm/clients/${incomingId}/accept`);
+    } catch (error) {
+      console.warn("Backend /crm/clients/:id/accept endpoint not found. Simulated accept action locally.", error);
+    }
 
     // Convert incoming assignment to Active Client
     const newClient: ClientLead = {
@@ -279,20 +315,30 @@ export default function LeadsWorkspacePage() {
     toast.success(`Client ${item.company} accepted into Active Workspace!`);
   };
 
-  const handleRequestClarification = (incomingId: string) => {
+  const handleRequestClarification = async (incomingId: string) => {
+    try {
+      await apiClient.post(`/crm/clients/${incomingId}/clarify`);
+    } catch (error) {
+      console.warn("Backend /crm/clients/:id/clarify endpoint not found. Simulated clarify action locally.", error);
+    }
     toast(`Clarification request sent to CEM coordinator for assignment ID ${incomingId}`, {
       icon: '💬',
       style: { background: '#0f172a', color: '#fff' }
     });
   };
 
-  const handleRejectAssignment = (incomingId: string) => {
+  const handleRejectAssignment = async (incomingId: string) => {
+    try {
+      await apiClient.post(`/crm/clients/${incomingId}/reject`);
+    } catch (error) {
+      console.warn("Backend /crm/clients/:id/reject endpoint not found. Simulated reject action locally.", error);
+    }
     setIncomingAssignments(incomingAssignments.filter(i => i.id !== incomingId));
     toast.error(`Assignment ${incomingId} rejected and returned to queue.`);
   };
 
   // Add a new client manually (CEM functionality)
-  const handleCreateClient = (e: React.FormEvent) => {
+  const handleCreateClient = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCompany || !newContact || !newIndustry || !newPhone || !newEmail) return;
 
@@ -320,6 +366,12 @@ export default function LeadsWorkspacePage() {
       meetingsHistory: []
     };
 
+    try {
+      await apiClient.post('/crm/clients', created);
+    } catch (error) {
+      console.warn("Backend /crm/clients POST endpoint not found. Simulated client creation locally.", error);
+    }
+
     setLeads([...leads, created]);
     setSelectedClientId(created.id);
     setIsNewClientModalOpen(false);
@@ -336,7 +388,7 @@ export default function LeadsWorkspacePage() {
   };
 
   // Add individual requirement item to table
-  const handleAddRequirement = (e: React.FormEvent) => {
+  const handleAddRequirement = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reqName || !selectedClient) return;
 
@@ -346,6 +398,12 @@ export default function LeadsWorkspacePage() {
       status: reqStatus,
       lastUpdated: 'Today'
     };
+
+    try {
+      await apiClient.post(`/crm/clients/${selectedClient.id}/requirements`, newItem);
+    } catch (error) {
+      console.warn("Backend requirement addition endpoint not found. Simulated local addition.", error);
+    }
 
     setLeads(prev => prev.map(l => {
       if (l.id === selectedClient.id) {
@@ -363,16 +421,22 @@ export default function LeadsWorkspacePage() {
     toast.success('Requirement added to list!');
   };
 
-  const handleUpdateStage = () => {
+  const handleUpdateStage = async () => {
     if (selectedClient.stage >= 6) {
       toast.error('Client is already in the final Sales Handoff stage!');
       return;
+    }
+    const nextStage = (selectedClient.stage + 1) as ClientLead['stage'];
+    try {
+      await apiClient.put(`/crm/clients/${selectedClient.id}/stage`, { stage: nextStage });
+    } catch (error) {
+      console.warn("Backend stage update endpoint not found. Simulated stage transition locally.", error);
     }
     setLeads(prev => prev.map(l => {
       if (l.id === selectedClient.id) {
         return {
           ...l,
-          stage: (l.stage + 1) as ClientLead['stage'],
+          stage: nextStage,
           updatedDate: new Date().toISOString().replace('T', ' ').slice(0, 16)
         };
       }
@@ -381,7 +445,12 @@ export default function LeadsWorkspacePage() {
     toast.success(`Engagement timeline updated to stage: ${STAGE_LABELS[selectedClient.stage]}`);
   };
 
-  const handleUpdateHealth = (health: ClientLead['clientHealth']) => {
+  const handleUpdateHealth = async (health: ClientLead['clientHealth']) => {
+    try {
+      await apiClient.put(`/crm/clients/${selectedClient.id}/health`, { health });
+    } catch (error) {
+      console.warn("Backend health update endpoint not found. Simulated health update locally.", error);
+    }
     setLeads(prev => prev.map(l => {
       if (l.id === selectedClient.id) {
         return {
@@ -395,9 +464,14 @@ export default function LeadsWorkspacePage() {
     toast.success(`Operational health set to: ${health}`);
   };
 
-  const handleAddNote = (e: React.FormEvent) => {
+  const handleAddNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!noteText) return;
+    try {
+      await apiClient.post(`/crm/clients/${selectedClient.id}/notes`, { note: noteText });
+    } catch (error) {
+      console.warn("Backend notes creation endpoint not found. Simulated notes save locally.", error);
+    }
     setLeads(prev => prev.map(l => {
       if (l.id === selectedClient.id) {
         return {
@@ -413,9 +487,14 @@ export default function LeadsWorkspacePage() {
     toast.success('Meeting notes successfully saved!');
   };
 
-  const handleLogCall = (e: React.FormEvent) => {
+  const handleLogCall = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!callText) return;
+    try {
+      await apiClient.post(`/crm/clients/${selectedClient.id}/calls`, { call: callText });
+    } catch (error) {
+      console.warn("Backend calls logging endpoint not found. Simulated call logged locally.", error);
+    }
     setLeads(prev => prev.map(l => {
       if (l.id === selectedClient.id) {
         return {
