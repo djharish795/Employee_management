@@ -3,9 +3,7 @@ import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
-async function main() {
-  const email = 'swetha@naprocs.in';
-  
+async function seedUser(email: string, employeeId: string, firstName: string) {
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) {
     console.log(`User ${email} already exists. Updating role to CEM.`);
@@ -20,8 +18,8 @@ async function main() {
   
   const employee = await prisma.employee.create({
     data: {
-      employeeId: 'EMP-CEM-001',
-      firstName: 'Swetha',
+      employeeId,
+      firstName,
       lastName: 'CEM',
       officialEmail: email,
       status: 'ACTIVE',
@@ -38,6 +36,11 @@ async function main() {
   });
 
   console.log(`Successfully seeded CEM user: ${email}`);
+}
+
+async function main() {
+  await seedUser('swetha@naprocs.in', 'EMP-CEM-001', 'Swetha');
+  await seedUser('divya@naprocs.in', 'EMP-CEM-002', 'Divya');
 }
 
 main()
