@@ -134,6 +134,10 @@ export class AssetsService {
     if (asset.status === AssetStatus.RETIRED || asset.status === AssetStatus.LOST) {
       throw new BadRequestException(`Cannot assign an asset with status ${asset.status}`);
     }
+
+    // Auto-close any lingering active assignments for this asset
+    await this.assetsRepository.closeActiveAssignments(assetId);
+
     const result = await this.assetsRepository.assign(assetId, dto.employeeId, dto.assignedById, dto.notes);
     // TODO: Replace dto.assignedById with authenticated userId once JWT is implemented
     await this.auditService.logUpdate({
@@ -188,8 +192,7 @@ export class AssetsService {
   }
 
   async respondToRequest(role: UserRole, instanceId: string, respondedById: string, dto: RespondAssetRequestDto): Promise<any> {
-    this.validateWriteRole(role);
-    // Using WorkflowEngineService processApproval which expects "APPROVE" | "REJECT" and notes
+    // Relies on @RequirePermissions(RbacPermissions.ASSETS_ALLOCATE) in controller
     const action = dto.status === "APPROVED" ? "APPROVE" : "REJECT";
     return this.workflowEngine.processApproval(instanceId, action, respondedById, dto.notes);
   }

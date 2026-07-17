@@ -6,6 +6,7 @@ import { PunchDto } from "./dto/punch.dto";
 import { AttendanceStatus } from "@naprocs/database";
 import { toZonedTime } from "date-fns-tz";
 import { isLateArrival, parseBreakHistory, PRESENT_STATUSES, PRESENT_WITH_LATE_STATUSES } from "./attendance.constants";
+import { InAppNotificationService } from "../notifications/in-app.service";
 
 @Injectable()
 export class AttendanceService {
@@ -14,22 +15,32 @@ export class AttendanceService {
   constructor(
     private readonly redis: RedisService,
     private readonly prisma: PrismaService,
+    private readonly inApp: InAppNotificationService,
   ) { }
 
   private getRedisKey(employeeId: string): string {
     return `attendance_state:${employeeId}`;
   }
 
-  private getTodayUTC(): Date {
-    const d = new Date();
-    d.setUTCHours(0, 0, 0, 0);
-    return d;
+  private getTodayShiftDate(): Date {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric', month: '2-digit', day: '2-digit'
+    });
+    const parts = formatter.formatToParts(now);
+    const dateObj: any = {};
+    for (const part of parts) dateObj[part.type] = part.value;
+    
+    // Create a pseudo-UTC date locked to the Indian calendar date to fix .getUTCDay() KPI loops
+    const isoString = `${dateObj.year}-${dateObj.month}-${dateObj.day}T00:00:00.000Z`;
+    return new Date(isoString);
   }
 
   private async getState(employeeId: string) {
     const key = this.getRedisKey(employeeId);
     let state = await this.redis.getJson<any>(key);
-    const today = this.getTodayUTC();
+    const today = this.getTodayShiftDate();
 
     // Reset state for a new day if the employee is currently checked out
     if (state && state.state === "OUT" && state.shiftDate && state.shiftDate !== today.toISOString()) {
@@ -95,7 +106,7 @@ export class AttendanceService {
     const key = this.getRedisKey(employeeId);
     let state = await this.getState(employeeId);
     const now = Date.now();
-    const today = this.getTodayUTC();
+    const today = this.getTodayShiftDate();
 
     if (dto.action === "IN") {
       if (state.state === "IN") throw new BadRequestException("Already punched in");
@@ -177,6 +188,7 @@ export class AttendanceService {
         });
       }
 
+      this.inApp.broadcastEvent('attendance.punched', { employeeId, type: dto.action });
       return state;
     }
 
@@ -207,6 +219,7 @@ export class AttendanceService {
         data: { currentBreakStartTime: new Date(now), breakHistory: breakHistory as any, punchHistory: punchHistory as any } as any
       });
 
+      this.inApp.broadcastEvent('attendance.punched', { employeeId, type: dto.action });
       return state;
     }
 
@@ -327,7 +340,7 @@ export class AttendanceService {
   async getMyKpis(employeeId: string) {
     if (!employeeId) throw new BadRequestException("Employee ID is required");
 
-    const today = this.getTodayUTC();
+    const today = this.getTodayShiftDate();
     const startOfMonth = new Date(today);
     startOfMonth.setUTCDate(1);
 
@@ -433,7 +446,7 @@ export class AttendanceService {
   }
 
   async getOrgReports() {
-    const today = this.getTodayUTC();
+    const today = this.getTodayShiftDate();
     const startOfMonth = new Date(today);
     startOfMonth.setUTCDate(1);
 
@@ -553,7 +566,7 @@ export class AttendanceService {
   }
 
   async getSummaryToday(dateStr?: string, filterDepartmentId?: string, user?: any) {
-    let today = this.getTodayUTC();
+    let today = this.getTodayShiftDate();
     if (dateStr) {
       today = new Date(dateStr);
       today.setUTCHours(0, 0, 0, 0);
@@ -824,8 +837,8 @@ export class AttendanceService {
 
   async getRegularizations(user?: any) {
     const where: any = {};
-    if (user && !['SUPER_ADMIN', 'CEO', 'CTO', 'HR', 'CHRO'].includes(user.role)) {
-      if (['MANAGER', 'TEAM_LEAD'].includes(user.role)) {
+    if (user && !RbacGroups.ATTENDANCE_ADMINS.includes(user.role)) {
+      if (['MANAGER', 'TEAM_LEAD', 'CTO', 'CEO'].includes(user.role)) {
         where.OR = [
           { employeeId: user.employeeId },
           { employee: { reportingManagerId: user.employeeId } }
@@ -898,10 +911,56 @@ export class AttendanceService {
         data: { managerStatus: statusVal, comments: `Actioned by Manager (${action})` }
       });
     } else {
-      return this.prisma.regularizationRequest.update({
+      const updatedReq = await this.prisma.regularizationRequest.update({
         where: { id },
-        data: { hrStatus: statusVal, comments: `Actioned by HR/Admin (${action})` }
+        data: { hrStatus: statusVal, comments: `Actioned by HR/Admin (${action})` },
+        include: { employee: true }
       });
+
+      if (action === "APPROVE") {
+        const dateStr = new Date(updatedReq.attendanceDate);
+        
+        // Setup 10:00 AM IST (04:30 AM UTC)
+        const checkInTime = new Date(dateStr);
+        checkInTime.setUTCHours(4, 30, 0, 0); 
+        
+        // Setup 07:00 PM IST (13:30 PM UTC)
+        const checkOutTime = new Date(dateStr);
+        checkOutTime.setUTCHours(13, 30, 0, 0);
+
+        const status = updatedReq.correctionType === "WFH_MARKING" ? "WFH" : "PRESENT";
+
+        await this.prisma.attendanceRecord.upsert({
+          where: {
+            employeeId_date: {
+              employeeId: updatedReq.employeeId,
+              date: dateStr,
+            }
+          },
+          update: {
+            status,
+            workHours: 9.0,
+            checkInTime,
+            checkOutTime,
+            isRegularized: true,
+            regularizedById: currentUser.employeeId,
+            notes: `Approved Correction: ${updatedReq.correctionType}`
+          },
+          create: {
+            employeeId: updatedReq.employeeId,
+            date: dateStr,
+            status,
+            workHours: 9.0,
+            checkInTime,
+            checkOutTime,
+            isRegularized: true,
+            regularizedById: currentUser.employeeId,
+            notes: `Approved Correction: ${updatedReq.correctionType}`
+          }
+        });
+      }
+
+      return updatedReq;
     }
   }
 

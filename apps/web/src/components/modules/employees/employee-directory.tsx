@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { apiClient } from "@/lib/api/client";
 import {
   useReactTable,
   getCoreRowModel,
@@ -48,6 +49,7 @@ export default function EmployeeDirectory() {
   const initialDept = searchParams.get("department") || "";
 
   // Filters State
+  const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState<DirectoryFilters>({
     search: "",
     department: initialDept,
@@ -68,51 +70,49 @@ export default function EmployeeDirectory() {
   const { role } = usePermissions();
 
   // Fetch from API
-  const fetchEmployees = async (): Promise<Employee[]> => {
-    const url = process.env.NEXT_PUBLIC_API_URL!;
-    const res = await fetch(`${url}/employees?page=1&limit=100`, {
-      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-      cache: "no-store",
-    });
+  const fetchEmployees = async (): Promise<{ data: Employee[], meta: any }> => {
+    try {
+      const res = await apiClient.get(`/employees?page=${currentPage}&limit=25`);
+      const responseData = res.data;
+      
+      if (!responseData || !responseData.data || !Array.isArray(responseData.data)) {
+        console.error("Invalid response format:", responseData);
+        return { data: [], meta: { total: 0 } };
+      }
 
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error("Failed to fetch employees:", res.status, errText);
-      throw new Error("Failed to fetch employees");
+      const mappedData = responseData.data.map((emp: any) => ({
+        id: emp.id,
+        employeeId: emp.employeeId,
+        name: `${emp.firstName || ""} ${emp.lastName || ""}`.trim() || "Unknown Employee",
+        email: emp.officialEmail || "",
+        photoUrl: emp.photoUrl || null,
+        initials: `${emp.firstName?.[0] || ""}${emp.lastName?.[0] || ""}`.toUpperCase() || "UN",
+        avatarBg: "bg-slate-100 text-slate-600",
+        department: emp.department?.name || emp.departmentId || "Unassigned",
+        designation: emp.designation?.title || emp.designationId || "Unassigned",
+        status: emp.status || "Active",
+        joinedDate: emp.createdAt ? new Date(emp.createdAt).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }) : "Unknown",
+        location: emp.workLocation || "India",
+        manager: emp.reportingManagerId ? {
+          id: emp.reportingManagerId,
+          name: "Assigned Manager",
+          photoUrl: null,
+        } : undefined
+      }));
+      return { data: mappedData, meta: responseData.meta || { total: mappedData.length } };
+    } catch (error: any) {
+      console.error("Failed to fetch employees:", error.response?.data || error.message);
+      throw error;
     }
-
-    const responseData = await res.json();
-    if (!responseData || !responseData.data || !Array.isArray(responseData.data)) {
-      console.error("Invalid response format:", responseData);
-      return [];
-    }
-
-    return responseData.data.map((emp: any) => ({
-      id: emp.id,
-      employeeId: emp.employeeId,
-      name: `${emp.firstName || ""} ${emp.lastName || ""}`.trim() || "Unknown Employee",
-      email: emp.officialEmail || "",
-      photoUrl: emp.photoUrl || null,
-      initials: `${emp.firstName?.[0] || ""}${emp.lastName?.[0] || ""}`.toUpperCase() || "UN",
-      avatarBg: "bg-slate-100 text-slate-600",
-      department: emp.department?.name || emp.departmentId || "Unassigned",
-      designation: emp.designation?.title || emp.designationId || "Unassigned",
-      status: emp.status || "Active",
-      joinedDate: emp.createdAt ? new Date(emp.createdAt).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }) : "Unknown",
-      location: emp.workLocation || "India",
-      manager: emp.reportingManagerId ? {
-        id: emp.reportingManagerId,
-        name: "Assigned Manager",
-        photoUrl: null,
-      } : undefined
-    }));
   };
 
-  const { data: rawEmployees = [], isLoading, isError, error } = useQuery<Employee[]>({
-    queryKey: ["employees", accessToken],
+  const { data: rawEmployeesData = { data: [], meta: { total: 0 } }, isLoading, isError, error } = useQuery({
+    queryKey: ["employees", accessToken, currentPage],
     queryFn: fetchEmployees,
     enabled: !!accessToken,
   });
+  
+  const rawEmployees = rawEmployeesData.data;
 
   const fetchDepartments = async () => {
     const url = process.env.NEXT_PUBLIC_API_URL!;
@@ -425,8 +425,24 @@ export default function EmployeeDirectory() {
   const table = useReactTable({
     data: filteredEmployees,
     columns,
-    state: { rowSelection },
+    state: { 
+      rowSelection,
+      pagination: {
+        pageIndex: currentPage - 1,
+        pageSize: 25,
+      }
+    },
     onRowSelectionChange: setRowSelection,
+    onPaginationChange: (updater) => {
+      if (typeof updater === "function") {
+        const nextState = updater({ pageIndex: currentPage - 1, pageSize: 25 });
+        setCurrentPage(nextState.pageIndex + 1);
+      } else {
+        setCurrentPage(updater.pageIndex + 1);
+      }
+    },
+    manualPagination: true,
+    pageCount: Math.ceil((rawEmployeesData.meta?.total || 0) / 25),
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),

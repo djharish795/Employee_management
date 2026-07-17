@@ -46,6 +46,12 @@ export function useNotifications() {
           return [notification, ...old];
         });
       });
+
+      socket.on("attendance.punched", (payload: any) => {
+        queryClient.invalidateQueries({ queryKey: ["attendanceLogs"] });
+        // Optional: also invalidate hr/dashboard stats if they are cached,
+        // though attendanceLogs is the specific requirement for Module 6.
+      });
     }
 
     return () => {

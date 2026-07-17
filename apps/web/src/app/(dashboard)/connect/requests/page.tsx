@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/auth";
 
 export default function MyRequestsPage() {
   const [activeTab, setActiveTab] = useState("Pending");
+  const [searchQuery, setSearchQuery] = useState("");
   const [meetings, setMeetings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const myEmployeeId = useAuthStore(state => state.employeeId);
@@ -54,7 +55,29 @@ export default function MyRequestsPage() {
     return "Pending"; // PENDING or RESCHEDULED
   };
 
-  const filteredRequests = meetings.filter(r => getTabStatus(r.status) === activeTab);
+  const filteredRequests = meetings.filter(r => {
+    if (getTabStatus(r.status) !== activeTab) return false;
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const isRequester = r.requesterId === myEmployeeId;
+      const otherPerson = isRequester ? r.assignee : r.requester;
+      let otherName = "Unknown";
+      if (otherPerson) {
+        otherName = `${otherPerson.firstName || ""} ${otherPerson.lastName || ""}`.trim();
+      } else if (isRequester && r.type === "DEPARTMENT") {
+        otherName = "Department Team";
+      }
+
+      return (
+        r.title?.toLowerCase().includes(q) ||
+        otherName.toLowerCase().includes(q) ||
+        r.type?.toLowerCase().includes(q)
+      );
+    }
+
+    return true;
+  });
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -107,11 +130,10 @@ export default function MyRequestsPage() {
                 type="text"
                 placeholder="Search meetings..."
                 className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-full sm:w-64 transition-all"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <button className="p-2 border border-slate-200 text-slate-500 hover:bg-slate-50 rounded-xl transition-colors">
-              <Filter className="w-4 h-4" />
-            </button>
           </div>
         </div>
 
@@ -124,7 +146,7 @@ export default function MyRequestsPage() {
                 <th className="py-3 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Meeting</th>
                 <th className="py-3 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Date & Time</th>
                 <th className="py-3 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                <th className="py-3 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+                <th className="py-3 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider text-right"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

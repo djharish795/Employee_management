@@ -99,6 +99,7 @@ export class ProjectsService {
       where: { id: projectId },
       include: {
         assignments: {
+          where: { releasedAt: null },
           include: {
             employee: {
               select: {

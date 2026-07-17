@@ -148,10 +148,12 @@ export default function EngineeringTeamPage() {
     e.preventDefault();
     if (!draggedEmployee || !activeProject) return;
 
-    if (activeProject.assignments?.some(m => m.employeeId === draggedEmployee.id)) {
-      toast.error(`${draggedEmployee.name} is already in this project!`);
-      setDraggedEmployee(null);
-      return;
+    const existingAssignment = activeProject.assignments?.find(m => m.employeeId === draggedEmployee.id);
+    if (existingAssignment) {
+      if (existingAssignment.projectRole === dropRole) {
+        setDraggedEmployee(null);
+        return; // Already in this exact role
+      }
     }
 
     setIsAssigning(true);
@@ -169,6 +171,21 @@ export default function EngineeringTeamPage() {
     } finally {
       setIsAssigning(false);
       setDraggedEmployee(null);
+    }
+  };
+
+  const handleRemoveMember = async (employeeId: string, employeeName: string) => {
+    if (!activeProject) return;
+    setIsAssigning(true);
+    toast.loading(`Removing ${employeeName}...`, { id: 'remove' });
+    try {
+      await apiClient.post(`/projects/${activeProject.id}/release`, { employeeId });
+      toast.success(`${employeeName} removed from project`, { id: 'remove' });
+      await fetchProjectDetails(activeProject.id);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to remove member', { id: 'remove' });
+    } finally {
+      setIsAssigning(false);
     }
   };
 
@@ -253,6 +270,13 @@ export default function EngineeringTeamPage() {
                 <p className="text-[10px] font-medium text-slate-500 truncate">{member.employee.designation.title}</p>
               )}
             </div>
+            <button 
+              onClick={() => handleRemoveMember(member.employeeId, member.employee.firstName)}
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-md shrink-0"
+              title="Remove from project"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         ))}
       </div>

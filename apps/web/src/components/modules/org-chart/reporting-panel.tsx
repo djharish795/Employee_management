@@ -166,7 +166,7 @@ export default function ReportingPanel() {
                       }}
                       className="px-4 py-3 hover:bg-slate-50 cursor-pointer flex items-center gap-3 border-b border-slate-100 last:border-0"
                     >
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center overflow-hidden text-xs font-bold border border-slate-200 ${emp.avatarBg || 'bg-slate-100 text-slate-700'}`}>
+                      <div className={`relative w-8 h-8 rounded-full flex items-center justify-center overflow-hidden text-xs font-bold border border-slate-200 ${emp.avatarBg || 'bg-slate-100 text-slate-700'}`}>
                         {getAvatarContent(emp)}
                       </div>
                       <div>
@@ -215,7 +215,7 @@ export default function ReportingPanel() {
 
                     {/* Card */}
                     <div className={`p-4 rounded-xl border ${emp.isCurrentUser ? 'border-indigo-200 bg-indigo-50/30 shadow-sm' : 'border-slate-200 bg-white shadow-sm hover:border-indigo-200 transition-colors cursor-pointer'} flex items-center gap-4`}>
-                      <div className={`w-12 h-12 rounded-full overflow-hidden border border-slate-200 ${emp.avatarBg || 'bg-slate-100 text-slate-700'} flex items-center justify-center flex-shrink-0 font-bold text-sm`}>
+                      <div className={`relative w-12 h-12 rounded-full overflow-hidden border border-slate-200 ${emp.avatarBg || 'bg-slate-100 text-slate-700'} flex items-center justify-center flex-shrink-0 font-bold text-sm`}>
                         {getAvatarContent(emp)}
                       </div>
                       <div>
@@ -248,7 +248,7 @@ export default function ReportingPanel() {
             ) : (
               directReports.map((report) => (
                 <div key={report.id} onClick={() => handleSelect(report.id)} className="flex items-center gap-3 p-2 -mx-2 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
-                  <div className={`w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold flex-shrink-0 border border-slate-200 ${report.avatarBg || 'bg-slate-100 text-slate-700'}`}>
+                  <div className={`relative w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold flex-shrink-0 border border-slate-200 ${report.avatarBg || 'bg-slate-100 text-slate-700'}`}>
                     {getAvatarContent(report)}
                   </div>
                   <div>

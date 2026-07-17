@@ -1,9 +1,12 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Search, Bell, Download, Lock, MoreHorizontal, Loader2, X, FileText, Network } from 'lucide-react';
+import { Search, Bell, Download, Lock, MoreHorizontal, Loader2, X, FileText, Network, Clock, LogOut } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { fetchCtoDashboard } from '@/lib/api/cto';
+import { fetchTodayStatus, submitPunch } from '@/lib/api/attendance';
+import EarlyCheckoutModal from "@/components/shared/early-checkout-modal";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 
 // ─── Interfaces (No Hardcoded Mock Data) ─────────────────────────────────────────
@@ -41,6 +44,53 @@ interface TechTeam {
 
 export default function CtoDashboardPage() {
   const role = useAuthStore((state) => state.role);
+  const queryClient = useQueryClient();
+
+  const todayQuery = useQuery({
+    queryKey: ["attendanceStatus"],
+    queryFn: fetchTodayStatus,
+    refetchInterval: 60_000,
+    retry: 1,
+  });
+
+  const punchMutation = useMutation({
+    mutationFn: (action: "IN" | "OUT") => submitPunch(action),
+    onSuccess: (newData) => {
+      queryClient.setQueryData(["attendanceStatus"], newData);
+    },
+  });
+
+  const todayState = todayQuery.data?.state ?? "OUT";
+  const isPunchedIn = todayState === "IN" || todayState === "BREAK";
+
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+
+  const getSecondsElapsed = () => {
+    let secs = todayQuery.data?.offset || 0;
+    if ((todayState === "IN" || todayState === "BREAK") && todayQuery.data?.startTime) {
+      secs += Math.floor((Date.now() - new Date(todayQuery.data.startTime).getTime()) / 1000);
+    }
+    return secs;
+  };
+
+  const handlePunch = () => {
+    if (punchMutation.isPending) return;
+    const nextAction = isPunchedIn ? "OUT" : "IN";
+    if (nextAction === "OUT") {
+      setShowCheckoutModal(true);
+    } else {
+      punchMutation.mutate(nextAction);
+    }
+  };
+
+  const checkInTimeDisplay = (() => {
+    if (!todayQuery.data?.startTime) return null;
+    return new Date(todayQuery.data.startTime).toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true
+    });
+  })();
 
   // States waiting for backend population
   const [metrics, setMetrics] = useState<MetricData | null>(null);
@@ -53,6 +103,21 @@ export default function CtoDashboardPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [showOrgMenu, setShowOrgMenu] = useState(false);
+  const orgMenuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (orgMenuRef.current && !orgMenuRef.current.contains(event.target as Node)) {
+        setShowOrgMenu(false);
+      }
+    }
+    if (showOrgMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showOrgMenu]);
 
   // Filtered tech teams
   const filteredTeams = techTeams.filter(t => 
@@ -117,6 +182,16 @@ export default function CtoDashboardPage() {
 
   return (
     <div className="flex flex-col h-full font-sans bg-slate-50 overflow-y-auto">
+      <EarlyCheckoutModal
+        isOpen={showCheckoutModal}
+        secondsElapsed={getSecondsElapsed()}
+        isPending={punchMutation.isPending}
+        onClose={() => setShowCheckoutModal(false)}
+        onConfirm={() => {
+          setShowCheckoutModal(false);
+          punchMutation.mutate("OUT");
+        }}
+      />
       
       <div className="p-8 max-w-[1400px] mx-auto w-full space-y-6">
         
@@ -126,8 +201,47 @@ export default function CtoDashboardPage() {
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Engineering overview</h1>
             <p className="text-sm text-slate-500 font-medium mt-1">{currentDate}</p>
           </div>
-          <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
-            <Download className="w-4 h-4" /> Export team report
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
+              <Download className="w-4 h-4" /> Export team report
+            </button>
+          </div>
+        </div>
+
+        {/* Today's Status Card */}
+        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Today's Status</p>
+            <div className="flex items-center gap-2">
+              <span className={`w-2.5 h-2.5 rounded-full ${isPunchedIn ? 'bg-emerald-500' : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32400 ? 'bg-orange-500' : 'bg-emerald-500') : 'bg-slate-300')}`}></span>
+              <span className={`text-lg font-bold ${isPunchedIn ? 'text-emerald-600' : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32400 ? 'text-orange-600' : 'text-emerald-600') : 'text-slate-700')}`}>
+                {isPunchedIn ? 'Present' : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32400 ? 'Early Checkout' : 'Checked Out') : 'Not checked in')}
+              </span>
+            </div>
+            <p className="text-xs font-medium text-slate-500 mt-1">
+              {isPunchedIn && checkInTimeDisplay
+                ? `Checked in ${checkInTimeDisplay}`
+                : (todayQuery.data?.offset && todayQuery.data.offset > 0
+                  ? (todayQuery.data.offset < 32400 ? 'Shift ended early today' : 'Shift completed today')
+                  : 'No punch recorded today')}
+            </p>
+          </div>
+          <button
+            onClick={handlePunch}
+            disabled={punchMutation.isPending || todayQuery.isLoading}
+            className={`flex items-center gap-2 px-6 py-2.5 text-sm font-bold rounded-lg transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed ${
+              isPunchedIn 
+                ? "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200" 
+                : "bg-slate-900 text-white hover:bg-slate-800"
+            }`}
+          >
+            {punchMutation.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : isPunchedIn ? (
+              <><LogOut className="w-4 h-4" /> Check out</>
+            ) : (
+              <><Clock className="w-4 h-4" /> Check in</>
+            )}
           </button>
         </div>
 
@@ -137,9 +251,6 @@ export default function CtoDashboardPage() {
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Engineering Headcount</div>
             <div className="flex items-end justify-between">
               <span className="text-4xl font-extrabold text-slate-900">{metrics?.headcount || '--'}</span>
-              <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[11px] font-bold rounded border border-emerald-100 flex items-center gap-1 mb-1">
-                ↗ {metrics?.headcountGrowth || '--'}%
-              </span>
             </div>
           </div>
 
@@ -181,7 +292,7 @@ export default function CtoDashboardPage() {
           <div className="lg:col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm p-6 relative">
             <div className="flex items-center justify-between mb-8">
               <h3 className="text-base font-bold text-slate-900">Org breakdown</h3>
-              <div className="relative">
+              <div className="relative" ref={orgMenuRef}>
                 <button 
                   onClick={() => setShowOrgMenu(!showOrgMenu)}
                   className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-md hover:bg-slate-100"
@@ -209,20 +320,23 @@ export default function CtoDashboardPage() {
               ) : orgBreakdown.length === 0 ? (
                 <div className="py-12 text-center text-sm font-medium text-slate-400">Waiting for backend org data...</div>
               ) : (
-                orgBreakdown.map(org => {
-                  const percentage = (org.count / org.total) * 100;
-                  return (
-                    <div key={org.name}>
-                      <div className="flex justify-between items-end mb-2">
-                        <span className="text-sm font-bold text-slate-700">{org.name}</span>
-                        <span className="text-xs font-semibold text-slate-500">{org.count} Engineers</span>
+                (() => {
+                  const maxCount = Math.max(...orgBreakdown.map(o => o.count), 0);
+                  return orgBreakdown.map(org => {
+                    const percentage = maxCount === 0 ? 0 : (org.count / maxCount) * 100;
+                    return (
+                      <div key={org.name}>
+                        <div className="flex justify-between items-end mb-2">
+                          <span className="text-sm font-bold text-slate-700">{org.name}</span>
+                          <span className="text-xs font-semibold text-slate-500">{org.count} Members</span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-blue-600 rounded-full" style={{ width: `${percentage}%` }}></div>
+                        </div>
                       </div>
-                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-blue-600 rounded-full" style={{ width: `${percentage}%` }}></div>
-                      </div>
-                    </div>
-                  );
-                })
+                    );
+                  });
+                })()
               )}
             </div>
           </div>

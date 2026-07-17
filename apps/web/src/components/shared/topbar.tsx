@@ -14,6 +14,7 @@ import Link from 'next/link';
 import Image from "next/image";
 import { useQuery } from '@tanstack/react-query';
 import { fetchMyProfile } from '@/lib/api/profile';
+import { useSearchStore } from '@/store/search';
 
 const IconMap: Record<string, React.ElementType> = {
   Monitor, Users, Calendar, LayoutDashboard, Clock, BookOpen,
@@ -34,6 +35,8 @@ export function Topbar() {
   const role = useAuthStore((state) => state.role);
   const photoUrl = useAuthStore((state) => state.photoUrl);
   const isTeamLead = useAuthStore((state) => state.isTeamLead);
+
+  const setGlobalSearchQuery = useSearchStore((state) => state.setGlobalSearchQuery);
 
   const { data: profile } = useQuery({
     queryKey: ["myProfile"],
@@ -87,7 +90,6 @@ export function Topbar() {
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const debouncedQuery = useDebounce(query, 300);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -113,14 +115,14 @@ export function Topbar() {
 
   useEffect(() => {
     const fetchResults = async () => {
-      if (!debouncedQuery || debouncedQuery.length < 2) {
+      if (!query || query.length < 1) {
         setResults([]);
         return;
       }
       setLoading(true);
       try {
         const scope = pathname.startsWith('/team-lead') ? 'team' : (pathname.startsWith('/hr') ? 'global' : 'individual');
-        const response = await apiClient.get(`/search?q=${encodeURIComponent(debouncedQuery)}&scope=${scope}`);
+        const response = await apiClient.get(`/search?q=${encodeURIComponent(query)}&scope=${scope}`);
         const searchData = Array.isArray(response.data) ? response.data : (response.data?.data || []);
         setResults(searchData);
         setSelectedIndex(0);
@@ -134,7 +136,7 @@ export function Topbar() {
     if (isSearchOpen) {
       fetchResults();
     }
-  }, [debouncedQuery, isSearchOpen]);
+  }, [query, isSearchOpen]);
 
   const handleAction = (result: any) => {
     if (result.actionType === 'NAVIGATE' && result.route) {
@@ -165,7 +167,6 @@ export function Topbar() {
   };
 
   return (
-    // pl-14 on mobile to leave room for the fixed hamburger button (lg:pl-8 resets it)
     <header className="h-14 sm:h-[72px] pl-14 lg:pl-8 pr-4 sm:pr-8 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 sticky top-0 z-40 transition-colors">
       {/* Search Bar */}
       <div className="hidden sm:flex flex-1 max-w-2xl relative" ref={searchContainerRef}>
@@ -192,6 +193,9 @@ export function Topbar() {
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
+              if (pathname.startsWith('/tasks')) {
+                setGlobalSearchQuery(e.target.value);
+              }
               setIsSearchOpen(true);
             }}
             onFocus={() => setIsSearchOpen(true)}
@@ -207,10 +211,10 @@ export function Topbar() {
         </div>
 
         {/* Search Dropdown */}
-        {isSearchOpen && (query.length >= 2 || results.length > 0) && (
+        {isSearchOpen && !pathname.startsWith('/tasks') && (query.length >= 1 || results.length > 0) && (
           <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50 flex flex-col max-h-[60vh]">
             <div className="flex-1 overflow-y-auto p-2">
-              {query.length >= 2 && !loading && results.length === 0 && (
+              {query.length >= 1 && !loading && results.length === 0 && (
                 <div className="p-8 flex flex-col items-center justify-center text-center">
                   <Search className="w-8 h-8 text-slate-300 mb-3" />
                   <p className="text-slate-900 dark:text-white font-medium text-sm">No results found</p>
@@ -350,12 +354,10 @@ export function Topbar() {
         {/* Divider */}
         <div className="w-px h-8 bg-slate-200 dark:bg-slate-800 transition-colors" />
 
-        {/* Profile with Dropdown */}
-        <div className="relative" ref={dropdownRef}>
-          <div
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center gap-2 sm:gap-3 cursor-pointer group"
-          >
+      {/* Profile with Dropdown */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <div className="flex items-center gap-2 sm:gap-3 cursor-pointer group outline-none">
             {/* Hide text name on mobile, show only avatar */}
             <div className="hidden sm:flex text-right flex-col justify-center">
               <span className="text-sm font-bold text-slate-900 dark:text-white leading-tight">{isMounted ? userName : "User"}</span>
@@ -368,43 +370,39 @@ export function Topbar() {
               )}
             </div>
           </div>
+        </DropdownMenuTrigger>
 
-          {/* Dropdown Menu */}
-          {isDropdownOpen && (
-            <div className="absolute right-0 mt-3 w-48 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-              <button
-                onClick={() => {
-                  setIsDropdownOpen(false);
-                  router.push('/profile/settings');
-                }}
-                className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-white flex items-center gap-2 transition-colors"
-              >
-                <User className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-                Profile Settings
-              </button>
-              {isTeamLead && (
-                <button
-                  onClick={() => {
-                    setIsDropdownOpen(false);
-                    router.push('/team-lead/team');
-                  }}
-                  className="w-full text-left px-4 py-2.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 flex items-center gap-2 transition-colors"
-                >
-                  <Users className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
-                  Team Lead Portal
-                </button>
-              )}
-              <div className="h-px bg-slate-100 dark:bg-slate-800 my-1 transition-colors" />
-              <button
-                onClick={handleLogout}
-                className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center gap-2 transition-colors"
-              >
-                <LogOut className="w-4 h-4 text-red-500 dark:text-red-400" />
-                Logout
-              </button>
-            </div>
+        <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg py-1 z-50">
+          <button
+            onClick={() => {
+              router.push('/profile/settings');
+            }}
+            className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-white flex items-center gap-2 transition-colors"
+          >
+            <User className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+            Profile Settings
+          </button>
+          {isTeamLead && (
+            <button
+              onClick={() => {
+                router.push('/team-lead/team');
+              }}
+              className="w-full text-left px-4 py-2.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 flex items-center gap-2 transition-colors"
+            >
+              <Users className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
+              Team Lead Portal
+            </button>
           )}
-        </div>
+          <div className="h-px bg-slate-100 dark:bg-slate-800 my-1 transition-colors" />
+          <button
+            onClick={handleLogout}
+            className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center gap-2 transition-colors"
+          >
+            <LogOut className="w-4 h-4 text-red-500 dark:text-red-400" />
+            Logout
+          </button>
+        </DropdownMenuContent>
+      </DropdownMenu>
       </div>
     </header>
   );

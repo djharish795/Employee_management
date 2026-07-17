@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 import { getDashboardPathForRole, hasPermission, Permission } from '@naprocs/types';
+import { isPhase2Enabled } from '@naprocs/feature-flags';
 
 // Roles that may act as approvers in the Leave Approvals queue
 const leaveApproverRoles = new Set(['HR', 'CHRO', 'MANAGER', 'TEAM_LEAD', 'CTO', 'SUPER_ADMIN', 'IT', 'OM', 'OPERATIONS_HEAD']);
@@ -120,6 +121,13 @@ export async function middleware(request: NextRequest) {
     // 9. Leaves - Finance and IT have no access
     if (pathname.startsWith('/leaves') && ['FINANCE', 'IT'].includes(role)) {
        return NextResponse.redirect(new URL('/access-restricted', request.url));
+    }
+
+    // 10. Phase 2 Gating
+    const phase2Routes = ['/payroll', '/recruitment', '/performance', '/skills', '/learning', '/engagement', '/analytics', '/talent', '/succession'];
+    const isPhase2Route = phase2Routes.some(r => pathname === r || pathname.startsWith(`${r}/`) || pathname.endsWith(r) || pathname.includes(`${r}/`));
+    if (isPhase2Route && !isPhase2Enabled()) {
+      return NextResponse.redirect(new URL('/not-available', request.url));
     }
 
     // ─── Strict cross-role namespace isolation ───────────────────────────────

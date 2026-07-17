@@ -366,6 +366,10 @@ export class DashboardService {
         openRoles
       };
     });
+    const industryAvgSetting = await this.prisma.appSetting.findUnique({
+      where: { key: 'INDUSTRY_AVG_TENURE' }
+    });
+    const industryAvgTenure = industryAvgSetting?.value ? Number(industryAvgSetting.value) : 1.8;
 
     return {
       metrics: {
@@ -374,7 +378,7 @@ export class DashboardService {
         assetsAllocated,
         openPositions,
         avgTenure,
-        industryAvgTenure: 1.8
+        industryAvgTenure
       },
       orgBreakdown,
       recentAssets,

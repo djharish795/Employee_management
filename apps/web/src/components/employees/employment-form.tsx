@@ -120,7 +120,7 @@ export function EmploymentForm({ onSave, initialData = {}, formId }: EmploymentP
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Department</label>
-                <select name="departmentId" defaultValue={initialData.departmentId || ""} className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 outline-none">
+                <select name="departmentId" defaultValue={initialData.departmentId || ""} required className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 outline-none">
                   <option value="">Select Department</option>
                   {departments.map((d: any) => (
                     <option key={d.id} value={d.id}>{d.name}</option>
@@ -132,7 +132,7 @@ export function EmploymentForm({ onSave, initialData = {}, formId }: EmploymentP
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Designation</label>
-                <select name="designationId" defaultValue={initialData.designationId || ""} className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 outline-none">
+                <select name="designationId" defaultValue={initialData.designationId || ""} required className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-900/20 outline-none">
                   <option value="">Select Designation</option>
                   {designations.map((d: any) => (
                     <option key={d.id} value={d.id}>{d.title}</option>

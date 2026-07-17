@@ -1,6 +1,7 @@
-import { Injectable, InternalServerErrorException, Logger } from "@nestjs/common";
+import { Injectable, InternalServerErrorException, Logger, BadRequestException } from "@nestjs/common";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { S3Client } from "@aws-sdk/client-s3";
 import { createS3Client, generatePresignedDownloadUrl } from "../../common/utils/s3.util";
 import { v4 as uuidv4 } from "uuid";
@@ -33,18 +34,28 @@ export class DocumentsService {
     fileName: string,
     contentType: string,
   ): Promise<{ uploadUrl: string; objectKey: string }> {
+    const ALLOWED_CONTENT_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+    if (!ALLOWED_CONTENT_TYPES.includes(contentType)) {
+      throw new BadRequestException(`Invalid file type. Allowed types: ${ALLOWED_CONTENT_TYPES.join(', ')}`);
+    }
+
     try {
       const fileExtension = fileName.split(".").pop() || "bin";
       const objectKey = `onboarding/${uuidv4()}.${fileExtension}`;
 
-      const command = new PutObjectCommand({
+      // Enforce file size (0 to 5MB) and exact content type
+      const { url, fields } = await createPresignedPost(this.s3 as any, {
         Bucket: this.bucketName,
         Key: objectKey,
-        ContentType: contentType,
+        Conditions: [
+          ["content-length-range", 0, 5242880], // 5MB limit
+          ["eq", "$Content-Type", contentType]
+        ],
+        Fields: {
+          "Content-Type": contentType
+        },
+        Expires: 900 // 15 minutes
       });
-
-      // Expires in 15 minutes (900 seconds) per AGENTS.md security rules.
-      const uploadUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
 
       // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
       this.auditService.logCreate({
@@ -54,7 +65,8 @@ export class DocumentsService {
         metadata: { action: 'GENERATE_UPLOAD_URL', fileName, contentType }
       });
 
-      return { uploadUrl, objectKey };
+      // Return both url and fields so the frontend can build the FormData POST request
+      return { uploadUrl: url, fields, objectKey } as any;
     } catch (error: any) {
       this.logger.error("[DocumentsService] Error generating S3 upload URL:", {
         message: error?.message,

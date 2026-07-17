@@ -1,10 +1,12 @@
 import { Controller, Post, Get, Body, Query, UseGuards, BadRequestException } from "@nestjs/common";
+import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
+import { RbacGuard } from "../../common/guards/rbac.guard";
 import { DocumentsService } from "./documents.service";
 import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
 import { RbacPermissions } from '../../common/rbac/rbac.config';
 
 @Controller("documents")
-// @UseGuards(JwtAuthGuard) // Commented out for dev if auth isn't fully wired yet, uncomment later
+@UseGuards(JwtAuthGuard, RbacGuard)
 export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 

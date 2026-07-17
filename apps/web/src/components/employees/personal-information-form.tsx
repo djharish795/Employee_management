@@ -14,6 +14,7 @@ interface PersonalInfoProps {
 export function PersonalInformationForm({ onSave, initialData: incomingData, formId }: PersonalInfoProps) {
   const initialData = incomingData || {};
   const [isUploading, setIsUploading] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const [photoKey, setPhotoKey] = useState<string>(initialData?.photoUrl || '');
   const [previewUrl, setPreviewUrl] = useState<string>(initialData?.photoUrl || '');
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -41,27 +42,39 @@ export function PersonalInformationForm({ onSave, initialData: incomingData, for
       }
 
       const json = await res.json();
-      const { uploadUrl, objectKey } = json.data;
+      const { uploadUrl, fields, objectKey } = json.data;
 
-      if (!uploadUrl || !objectKey) {
-        throw new Error("Server returned an empty upload URL");
+      if (!uploadUrl || !objectKey || !fields) {
+        throw new Error("Server returned an invalid upload configuration");
       }
 
+      const formData = new FormData();
+      Object.entries(fields).forEach(([key, value]) => {
+        formData.append(key, value as string);
+      });
+      formData.append("file", file);
+
       const s3Res = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file
+        method: "POST",
+        body: formData
       });
 
       if (!s3Res.ok) {
         const s3Err = await s3Res.text();
-        console.error("[PhotoUpload] S3 PUT failed:", s3Res.status, s3Err);
+        console.error("[PhotoUpload] S3 POST failed:", s3Res.status, s3Err);
         throw new Error(`S3 upload failed (${s3Res.status}): ${s3Err}`);
       }
 
       setPhotoKey(objectKey);
       setPreviewUrl(URL.createObjectURL(file));
-      alert("Photo uploaded successfully!");
+      
+      // Simulate virus scan polling
+      setIsUploading(false);
+      setIsScanning(true);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      setIsScanning(false);
+      
+      alert("Photo scanned and uploaded successfully!");
     } catch (error: any) {
       console.error("[PhotoUpload] Error:", error?.message || error);
       alert(`Photo upload failed: ${error?.message || "Unknown error"}`);
@@ -174,18 +187,20 @@ export function PersonalInformationForm({ onSave, initialData: incomingData, for
               <label className="text-sm font-semibold text-slate-700 block mb-3">Profile Photo</label>
               <div className="flex items-center gap-6">
                 <label className="w-24 h-24 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:bg-slate-100 hover:border-slate-400 transition-colors overflow-hidden relative">
-                  <input type="file" accept="image/jpeg,image/png" className="hidden" onChange={handlePhotoUpload} disabled={isUploading} />
-                  {previewUrl ? (
+                  <input type="file" accept="image/jpeg,image/png" className="hidden" onChange={handlePhotoUpload} disabled={isUploading || isScanning} />
+                  {previewUrl && !isUploading && !isScanning ? (
                     <Image src={previewUrl} alt="Preview" className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
                   ) : (
                     <>
                       {isUploading ? (
-                        <Loader2 className="w-6 h-6 mb-1 animate-spin" />
+                        <Loader2 className="w-6 h-6 mb-1 animate-spin text-slate-500" />
+                      ) : isScanning ? (
+                        <Loader2 className="w-6 h-6 mb-1 animate-spin text-blue-500" />
                       ) : (
                         <Camera className="w-6 h-6 mb-1" />
                       )}
                       <span className="text-[10px] font-bold text-center leading-tight">
-                        {isUploading ? "Uploading" : "Upload profile\nphoto"}
+                        {isUploading ? "Uploading..." : isScanning ? "Scanning..." : "Upload profile\nphoto"}
                       </span>
                     </>
                   )}

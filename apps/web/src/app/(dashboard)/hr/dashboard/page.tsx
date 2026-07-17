@@ -108,7 +108,7 @@ export default function HrDashboardPage() {
   };
 
   const attendanceTotal = data?.headcount?.total || 1;
-  const vacantCount = (data?.headcount?.total || 0) - (data?.headcount?.active || 0);
+  const vacantCount = data?.recruitment?.openPositions || 0;
   const presentPct = data ? Math.round((data.attendance.present / attendanceTotal) * 100) || 0 : 0;
   const wfhPct = data ? Math.round((data.attendance.wfh / attendanceTotal) * 100) || 0 : 0;
   const onLeavePct = data ? Math.round((data.attendance.onLeave / attendanceTotal) * 100) || 0 : 0;

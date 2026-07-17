@@ -163,7 +163,7 @@ export default function DepartmentsPanel() {
               {/* Footer / Department Head */}
               <div className="p-4 bg-white mt-auto flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 text-xs font-bold border border-slate-200 overflow-hidden">
+                  <div className="relative w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 text-xs font-bold border border-slate-200 overflow-hidden">
                     {dept.head ? (
                       <Image src={dept.head.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${dept.head.name}`} alt="Head" fill style={{ objectFit: "cover" }} />
                     ) : (
