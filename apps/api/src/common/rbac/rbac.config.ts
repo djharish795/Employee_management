@@ -126,6 +126,7 @@ export const RbacPermissions = {
 
   // System
   AUDIT_READ: 'audit.read',
+  SETTINGS_VIEW: 'settings.view',
   SETTINGS_MANAGE: 'settings.manage',
   ROLES_READ: 'roles.read',
   ROLES_MANAGE: 'roles.manage',
@@ -196,7 +197,7 @@ export const RbacRolePermissionsMapping: Record<RbacRoleType, RbacPermissionType
     RbacPermissions.DASHBOARD_VIEW,
   ],
   // Fallback for new roles (to be filled in later phases)
-  [RbacRoles.SUPER_ADMIN]: [RbacPermissions.AUDIT_READ, RbacPermissions.SETTINGS_MANAGE, RbacPermissions.DASHBOARD_VIEW, RbacPermissions.EMPLOYEES_READ, RbacPermissions.DEPARTMENTS_READ],
+  [RbacRoles.SUPER_ADMIN]: [RbacPermissions.AUDIT_READ, RbacPermissions.SETTINGS_VIEW, RbacPermissions.SETTINGS_MANAGE, RbacPermissions.DASHBOARD_VIEW, RbacPermissions.EMPLOYEES_READ, RbacPermissions.DEPARTMENTS_READ],
   [RbacRoles.CTO]: [],
   [RbacRoles.COO]: [],
   [RbacRoles.OPERATIONS_HEAD]: [],
