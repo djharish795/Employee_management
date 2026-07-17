@@ -46,29 +46,100 @@ const MemoizedHistoryRow = memo(({ log, isOrgMode }: { log: any, isOrgMode: bool
   else if (log.status === "WFH") badge = "text-slate-900 bg-slate-100 border border-slate-300/50";
   else if (log.status === "ABSENT") badge = "text-rose-700 bg-rose-50 border border-rose-200/50";
 
+  const [showSplits, setShowSplits] = useState(false);
+  const splits = log.punchHistory || [];
+  
+  // Calculate true split shifts (ignoring breaks)
+  let shiftCount = 0;
+  for (let i = 0; i < splits.length; i++) {
+     if (splits[i].action === 'IN') {
+        // If it's the first IN, or the previous was an OUT, it's a new shift.
+        if (i === 0 || splits[i-1].action === 'OUT') {
+           shiftCount++;
+        }
+     }
+  }
+  const hasMultiple = shiftCount > 1;
+
   return (
-    <tr className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-      {isOrgMode && (
-        <td className="px-6 py-4 font-bold text-slate-900">
-          {log.employeeName || "Unknown"}
+    <>
+      <tr className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+        {isOrgMode && (
+          <td className="px-6 py-4 font-bold text-slate-900">
+            {log.employeeName || "Unknown"}
+          </td>
+        )}
+        <td className="px-6 py-4 whitespace-nowrap">
+          <div className="font-bold text-slate-900">{log.displayDate}</div>
         </td>
+        <td className="px-6 py-4 font-mono text-slate-500">
+          <div className="flex items-center gap-2">
+            {log.displayCheckIn}
+            {hasMultiple && (
+              <button 
+                onClick={() => setShowSplits(!showSplits)} 
+                className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded hover:bg-blue-100 transition-colors shadow-sm flex items-center gap-1"
+              >
+                {showSplits ? "Hide Splits" : "Split Shifts"}
+              </button>
+            )}
+          </div>
+        </td>
+        <td className="px-6 py-4 font-mono text-slate-500">{log.displayCheckOut}</td>
+        <td className="px-6 py-4 font-bold text-slate-900">{log.displayHours}</td>
+        <td className="px-6 py-4 font-bold text-amber-600">{log.displayBreak}</td>
+        <td className="px-6 py-4">
+          <span className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase ${badge}`}>
+            {log.status}
+          </span>
+        </td>
+        <td className="px-6 py-4 text-slate-500 leading-relaxed max-w-[240px] truncate" title={log.remarks}>
+          {log.remarks}
+        </td>
+      </tr>
+      
+      {/* Expanded Row for Split Shifts */}
+      {showSplits && (
+        <tr className="bg-slate-50/80 border-b border-slate-100 animate-in fade-in slide-in-from-top-2 duration-200">
+          <td colSpan={isOrgMode ? 8 : 7} className="px-6 py-4">
+            <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm inline-block min-w-[300px]">
+               <div className="text-xs font-bold text-slate-900 mb-3 flex items-center gap-2">
+                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                 Detailed Shift Breakdown
+               </div>
+               <div className="space-y-3">
+                 {(() => {
+                   const pairs: any[] = [];
+                   let currentIn: string | null = null;
+                   splits.forEach((p: any) => {
+                     if (p.action === 'IN') currentIn = p.time;
+                     if (p.action === 'OUT' && currentIn) {
+                       pairs.push({ in: currentIn, out: p.time });
+                       currentIn = null;
+                     }
+                   });
+                   if (currentIn) pairs.push({ in: currentIn, out: null });
+                   
+                   return pairs.map((pair, i) => (
+                     <div key={i} className="flex items-center gap-4 text-xs font-mono bg-slate-50 px-3 py-2 rounded-md border border-slate-100">
+                       <div className="flex flex-col">
+                         <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Check In</span>
+                         <span className="text-emerald-600 font-bold">{formatTimeValue(pair.in)}</span>
+                       </div>
+                       <span className="text-slate-300">→</span>
+                       <div className="flex flex-col">
+                         <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Check Out</span>
+                         <span className="text-rose-600 font-bold">{pair.out ? formatTimeValue(pair.out) : "Active..."}</span>
+                       </div>
+                     </div>
+                   ));
+                 })()}
+               </div>
+            </div>
+          </td>
+        </tr>
       )}
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="font-bold text-slate-900">{log.displayDate}</div>
-      </td>
-      <td className="px-6 py-4 font-mono text-slate-500">{log.displayCheckIn}</td>
-      <td className="px-6 py-4 font-mono text-slate-500">{log.displayCheckOut}</td>
-      <td className="px-6 py-4 font-bold text-slate-900">{log.displayHours}</td>
-      <td className="px-6 py-4 font-bold text-amber-600">{log.displayBreak}</td>
-      <td className="px-6 py-4">
-        <span className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase ${badge}`}>
-          {log.status}
-        </span>
-      </td>
-      <td className="px-6 py-4 text-slate-500 leading-relaxed max-w-[240px] truncate" title={log.remarks}>
-        {log.remarks}
-      </td>
-    </tr>
+    </>
   );
 });
 
@@ -89,8 +160,11 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
   const logs = useMemo(() => {
     return rawLogs.map((log) => {
       const formattedDate = new Date(log.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-      const formattedCheckIn = formatTimeValue(log.checkIn);
-      const formattedCheckOut = formatTimeValue(log.checkOut);
+      const checkIns = log.punchHistory?.filter((p: any) => p.action === 'IN').map((p: any) => formatTimeValue(p.time)) || [];
+      const checkOuts = log.punchHistory?.filter((p: any) => p.action === 'OUT').map((p: any) => formatTimeValue(p.time)) || [];
+
+      const formattedCheckIn = checkIns.length > 0 ? checkIns[0] : formatTimeValue(log.checkIn);
+      const formattedCheckOut = checkOuts.length > 0 ? checkOuts[checkOuts.length - 1] : formatTimeValue(log.checkOut);
       const formattedHours = typeof log.hoursWorked === 'number' ? formatDecimalHoursToHMS(log.hoursWorked) : log.hoursWorked;
       
       // Calculate formatted break
@@ -151,8 +225,11 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
       
       const formattedLogs = fullRawLogs.map((log) => {
         const displayDate = new Date(log.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-        const displayCheckIn = formatTimeValue(log.checkIn);
-        const displayCheckOut = formatTimeValue(log.checkOut);
+        const checkIns = log.punchHistory?.filter((p: any) => p.action === 'IN').map((p: any) => formatTimeValue(p.time)) || [];
+        const checkOuts = log.punchHistory?.filter((p: any) => p.action === 'OUT').map((p: any) => formatTimeValue(p.time)) || [];
+
+        const displayCheckIn = checkIns.length > 0 ? checkIns[0] : formatTimeValue(log.checkIn);
+        const displayCheckOut = checkOuts.length > 0 ? checkOuts[checkOuts.length - 1] : formatTimeValue(log.checkOut);
         const displayHours = typeof log.hoursWorked === 'number' ? formatDecimalHoursToHMS(log.hoursWorked) : log.hoursWorked;
         let displayBreak = "—";
         if (log.totalBreakSeconds && log.totalBreakSeconds > 0) {

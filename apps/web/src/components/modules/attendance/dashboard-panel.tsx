@@ -1,11 +1,12 @@
 "use client";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useAuthStore } from "@/store/auth";
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Play, Square, Coffee, ShieldAlert, CheckCircle2, Clock, Calendar, ArrowRight, UserCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { AttendanceLog, AttendanceKPIs } from "@/types/attendance";
+import { AttendanceLog, AttendanceKPIs, RegularizationRequest } from "@/types/attendance";
 import { fetchTodayStatus, fetchMyLogs, fetchMyKpis, submitPunch, fetchRegularizations, actionRegularization } from "@/lib/api/attendance";
 import Image from "next/image";
 
@@ -30,6 +31,7 @@ const formatDecimalHoursToHMS = (hoursDecimal: number): string => {
 export default function DashboardPanel() {
   const { role } = usePermissions();
   const activeRole = role as any;
+  const employeeId = useAuthStore((state) => state.employeeId);
   const queryClient = useQueryClient();
 
   // Fetch Attendance logs list via React Query
@@ -50,9 +52,14 @@ export default function DashboardPanel() {
     queryFn: fetchRegularizations,
   });
 
-  const pendingRequests = regularizations.filter(req =>
-    (activeRole === "MANAGER" && req.managerStatus === "PENDING") ||
-    ((activeRole === "HR" || activeRole === "ADMIN") && req.hrStatus === "PENDING")
+  const isManagerRole = ["MANAGER", "CTO", "CEO", "CHRO", "SUPER_ADMIN", "ADMIN"].includes(activeRole);
+  const isHrRole = ["HR", "CHRO", "ADMIN", "SUPER_ADMIN"].includes(activeRole);
+
+  const pendingRequests = regularizations.filter(req => 
+    req.employeeId !== employeeId && (
+      (isManagerRole && req.managerStatus === "PENDING") ||
+      (isHrRole && req.hrStatus === "PENDING")
+    )
   );
 
   const actionMutation = useMutation({
@@ -139,7 +146,8 @@ export default function DashboardPanel() {
       queryClient.invalidateQueries({ queryKey: ["attendanceKpis"] });
     },
     onError: (error: any) => {
-      alert("Error: Cannot connect to server or Access Denied. Check console for details.");
+      const errMsg = error.response?.data?.message || error.message || "Unknown error";
+      alert(`Check In Failed: ${errMsg}`);
       console.error("Punch Mutation Failed:", error);
     }
   });
@@ -615,7 +623,7 @@ export default function DashboardPanel() {
                     <div
                       className={`w-full rounded-t-lg transition-all duration-500 ${item.hours >= 9.0 ? "bg-slate-900" : item.hours > 0 ? "bg-amber-400" : "bg-transparent"
                         }`}
-                      style={{ height: `${item.percent}%` }}
+                      style={{ height: `${item.hours > 0 ? Math.max(2, item.percent) : 0}%` }}
                     />
                   </div>
                   <span className="text-[10px] font-bold text-slate-400">{item.day}</span>
@@ -654,8 +662,11 @@ export default function DashboardPanel() {
                   else if (log.status === "WFH") badge = "text-slate-900 bg-slate-100 border border-slate-200";
 
                   const formattedDate = new Date(log.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-                  const formattedCheckIn = log.checkIn ? new Date(log.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
-                  const formattedCheckOut = log.checkOut ? new Date(log.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
+                  const checkIns = log.punchHistory?.filter((p: any) => p.action === 'IN').map((p: any) => new Date(p.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })) || [];
+                  const checkOuts = log.punchHistory?.filter((p: any) => p.action === 'OUT').map((p: any) => new Date(p.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })) || [];
+                  
+                  const formattedCheckIn = checkIns.length > 0 ? checkIns[0] : (log.checkIn ? new Date(log.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—");
+                  const formattedCheckOut = checkOuts.length > 0 ? checkOuts[checkOuts.length - 1] : (log.checkOut ? new Date(log.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—");
                   const formattedHours = typeof log.hoursWorked === 'number' ? formatDecimalHoursToHMS(log.hoursWorked) : log.hoursWorked;
 
                   let formattedBreak = "—";
@@ -696,12 +707,14 @@ export default function DashboardPanel() {
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
             <h3 className="text-sm font-bold text-slate-900 mb-4">Quick Shortcuts</h3>
             <div className="flex flex-col gap-2.5">
-              <Link
-                href="/attendance/regularization"
-                className="flex items-center justify-center gap-2 py-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-900 text-xs font-bold rounded-lg transition-colors shadow-sm"
-              >
-                Request Regularization
-              </Link>
+              {activeRole !== "CTO" && (
+                <Link
+                  href="/attendance/regularization"
+                  className="flex items-center justify-center gap-2 py-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-900 text-xs font-bold rounded-lg transition-colors shadow-sm"
+                >
+                  Request Regularization
+                </Link>
+              )}
               <Link
                 href="/leaves"
                 className="flex items-center justify-center gap-2 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors shadow-sm"
@@ -833,14 +846,14 @@ export default function DashboardPanel() {
                       </div>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => actionMutation.mutate({ id: req.id, action: "REJECT", approver: activeRole === "MANAGER" ? "MANAGER" : "HR" })}
+                          onClick={() => actionMutation.mutate({ id: req.id, action: "REJECT", approver: isManagerRole ? "MANAGER" : "HR" })}
                           disabled={actionMutation.isPending}
                           className="flex-1 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-600 text-[10px] font-bold rounded-md transition-colors"
                         >
                           Reject
                         </button>
                         <button
-                          onClick={() => actionMutation.mutate({ id: req.id, action: "APPROVE", approver: activeRole === "MANAGER" ? "MANAGER" : "HR" })}
+                          onClick={() => actionMutation.mutate({ id: req.id, action: "APPROVE", approver: isManagerRole ? "MANAGER" : "HR" })}
                           disabled={actionMutation.isPending}
                           className="flex-1 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-bold rounded-md transition-colors"
                         >

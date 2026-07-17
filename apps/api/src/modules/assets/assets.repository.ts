@@ -446,7 +446,7 @@ export class AssetsRepository {
       if (isRefreshDue) dueForRefresh++;
       return {
         id: a.id,
-        assetName: a.asset.brand || "Asset",
+        assetName: a.asset.name || a.asset.brand || "Asset",
         category: ["LAPTOP", "DESKTOP"].includes(a.asset.category)
           ? "Laptop"
           : a.asset.category === "MONITOR"

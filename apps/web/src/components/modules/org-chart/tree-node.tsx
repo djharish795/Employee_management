@@ -45,16 +45,17 @@ export function EmployeeCard({
         <MoreHorizontal className="w-4 h-4" />
       </button>
 
-      <div className={`w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold mb-3 overflow-hidden shadow-sm border border-slate-100 ${node.avatarBg}`}>
-        {node.photoUrl && (
+      <div className={`relative w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold mb-3 overflow-hidden shadow-sm border border-slate-100 ${node.avatarBg}`}>
+        {node.photoUrl ? (
           <Image 
             src={node.photoUrl} 
             alt={node.name} 
             className="w-full h-full object-cover z-10" 
             onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} fill style={{ objectFit: "cover" }}
           />
+        ) : (
+          <span className="z-0">{node.initials}</span>
         )}
-        <span className="absolute">{node.initials}</span>
       </div>
 
       <div className="text-center w-full">

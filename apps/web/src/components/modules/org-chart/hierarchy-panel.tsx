@@ -214,7 +214,7 @@ export default function HierarchyPanel() {
             </div>
 
             <div className="p-6 flex flex-col items-center border-b border-slate-100">
-              <div className={`w-20 h-20 rounded-full flex items-center justify-center text-xl font-bold mb-4 shadow-sm border-2 border-white ring-1 ring-slate-200 ${selectedNode.avatarBg}`}>
+              <div className={`relative w-20 h-20 rounded-full flex items-center justify-center text-xl font-bold mb-4 shadow-sm border-2 border-white ring-1 ring-slate-200 ${selectedNode.avatarBg}`}>
                 <Image src={selectedNode.photoUrl} alt={selectedNode.name} className="w-full h-full rounded-full object-cover" fill style={{ objectFit: "cover" }} />
               </div>
               <h2 className="text-lg font-bold text-slate-900">{selectedNode.name}</h2>

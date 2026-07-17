@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, Calendar, ShieldCheck, History,
-  Network, BarChart3, Settings, LogOut, Menu, X, ChevronLeft, Plus, FolderPlus,
+  Network, BarChart3, Settings, LogOut, Menu, X, ChevronLeft, ChevronDown, ChevronUp, Plus, FolderPlus,
   MessageSquare, CalendarCheck, UserPlus, UserMinus, BookOpen, Monitor, Lock, Bell, CheckSquare
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
@@ -78,7 +78,6 @@ const getNavGroups = (role: string, unreadCount: number, hasSettingsAccess: bool
           { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
           { title: 'Connect', icon: MessageSquare, href: '/connect' },
           { title: 'Engineering Team', icon: Users, href: '/cto/team' },
-          { title: 'Skill Matrix', icon: Network, href: '/cto/skills' },
           { title: 'Assets', icon: Monitor, href: '/cto/assets' },
           { title: 'Team Leave', icon: Calendar, href: '/cto/leaves' },
           { title: 'Org Chart', icon: Network, href: '/org-chart' },
@@ -90,15 +89,16 @@ const getNavGroups = (role: string, unreadCount: number, hasSettingsAccess: bool
               { title: 'My Attendance', href: '/attendance' }
             ]
           },
+          { title: 'Notifications', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined, href: '/notifications' },
         ]
       },
       {
         label: 'PHASE 2 (LOCKED)',
         items: [
+          { title: 'Skill Matrix', icon: Network, locked: true },
           { title: 'Recruitment', icon: UserPlus, href: '/cto/recruitment', locked: true },
           { title: 'Performance', icon: BarChart3, locked: true },
           { title: 'Analytics', icon: BarChart3, locked: true },
-          { title: 'Notifications', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined, href: '/notifications' },
         ]
       }
     ];
@@ -217,6 +217,11 @@ export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed]   = useState(false);
   const [mounted, setMounted]       = useState(false);
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+
+  const toggleExpand = (title: string) => {
+    setExpandedItems(prev => ({ ...prev, [title]: !prev[title] }));
+  };
   
   let displayRole = role.replace('_', ' ');
   if (role === 'OM') displayRole = 'Operations Manager';
@@ -260,7 +265,7 @@ export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
               </div>
             )}
             {group.items.map((item) => {
-              if (item.locked && !item.href) {
+              if (item.locked) {
                 return (
                   <div key={item.title} className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 dark:text-slate-600 cursor-not-allowed ${collapsed ? 'justify-center' : ''}`}>
                     <div className="flex items-center gap-3">
@@ -301,15 +306,21 @@ export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
                       )}
                     </Link>
                   ) : (
-                    <div className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium ${collapsed ? 'justify-center' : ''} ${isActive ? 'text-slate-900 dark:text-white font-semibold' : 'text-slate-700 dark:text-slate-300'}`}>
+                    <button 
+                      onClick={() => item.subItems ? toggleExpand(item.title) : undefined}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium ${collapsed ? 'justify-center' : ''} ${isActive ? 'text-slate-900 dark:text-white font-semibold bg-slate-100 dark:bg-slate-800/50' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white transition-colors'}`}
+                    >
                       <div className="flex items-center gap-3">
                         <item.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`} />
                         {!collapsed && item.title}
                       </div>
-                    </div>
+                      {!collapsed && item.subItems && (
+                        expandedItems[item.title] ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />
+                      )}
+                    </button>
                   )}
 
-                  {!collapsed && item.subItems && (
+                  {!collapsed && item.subItems && expandedItems[item.title] && (
                     <div className="flex flex-col gap-1 pl-10 mt-1">
                       {item.subItems.map((sub: any) => {
                         const isSubActive = pathname === sub.href;

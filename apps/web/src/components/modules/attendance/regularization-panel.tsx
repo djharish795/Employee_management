@@ -89,7 +89,7 @@ export default function RegularizationPanel() {
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
           <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/30">
             <h3 className="text-sm font-bold text-slate-900">Correction Requests</h3>
-            {!showForm && (
+            {!showForm && activeRole !== "CTO" && (
               <button
                 onClick={() => setShowForm(true)}
                 className="flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-colors cursor-pointer"

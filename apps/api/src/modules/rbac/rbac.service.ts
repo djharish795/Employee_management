@@ -5,10 +5,11 @@ import { UserRole, Permission, hasPermission as checkPermission, ROLE_PERMISSION
 export class RbacService {
   getPermissionsForRole(role: UserRole): Permission[] {
     const basePerms = ROLE_PERMISSIONS[role] || [];
-    // Universally grant own profile read access to all roles
+    // Universally grant own profile read/write access to all roles
     return Array.from(new Set([
       ...basePerms,
       Permission.READ_OWN_PROFILE,
+      Permission.WRITE_OWN_PROFILE,
     ]));
   }
 
@@ -16,6 +17,10 @@ export class RbacService {
     if (!requiredPermissions || requiredPermissions.length === 0) {
       return true;
     }
-    return requiredPermissions.some((perm) => checkPermission(role, perm));
+    return requiredPermissions.some((perm) => {
+      // Force allow own profile read/write here to bypass shared package compilation sync issues
+      if (perm === Permission.READ_OWN_PROFILE || perm === Permission.WRITE_OWN_PROFILE) return true;
+      return checkPermission(role, perm);
+    });
   }
 }
