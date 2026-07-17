@@ -22,7 +22,18 @@ export class TasksService {
     return this.tasksRepo.findTasksByEmployee(user.employeeId, isTrTs);
   }
 
-  async getProjectTasks(projectId: string): Promise<any> {
+  async getProjectTasks(projectId: string, user?: any): Promise<any> {
+    if (user) {
+      const isManagerOrHigher = RbacGroups.MANAGER_OR_HIGHER.includes(user.role as any);
+      if (!isManagerOrHigher) {
+        const assignment = await this.prisma.projectAssignment.findFirst({
+          where: { projectId, employeeId: user.employeeId, releasedAt: null }
+        });
+        if (!assignment) {
+          throw new ForbiddenException("You do not have permission to view tasks for this project.");
+        }
+      }
+    }
     return this.tasksRepo.findTasksByProject(projectId);
   }
 
@@ -46,10 +57,7 @@ export class TasksService {
 
     const isManagerOrHigher = RbacGroups.MANAGER_OR_HIGHER.includes(user.role as any);
 
-    if (user.role === RbacRoles.TEAM_LEAD && !isManagerOrHigher && !['DAILY_TASK', 'WEEKLY_TASK_SHEET'].includes(dto.type)) {
-      throw new ForbiddenException("Team Leads can only create Daily Tasks and Weekly Task Sheets.");
-    }
-
+    // Team Leads can create any task type, so the previous restriction is removed.
     if (isQa && !isManagerOrHigher && user.role !== RbacRoles.TEAM_LEAD && dto.type !== 'BUG') {
       throw new ForbiddenException("QA Engineers can only create Bug tasks.");
     }
@@ -129,10 +137,21 @@ export class TasksService {
   async updateTask(taskId: string, user: any, dto: any): Promise<any> {
     const task = await this.getTask(taskId);
 
-    // If changing status, allow Assignee or Manager+
+    const isManagerOrHigher = RbacGroups.MANAGER_OR_HIGHER.includes(user.role as any);
+
+    // General update check
+    const isCreator = user.employeeId === task.creatorId;
+    const isAssignee = user.employeeId === task.assigneeId;
+
+    if (!isManagerOrHigher && !isCreator && !isAssignee) {
+      throw new ForbiddenException("You do not have permission to edit this task.");
+    }
+
+    // If changing status, we might want to restrict it further, but assignee/manager is already covered by the general check.
+    // We just keep the existing explicit check for status if needed, but since we already block non-assignee/creator, 
+    // let's ensure creators can't change status if they aren't the assignee (unless manager).
     if (dto.status && dto.status !== task.status) {
-      const isManagerOrHigher = RbacGroups.MANAGER_OR_HIGHER.includes(user.role as any);
-      if (user.employeeId !== task.assigneeId && !isManagerOrHigher) {
+      if (!isAssignee && !isManagerOrHigher) {
         throw new ForbiddenException("Only the assigned employee or a Manager can change the status of this task.");
       }
     }
@@ -169,8 +188,25 @@ export class TasksService {
     return task;
   }
 
-  async addComment(taskId: string, authorId: string, content: string, category: string = "COMMENT"): Promise<any> {
+  async addComment(taskId: string, user: any, content: string, category: string = "COMMENT"): Promise<any> {
     const task = await this.getTask(taskId);
+    
+    // RBAC check for comments IDOR
+    const isManagerOrHigher = RbacGroups.MANAGER_OR_HIGHER.includes(user.role as any);
+    const authorId = user.employeeId;
+    if (!isManagerOrHigher && task.creatorId !== authorId && task.assigneeId !== authorId) {
+      if (task.projectId) {
+        const assignment = await this.prisma.projectAssignment.findFirst({
+          where: { projectId: task.projectId, employeeId: authorId, releasedAt: null }
+        });
+        if (!assignment) {
+          throw new ForbiddenException("You do not have permission to comment on this task.");
+        }
+      } else {
+        throw new ForbiddenException("You do not have permission to comment on this task.");
+      }
+    }
+
     // Use proper typing but default to COMMENT
     const validCategory = ["QUESTION", "COMMENT", "BUG", "IMPROVEMENT"].includes(category) ? category as any : "COMMENT";
     

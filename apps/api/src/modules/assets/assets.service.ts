@@ -62,6 +62,21 @@ export class AssetsService {
   async findById(role: UserRole, userId: string, id: string): Promise<any> {
     const asset = await this.assetsRepository.findById(id);
     if (!asset) throw new NotFoundException(`Asset ${id} not found`);
+    
+    // RBAC Check for IDOR
+    if (!RbacGroups.ASSET_PRIVILEGED.includes(role as any)) {
+      if (RbacGroups.ASSET_MANAGERS.includes(role as any)) {
+        const holder = asset.currentHolder as any;
+        if (asset.currentHolderId !== userId && holder?.reportingManagerId !== userId) {
+          throw new ForbiddenException("You do not have permission to view this asset");
+        }
+      } else {
+        if (asset.currentHolderId !== userId) {
+          throw new ForbiddenException("You do not have permission to view this asset");
+        }
+      }
+    }
+    
     return asset;
   }
 

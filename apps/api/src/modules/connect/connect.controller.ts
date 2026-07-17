@@ -50,8 +50,8 @@ export class ConnectController {
   @Patch(":id/workspace")
   @Permissions(Permission.WRITE_OWN_PROFILE)
   async updateWorkspace(@Req() req: Request, @Param("id") id: string, @Body() dto: { agenda?: any; actionItems?: any }): Promise<any> {
-    const employeeId = (req.user as any).employeeId;
-    return this.connectService.updateWorkspace(id, employeeId, dto.agenda, dto.actionItems);
+    const user = req.user as any;
+    return this.connectService.updateWorkspace(id, user, dto.agenda, dto.actionItems);
   }
 
   @Get("my-meetings")

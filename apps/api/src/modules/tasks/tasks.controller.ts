@@ -35,7 +35,7 @@ export class TasksController {
   @Get("project/:projectId")
   @Permissions(Permission.READ_OWN_PROFILE)
   async getProjectTasks(@Param("projectId") projectId: string, @CurrentUser() user: any): Promise<any> {
-    const tasks = await this.tasksService.getProjectTasks(projectId);
+    const tasks = await this.tasksService.getProjectTasks(projectId, user);
     
     // Attach isMentioned flag
     const userEmail = user.email;
@@ -70,7 +70,7 @@ export class TasksController {
     @CurrentUser() user: any,
     @Body() dto: { content: string, category?: string }
   ): Promise<any> {
-    return this.tasksService.addComment(id, user.employeeId, dto.content, dto.category);
+    return this.tasksService.addComment(id, user, dto.content, dto.category);
   }
 
   @Post(":id/mentions/read")

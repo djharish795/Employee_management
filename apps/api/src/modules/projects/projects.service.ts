@@ -94,7 +94,7 @@ export class ProjectsService {
     });
   }
 
-  async getProjectDetails(projectId: string) {
+  async getProjectDetails(projectId: string, user?: any) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
       include: {
@@ -117,6 +117,17 @@ export class ProjectsService {
     });
 
     if (!project) throw new NotFoundException('Project not found');
+
+    if (user) {
+      const hasGlobalPerm = RbacGroups.GLOBAL_ADMINS.includes(user.role as any);
+      if (!hasGlobalPerm) {
+        const isMember = project.assignments.some(a => a.employeeId === user.employeeId && !a.releasedAt);
+        if (!isMember) {
+          throw new ForbiddenException("You do not have permission to view this project.");
+        }
+      }
+    }
+
     return project;
   }
 
