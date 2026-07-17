@@ -10,34 +10,49 @@ import {
   Search, Download, ChevronLeft, ChevronRight, SlidersHorizontal, ArrowUpDown, UserPlus, Shield, Lock, Unlock, Mail, ShieldAlert
 } from "lucide-react";
 import { SettingsRole, AdminUserRecord } from "@/types/settings";
+import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { apiClient } from "@/lib/api/client";
 
 interface UsersPanelProps {
   
 }
 
-const MOCK_USERS: AdminUserRecord[] = [
-  { id: "USR-001", name: "Pradeep Chandra", email: "pradeep@naprocs.com", role: "CEO", department: "Executive", status: "ACTIVE", lastLogin: "2023-11-23T08:30:00Z", mfaEnabled: true },
-  { id: "USR-002", name: "Lokesh", email: "lokesh@naprocs.com", role: "CTO", department: "Engineering", status: "ACTIVE", lastLogin: "2023-11-23T07:15:00Z", mfaEnabled: true },
-  { id: "USR-003", name: "Tejesh Kumar", email: "tejesh@naprocs.com", role: "HR Admin", department: "Human Resources", status: "ACTIVE", lastLogin: "2023-11-22T09:00:00Z", mfaEnabled: true },
-  { id: "USR-004", name: "John Doe", email: "john.d@naprocs.com", role: "IT Admin", department: "IT", status: "ACTIVE", lastLogin: "2023-11-23T10:45:00Z", mfaEnabled: true },
-  { id: "USR-005", name: "Sarah Smith", email: "sarah.s@naprocs.com", role: "Manager", department: "Sales", status: "INACTIVE", lastLogin: "2023-10-15T14:20:00Z", mfaEnabled: false },
-  { id: "USR-006", name: "Mike Johnson", email: "mike.j@naprocs.com", role: "Employee", department: "Engineering", status: "LOCKED", lastLogin: "2023-11-20T16:00:00Z", mfaEnabled: false },
-  { id: "USR-007", name: "Emily Chen", email: "emily.c@naprocs.com", role: "Compliance Officer", department: "Legal", status: "ACTIVE", lastLogin: "2023-11-23T09:30:00Z", mfaEnabled: true },
-];
+
 
 export default function UsersPanel() {
   const [globalFilter, setGlobalFilter] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const router = useRouter();
 
   const { canManageSettings: canManageUsers } = usePermissions();
 
+  const { data: apiUsers = [], isLoading } = useQuery({
+    queryKey: ["admin-users-list"],
+    queryFn: async () => {
+      const res = await apiClient.get('/employees?limit=1000');
+      if (!res.data || !res.data.data) return [];
+      
+      return res.data.data.map((emp: any) => ({
+        id: emp.id,
+        name: `${emp.firstName || ""} ${emp.lastName || ""}`.trim() || "Unknown",
+        email: emp.officialEmail || "",
+        role: emp.user?.role || emp.designation?.title || "Vacant / No Role",
+        department: emp.department?.name || emp.department?.code || "Unassigned",
+        status: emp.status === "ACTIVE" ? "ACTIVE" : (emp.status === "ONBOARDING" ? "INACTIVE" : "LOCKED"),
+        lastLogin: emp.user?.lastLogin || new Date().toISOString(),
+        mfaEnabled: emp.user?.mfaEnabled || false,
+      })) as AdminUserRecord[];
+    }
+  });
+
   const filteredData = useMemo(() => {
-    let data = [...MOCK_USERS];
+    let data = [...apiUsers];
     if (roleFilter) data = data.filter(d => d.role === roleFilter);
     if (statusFilter) data = data.filter(d => d.status === statusFilter);
     return data;
-  }, [roleFilter, statusFilter]);
+  }, [apiUsers, roleFilter, statusFilter]);
 
   const columns = useMemo<ColumnDef<AdminUserRecord>[]>(() => [
     {
@@ -120,24 +135,31 @@ export default function UsersPanel() {
         </span>
       )
     },
-    {
-      id: "actions",
-      header: "ACTIONS",
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <button className="text-slate-400 hover:text-teal-600 transition-colors" title="Edit User">
-            <UserPlus className="w-4 h-4" />
-          </button>
-          <button className="text-slate-400 hover:text-rose-600 transition-colors" title="Lock Account">
-            {row.original.status === "LOCKED" ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-          </button>
-          <button className="text-slate-400 hover:text-slate-900 transition-colors" title="Send Reset Email">
-            <Mail className="w-4 h-4" />
-          </button>
-        </div>
-      )
-    }
   ], []);
+
+  const handleExport = () => {
+    if (filteredData.length === 0) return;
+    const headers = ["ID", "Name", "Email", "Role", "Department", "Status", "Last Login", "MFA Enabled"];
+    const csvRows = filteredData.map(usr => [
+      usr.id,
+      `"${usr.name}"`,
+      usr.email,
+      usr.role,
+      usr.department,
+      usr.status,
+      `"${new Date(usr.lastLogin).toLocaleString()}"`,
+      usr.mfaEnabled ? "Yes" : "No"
+    ].join(','));
+    const csvString = [headers.join(','), ...csvRows].join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `users_export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const table = useReactTable({
     data: filteredData,
@@ -192,18 +214,14 @@ export default function UsersPanel() {
               <option value="LOCKED">Locked</option>
             </select>
           </div>
-
-          <button className="flex items-center gap-2 h-9 px-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-bold transition-colors shadow-sm">
-            <SlidersHorizontal className="w-3.5 h-3.5" /> More Filters
-          </button>
         </div>
 
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 h-9 px-3 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-bold transition-colors shadow-sm">
+          <button onClick={handleExport} className="flex items-center gap-2 h-9 px-3 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-bold transition-colors shadow-sm">
             <Download className="w-3.5 h-3.5" /> Export
           </button>
           {canManageUsers && (
-            <button className="flex items-center gap-2 h-9 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm">
+            <button onClick={() => router.push('/employees/add')} className="flex items-center gap-2 h-9 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm">
               <UserPlus className="w-3.5 h-3.5" /> Invite User
             </button>
           )}
@@ -225,7 +243,13 @@ export default function UsersPanel() {
             ))}
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {table.getRowModel().rows.length > 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan={columns.length} className="p-8 text-center text-sm font-medium text-slate-500">
+                  Loading users...
+                </td>
+              </tr>
+            ) : table.getRowModel().rows.length > 0 ? (
               table.getRowModel().rows.map(row => (
                 <tr key={row.id} className="hover:bg-slate-50/80 transition-colors">
                   {row.getVisibleCells().map(cell => (

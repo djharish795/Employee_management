@@ -43,9 +43,15 @@ const getNavGroups = (role: string, unreadCount: number, hasSettingsAccess: bool
             ]
           },
           { title: 'Employees', icon: Users, href: '/employees' },
-          { title: 'Analytics', icon: BarChart3, locked: true },
           { title: 'Compliance', icon: ShieldCheck, href: '/compliance' },
           { title: 'Leaves', icon: Calendar, href: '/leaves' },
+        ]
+      },
+      {
+        label: 'OTHER',
+        items: [
+          { title: 'Notifications', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined, href: '/notifications' },
+          ...(hasSettingsAccess ? [{ title: 'Settings', icon: Settings, href: '/settings' }] : []),
         ]
       },
       {
@@ -57,13 +63,7 @@ const getNavGroups = (role: string, unreadCount: number, hasSettingsAccess: bool
           { title: 'Succession Planning', icon: Users, locked: true },
           { title: 'Reports / Analytics', icon: BarChart3, locked: true },
           { title: 'Workforce Analytics', icon: BarChart3, locked: true },
-        ]
-      },
-      {
-        label: 'OTHER',
-        items: [
-          { title: 'Notifications', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined, href: '/notifications' },
-          ...(hasSettingsAccess ? [{ title: 'Settings', icon: Settings, href: '/settings' }] : []),
+          { title: 'Analytics', icon: BarChart3, locked: true },
         ]
       }
     ];
@@ -163,8 +163,7 @@ const getNavGroups = (role: string, unreadCount: number, hasSettingsAccess: bool
 
   mainItems.push(
     { title: 'Employees', icon: Users, href: '/employees' },
-    { title: 'Org Chart', icon: Network, href: '/org-chart' },
-    { title: 'Analytics', icon: BarChart3, locked: true }
+    { title: 'Org Chart', icon: Network, href: '/org-chart' }
   );
 
   if (['SUPER_ADMIN', 'CEO', 'COO', 'HR', 'CHRO', 'COMPLIANCE_OFFICER', 'LEGAL'].includes(role)) {
@@ -185,21 +184,25 @@ const getNavGroups = (role: string, unreadCount: number, hasSettingsAccess: bool
     mainItems.push({ title: 'Audit Log', icon: History, href: '/audit' });
   }
 
-  const groups = [
+  const groups: any[] = [
     {
       label: 'MAIN',
       items: mainItems
-    }
-  ];
-
-  if (hasSettingsAccess) {
-    groups.push({
+    },
+    {
       label: 'OTHER',
       items: [
-        { title: 'Settings', icon: Settings, href: '/settings' }
+        { title: 'Notifications', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined, href: '/notifications' },
+        ...(hasSettingsAccess ? [{ title: 'Settings', icon: Settings, href: '/settings' }] : [])
       ]
-    });
-  }
+    },
+    {
+      label: 'PHASE 2 (LOCKED)',
+      items: [
+        { title: 'Analytics', icon: BarChart3, locked: true }
+      ]
+    }
+  ];
 
   return groups;
 };

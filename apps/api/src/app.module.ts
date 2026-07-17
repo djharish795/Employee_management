@@ -35,6 +35,7 @@ import { SearchModule } from './modules/search/search.module';
 import { LifecycleModule } from "./modules/lifecycle/lifecycle.module";
 import { ProjectsModule } from './modules/projects/projects.module';
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
+import { SettingsModule } from './modules/settings/settings.module';
 
 @Module({
   imports: [
@@ -104,6 +105,7 @@ import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
     SearchModule,
     LifecycleModule,
     ProjectsModule,
+    SettingsModule,
   ],
   providers: [
     {

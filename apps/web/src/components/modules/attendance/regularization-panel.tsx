@@ -89,7 +89,7 @@ export default function RegularizationPanel() {
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
           <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/30">
             <h3 className="text-sm font-bold text-slate-900">Correction Requests</h3>
-            {!showForm && activeRole !== "CTO" && (
+            {!showForm && !["CTO", "CEO", "SUPER_ADMIN"].includes(activeRole) && (
               <button
                 onClick={() => setShowForm(true)}
                 className="flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-colors cursor-pointer"
@@ -112,7 +112,7 @@ export default function RegularizationPanel() {
                 {filteredRequests.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((req) => {
                   const showReviewActions =
                     (activeRole === "MANAGER" && req.managerStatus === "PENDING") ||
-                    ((activeRole === "HR" || activeRole === "ADMIN") && req.hrStatus === "PENDING");
+                    (["HR", "ADMIN", "SUPER_ADMIN", "CEO"].includes(activeRole) && req.hrStatus === "PENDING");
 
                   return (
                     <div key={req.id} className="p-5 flex flex-col sm:flex-row justify-between items-start gap-4 hover:bg-slate-50/20 transition-colors">

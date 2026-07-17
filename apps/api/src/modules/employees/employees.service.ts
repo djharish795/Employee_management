@@ -3,6 +3,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { RbacService } from "../rbac/rbac.service";
 import { CreateEmployeeDto } from "./dto/create-employee.dto";
 import { UpdateEmployeeDto } from "./dto/update-employee.dto";
+import { EmployeeIdParamDto, EmployeeFilterDto } from "./dto/employee-params.dto";
 import { getPaginationOptions, createPaginatedResponse, PaginationParams, PaginatedResult } from "../../common/utils/pagination.util";
 import { Employee, UserRole } from "@naprocs/database";
 import { Permission } from "@naprocs/types";
@@ -259,18 +260,39 @@ export class EmployeesService {
     return employee;
   }
 
-  async getEmployees(params: PaginationParams): Promise<PaginatedResult<Employee>> {
+  async getEmployees(params: EmployeeFilterDto): Promise<PaginatedResult<Employee>> {
     const { skip, take, page, limit } = getPaginationOptions(params);
+
+    const whereClause: any = {};
+
+    if (params.search) {
+      whereClause.OR = [
+        { firstName: { contains: params.search, mode: 'insensitive' } },
+        { lastName: { contains: params.search, mode: 'insensitive' } },
+        { employeeId: { contains: params.search, mode: 'insensitive' } },
+        { officialEmail: { contains: params.search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (params.department) {
+      whereClause.department = {
+        name: params.department
+      };
+    }
+
+    if (params.status) {
+      whereClause.status = params.status;
+    } else {
+      whereClause.status = {
+        notIn: ['ONBOARDING', 'EXITED', 'CANCELLED']
+      };
+    }
 
     const [data, total] = await Promise.all([
       this.prisma.employee.findMany({
         skip,
         take,
-        where: {
-          status: {
-            not: 'ONBOARDING'
-          }
-        },
+        where: whereClause,
         orderBy: { createdAt: "desc" },
         include: {
           department: {
@@ -285,11 +307,7 @@ export class EmployeesService {
         }
       }),
       this.prisma.employee.count({
-        where: {
-          status: {
-            not: 'ONBOARDING'
-          }
-        }
+        where: whereClause
       }),
     ]);
 

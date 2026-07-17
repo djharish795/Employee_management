@@ -69,10 +69,31 @@ export default function EmployeeDirectory() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const { role } = usePermissions();
 
+  const [debouncedSearch, setDebouncedSearch] = useState(filters.search);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(filters.search);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [filters.search]);
+
+  // Reset page on filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, filters.department, filters.status]);
+
   // Fetch from API
   const fetchEmployees = async (): Promise<{ data: Employee[], meta: any }> => {
     try {
-      const res = await apiClient.get(`/employees?page=${currentPage}&limit=25`);
+      const queryParams = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: "25",
+      });
+      if (debouncedSearch) queryParams.append("search", debouncedSearch);
+      if (filters.department) queryParams.append("department", filters.department);
+      if (filters.status) queryParams.append("status", filters.status.toUpperCase());
+
+      const res = await apiClient.get(`/employees?${queryParams.toString()}`);
       const responseData = res.data;
       
       if (!responseData || !responseData.data || !Array.isArray(responseData.data)) {
@@ -107,7 +128,7 @@ export default function EmployeeDirectory() {
   };
 
   const { data: rawEmployeesData = { data: [], meta: { total: 0 } }, isLoading, isError, error } = useQuery({
-    queryKey: ["employees", accessToken, currentPage],
+    queryKey: ["employees", accessToken, currentPage, debouncedSearch, filters.department, filters.status],
     queryFn: fetchEmployees,
     enabled: !!accessToken,
   });
@@ -148,32 +169,7 @@ export default function EmployeeDirectory() {
     console.error("Employee fetch error:", error);
   }
 
-  const filteredEmployees = useMemo(() => {
-    let result = [...rawEmployees];
-
-    if (!filters.status) {
-      result = result.filter(emp => emp.status !== "EXITED" && emp.status !== "CANCELLED");
-    }
-
-    if (filters.search.trim()) {
-      const q = filters.search.toLowerCase();
-      result = result.filter(
-        (emp) =>
-          emp.name.toLowerCase().includes(q) ||
-          (emp.employeeId || emp.id).toLowerCase().includes(q) ||
-          emp.email.toLowerCase().includes(q) ||
-          emp.department.toLowerCase().includes(q)
-      );
-    }
-    if (filters.department) {
-      result = result.filter((emp) => emp.department === filters.department);
-    }
-    if (filters.status) {
-      result = result.filter((emp) => emp.status.toLowerCase() === filters.status.toLowerCase());
-    }
-
-    return result;
-  }, [rawEmployees, filters]);
+  const filteredEmployees = rawEmployees;
 
   const uniqueDepartments = useMemo<string[]>(() => {
     if (departmentsData?.data && Array.isArray(departmentsData.data)) {
@@ -461,7 +457,7 @@ export default function EmployeeDirectory() {
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-transparent pt-2">
           {/* Badge */}
           <div className="bg-slate-200 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-full">
-            {filteredEmployees.length} employees
+            {rawEmployeesData.meta?.total || 0} employees
           </div>
 
           {/* Actions */}
@@ -599,7 +595,7 @@ export default function EmployeeDirectory() {
             <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
               <div className="text-sm font-medium text-slate-500">
                 Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}-
-                {Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, filteredEmployees.length)} of {filteredEmployees.length}
+                {Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, rawEmployeesData.meta?.total || 0)} of {rawEmployeesData.meta?.total || 0}
               </div>
               <div className="flex items-center gap-1">
                 <button

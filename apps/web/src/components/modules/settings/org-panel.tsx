@@ -4,6 +4,8 @@ import { usePermissions } from "@/hooks/use-permissions";
 import React from "react";
 import { Building2, MapPin, Save, UploadCloud, Users } from "lucide-react";
 import { SettingsRole } from "@/types/settings";
+import { useQuery } from "@tanstack/react-query";
+import { apiClient } from "@/lib/api/client";
 
 interface OrgPanelProps {
   
@@ -11,6 +13,14 @@ interface OrgPanelProps {
 
 export default function OrgPanel() {
   const { canManageSettings: canEdit } = usePermissions();
+
+  const { data: departments = [], isLoading } = useQuery({
+    queryKey: ["org-departments-list"],
+    queryFn: async () => {
+      const res = await apiClient.get('/departments?limit=100');
+      return res.data?.data || [];
+    }
+  });
 
   return (
     <div className="space-y-6">
@@ -87,11 +97,6 @@ export default function OrgPanel() {
                 <Users className="w-4 h-4 text-slate-400" />
                 <h3 className="text-sm font-bold text-slate-900">Departments</h3>
               </div>
-              {canEdit && (
-                <button className="text-xs font-bold text-teal-600 hover:text-teal-700 hover:underline">
-                  + Add Department
-                </button>
-              )}
             </div>
             <div className="p-0">
               <table className="w-full text-left">
@@ -100,28 +105,28 @@ export default function OrgPanel() {
                     <th className="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Department Name</th>
                     <th className="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Head</th>
                     <th className="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Employees</th>
-                    {canEdit && <th className="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  <tr className="hover:bg-slate-50/50">
-                    <td className="px-6 py-3 text-sm font-bold text-slate-900">Engineering</td>
-                    <td className="px-6 py-3 text-xs font-semibold text-slate-600">Lokesh</td>
-                    <td className="px-6 py-3 text-xs font-semibold text-slate-600">42</td>
-                    {canEdit && <td className="px-6 py-3 text-right"><button className="text-teal-600 font-bold text-xs hover:underline">Edit</button></td>}
-                  </tr>
-                  <tr className="hover:bg-slate-50/50">
-                    <td className="px-6 py-3 text-sm font-bold text-slate-900">Human Resources</td>
-                    <td className="px-6 py-3 text-xs font-semibold text-slate-600">Tejesh Kumar</td>
-                    <td className="px-6 py-3 text-xs font-semibold text-slate-600">5</td>
-                    {canEdit && <td className="px-6 py-3 text-right"><button className="text-teal-600 font-bold text-xs hover:underline">Edit</button></td>}
-                  </tr>
-                  <tr className="hover:bg-slate-50/50">
-                    <td className="px-6 py-3 text-sm font-bold text-slate-900">Executive</td>
-                    <td className="px-6 py-3 text-xs font-semibold text-slate-600">Pradeep Chandra</td>
-                    <td className="px-6 py-3 text-xs font-semibold text-slate-600">3</td>
-                    {canEdit && <td className="px-6 py-3 text-right"><button className="text-teal-600 font-bold text-xs hover:underline">Edit</button></td>}
-                  </tr>
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={3} className="px-6 py-4 text-center text-sm text-slate-500">Loading departments...</td>
+                    </tr>
+                  ) : departments.length > 0 ? (
+                    departments.map((dept: any) => (
+                      <tr key={dept.id} className="hover:bg-slate-50/50">
+                        <td className="px-6 py-3 text-sm font-bold text-slate-900">{dept.name}</td>
+                        <td className="px-6 py-3 text-xs font-semibold text-slate-600">
+                          {dept.head ? `${dept.head.firstName || ""} ${dept.head.lastName || ""}`.trim() || "Unassigned" : "Unassigned"}
+                        </td>
+                        <td className="px-6 py-3 text-xs font-semibold text-slate-600">{dept._count?.employees || 0}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={3} className="px-6 py-4 text-center text-sm text-slate-500">No departments found.</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -138,28 +143,17 @@ export default function OrgPanel() {
                 <MapPin className="w-4 h-4 text-slate-400" />
                 <h3 className="text-sm font-bold text-slate-900">Locations</h3>
               </div>
-              {canEdit && (
-                <button className="text-xs font-bold text-teal-600 hover:text-teal-700 hover:underline">
-                  + Add
-                </button>
-              )}
             </div>
             <div className="p-4 space-y-3">
               <div className="p-3 border border-slate-200 rounded-lg bg-slate-50 hover:border-teal-300 transition-colors cursor-pointer">
                 <div className="flex justify-between items-start mb-1">
-                  <span className="text-xs font-bold text-slate-900">HQ - Bangalore</span>
+                  <span className="text-xs font-bold text-slate-900">Guntur Office</span>
                   <span className="text-[9px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200">PRIMARY</span>
                 </div>
                 <div className="text-[10px] text-slate-500 font-medium leading-tight">
-                  123 Tech Park, Whitefield<br/>Bangalore, KA 560066<br/>India
-                </div>
-              </div>
-              <div className="p-3 border border-slate-200 rounded-lg hover:border-teal-300 transition-colors cursor-pointer">
-                <div className="flex justify-between items-start mb-1">
-                  <span className="text-xs font-bold text-slate-900">Mumbai Office</span>
-                </div>
-                <div className="text-[10px] text-slate-500 font-medium leading-tight">
-                  Andheri East<br/>Mumbai, MH 400069<br/>India
+                  Third Floor, Amaravathi Rd<br/>
+                  above Krishna Dentals, beside BVR Convention Hall<br/>
+                  Panduranga Nagar, Guntur, Andhra Pradesh 522034
                 </div>
               </div>
             </div>

@@ -7,6 +7,7 @@ import { AttendanceStatus } from "@naprocs/database";
 import { toZonedTime } from "date-fns-tz";
 import { isLateArrival, parseBreakHistory, PRESENT_STATUSES, PRESENT_WITH_LATE_STATUSES } from "./attendance.constants";
 import { InAppNotificationService } from "../notifications/in-app.service";
+import { EmailService } from "../notifications/email.service";
 
 @Injectable()
 export class AttendanceService {
@@ -16,6 +17,7 @@ export class AttendanceService {
     private readonly redis: RedisService,
     private readonly prisma: PrismaService,
     private readonly inApp: InAppNotificationService,
+    private readonly emailService: EmailService,
   ) { }
 
   private getRedisKey(employeeId: string): string {
@@ -79,6 +81,14 @@ export class AttendanceService {
         };
 
         await this.redis.setJson(key, state, 60 * 60 * 24);
+      } else if (dbRecord && dbRecord.checkOutTime) {
+        state = { 
+          state: "OUT", 
+          startTime: dbRecord.checkOutTime.getTime(), 
+          offset: dbRecord.workHours ? Math.round(Number(dbRecord.workHours) * 3600) : 0, 
+          shiftDate: dbRecord.date.toISOString() 
+        };
+        await this.redis.setJson(key, state, 60 * 60 * 24);
       } else {
         state = { state: "OUT", startTime: 0, offset: 0, shiftDate: null };
       }
@@ -123,7 +133,7 @@ export class AttendanceService {
       const isReturnFromBreak = state.state === "BREAK";
       if (isReturnFromBreak) {
         const breakElapsed = Math.floor((now - state.startTime) / 1000);
-        state.offset += breakElapsed;
+        // Do NOT add breakElapsed to state.offset! Break time should not be counted as work hours.
 
         const record = await this.prisma.attendanceRecord.findUnique({
           where: { employeeId_date: { employeeId, date: shiftDate } }
@@ -257,13 +267,12 @@ export class AttendanceService {
 
       const thresholdSeconds = approvedHalfDay ? 16200 : 32400; // 4.5 hours or 9 hours
 
-      let finalStatus = "PRESENT";
-      if (state.offset < thresholdSeconds) {
+      let finalStatus = existingRecord?.status === "WFH" ? "WFH" : "PRESENT";
+      
+      if (state.offset < thresholdSeconds && finalStatus !== "WFH") {
         finalStatus = "EARLY_CHECKOUT";
-      } else if (isLate && !approvedHalfDay) {
+      } else if (isLate && !approvedHalfDay && finalStatus !== "WFH") {
         finalStatus = "LATE";
-      } else if (existingRecord?.status === "WFH") {
-        finalStatus = "WFH";
       }
 
       let overtimeDecimal = 0;
@@ -462,6 +471,29 @@ export class AttendanceService {
       }
     });
 
+    const allEmployees = await this.prisma.employee.findMany({
+      where: { status: 'ACTIVE' },
+      include: { department: true }
+    });
+
+    let workingDaysSoFar = 0;
+    for (let d = new Date(startOfMonth); d <= today; d.setUTCDate(d.getUTCDate() + 1)) {
+      const dayOfWeek = d.getUTCDay();
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        workingDaysSoFar++;
+      }
+    }
+
+    const totalLeaves = await this.prisma.attendanceRecord.count({
+      where: {
+        date: { gte: startOfMonth, lte: today },
+        status: { in: ["ON_LEAVE", "HOLIDAY"] }
+      }
+    });
+
+    let expectedTotalRecords = (workingDaysSoFar * allEmployees.length) - totalLeaves;
+    if (expectedTotalRecords <= 0) expectedTotalRecords = 1;
+
     let totalHours = 0;
     let lateCount = 0;
     let presentCount = 0;
@@ -494,23 +526,34 @@ export class AttendanceService {
         lateCount++;
         presentCount++;
         deptStats[deptName].present++;
-      } else if ((PRESENT_STATUSES as readonly string[]).includes(statusStr)) {
+      } else if ((PRESENT_WITH_LATE_STATUSES as readonly string[]).includes(statusStr)) {
         presentCount += (statusStr === "HALF_DAY" || statusStr === "EARLY_CHECKOUT") ? 0.5 : 1;
         deptStats[deptName].present += (statusStr === "HALF_DAY" || statusStr === "EARLY_CHECKOUT") ? 0.5 : 1;
       }
     });
 
-    const totalRecords = monthlyRecords.length || 1;
-    const avgAttendance = Number(((presentCount / totalRecords) * 100).toFixed(1));
+    const totalRecords = expectedTotalRecords;
+    const avgAttendance = Number((Math.min(100, (presentCount / totalRecords) * 100)).toFixed(1));
     const lateRate = Number(((lateCount / totalRecords) * 100).toFixed(1));
     const avgHours = presentCount > 0 ? Number((totalHours / presentCount).toFixed(1)) : 0;
-    const activeFTE = activeEmployees.size;
+    const activeFTE = allEmployees.length;
 
-    const departmentRates = Object.entries(deptStats).map(([name, stats]) => ({
-      name,
-      percent: stats.total > 0 ? Number(((stats.present / stats.total) * 100).toFixed(1)) : 0,
-      count: stats.fte.size
-    })).sort((a, b) => b.percent - a.percent);
+    // Build department expected totals
+    const deptHeadcount: Record<string, number> = {};
+    allEmployees.forEach(emp => {
+      const dName = emp.department?.name || "Others";
+      deptHeadcount[dName] = (deptHeadcount[dName] || 0) + 1;
+    });
+
+    const departmentRates = Object.entries(deptStats).map(([name, stats]) => {
+      const hc = deptHeadcount[name] || 1;
+      const expectedDeptRecords = Math.max(1, (workingDaysSoFar * hc)); // Simplified for dept
+      return {
+        name,
+        percent: Number((Math.min(100, (stats.present / expectedDeptRecords) * 100)).toFixed(1)),
+        count: hc
+      };
+    }).sort((a, b) => b.percent - a.percent);
 
     // Late Trends (last 6 months)
     const sixMonthsAgo = new Date(today);
@@ -643,7 +686,7 @@ export class AttendanceService {
 
       if (record) {
         const status = record.status as string;
-        if ((PRESENT_STATUSES as readonly string[]).includes(status)) {
+        if ((PRESENT_WITH_LATE_STATUSES as readonly string[]).includes(status)) {
           isPresent = true;
         }
 
@@ -685,13 +728,29 @@ export class AttendanceService {
         if (isOnLeave) {
           onLeave++;
         } else {
-          exceptions.push({
-            id: `ex-${emp.id}`,
-            name: `${emp.firstName} ${emp.lastName}`,
-            department: deptName,
-            status: 'ABSENT',
-            initials
-          });
+          const now = new Date();
+          const isToday = now.getUTCFullYear() === today.getUTCFullYear() && 
+                          now.getUTCMonth() === today.getUTCMonth() && 
+                          now.getUTCDate() === today.getUTCDate();
+          
+          let isAbsent = true;
+          if (isToday) {
+             const zonedNow = toZonedTime(now, 'Asia/Kolkata');
+             const hours = zonedNow.getHours();
+             const minutes = zonedNow.getMinutes();
+             if (hours < 10 || (hours === 10 && minutes < 30)) {
+                isAbsent = false;
+             }
+          }
+          if (isAbsent) {
+            exceptions.push({
+              id: `ex-${emp.id}`,
+              name: `${emp.firstName} ${emp.lastName}`,
+              department: deptName,
+              status: 'ABSENT',
+              initials
+            });
+          }
         }
       }
     });
@@ -715,7 +774,7 @@ export class AttendanceService {
     });
 
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const monthStats = new Map<string, { present: number, total: number, label: string }>();
+    const monthStats = new Map<string, { present: number, activeDays: Set<string>, label: string }>();
 
     pastRecords.forEach(r => {
       const m = r.date.getUTCMonth();
@@ -723,10 +782,10 @@ export class AttendanceService {
       const key = `${y}-${(m + 1).toString().padStart(2, '0')}`;
       
       if (!monthStats.has(key)) {
-        monthStats.set(key, { present: 0, total: 0, label: monthNames[m] });
+        monthStats.set(key, { present: 0, activeDays: new Set(), label: monthNames[m] });
       }
       const stat = monthStats.get(key)!;
-      stat.total++;
+      stat.activeDays.add(r.date.toISOString().split('T')[0]);
       const statusStr = r.status as string;
       if ((PRESENT_STATUSES as readonly string[]).includes(statusStr)) {
         stat.present++;
@@ -741,8 +800,9 @@ export class AttendanceService {
       const key = `${y}-${(d.getUTCMonth() + 1).toString().padStart(2, '0')}`;
       const stat = monthStats.get(key);
       let perc = 0;
-      if (stat && stat.total > 0) {
-        perc = Math.round((stat.present / stat.total) * 100);
+      if (stat && stat.activeDays.size > 0 && totalEmployees > 0) {
+        const expectedRecords = stat.activeDays.size * totalEmployees;
+        perc = Math.round((stat.present / expectedRecords) * 100);
       }
       trendData.push({ month: mName, percentage: perc });
     }
@@ -796,6 +856,18 @@ export class AttendanceService {
         lte: new Date(year, month + 1, 0, 23, 59, 59)
       };
     }
+    
+    if (query.status) {
+      where.status = query.status;
+    }
+
+    if (query.search) {
+      where.OR = [
+        { employee: { firstName: { contains: query.search, mode: 'insensitive' } } },
+        { employee: { lastName: { contains: query.search, mode: 'insensitive' } } },
+        { notes: { contains: query.search, mode: 'insensitive' } }
+      ];
+    }
 
     const [records, total] = await Promise.all([
       this.prisma.attendanceRecord.findMany({
@@ -833,6 +905,61 @@ export class AttendanceService {
     });
 
     return { data, total, page, limit };
+  }
+
+  async exportAllLogs(query: any, user?: any) {
+    const where: any = {};
+    const isTeamLeadOnly = user && 
+      !['SUPER_ADMIN', 'CTO', 'CEO', 'HR', 'CHRO'].includes(user.role) &&
+      ['TEAM_LEAD', 'MANAGER'].includes(user.role);
+
+    if (isTeamLeadOnly && user.employeeId) {
+      where.employee = { reportingManagerId: user.employeeId };
+    }
+
+    if (query.startDate || query.endDate) {
+      where.date = {};
+      if (query.startDate) where.date.gte = new Date(query.startDate);
+      if (query.endDate) where.date.lte = new Date(query.endDate);
+    } else if (query.month && query.year) {
+      const year = Number(query.year);
+      const month = Number(query.month) - 1;
+      where.date = {
+        gte: new Date(year, month, 1),
+        lte: new Date(year, month + 1, 0, 23, 59, 59)
+      };
+    }
+
+    if (query.status) {
+      where.status = query.status;
+    }
+
+    if (query.search) {
+      where.OR = [
+        { employee: { firstName: { contains: query.search, mode: 'insensitive' } } },
+        { employee: { lastName: { contains: query.search, mode: 'insensitive' } } },
+        { notes: { contains: query.search, mode: 'insensitive' } }
+      ];
+    }
+
+    const records = await this.prisma.attendanceRecord.findMany({
+      where,
+      orderBy: { date: "desc" },
+      include: { employee: { select: { firstName: true, lastName: true, department: { select: { name: true } } } } }
+    });
+
+    let csv = "Employee Name,Department,Date,Check In,Check Out,Hours Worked,Status,Remarks\n";
+    for (const record of records) {
+      const name = `${record.employee.firstName} ${record.employee.lastName}`;
+      const dept = record.employee.department?.name || "Unassigned";
+      const date = record.date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      const checkIn = record.checkInTime ? record.checkInTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : "--";
+      const checkOut = record.checkOutTime ? record.checkOutTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : "--";
+      const hours = record.workHours ? Number(record.workHours).toFixed(2) : "0";
+      csv += `"${name}","${dept}","${date}","${checkIn}","${checkOut}","${hours}","${record.status}","${record.notes || ''}"\n`;
+    }
+    
+    return csv;
   }
 
   async getRegularizations(user?: any) {
@@ -906,14 +1033,28 @@ export class AttendanceService {
     }
 
     if (approverRole === "MANAGER") {
-      return this.prisma.regularizationRequest.update({
+      const updatedReq = await this.prisma.regularizationRequest.update({
         where: { id },
-        data: { managerStatus: statusVal, comments: `Actioned by Manager (${action})` }
+        data: { managerStatus: statusVal, comments: `Actioned by Manager (${action})` },
+        include: { employee: true }
       });
+      
+      this.emailService.sendEmail(
+        updatedReq.employee.officialEmail,
+        `Regularization Request ${action === "APPROVE" ? "Approved" : "Rejected"}`,
+        "regularization_status",
+        { status: action, comments: `Actioned by Manager` }
+      ).catch(e => this.logger.error("Failed to send regularization email", e));
+      
+      return updatedReq;
     } else {
       const updatedReq = await this.prisma.regularizationRequest.update({
         where: { id },
-        data: { hrStatus: statusVal, comments: `Actioned by HR/Admin (${action})` },
+        data: { 
+          managerStatus: statusVal, // CEO/HR override auto-actions manager step too
+          hrStatus: statusVal, 
+          comments: `Actioned by HR/Admin (${action})` 
+        },
         include: { employee: true }
       });
 
@@ -959,6 +1100,13 @@ export class AttendanceService {
           }
         });
       }
+
+      this.emailService.sendEmail(
+        updatedReq.employee.officialEmail,
+        `Regularization Request ${action === "APPROVE" ? "Approved" : "Rejected"}`,
+        "regularization_status",
+        { status: action, comments: `Actioned by Admin` }
+      ).catch(e => this.logger.error("Failed to send regularization email", e));
 
       return updatedReq;
     }

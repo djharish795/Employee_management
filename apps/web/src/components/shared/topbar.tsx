@@ -121,7 +121,14 @@ export function Topbar() {
       }
       setLoading(true);
       try {
-        const scope = pathname.startsWith('/team-lead') ? 'team' : (pathname.startsWith('/hr') ? 'global' : 'individual');
+        const globalRoles = ['SUPER_ADMIN', 'CEO', 'CTO', 'COO', 'OPERATIONS_HEAD', 'CFO', 'CHRO', 'HR', 'FINANCE', 'IT', 'CEM', 'OM', 'OE'];
+        let scope = 'individual';
+        if (role && globalRoles.includes(role)) {
+          scope = 'global';
+        } else if (isTeamLead || role === 'MANAGER') {
+          scope = 'team';
+        }
+        
         const response = await apiClient.get(`/search?q=${encodeURIComponent(query)}&scope=${scope}`);
         const searchData = Array.isArray(response.data) ? response.data : (response.data?.data || []);
         setResults(searchData);

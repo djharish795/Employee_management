@@ -50,13 +50,17 @@ export class SearchService {
     // Search Employees only if not in individual scope
     if (scope !== 'individual') {
       let canSearchEmployees = false;
+      const terms = q.split(/\\s+/).filter(Boolean);
+      
       let employeeWhereClause: any = {
-        OR: [
-          { firstName: { contains: q, mode: 'insensitive' } },
-          { lastName: { contains: q, mode: 'insensitive' } },
-          { officialEmail: { contains: q, mode: 'insensitive' } },
-          { employeeId: { contains: q, mode: 'insensitive' } }
-        ]
+        AND: terms.map(term => ({
+          OR: [
+            { firstName: { contains: term, mode: 'insensitive' } },
+            { lastName: { contains: term, mode: 'insensitive' } },
+            { officialEmail: { contains: term, mode: 'insensitive' } },
+            { employeeId: { contains: term, mode: 'insensitive' } }
+          ]
+        }))
       };
 
       if (hasPermission(userRole, Permission.READ_EMPLOYEES)) {
