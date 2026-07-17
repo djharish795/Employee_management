@@ -1218,6 +1218,7 @@ enum UserRole {
   CEM
   OE
   OM
+  CRM
 }
 
 enum UserStatus {

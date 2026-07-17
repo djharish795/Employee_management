@@ -127,7 +127,7 @@ export async function middleware(request: NextRequest) {
       if (pathname === ns || pathname.startsWith(`${ns}/`)) {
         // Exception: CEM, OM, and OE are part of the operations group and share access to /cam, /om, and /oe namespaces
         const isCamGroupPath = pathname.startsWith('/cam') || pathname.startsWith('/om') || pathname.startsWith('/oe');
-        const isCamGroupRole = ['CEM', 'OM', 'OE'].includes(role);
+        const isCamGroupRole = ['CEM', 'OM', 'OE', 'CRM'].includes(role);
         if (isCamGroupPath && isCamGroupRole) {
           continue;
         }

@@ -55,6 +55,7 @@ export function Topbar() {
   lastKnownRef.current.role = displayRole;
   if (displayRole === 'OM') displayRole = 'Operations Manager';
   else if (displayRole === 'OE') displayRole = 'Operations Executive';
+  else if (displayRole === 'CRM') displayRole = 'CRM Executive';
   
   const displayPhotoUrl = profile?.profilePicture || photoUrl || lastKnownRef.current.photoUrl;
   lastKnownRef.current.photoUrl = displayPhotoUrl;

@@ -41,6 +41,7 @@ export function CamSidebar() {
   let displayRole = storeRole.replace('_', ' ');
   if (storeRole === 'OM') displayRole = 'Operations Manager';
   else if (storeRole === 'OE') displayRole = 'Operations Executive';
+  else if (storeRole === 'CRM') displayRole = 'CRM Executive';
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed]   = useState(false);

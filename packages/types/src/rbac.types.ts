@@ -15,6 +15,7 @@ export enum UserRole {
   CEM = "CEM",
   OM = "OM",
   OE = "OE",
+  CRM = "CRM",
 }
 
 export enum SidebarType {
@@ -41,6 +42,7 @@ export const ROLE_SIDEBAR_TYPE: Record<UserRole, SidebarType> = {
   [UserRole.CEM]: SidebarType.CEM,
   [UserRole.OM]: SidebarType.CEM,
   [UserRole.OE]: SidebarType.CEM,
+  [UserRole.CRM]: SidebarType.CEM,
 };
 
 export function getSidebarTypeForRole(role: string): SidebarType {
@@ -64,6 +66,7 @@ export const ROLE_DASHBOARD_PATH: Record<UserRole, string> = {
   [UserRole.CEM]: "/cam/dashboard",
   [UserRole.OE]: "/oe/dashboard",
   [UserRole.OM]: "/om/dashboard",
+  [UserRole.CRM]: "/om/dashboard",
 };
 
 export function getDashboardPathForRole(role: string): string {
@@ -150,6 +153,10 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
   [UserRole.OE]: [
     Permission.READ_EMPLOYEES,
+  ],
+  [UserRole.CRM]: [
+    Permission.READ_EMPLOYEES,
+    Permission.APPROVE_FIELD_REQUESTS,
   ],
 };
 
