@@ -3,13 +3,13 @@ import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
-async function seedUser(email: string, employeeId: string, firstName: string) {
+async function seedUser(email: string, employeeId: string, firstName: string, role: UserRole = 'CEM' as UserRole) {
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) {
-    console.log(`User ${email} already exists. Updating role to CEM.`);
+    console.log(`User ${email} already exists. Updating role to ${role}.`);
     await prisma.user.update({
       where: { email },
-      data: { role: 'CEM' as UserRole }
+      data: { role }
     });
     return;
   }
@@ -30,17 +30,17 @@ async function seedUser(email: string, employeeId: string, firstName: string) {
     data: {
       email,
       passwordHash: hashedPassword,
-      role: 'CEM' as UserRole,
+      role,
       employeeId: employee.id,
     }
   });
 
-  console.log(`Successfully seeded CEM user: ${email}`);
+  console.log(`Successfully seeded user: ${email} with role ${role}`);
 }
 
 async function main() {
-  await seedUser('swetha@naprocs.in', 'EMP-CEM-001', 'Swetha');
-  await seedUser('divya@naprocs.in', 'EMP-CEM-002', 'Divya');
+  await seedUser('swetha@naprocs.in', 'EMP-CEM-001', 'Swetha', 'CEM' as UserRole);
+  await seedUser('divya@naprocs.in', 'EMP-CEM-002', 'Divya', 'CRM' as UserRole);
 }
 
 main()

@@ -357,9 +357,8 @@ export function Topbar() {
             className="flex items-center gap-2 sm:gap-3 cursor-pointer group"
           >
             {/* Hide text name on mobile, show only avatar */}
-            <div className="hidden sm:flex text-right flex-col">
+            <div className="hidden sm:flex text-right flex-col justify-center">
               <span className="text-sm font-bold text-slate-900 dark:text-white leading-tight">{isMounted ? userName : "User"}</span>
-              <span className="text-[11px] font-semibold tracking-wide text-slate-500 dark:text-slate-400">{isMounted ? displayRole : "Employee"}</span>
             </div>
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-700 dark:text-slate-300 font-bold text-sm uppercase transition-colors">
               {displayPhotoUrl && isMounted ? (
