@@ -112,7 +112,7 @@ export default function CamDashboardPanel() {
       {/* Main Grid Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Left Columns (Action Required & Meetings) */}
+        {/* Left Column (Action Required & Full-width Meetings) */}
         <div className="lg:col-span-2 space-y-6">
           
           {/* Action Required Card */}
@@ -268,7 +268,7 @@ export default function CamDashboardPanel() {
             </div>
           </div>
 
-          {/* Today's Meetings Card */}
+          {/* Today's Meetings Card (Full Width Section Below Action Required) */}
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
             <div className="px-6 py-5 flex items-center justify-between border-b border-slate-100 bg-white">
               <h2 className="text-base font-black text-slate-900">Today's Meetings</h2>
@@ -335,9 +335,89 @@ export default function CamDashboardPanel() {
           </div>
         </div>
 
-        {/* Right Column Cards */}
+        {/* Right Sidebar Widgets */}
         <div className="space-y-6">
           
+          {/* Requirement Status Card (New Widget) */}
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
+            <h2 className="text-base font-black text-slate-950 pb-2 border-b border-slate-100 flex items-center justify-between">
+              <span>Requirement Status</span>
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Active Specs</span>
+            </h2>
+            
+            <div className="grid grid-cols-1 gap-3">
+              <div className="flex items-center justify-between p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors bg-white shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-2.5 h-2.5 rounded-full bg-slate-400"></div>
+                  <span className="text-xs font-bold text-slate-700">Requirements In Progress</span>
+                </div>
+                <span className="text-xs font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">14</span>
+              </div>
+
+              <div className="flex items-center justify-between p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors bg-white shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-2.5 h-2.5 rounded-full bg-slate-600 animate-pulse"></div>
+                  <span className="text-xs font-bold text-slate-700">Awaiting Approval</span>
+                </div>
+                <span className="text-xs font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">05</span>
+              </div>
+
+              <div className="flex items-center justify-between p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors bg-white shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-2.5 h-2.5 rounded-full bg-slate-950"></div>
+                  <span className="text-xs font-bold text-slate-700">Requirements Approved</span>
+                </div>
+                <span className="text-xs font-black text-white bg-slate-950 px-2.5 py-0.5 rounded">28</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Client Waiting Too Long Card (New Widget) */}
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
+            <h2 className="text-base font-black text-slate-955 pb-2 border-b border-slate-100 flex items-center justify-between">
+              <span>Client Waiting Too Long</span>
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Follow Up Alert</span>
+            </h2>
+            
+            <div className="space-y-3">
+              <div className="border border-slate-200 rounded-xl p-4 flex flex-col gap-2.5 hover:border-slate-350 transition-all bg-white shadow-sm">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="text-xs font-extrabold text-slate-950">Lumina Dynamics</h4>
+                    <p className="text-[10px] font-medium text-slate-500 mt-0.5">Contact: Alex Rivera</p>
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-wider text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                    Waiting 9 Days
+                  </span>
+                </div>
+                <div className="flex items-center justify-between mt-1 pt-2 border-t border-slate-100">
+                  <span className="text-[10px] font-semibold text-slate-400">Last touch: Oct 08</span>
+                  <button className="px-3 py-1 text-[9px] font-black tracking-wider uppercase text-white bg-slate-950 rounded hover:bg-slate-800 transition-colors">
+                    Send Follow Up
+                  </button>
+                </div>
+              </div>
+
+              <div className="border border-slate-200 rounded-xl p-4 flex flex-col gap-2.5 hover:border-slate-350 transition-all bg-white shadow-sm">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="text-xs font-extrabold text-slate-955">Mainframe Solutions Ltd</h4>
+                    <p className="text-[10px] font-medium text-slate-500 mt-0.5">Contact: David Jenkins</p>
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-wider text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                    Waiting 7 Days
+                  </span>
+                </div>
+                <div className="flex items-center justify-between mt-1 pt-2 border-t border-slate-100">
+                  <span className="text-[10px] font-semibold text-slate-400">Last touch: Oct 10</span>
+                  <button className="px-3 py-1 text-[9px] font-black tracking-wider uppercase text-slate-700 bg-white border border-slate-200 rounded hover:bg-slate-50 transition-colors">
+                    Schedule Sync
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Ready For CRM Assignment */}
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
             <h2 className="text-base font-black text-slate-900 pb-2 border-b border-slate-100">
