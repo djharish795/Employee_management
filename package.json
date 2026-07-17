@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@naprocs/database": "workspace:^",
-    "jsonwebtoken": "^9.0.3"
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.22.0"
   }
 }

@@ -29,6 +29,7 @@ import { SuccessionModule } from "./modules/succession/succession.module";
 import { ComplianceModule } from "./modules/compliance/compliance.module";
 import { ReportsModule } from "./modules/reports/reports.module";
 import { DepartmentsModule } from './modules/departments/departments.module';
+import { FieldWorkRequestsModule } from "./modules/field-work-requests/field-work-requests.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { SearchModule } from './modules/search/search.module';
 import { LifecycleModule } from "./modules/lifecycle/lifecycle.module";
@@ -97,6 +98,7 @@ import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
     SuccessionModule,
     ComplianceModule,
     ReportsModule,
+    FieldWorkRequestsModule,
     DepartmentsModule,
     NotificationsModule,
     SearchModule,

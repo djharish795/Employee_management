@@ -60,8 +60,8 @@ export class ProjectsController {
 
   @Get(':id')
   @Permissions(Permission.READ_OWN_PROFILE)
-  getProjectDetails(@Param('id') id: string) {
-    return this.projectsService.getProjectDetails(id);
+  getProjectDetails(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.projectsService.getProjectDetails(id, user);
   }
 
   @Patch(':id/complete')

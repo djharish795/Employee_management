@@ -1,18 +1,25 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   User, MapPin, ShieldAlert, FileText, UploadCloud, X, ArrowLeft, Play, Save, CheckCircle2 
 } from 'lucide-react';
 import { fetchMyProfile } from '@/lib/api/profile';
+import { createFieldWork, updateFieldWork, getS3UploadUrl, uploadFileToS3, fetchFieldWorkDetails } from '@/lib/api/field-work';
 
 export default function FieldWorkRequestPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const draftId = searchParams.get('id');
+
   const [profile, setProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [dragActive, setDragActive] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [existingObjectKey, setExistingObjectKey] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -47,13 +54,51 @@ export default function FieldWorkRequestPage() {
           ? `${data.reportingManager.firstName || ''} ${data.reportingManager.lastName || ''}`.replace(/\s+/g, ' ').trim()
           : 'Not Assigned';
 
-        setFormData(prev => ({
-          ...prev,
+        let initialForm = {
           employeeName: fName || 'Junaid',
           employeeId: data.employeeId || 'NAP/OH/001',
           department: data.department?.name || 'Operations',
-          reportingManager: mName || 'Sarah Jenkins'
-        }));
+          reportingManager: mName || 'Sarah Jenkins',
+          date: '',
+          startTime: '',
+          endTime: '',
+          destination: '',
+          client: '',
+          purpose: '',
+          description: '',
+          transportation: '',
+          returnTime: '',
+          contact: '',
+          remarks: ''
+        };
+
+        if (draftId) {
+          try {
+            const draft = await fetchFieldWorkDetails(draftId);
+            if (draft) {
+              initialForm = {
+                ...initialForm,
+                date: draft.date ? draft.date.split('T')[0] : '',
+                startTime: draft.startTime || '',
+                endTime: draft.endTime || '',
+                destination: draft.destination || '',
+                client: draft.client || '',
+                purpose: draft.purpose || '',
+                description: draft.description || '',
+                transportation: draft.transportation || '',
+                returnTime: draft.returnTime || '',
+                contact: draft.contact || '',
+                remarks: draft.remarks || '',
+              };
+              setFileName(draft.fileName || null);
+              setExistingObjectKey(draft.objectKey || null);
+            }
+          } catch (draftErr) {
+            console.error("Failed to load draft details", draftErr);
+          }
+        }
+
+        setFormData(initialForm);
       } catch (err) {
         console.error("Failed to load user profile", err);
       } finally {
@@ -61,7 +106,7 @@ export default function FieldWorkRequestPage() {
       }
     }
     loadData();
-  }, []);
+  }, [draftId]);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -84,6 +129,7 @@ export default function FieldWorkRequestPage() {
         return;
       }
       setFileName(file.name);
+      setSelectedFile(file);
     }
   };
 
@@ -95,6 +141,7 @@ export default function FieldWorkRequestPage() {
         return;
       }
       setFileName(file.name);
+      setSelectedFile(file);
     }
   };
 
@@ -102,7 +149,7 @@ export default function FieldWorkRequestPage() {
     fileInputRef.current?.click();
   };
 
-  const saveRequest = (status: 'Submitted' | 'Draft') => {
+  const saveRequest = async (status: 'Submitted' | 'Draft') => {
     if (status === 'Submitted') {
       if (!formData.date || !formData.startTime || !formData.endTime || !formData.destination || !formData.purpose || !formData.description || !formData.transportation || !formData.returnTime || !formData.contact) {
         alert("Please fill in all required fields marked with *");
@@ -110,34 +157,63 @@ export default function FieldWorkRequestPage() {
       }
     }
 
-    const id = `REQ-2023-${Math.floor(1000 + Math.random() * 9000)}`;
+    setIsSubmitting(true);
+    try {
+      let uploadedObjectKey = null;
+      if (selectedFile) {
+        const uploadInfo = await getS3UploadUrl(selectedFile.name, selectedFile.type);
+        await uploadFileToS3(uploadInfo.uploadUrl, selectedFile);
+        uploadedObjectKey = uploadInfo.objectKey;
+      }
 
-    const newRequest = {
-      ...formData,
-      id,
-      status,
-      fileName,
-      createdAt: new Date().toISOString()
-    };
+      const payload = {
+        date: formData.date,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        destination: formData.destination,
+        client: formData.client || undefined,
+        purpose: formData.purpose,
+        description: formData.description,
+        transportation: formData.transportation,
+        returnTime: formData.returnTime,
+        contact: formData.contact,
+        remarks: formData.remarks || undefined,
+        fileName: selectedFile ? selectedFile.name : (fileName || undefined),
+        objectKey: uploadedObjectKey || (existingObjectKey || undefined),
+        status: status === 'Submitted' ? 'PENDING' : 'DRAFT'
+      };
 
-    const existing = localStorage.getItem('field_work_requests');
-    const list = existing ? JSON.parse(existing) : [];
-    list.unshift(newRequest);
-    localStorage.setItem('field_work_requests', JSON.stringify(list));
-    return id;
+      let responseId;
+      if (draftId) {
+        const response = await updateFieldWork(draftId, payload);
+        responseId = response.id;
+      } else {
+        const response = await createFieldWork(payload);
+        responseId = response.id;
+      }
+      return responseId;
+    } catch (error: any) {
+      console.error("Failed to save field work request:", error);
+      alert(error?.response?.data?.message || "An error occurred while saving the request.");
+      return null;
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const id = saveRequest('Submitted');
+    if (isSubmitting) return;
+    const id = await saveRequest('Submitted');
     if (id) {
       setSubmittedId(id);
     }
   };
 
-  const handleSaveDraft = (e: React.MouseEvent) => {
+  const handleSaveDraft = async (e: React.MouseEvent) => {
     e.preventDefault();
-    const id = saveRequest('Draft');
+    if (isSubmitting) return;
+    const id = await saveRequest('Draft');
     if (id) {
       router.push('/cam/reports');
     }
@@ -166,7 +242,7 @@ export default function FieldWorkRequestPage() {
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">New Field Work Request</h1>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{draftId ? "Edit Draft Request" : "New Field Work Request"}</h1>
               <span className="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold rounded">Version 2.0</span>
             </div>
             <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Fill in the details below to initiate a field request for approval.</p>
@@ -441,17 +517,19 @@ export default function FieldWorkRequestPage() {
               <button 
                 type="button"
                 onClick={handleSaveDraft}
-                className="flex items-center gap-1.5 px-5 py-2.5 bg-white dark:bg-slate-900 border border-slate-350 dark:border-slate-750 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-sm font-bold shadow-sm transition-colors"
+                disabled={isSubmitting}
+                className="flex items-center gap-1.5 px-5 py-2.5 bg-white dark:bg-slate-900 border border-slate-350 dark:border-slate-750 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-sm font-bold shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="w-4 h-4" />
-                Save as Draft
+                {isSubmitting ? 'Saving...' : 'Save as Draft'}
               </button>
               <button 
                 type="submit"
-                className="flex items-center gap-1.5 px-6 py-2.5 bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:bg-slate-800 dark:hover:bg-slate-100 rounded-lg text-sm font-bold shadow-sm transition-colors"
+                disabled={isSubmitting}
+                className="flex items-center gap-1.5 px-6 py-2.5 bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:bg-slate-800 dark:hover:bg-slate-100 rounded-lg text-sm font-bold shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Play className="w-4 h-4 fill-current" />
-                Submit Request
+                {isSubmitting ? 'Submitting...' : 'Submit Request'}
               </button>
             </div>
           </div>

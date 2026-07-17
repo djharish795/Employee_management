@@ -102,11 +102,11 @@ export class WfhService {
       });
     });
 
-    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
+    // TODO: Replace 'SYSTEM' with authenticated userId once JWT is implemented
     this.auditService.logCreate({
       moduleName: 'WFH',
       entityId: wfhRequest.id,
-      actorId: 'unknown',
+      actorId: 'SYSTEM',
       metadata: { date, reason }
     });
 
@@ -194,11 +194,11 @@ export class WfhService {
             }
         });
       });
-      // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
+      // TODO: Replace 'SYSTEM' with authenticated userId once JWT is implemented
       this.auditService.logApprove({
         moduleName: 'WFH',
         entityId: wfhId,
-        actorId: 'unknown',
+        actorId: 'SYSTEM',
         metadata: { approverId, override: true }
       });
 

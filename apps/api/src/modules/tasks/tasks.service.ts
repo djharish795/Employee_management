@@ -22,7 +22,18 @@ export class TasksService {
     return this.tasksRepo.findTasksByEmployee(user.employeeId, isTrTs);
   }
 
-  async getProjectTasks(projectId: string): Promise<any> {
+  async getProjectTasks(projectId: string, user?: any): Promise<any> {
+    if (user) {
+      const isManagerOrHigher = RbacGroups.MANAGER_OR_HIGHER.includes(user.role as any);
+      if (!isManagerOrHigher) {
+        const assignment = await this.prisma.projectAssignment.findFirst({
+          where: { projectId, employeeId: user.employeeId, releasedAt: null }
+        });
+        if (!assignment) {
+          throw new ForbiddenException("You do not have permission to view tasks for this project.");
+        }
+      }
+    }
     return this.tasksRepo.findTasksByProject(projectId);
   }
 
@@ -46,10 +57,7 @@ export class TasksService {
 
     const isManagerOrHigher = RbacGroups.MANAGER_OR_HIGHER.includes(user.role as any);
 
-    if (user.role === RbacRoles.TEAM_LEAD && !isManagerOrHigher && !['DAILY_TASK', 'WEEKLY_TASK_SHEET'].includes(dto.type)) {
-      throw new ForbiddenException("Team Leads can only create Daily Tasks and Weekly Task Sheets.");
-    }
-
+    // Team Leads can create any task type, so the previous restriction is removed.
     if (isQa && !isManagerOrHigher && user.role !== RbacRoles.TEAM_LEAD && dto.type !== 'BUG') {
       throw new ForbiddenException("QA Engineers can only create Bug tasks.");
     }
@@ -78,6 +86,17 @@ export class TasksService {
         data: { issueCounter: { increment: 1 } }
       });
       issueKey = `${project.key || 'TASK'}-${project.issueCounter}`;
+    } else if (dto.assigneeId && dto.assigneeId !== creatorId) {
+      if (!isManagerOrHigher) {
+        if (user.role === RbacRoles.TEAM_LEAD) {
+          const assigneeRecord = await this.prisma.employee.findUnique({ where: { id: dto.assigneeId } });
+          if (assigneeRecord?.reportingManagerId !== creatorId) {
+            throw new ForbiddenException("You can only assign generic tasks to yourself or your direct reports.");
+          }
+        } else {
+          throw new ForbiddenException("You can only assign generic tasks to yourself.");
+        }
+      }
     }
 
     const task = await this.tasksRepo.createTask(creatorId, {
@@ -118,10 +137,22 @@ export class TasksService {
   async updateTask(taskId: string, user: any, dto: any): Promise<any> {
     const task = await this.getTask(taskId);
 
-    // If changing status, only allow Assignee
+    const isManagerOrHigher = RbacGroups.MANAGER_OR_HIGHER.includes(user.role as any);
+
+    // General update check
+    const isCreator = user.employeeId === task.creatorId;
+    const isAssignee = user.employeeId === task.assigneeId;
+
+    if (!isManagerOrHigher && !isCreator && !isAssignee) {
+      throw new ForbiddenException("You do not have permission to edit this task.");
+    }
+
+    // If changing status, we might want to restrict it further, but assignee/manager is already covered by the general check.
+    // We just keep the existing explicit check for status if needed, but since we already block non-assignee/creator, 
+    // let's ensure creators can't change status if they aren't the assignee (unless manager).
     if (dto.status && dto.status !== task.status) {
-      if (user.employeeId !== task.assigneeId) {
-        throw new ForbiddenException("Only the assigned employee can change the status of this task.");
+      if (!isAssignee && !isManagerOrHigher) {
+        throw new ForbiddenException("Only the assigned employee or a Manager can change the status of this task.");
       }
     }
 
@@ -144,7 +175,7 @@ export class TasksService {
     this.auditService.logUpdate({
       moduleName: 'Tasks',
       entityId: taskId,
-      actorId: 'unknown',
+      actorId: 'SYSTEM',
       oldValue: { status: task.status },
       newValue: { status }
     });
@@ -157,8 +188,25 @@ export class TasksService {
     return task;
   }
 
-  async addComment(taskId: string, authorId: string, content: string, category: string = "COMMENT"): Promise<any> {
+  async addComment(taskId: string, user: any, content: string, category: string = "COMMENT"): Promise<any> {
     const task = await this.getTask(taskId);
+    
+    // RBAC check for comments IDOR
+    const isManagerOrHigher = RbacGroups.MANAGER_OR_HIGHER.includes(user.role as any);
+    const authorId = user.employeeId;
+    if (!isManagerOrHigher && task.creatorId !== authorId && task.assigneeId !== authorId) {
+      if (task.projectId) {
+        const assignment = await this.prisma.projectAssignment.findFirst({
+          where: { projectId: task.projectId, employeeId: authorId, releasedAt: null }
+        });
+        if (!assignment) {
+          throw new ForbiddenException("You do not have permission to comment on this task.");
+        }
+      } else {
+        throw new ForbiddenException("You do not have permission to comment on this task.");
+      }
+    }
+
     // Use proper typing but default to COMMENT
     const validCategory = ["QUESTION", "COMMENT", "BUG", "IMPROVEMENT"].includes(category) ? category as any : "COMMENT";
     
@@ -201,10 +249,6 @@ export class TasksService {
   }
 
   async markMentionsAsRead(taskId: string, employeeId: string, email: string): Promise<void> {
-    // Only update comments that mention this user and haven't been viewed by them yet
-    // Since updateMany doesn't easily filter by "not in array", we fetch then update, or just push.
-    // Pushing an existing value might duplicate it, but it's fine for a simple viewedBy array,
-    // or we can just fetch and update.
     const comments = await (this.prisma as any).taskComment.findMany({
       where: {
         taskId,
@@ -212,13 +256,17 @@ export class TasksService {
       }
     });
 
-    for (const comment of comments) {
-      if (!comment.viewedBy.includes(employeeId)) {
-        await (this.prisma as any).taskComment.update({
-          where: { id: comment.id },
-          data: { viewedBy: { push: employeeId } }
-        });
-      }
+    const commentsToUpdate = comments.filter((c: any) => !c.viewedBy.includes(employeeId));
+    
+    if (commentsToUpdate.length > 0) {
+      await this.prisma.$transaction(
+        commentsToUpdate.map((comment: any) => 
+          (this.prisma as any).taskComment.update({
+            where: { id: comment.id },
+            data: { viewedBy: { push: employeeId } }
+          })
+        )
+      );
     }
   }
 
@@ -238,10 +286,14 @@ export class TasksService {
     return action;
   }
 
-  async deleteTask(taskId: string, employeeId: string): Promise<any> {
+  async deleteTask(taskId: string, user: any): Promise<any> {
     const task = await this.tasksRepo.findById(taskId);
     if (!task) throw new NotFoundException("Task not found");
-    if (task.creatorId !== employeeId && task.assigneeId !== employeeId) {
+    
+    const isManagerOrHigher = RbacGroups.MANAGER_OR_HIGHER.includes(user.role as any);
+    const hasOverride = user.role === 'SUPER_ADMIN' || user.role === 'IT' || isManagerOrHigher;
+    
+    if (task.creatorId !== user.employeeId && task.assigneeId !== user.employeeId && !hasOverride) {
       throw new NotFoundException("Task not found"); // Masking forbidden as not found
     }
     const result = await this.tasksRepo.deleteTask(taskId);
@@ -249,7 +301,7 @@ export class TasksService {
     this.auditService.logDelete({
       moduleName: 'Tasks',
       entityId: taskId,
-      actorId: employeeId,
+      actorId: user.employeeId,
       metadata: { title: task.title }
     });
 

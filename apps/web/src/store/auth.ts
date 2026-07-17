@@ -47,6 +47,8 @@ export const useAuthStore = create<AuthState>()(
       setPhotoUrl: (url) => set({ photoUrl: url }),
       clearSession: () => {
         if (typeof document !== "undefined") {
+          document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+          document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
           const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
           fetch(`${apiUrl.split('#')[0].trim()}/auth/logout`, { method: "POST", credentials: "include" }).catch(() => {});
         }

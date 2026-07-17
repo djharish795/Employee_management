@@ -9,10 +9,9 @@ import { FullEmployeeProfile, DirectoryRole, Employee } from "@/types/employees"
 import ProfileHeader from "@/components/modules/employees/profile/profile-header";
 import ProfileTabs from "@/components/modules/employees/profile/profile-tabs";
 
+import { apiClient } from "@/lib/api/client";
+
 const CACHE_KEY = "naprocs_directory_employees";
-
-
-
 export default function EmployeeProfilePage() {
   const params = useParams();
   const router = useRouter();
@@ -22,19 +21,7 @@ export default function EmployeeProfilePage() {
   const { data: profile, isLoading, error } = useQuery<FullEmployeeProfile>({
     queryKey: ["employeeProfile", id],
     queryFn: async () => {
-      // Fetch directly from API
-      const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
-      const token = localStorage.getItem("auth-storage") ? JSON.parse(localStorage.getItem("auth-storage") as string).state?.accessToken : "";
-      
-      const res = await fetch(`${url}/employees/${id}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-
-      if (!res.ok) {
-        throw new Error("Employee Profile not found in directory.");
-      }
-
-      const empData = await res.json();
+      const { data: empData } = await apiClient.get(`/employees/${id}`);
       
       const emp: Employee = {
         id: empData.id,

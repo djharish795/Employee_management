@@ -149,26 +149,35 @@ export class DashboardService {
     const todayRecords = await this.prisma.attendanceRecord.findMany({
       where: { date: today },
     });
+    
+    // Find all employees on an approved leave today
+    const todayLeaves = await this.prisma.leaveRequest.findMany({
+      where: {
+        status: 'APPROVED',
+        startDate: { lte: today },
+        endDate: { gte: today }
+      }
+    });
+
     let presentCount = 0;
     let wfhCount = 0;
     let absentCount = 0;
-    let onLeaveCount = 0;
+    
+    const onLeaveCount = todayLeaves.length;
 
     for (const record of todayRecords) {
-      if (['PRESENT', 'EARLY_CHECKOUT', 'HALF_DAY'].includes(record.status)) {
+      if (['PRESENT', 'EARLY_CHECKOUT', 'HALF_DAY', 'LATE'].includes(record.status)) {
         presentCount++;
       } else if (record.status === 'WFH') {
         wfhCount++;
       } else if (record.status === 'ABSENT') {
         absentCount++;
-      } else if (record.status === 'ON_LEAVE') {
-        onLeaveCount++;
       }
     }
 
-    // Include employees with no record as absent
+    // Include employees with no record and no leave as "Not Punched In"
     const totalAccounted = presentCount + wfhCount + onLeaveCount + absentCount;
-    absentCount += Math.max(0, activeEmployees - totalAccounted);
+    const notPunchedIn = Math.max(0, activeEmployees - totalAccounted) + absentCount;
 
     const pendingRequests = await this.prisma.leaveRequest.findMany({
       where: { status: 'PENDING' },
@@ -196,15 +205,26 @@ export class DashboardService {
     });
 
     const newJoiners = await this.prisma.employee.findMany({
-      where: { status: 'ACTIVE' },
+      where: { status: { in: ['ACTIVE', 'ONBOARDING'] } },
       orderBy: { joiningDate: 'desc' },
       take: 3,
-      select: { id: true, firstName: true, lastName: true },
+      select: { 
+        id: true, 
+        firstName: true, 
+        lastName: true,
+        onboardingSession: {
+          include: {
+            tasks: {
+              orderBy: { createdAt: 'asc' }
+            }
+          }
+        }
+      },
     });
 
     return {
       headcount: { total: totalCapacity, active: activeEmployees, newJoins: newJoins },
-      attendance: { present: presentCount, wfh: wfhCount, absent: absentCount, onLeave: onLeaveCount, total: activeEmployees },
+      attendance: { present: presentCount, wfh: wfhCount, notPunchedIn: notPunchedIn, onLeave: onLeaveCount, total: activeEmployees },
       leaves: {
         pendingCount: pendingLeaveCount,
         requests: pendingRequests.map(r => ({
@@ -232,12 +252,34 @@ export class DashboardService {
         date: e.dateOfBirth || new Date(),
         type: 'birthday',
       })),
-      newJoiners: newJoiners.map((nj, i) => ({
-        id: nj.id,
-        name: `${nj.firstName} ${nj.lastName}`,
-        progress: [60, 40, 20][i % 3],
-        pendingTask: ['IT Asset Allocation', 'Bank Account Verification', 'ID Card Printing'][i % 3],
-      }))
+      newJoiners: newJoiners.map((nj) => {
+        let progress = 0;
+        let pendingTask = 'All tasks completed';
+        
+        if (nj.onboardingSession) {
+          const tasks = nj.onboardingSession.tasks || [];
+          const totalTasks = tasks.length;
+          if (totalTasks > 0) {
+            const completedTasks = tasks.filter(t => t.isCompleted).length;
+            progress = Math.round((completedTasks / totalTasks) * 100);
+            const nextPending = tasks.find(t => !t.isCompleted);
+            if (nextPending) {
+              pendingTask = nextPending.title;
+            }
+          } else {
+             pendingTask = 'Pending task setup';
+          }
+        } else {
+          pendingTask = 'No onboarding session';
+        }
+
+        return {
+          id: nj.id,
+          name: `${nj.firstName} ${nj.lastName}`,
+          progress,
+          pendingTask,
+        };
+      })
     };
   }
 

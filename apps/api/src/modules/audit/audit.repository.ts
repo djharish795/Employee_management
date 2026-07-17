@@ -16,13 +16,14 @@ export interface CreateAuditLogData {
 
 @Injectable()
 export class AuditRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async create(data: CreateAuditLogData) {
+    const actorId = data.actorId === "SYSTEM" || data.actorId === "unknown" ? undefined : data.actorId;
     return this.prisma.auditLog.create({
       data: {
         action: data.action,
-        actorId: data.actorId,
+        actorId,
         deviceId: data.deviceId,
         ipAddress: data.ipAddress,
         newValue: data.newValue ? data.newValue : undefined,

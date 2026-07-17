@@ -200,7 +200,8 @@ export class ConnectService {
     return { busySlots, settings };
   }
 
-  async updateWorkspace(id: string, employeeId: string, agenda: any, actionItems: any): Promise<any> {
+  async updateWorkspace(id: string, user: any, agenda: any, actionItems: any): Promise<any> {
+    const employeeId = user.employeeId;
     const meet = await this.repository.getMeetRequestById(id);
     if (!meet) throw new NotFoundException("Meet not found");
 
@@ -215,7 +216,7 @@ export class ConnectService {
       for (const item of actionItems) {
         if (!item.taskId) {
           // It's a new action item, create it in Tasks table
-          const task = await this.tasksService.createTask({ employeeId, role: 'TEAM_LEAD' }, {
+          const task = await this.tasksService.createTask({ employeeId, role: user.role }, {
             title: item.text,
             description: `From meeting: ${meet.title}`,
             status: item.completed ? TaskStatus.DONE : TaskStatus.TODO,

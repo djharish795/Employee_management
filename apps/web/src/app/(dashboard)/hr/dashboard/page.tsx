@@ -111,12 +111,14 @@ export default function HrDashboardPage() {
   const vacantCount = (data?.headcount?.total || 0) - (data?.headcount?.active || 0);
   const presentPct = data ? Math.round((data.attendance.present / attendanceTotal) * 100) || 0 : 0;
   const wfhPct = data ? Math.round((data.attendance.wfh / attendanceTotal) * 100) || 0 : 0;
-  const absentPct = data ? Math.round((data.attendance.absent / attendanceTotal) * 100) || 0 : 0;
+  const onLeavePct = data ? Math.round((data.attendance.onLeave / attendanceTotal) * 100) || 0 : 0;
+  const notPunchedInPct = data ? Math.round((data.attendance.notPunchedIn / attendanceTotal) * 100) || 0 : 0;
   const vacantPct = data ? Math.round((vacantCount / attendanceTotal) * 100) || 0 : 0;
 
   const [animPresent, setAnimPresent] = useState(0);
   const [animWfh, setAnimWfh] = useState(0);
-  const [animAbsent, setAnimAbsent] = useState(0);
+  const [animOnLeave, setAnimOnLeave] = useState(0);
+  const [animNotPunchedIn, setAnimNotPunchedIn] = useState(0);
   const [animVacant, setAnimVacant] = useState(0);
   const [isResetting, setIsResetting] = useState(false);
 
@@ -125,18 +127,20 @@ export default function HrDashboardPage() {
     setIsResetting(true);
     setAnimPresent(0);
     setAnimWfh(0);
-    setAnimAbsent(0);
+    setAnimOnLeave(0);
+    setAnimNotPunchedIn(0);
     setAnimVacant(0);
 
     const timer = setTimeout(() => {
       setIsResetting(false);
       setAnimPresent(presentPct);
       setAnimWfh(wfhPct);
-      setAnimAbsent(absentPct);
+      setAnimOnLeave(onLeavePct);
+      setAnimNotPunchedIn(notPunchedInPct);
       setAnimVacant(vacantPct);
     }, 50);
     return () => clearTimeout(timer);
-  }, [refreshKey, data, presentPct, wfhPct, absentPct, vacantPct]);
+  }, [refreshKey, data, presentPct, wfhPct, onLeavePct, notPunchedInPct, vacantPct]);
 
   if (isLoading || !data) {
     return (
@@ -271,7 +275,7 @@ export default function HrDashboardPage() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => {
-                  const csvData = "Metric,Value\\nHeadcount," + data.headcount.total + "\\nPresent," + data.attendance.present + "\\nAbsent," + data.attendance.absent;
+                  const csvData = "Metric,Value\\nHeadcount," + data.headcount.total + "\\nPresent," + data.attendance.present + "\\nOn Leave," + data.attendance.onLeave + "\\nNot Punched In," + data.attendance.notPunchedIn;
                   const blob = new Blob([csvData], { type: 'text/csv' });
                   const url = window.URL.createObjectURL(blob);
                   const a = document.createElement('a');
@@ -292,14 +296,16 @@ export default function HrDashboardPage() {
             <div className="relative w-40 h-40 flex items-center justify-center mb-6">
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                 <circle cx="50" cy="50" r="40" fill="transparent" stroke="var(--donut-bg, #f1f5f9)" strokeWidth="12" className="dark:stroke-slate-800" />
-                {/* Absent */}
-                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#ef4444" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset={251.2 - (251.2 * animAbsent) / 100} className={`dark:stroke-red-500 ${isResetting ? 'transition-none' : 'transition-all duration-[2500ms] ease-out'}`} />
-                {/* WFH */}
-                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#2563eb" strokeWidth="12" strokeDashoffset={251.2 - (251.2 * animWfh) / 100} strokeDasharray="251.2" style={{ strokeDashoffset: 251.2 - (251.2 * animWfh) / 100, strokeDasharray: "251.2 251.2", transformOrigin: "center", transform: `rotate(${(absentPct / 100) * 360}deg)` }} className={`${isResetting ? 'transition-none' : 'transition-all duration-[2500ms] ease-out'}`} />
-                {/* Present */}
-                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#16a34a" strokeWidth="12" strokeDasharray="251.2" style={{ strokeDashoffset: 251.2 - (251.2 * animPresent) / 100, strokeDasharray: "251.2 251.2", transformOrigin: "center", transform: `rotate(${((absentPct + wfhPct) / 100) * 360}deg)` }} className={`${isResetting ? 'transition-none' : 'transition-all duration-[2500ms] ease-out'}`} />
-                {/* Vacant */}
-                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#8B4513" strokeWidth="12" strokeDasharray="251.2" style={{ strokeDashoffset: 251.2 - (251.2 * animVacant) / 100, strokeDasharray: "251.2 251.2", transformOrigin: "center", transform: `rotate(${((absentPct + wfhPct + presentPct) / 100) * 360}deg)` }} className={`${isResetting ? 'transition-none' : 'transition-all duration-[2500ms] ease-out'}`} />
+                {/* On Leave - Blue */}
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#3b82f6" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset={251.2 - (251.2 * animOnLeave) / 100} className={`dark:stroke-blue-500 ${isResetting ? 'transition-none' : 'transition-all duration-[2500ms] ease-out'}`} />
+                {/* Not Punched In - Red */}
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#ef4444" strokeWidth="12" strokeDasharray="251.2" style={{ strokeDashoffset: 251.2 - (251.2 * animNotPunchedIn) / 100, strokeDasharray: "251.2 251.2", transformOrigin: "center", transform: `rotate(${(animOnLeave / 100) * 360}deg)` }} className={`dark:stroke-red-500 ${isResetting ? 'transition-none' : 'transition-all duration-[2500ms] ease-out'}`} />
+                {/* WFH - Yellow */}
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#eab308" strokeWidth="12" strokeDashoffset={251.2 - (251.2 * animWfh) / 100} strokeDasharray="251.2" style={{ strokeDashoffset: 251.2 - (251.2 * animWfh) / 100, strokeDasharray: "251.2 251.2", transformOrigin: "center", transform: `rotate(${((animOnLeave + animNotPunchedIn) / 100) * 360}deg)` }} className={`dark:stroke-yellow-500 ${isResetting ? 'transition-none' : 'transition-all duration-[2500ms] ease-out'}`} />
+                {/* Present - Green */}
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#16a34a" strokeWidth="12" strokeDasharray="251.2" style={{ strokeDashoffset: 251.2 - (251.2 * animPresent) / 100, strokeDasharray: "251.2 251.2", transformOrigin: "center", transform: `rotate(${((animOnLeave + animNotPunchedIn + animWfh) / 100) * 360}deg)` }} className={`${isResetting ? 'transition-none' : 'transition-all duration-[2500ms] ease-out'}`} />
+                {/* Vacant - Black */}
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#000000" strokeWidth="12" strokeDasharray="251.2" style={{ strokeDashoffset: 251.2 - (251.2 * animVacant) / 100, strokeDasharray: "251.2 251.2", transformOrigin: "center", transform: `rotate(${((animOnLeave + animNotPunchedIn + animWfh + animPresent) / 100) * 360}deg)` }} className={`dark:stroke-black ${isResetting ? 'transition-none' : 'transition-all duration-[2500ms] ease-out'}`} />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-3xl font-extrabold text-slate-900 dark:text-white">{attendanceTotal}</span>
@@ -318,24 +324,31 @@ export default function HrDashboardPage() {
               </div>
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-sm bg-blue-600 dark:bg-blue-500"></div>
+                  <div className="w-2.5 h-2.5 rounded-sm bg-yellow-500 dark:bg-yellow-400"></div>
                   <span className="text-slate-600 dark:text-slate-400 font-medium">WFH ({wfhPct}%)</span>
                 </div>
                 <span className="font-bold text-slate-900 dark:text-white">{data.attendance.wfh}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-sm bg-red-500 dark:bg-red-500"></div>
-                  <span className="text-slate-600 dark:text-slate-400 font-medium">Absent ({absentPct}%)</span>
+                  <div className="w-2.5 h-2.5 rounded-sm bg-blue-600 dark:bg-blue-500"></div>
+                  <span className="text-slate-600 dark:text-slate-400 font-medium">On Leave ({onLeavePct}%)</span>
                 </div>
-                <span className="font-bold text-red-600 dark:text-red-400">{data.attendance.absent}</span>
+                <span className="font-bold text-blue-600 dark:text-blue-400">{data.attendance.onLeave}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: '#8B4513' }}></div>
+                  <div className="w-2.5 h-2.5 rounded-sm bg-red-500 dark:bg-red-400"></div>
+                  <span className="text-slate-600 dark:text-slate-400 font-medium">Not Punched In ({notPunchedInPct}%)</span>
+                </div>
+                <span className="font-bold text-red-600 dark:text-red-400">{data.attendance.notPunchedIn}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-sm bg-black dark:bg-black"></div>
                   <span className="text-slate-500 dark:text-slate-500 font-medium">Vacant ({vacantPct}%)</span>
                 </div>
-                <span className="font-bold" style={{ color: '#8B4513' }}>{vacantCount}</span>
+                <span className="font-bold text-black dark:text-black">{vacantCount}</span>
               </div>
             </div>
           </div>
@@ -400,7 +413,7 @@ export default function HrDashboardPage() {
               ))
             )}
           </div>
-          <Link href="/employees" className="w-full py-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-md mt-6 shadow-sm transition-colors flex items-center justify-center">
+          <Link href="/onboarding" className="w-full py-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-md mt-6 shadow-sm transition-colors flex items-center justify-center">
             Manage Pipeline
           </Link>
         </div>

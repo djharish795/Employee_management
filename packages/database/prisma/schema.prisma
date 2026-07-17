@@ -134,8 +134,47 @@ model Employee {
   meetNotes                  MeetNote[]
   meetNoteComments           MeetNoteComment[]
   payrollSyncEvents          PayrollSyncEvent[]
-
+  fieldWorkRequests          FieldWorkRequest[]         @relation("FieldWorkRequester")
+  fieldWorkApprovals         FieldWorkRequest[]         @relation("FieldWorkApprover")
   @@map("employees")
+}
+
+enum FieldWorkStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model FieldWorkRequest {
+  id              String            @id @default(cuid())
+  employeeId      String
+  approverId      String?
+  date            DateTime          @db.Date
+  startTime       String
+  endTime         String
+  destination     String
+  client          String?
+  purpose         String
+  description     String
+  transportation  String
+  returnTime      String
+  contact         String
+  remarks         String?
+  fileName        String?
+  objectKey       String?
+  status          FieldWorkStatus   @default(PENDING)
+  rejectionReason String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  approvedAt      DateTime?
+
+  employee Employee @relation("FieldWorkRequester", fields: [employeeId], references: [id])
+  approver Employee? @relation("FieldWorkApprover", fields: [approverId], references: [id])
+
+  @@index([employeeId, status])
+  @@map("field_work_requests")
 }
 
 model User {
