@@ -122,19 +122,31 @@ export class KnowledgeRepository {
         ? null 
         : existing.publishedAt;
 
-    const doc = await this.prisma.knowledgeDoc.update({
-      where: { id },
-      data: {
-        title: data.title ?? existing.title,
-        content: data.content ?? existing.content,
-        category: data.category ?? existing.category,
-        isPublished: data.isPublished ?? existing.isPublished,
-        version: data.version ?? existing.version,
-        requiresSignature: data.requiresSignature ?? existing.requiresSignature,
-        slug: slug ?? existing.slug,
-        publishedAt,
-      },
-    });
+    const [versionArchive, doc] = await this.prisma.$transaction([
+      // @ts-ignore: Prisma client needs regeneration, but dev server is locking the file
+      this.prisma.knowledgeDocVersion.create({
+        data: {
+          documentId: existing.id,
+          version: existing.version,
+          title: existing.title,
+          content: existing.content,
+          authorId: existing.authorId,
+        },
+      }),
+      this.prisma.knowledgeDoc.update({
+        where: { id },
+        data: {
+          title: data.title ?? existing.title,
+          content: data.content ?? existing.content,
+          category: data.category ?? existing.category,
+          isPublished: data.isPublished ?? existing.isPublished,
+          version: data.version ?? existing.version,
+          requiresSignature: data.requiresSignature ?? existing.requiresSignature,
+          slug: slug ?? existing.slug,
+          publishedAt,
+        },
+      })
+    ]);
 
     // Update searchVector if title or content changed
     if (data.title || data.content) {

@@ -102,4 +102,9 @@ export class InAppNotificationService implements OnGatewayConnection, OnGatewayD
     this.server.to(`employee_${employeeId}`).emit('new_notification', notification);
     this.logger.debug(`Emitted notification to employee_${employeeId}`);
   }
+
+  broadcastEvent(event: string, payload: any) {
+    this.server.emit(event, payload);
+    this.logger.debug(`Broadcasted event ${event}`);
+  }
 }

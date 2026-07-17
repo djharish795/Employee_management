@@ -6,6 +6,7 @@ import { PunchDto } from "./dto/punch.dto";
 import { AttendanceStatus } from "@naprocs/database";
 import { toZonedTime } from "date-fns-tz";
 import { isLateArrival, parseBreakHistory, PRESENT_STATUSES, PRESENT_WITH_LATE_STATUSES } from "./attendance.constants";
+import { InAppNotificationService } from "../notifications/in-app.service";
 
 @Injectable()
 export class AttendanceService {
@@ -14,6 +15,7 @@ export class AttendanceService {
   constructor(
     private readonly redis: RedisService,
     private readonly prisma: PrismaService,
+    private readonly inApp: InAppNotificationService,
   ) { }
 
   private getRedisKey(employeeId: string): string {
@@ -186,6 +188,7 @@ export class AttendanceService {
         });
       }
 
+      this.inApp.broadcastEvent('attendance.punched', { employeeId, type: dto.action });
       return state;
     }
 
@@ -216,6 +219,7 @@ export class AttendanceService {
         data: { currentBreakStartTime: new Date(now), breakHistory: breakHistory as any, punchHistory: punchHistory as any } as any
       });
 
+      this.inApp.broadcastEvent('attendance.punched', { employeeId, type: dto.action });
       return state;
     }
 

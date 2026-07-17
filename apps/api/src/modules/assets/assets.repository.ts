@@ -145,6 +145,13 @@ export class AssetsRepository {
 
   // ─── Assignment ────────────────────────────────────────────────────────────
 
+  async closeActiveAssignments(assetId: string) {
+    await this.prisma.assetAssignment.updateMany({
+      where: { assetId, returnedAt: null },
+      data: { returnedAt: new Date() }
+    });
+  }
+
   async assign(assetId: string, employeeIdentifier: string, assignedByIdentifier: string, notes?: string) {
     // Resolve the target employee
     const employee = await this.prisma.employee.findFirst({

@@ -80,6 +80,7 @@ export enum Permission {
   APPROVE_FIELD_REQUESTS = "APPROVE_FIELD_REQUESTS",
   MANAGE_PROJECTS = "MANAGE_PROJECTS",
   ACCESS_SETTINGS = "ACCESS_SETTINGS",
+  READ_PAYROLL = "READ_PAYROLL",
 }
 
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
@@ -107,15 +108,18 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.READ_EMPLOYEES,
     Permission.WRITE_EMPLOYEES,
     Permission.WRITE_OWN_PROFILE,
+    Permission.READ_PAYROLL,
   ],
   [UserRole.SUPER_ADMIN]: [
     Permission.READ_EMPLOYEES,
     Permission.WRITE_EMPLOYEES,
     Permission.READ_AUDIT,
     Permission.WRITE_OWN_PROFILE,
+    Permission.READ_PAYROLL,
   ],
   [UserRole.FINANCE]: [
     Permission.READ_EMPLOYEES,
+    Permission.READ_PAYROLL,
   ],
   [UserRole.CEO]: [
     Permission.READ_EMPLOYEES,
@@ -139,6 +143,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
   [UserRole.CFO]: [
     Permission.READ_EMPLOYEES,
+    Permission.READ_PAYROLL,
   ],
   [UserRole.IT]: [
     Permission.READ_EMPLOYEES,

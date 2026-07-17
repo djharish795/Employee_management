@@ -271,7 +271,7 @@ export class OffboardingService {
     if (dto.ffExpectedDate) updateData.ffExpectedDate = new Date(dto.ffExpectedDate);
     if (dto.generateLetters !== undefined) updateData.generateLetters = dto.generateLetters;
     if (dto.exitInterviewDate) updateData.exitInterviewDate = new Date(dto.exitInterviewDate);
-    if (dto.status) updateData.status = dto.status;
+    // REMOVED: if (dto.status) updateData.status = dto.status; // Prevent DTO injection bypass
     if (dto.assetChecklist) updateData.assetChecklist = dto.assetChecklist;
     if (dto.deactivationChecklist) updateData.deactivationChecklist = dto.deactivationChecklist;
     if (dto.settlementChecklist) updateData.settlementChecklist = dto.settlementChecklist;
@@ -525,6 +525,13 @@ export class OffboardingService {
     
     if (existing.status === "COMPLETED") {
       throw new BadRequestException("Offboarding is already completed");
+    }
+
+    // Asset Check Verification: Ensure all assets are returned before finalizing
+    const assetChecklist: ChecklistItem[] = (existing.assetChecklist as any) || [];
+    const hasPendingAssets = assetChecklist.some(item => item.status !== 'completed');
+    if (hasPendingAssets) {
+      throw new BadRequestException("Cannot finalize offboarding: All assigned assets must be recovered first.");
     }
 
     const updatedProcess = await this.prisma.$transaction(async (tx) => {

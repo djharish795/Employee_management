@@ -3,9 +3,6 @@ import { InitiateOffboardingDto } from "./initiate-offboarding.dto";
 import { IsString, IsOptional, IsArray } from "class-validator";
 
 export class UpdateOffboardingDto extends PartialType(InitiateOffboardingDto) {
-  @IsString()
-  @IsOptional()
-  status?: string;
 
   @IsArray()
   @IsOptional()

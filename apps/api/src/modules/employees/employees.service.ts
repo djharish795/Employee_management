@@ -379,9 +379,9 @@ export class EmployeesService {
 
     const empWithRels = employee as any;
 
-    const hasGlobalWrite = currentUser && currentUser.role && this.rbacService.hasPermission(currentUser.role, [Permission.WRITE_EMPLOYEES]);
+    const hasPayrollRead = currentUser && currentUser.role && this.rbacService.hasPermission(currentUser.role, [Permission.READ_PAYROLL]);
     const isOwner = currentUser && currentUser.employeeId === id;
-    if (!hasGlobalWrite && !isOwner) {
+    if (!hasPayrollRead && !isOwner) {
       delete empWithRels.aadhaar;
       delete empWithRels.pan;
       delete empWithRels.passport;

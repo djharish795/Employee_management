@@ -4,9 +4,10 @@ import { AttendanceService } from "./attendance.service";
 import { RedisModule } from "../../redis/redis.module";
 import { PrismaModule } from "../../prisma/prisma.module";
 import { AttendanceCronService } from "./attendance.cron";
+import { NotificationsModule } from "../notifications/notifications.module";
 
 @Module({
-  imports: [RedisModule, PrismaModule],
+  imports: [RedisModule, PrismaModule, NotificationsModule],
   controllers: [AttendanceController],
   providers: [AttendanceService, AttendanceCronService],
   exports: [AttendanceService],

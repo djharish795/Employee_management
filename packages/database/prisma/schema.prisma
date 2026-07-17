@@ -68,6 +68,7 @@ model Employee {
   regularizationRequests     RegularizationRequest[]
   attritionRiskScores        AttritionRiskScore[]
   auditLogEntries            AuditLog[]
+  knowledgeDocVersions       KnowledgeDocVersion[]
   consentLogsCollected       ConsentLog[]               @relation("ConsentCollector")
   consentLogsAsSubject       ConsentLog[]               @relation("ConsentSubject")
   erasureRequestsApproved    DataErasureRequest[]       @relation("ErasureApprover")
@@ -551,8 +552,24 @@ model KnowledgeDoc {
   requiresSignature Boolean                    @default(false)
   author            Employee                   @relation(fields: [authorId], references: [id])
   acknowledgements  KnowledgeAcknowledgement[]
+  versions          KnowledgeDocVersion[]
 
   @@map("knowledge_docs")
+}
+
+model KnowledgeDocVersion {
+  id                String       @id @default(cuid())
+  documentId        String
+  version           String
+  title             String
+  content           String
+  authorId          String
+  createdAt         DateTime     @default(now())
+
+  document          KnowledgeDoc @relation(fields: [documentId], references: [id])
+  author            Employee     @relation(fields: [authorId], references: [id])
+
+  @@map("knowledge_doc_versions")
 }
 
 model KnowledgeAcknowledgement {

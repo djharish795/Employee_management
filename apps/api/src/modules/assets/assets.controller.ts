@@ -203,6 +203,7 @@ export class AssetRequestsController {
     return this.assetsService.createRequest(user.employeeId, dto);
   }
 
+  @Post(":id/respond")
   @RequirePermissions(RbacPermissions.ASSETS_ALLOCATE)
   @Permissions(Permission.READ_EMPLOYEES)
   async respondToRequest(

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
 import { Stepper } from '@/components/employees/stepper';
 import { PersonalInformationForm } from '@/components/employees/personal-information-form';
@@ -28,7 +29,15 @@ const STEPS: WizardStep[] = [
 ];
 
 export default function AddEmployeePage() {
-  const [activeStep, setActiveStep] = useState(1);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  
+  const activeStep = parseInt(searchParams.get('step') || '1', 10);
+  const setActiveStep = (step: number) => {
+    router.replace(`${pathname}?step=${step}`);
+  };
+
   const [draftId, setDraftId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -73,7 +82,7 @@ export default function AddEmployeePage() {
       }
 
       if (activeStep < STEPS.length) {
-        setActiveStep(prev => prev + 1);
+        setActiveStep(activeStep + 1);
       } else {
         await completeOnboarding(data.draftId || draftId);
       }
@@ -109,8 +118,35 @@ export default function AddEmployeePage() {
 
   const handlePrev = () => {
     if (activeStep > 1) {
-      setActiveStep(prev => prev - 1);
+      setActiveStep(activeStep - 1);
     }
+  };
+
+  const handleNext = async () => {
+    const formElement = document.getElementById(`onboarding-form-${activeStep}`) as HTMLFormElement;
+    if (!formElement) return;
+
+    // Explicitly enforce HTML5 validation before advancing
+    if (!formElement.reportValidity()) {
+      return; // Stop if required fields are missing or invalid
+    }
+
+    const formData = new FormData(formElement);
+    const stepData: any = Object.fromEntries(formData.entries());
+    
+    // Convert special nested objects like emergencyContact if needed based on the step
+    if (activeStep === 1) {
+      stepData.emergencyContact = {
+        name: stepData.emergencyContactName,
+        phone: stepData.emergencyContactPhone,
+        relation: stepData.emergencyContactRelation
+      };
+      delete stepData.emergencyContactName;
+      delete stepData.emergencyContactPhone;
+      delete stepData.emergencyContactRelation;
+    }
+
+    await handleStepSave(stepData);
   };
 
   const handleSaveDraft = async () => {
@@ -118,7 +154,7 @@ export default function AddEmployeePage() {
     if (!formElement) return;
     
     const formData = new FormData(formElement);
-    const stepData = Object.fromEntries(formData.entries());
+    const stepData: any = Object.fromEntries(formData.entries());
     
     // Convert special fields to match onSave logic if needed, but since it's a generic draft save, we just pass the object
     // To match the exact mapping inside the components, we can trigger the form submission but prevent default navigation.
@@ -220,9 +256,9 @@ export default function AddEmployeePage() {
           </button>
           
           <button 
-            type="submit"
-            form={`onboarding-form-${activeStep}`}
-            disabled={isSubmitting}
+            type="button"
+            onClick={activeStep === STEPS.length ? () => completeOnboarding(draftId!) : handleNext}
+            disabled={isSubmitting || (activeStep === STEPS.length && !draftId)}
             className="flex items-center gap-2 h-10 px-6 bg-[#0052CC] hover:bg-[#0047B3] text-white rounded-md text-sm font-bold shadow-sm transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? 'Saving...' : activeStep === STEPS.length ? (
