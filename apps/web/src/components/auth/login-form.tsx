@@ -48,11 +48,28 @@ export const LoginForm: React.FC = () => {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "", rememberDevice: false },
   });
+
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const emailParam = params.get("email");
+      const passwordParam = params.get("password");
+      if (emailParam || passwordParam) {
+        reset({
+          email: emailParam || "",
+          password: passwordParam || "",
+          rememberDevice: false
+        });
+      }
+    }
+  }, [reset]);
+
 
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
@@ -69,6 +86,12 @@ export const LoginForm: React.FC = () => {
         router.push("/mfa");
       } else if (res.token && res.refreshToken) {
         const role = res.role ?? "EMPLOYEE";
+        
+        // Write the role cookie to keep it in sync with layout hydration fallbacks
+        if (typeof document !== "undefined") {
+          document.cookie = `role=${role}; path=/; max-age=${7 * 24 * 60 * 60}`;
+        }
+
         setAuthSession({
           accessToken: res.token,
           refreshToken: res.refreshToken,

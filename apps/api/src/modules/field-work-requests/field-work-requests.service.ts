@@ -159,7 +159,7 @@ export class FieldWorkRequestsService {
 
     const isOwner = request.employeeId === loggedInEmployeeId;
     const isApprover = request.approverId === loggedInEmployeeId;
-    const isOpsAdmin = role === UserRole.OPERATIONS_HEAD || role === UserRole.OM;
+    const isOpsAdmin = role === UserRole.OPERATIONS_HEAD || role === UserRole.OM || role === UserRole.CRM;
 
     if (!isOwner && !isApprover && !isOpsAdmin) {
       throw new ForbiddenException("You are not authorized to view this request");
@@ -273,7 +273,7 @@ export class FieldWorkRequestsService {
     }
 
     const isDirectManager = request.approverId === approverId;
-    const isOpsAdmin = role === UserRole.OPERATIONS_HEAD || role === UserRole.OM;
+    const isOpsAdmin = role === UserRole.OPERATIONS_HEAD || role === UserRole.OM || role === UserRole.CRM;
 
     if (!isDirectManager && !isOpsAdmin) {
       throw new ForbiddenException("You are not authorized to approve this request");
@@ -336,7 +336,7 @@ export class FieldWorkRequestsService {
     }
 
     const isDirectManager = request.approverId === approverId;
-    const isOpsAdmin = role === UserRole.OPERATIONS_HEAD || role === UserRole.OM;
+    const isOpsAdmin = role === UserRole.OPERATIONS_HEAD || role === UserRole.OM || role === UserRole.CRM;
 
     if (!isDirectManager && !isOpsAdmin) {
       throw new ForbiddenException("You are not authorized to reject this request");
@@ -493,7 +493,7 @@ export class FieldWorkRequestsService {
     }
 
     // Operations Manager (OM or Operations Head) -> Operations Head / CEO / Admin
-    if (requesterRole === UserRole.OM || requesterRole === UserRole.OPERATIONS_HEAD) {
+    if (requesterRole === UserRole.OM || requesterRole === UserRole.OPERATIONS_HEAD || requesterRole === UserRole.CRM) {
       // Find an Operations Head, CEO, or Super Admin who is NOT the requester
       const adminUser = await this.prisma.user.findFirst({
         where: {
@@ -510,13 +510,13 @@ export class FieldWorkRequestsService {
 
     // Team Lead -> Manager
     if (requesterRole === UserRole.TEAM_LEAD) {
-      if (manager && (manager.user?.role === UserRole.MANAGER || manager.user?.role === UserRole.OM || manager.user?.role === UserRole.OPERATIONS_HEAD)) {
+      if (manager && (manager.user?.role === UserRole.MANAGER || manager.user?.role === UserRole.OM || manager.user?.role === UserRole.OPERATIONS_HEAD || manager.user?.role === UserRole.CRM)) {
         return manager.id;
       }
       // Fallback: Find any Manager or OM
       const managerUser = await this.prisma.user.findFirst({
         where: {
-          role: { in: [UserRole.MANAGER, UserRole.OM, UserRole.OPERATIONS_HEAD, UserRole.CEO] },
+          role: { in: [UserRole.MANAGER, UserRole.OM, UserRole.OPERATIONS_HEAD, UserRole.CEO, UserRole.CRM] },
           AND: [
             { employeeId: { not: employeeId } },
             { employeeId: { not: null } }

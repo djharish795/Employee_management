@@ -230,6 +230,7 @@ export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
   let displayRole = role.replace('_', ' ');
   if (role === 'OM') displayRole = 'Operations Manager';
   else if (role === 'OE') displayRole = 'Operations Executive';
+  else if (role === 'CRM') displayRole = 'CRM Executive';
 
   React.useEffect(() => { setMounted(true); }, []);
 

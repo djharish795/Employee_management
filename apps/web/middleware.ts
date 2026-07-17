@@ -16,11 +16,11 @@ const protectedRoutes = [
   '/employees', '/attendance', '/leaves', '/assets', '/compliance',
   '/audit', '/onboarding', '/offboarding', '/knowledge', '/workflows',
   '/recruitment', '/payroll', '/performance', '/org-chart', '/settings',
-  '/connect', '/cam', '/oe', '/om', '/team-lead'
+  '/connect', '/cam', '/oe', '/om', '/team-lead', '/crm'
 ];
 
 // Role-specific dashboard namespaces (cross-role isolation)
-const roleNamespaces = ['/employee', '/admin', '/executive', '/cto', '/finance', '/hr', '/cam', '/oe', '/om', '/team-lead'];
+const roleNamespaces = ['/employee', '/admin', '/executive', '/cto', '/finance', '/hr', '/cam', '/oe', '/om', '/team-lead', '/crm'];
 
 // Ensure this matches the backend JWT secret
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-for-dev-12345';
@@ -133,9 +133,9 @@ export async function middleware(request: NextRequest) {
     // ─── Strict cross-role namespace isolation ───────────────────────────────
     for (const ns of roleNamespaces) {
       if (pathname === ns || pathname.startsWith(`${ns}/`)) {
-        // Exception: CEM, OM, and OE are part of the operations group and share access to /cam, /om, and /oe namespaces
-        const isCamGroupPath = pathname.startsWith('/cam') || pathname.startsWith('/om') || pathname.startsWith('/oe');
-        const isCamGroupRole = ['CEM', 'OM', 'OE'].includes(role);
+        // Exception: CEM, OM, OE, and CRM are part of the operations group and share access to /cam, /om, /oe, and /crm namespaces
+        const isCamGroupPath = pathname.startsWith('/cam') || pathname.startsWith('/om') || pathname.startsWith('/oe') || pathname.startsWith('/crm');
+        const isCamGroupRole = ['CEM', 'OM', 'OE', 'CRM'].includes(role);
         if (isCamGroupPath && isCamGroupRole) {
           continue;
         }
