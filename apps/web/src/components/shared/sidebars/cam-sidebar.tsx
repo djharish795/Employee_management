@@ -6,7 +6,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, Calendar, ShieldCheck, History,
   Network, BarChart3, Settings, LogOut, Menu, X, ChevronLeft, Plus,
-  MessageSquare, CalendarCheck, UserPlus, UserMinus, BookOpen, Monitor, Lock, Bell, CheckSquare, Target, Briefcase, AlignLeft
+  MessageSquare, CalendarCheck, UserPlus, UserMinus, BookOpen, Monitor,
+  Lock, Bell, CheckSquare, Target, Briefcase, AlignLeft, ClipboardList,
+  FileBarChart, Clock, Wrench, Building2
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { useNotifications } from '@/hooks/use-notifications';
@@ -42,6 +44,7 @@ export function CamSidebar() {
   if (storeRole === 'OM') displayRole = 'Operations Manager';
   else if (storeRole === 'OE') displayRole = 'Operations Executive';
   else if (storeRole === 'CRM') displayRole = 'CRM Executive';
+  else if (storeRole === 'CEM') displayRole = 'CEM Executive';
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed]   = useState(false);
@@ -61,40 +64,121 @@ export function CamSidebar() {
     otherItems.push({ title: 'Settings', icon: Settings, href: '/settings' });
   }
 
-  const isCrm = storeRole === 'CRM';
-  const navGroups = [
-    {
-      label: isCrm ? 'CRM PORTAL' : 'CAM PORTAL',
-      items: isCrm ? [
-        { title: 'Client Workspace', icon: Briefcase, href: '/cam/workspace' },
-        { title: 'Dashboard', icon: LayoutDashboard, href: '/om/dashboard' },
-        { title: 'Meetings', icon: Calendar, href: '/cam/meetings' },
-        { title: 'Requirements', icon: ShieldCheck, href: '/cam/requirements' },
-      ] : [
-        { title: 'Dashboard', icon: LayoutDashboard, href: '/cam/dashboard' },
-        { title: 'Lead Workspace', icon: Briefcase, href: '/cam/workspace' },
-        { title: 'Follow-up Hub', icon: History, href: '/cam/follow-ups' },
-        { title: 'Meetings', icon: Calendar, href: '/cam/meetings' },
-        { title: 'Qualification', icon: ShieldCheck, href: '/cam/qualification' },
-      ]
-    },
-    {
-      label: 'MY WORKPLACE',
-      items: [
-        { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
-        { title: 'Connect', icon: MessageSquare, href: '/connect' },
-        { title: 'Attendance', icon: CalendarCheck, href: '/attendance' },
-        { title: 'Leaves', icon: Calendar, href: '/leaves' },
-        { title: 'Assets', icon: Monitor, href: '/assets' },
-        { title: 'Knowledge Base', icon: BookOpen, href: '/knowledge' },
-        { title: 'Org Chart', icon: Network, href: '/org-chart' },
-      ]
-    },
-    {
-      label: 'OTHER',
-      items: otherItems
-    }
+  // ─── Shared Operations items (Reports + Scheduler) for CRM, CEM, OM ───
+  const sharedOpsItems = [
+    { title: 'Reports', icon: FileBarChart, href: '/cam/reports' },
+    { title: 'Scheduler', icon: Clock, href: '/cam/scheduler' },
   ];
+
+  // ─── Build nav groups based on role ───────────────────────────────────
+  const buildNavGroups = () => {
+    if (storeRole === 'CRM') {
+      return [
+        {
+          label: 'CRM PORTAL',
+          items: [
+            { title: 'Client Workspace', icon: Briefcase, href: '/cam/workspace' },
+            { title: 'Dashboard', icon: LayoutDashboard, href: '/om/dashboard' },
+            { title: 'Meetings', icon: Calendar, href: '/cam/meetings' },
+            { title: 'Requirements', icon: ShieldCheck, href: '/cam/requirements' },
+          ]
+        },
+        {
+          label: 'OPERATIONS',
+          items: sharedOpsItems,
+        },
+        {
+          label: 'MY WORKPLACE',
+          items: [
+            { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
+            { title: 'Connect', icon: MessageSquare, href: '/connect' },
+            { title: 'Attendance', icon: CalendarCheck, href: '/attendance' },
+            { title: 'Leaves', icon: Calendar, href: '/leaves' },
+            { title: 'Assets', icon: Monitor, href: '/assets' },
+            { title: 'Knowledge Base', icon: BookOpen, href: '/knowledge' },
+            { title: 'Org Chart', icon: Network, href: '/org-chart' },
+          ]
+        },
+        { label: 'OTHER', items: otherItems }
+      ];
+    }
+
+    if (storeRole === 'OM') {
+      return [
+        {
+          label: 'OM PORTAL',
+          items: [
+            { title: 'Dashboard', icon: LayoutDashboard, href: '/om/dashboard' },
+            { title: 'Work Reports', icon: ClipboardList, href: '/om/work-reports' },
+            { title: 'Field Operations', icon: Wrench, href: '/cam/meetings' },
+            { title: 'Team Overview', icon: Users, href: '/org-chart' },
+          ]
+        },
+        {
+          label: 'OPERATIONS',
+          items: sharedOpsItems,
+        },
+        {
+          label: 'MY WORKPLACE',
+          items: [
+            { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
+            { title: 'Connect', icon: MessageSquare, href: '/connect' },
+            { title: 'Attendance', icon: CalendarCheck, href: '/attendance' },
+            { title: 'Leaves', icon: Calendar, href: '/leaves' },
+            { title: 'Assets', icon: Monitor, href: '/assets' },
+            { title: 'Knowledge Base', icon: BookOpen, href: '/knowledge' },
+          ]
+        },
+        { label: 'OTHER', items: otherItems }
+      ];
+    }
+
+    // Default: CEM (and OE)
+    return [
+      {
+        label: 'CAM PORTAL',
+        items: [
+          { title: 'Dashboard', icon: LayoutDashboard, href: '/cam/dashboard' },
+          { title: 'Lead Workspace', icon: Briefcase, href: '/cam/workspace' },
+          { title: 'Follow-up Hub', icon: History, href: '/cam/follow-ups' },
+          { title: 'Meetings', icon: Calendar, href: '/cam/meetings' },
+          { title: 'Qualification', icon: ShieldCheck, href: '/cam/qualification' },
+        ]
+      },
+      {
+        label: 'OPERATIONS',
+        items: sharedOpsItems,
+      },
+      {
+        label: 'MY WORKPLACE',
+        items: [
+          { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
+          { title: 'Connect', icon: MessageSquare, href: '/connect' },
+          { title: 'Attendance', icon: CalendarCheck, href: '/attendance' },
+          { title: 'Leaves', icon: Calendar, href: '/leaves' },
+          { title: 'Assets', icon: Monitor, href: '/assets' },
+          { title: 'Knowledge Base', icon: BookOpen, href: '/knowledge' },
+          { title: 'Org Chart', icon: Network, href: '/org-chart' },
+        ]
+      },
+      { label: 'OTHER', items: otherItems }
+    ];
+  };
+
+  const navGroups = buildNavGroups();
+
+  // Portal label for brand header
+  const portalLabel = storeRole === 'CRM' ? 'CRM Portal'
+    : storeRole === 'OM' ? 'OM Portal'
+    : 'Naprocs EMS';
+
+  const portalSub = storeRole === 'CRM' ? 'Operational Execution'
+    : storeRole === 'OM' ? 'Operations Management'
+    : `${displayRole} Portal`;
+
+  const quickActionLabel = storeRole === 'CRM' ? 'New Client'
+    : storeRole === 'OM' ? 'New Report'
+    : 'New Lead';
 
   const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => (
     <>
@@ -103,10 +187,10 @@ export function CamSidebar() {
         {!collapsed && (
           <div>
             <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight leading-snug">
-              {isCrm ? 'CRM Portal' : 'Naprocs EMS'}
+              {portalLabel}
             </h2>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-wide mt-0.5 uppercase">
-              {isCrm ? 'Operational Execution' : `${displayRole} Portal`}
+              {portalSub}
             </p>
           </div>
         )}
@@ -124,13 +208,13 @@ export function CamSidebar() {
         <div className="px-4 pb-5">
           <button className="w-full bg-slate-800 dark:bg-slate-800 hover:bg-slate-700 dark:hover:bg-slate-700 text-white flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm">
             <Plus className="w-4 h-4" />
-            <span>New Lead</span>
+            <span>{quickActionLabel}</span>
           </button>
         </div>
       )}
       {collapsed && (
         <div className="px-3 pb-5">
-          <button className="w-full bg-slate-800 dark:bg-slate-800 hover:bg-slate-700 dark:hover:bg-slate-700 text-white flex items-center justify-center py-2.5 rounded-lg transition-colors shadow-sm" title="New Lead">
+          <button className="w-full bg-slate-800 dark:bg-slate-800 hover:bg-slate-700 dark:hover:bg-slate-700 text-white flex items-center justify-center py-2.5 rounded-lg transition-colors shadow-sm" title={quickActionLabel}>
             <Plus className="w-4 h-4" />
           </button>
         </div>
