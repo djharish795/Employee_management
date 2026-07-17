@@ -61,7 +61,7 @@ export const ROLE_DASHBOARD_PATH: Record<UserRole, string> = {
   [UserRole.TEAM_LEAD]: "/employee/dashboard",
   [UserRole.EMPLOYEE]: "/employee/dashboard",
   [UserRole.IT]: "/admin/dashboard",
-  [UserRole.CEM]: "/cam/scheduler",
+  [UserRole.CEM]: "/cam/dashboard",
   [UserRole.OE]: "/oe/dashboard",
   [UserRole.OM]: "/om/dashboard",
 };

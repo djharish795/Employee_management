@@ -100,12 +100,12 @@ export default function CamDashboardPanel() {
         {/* KPI 5 */}
         <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all col-span-2 lg:col-span-1">
           <div className="flex justify-between items-start mb-4">
-            <span className="text-[10px] font-black text-rose-500 uppercase tracking-wider leading-tight w-24">
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight w-24">
               Overdue Actions
             </span>
-            <AlertCircle className="w-5 h-5 text-rose-500" />
+            <AlertCircle className="w-5 h-5 text-slate-500" />
           </div>
-          <h3 className="text-3xl font-black text-rose-600 tracking-tight">09</h3>
+          <h3 className="text-3xl font-black text-slate-900 tracking-tight">09</h3>
         </div>
       </div>
 
@@ -166,7 +166,7 @@ export default function CamDashboardPanel() {
                   {/* Lead 1 */}
                   <tr className="hover:bg-slate-50/80 transition-colors group">
                     <td className="py-4 px-6">
-                      <button className="text-left font-bold text-slate-950 hover:text-blue-600 hover:underline flex items-center gap-1.5">
+                      <button className="text-left font-bold text-slate-950 hover:text-slate-700 hover:underline flex items-center gap-1.5">
                         Robert Chen
                         <ExternalLink className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </button>
@@ -179,10 +179,10 @@ export default function CamDashboardPanel() {
                     </td>
                     <td className="py-4 px-3 font-bold text-slate-900">Technical Specs Review</td>
                     <td className="py-4 px-3">
-                      <span className="text-rose-600 font-bold">10:00 AM (Overdue)</span>
+                      <span className="text-slate-900 font-bold">10:00 AM (Overdue)</span>
                     </td>
                     <td className="py-4 px-6 text-right">
-                      <span className="inline-block px-2.5 py-0.5 bg-rose-50 text-rose-600 rounded text-[9px] font-black tracking-wider uppercase border border-rose-100">
+                      <span className="inline-block px-2.5 py-0.5 bg-slate-900 text-white rounded text-[9px] font-black tracking-wider uppercase border border-slate-950">
                         High
                       </span>
                     </td>
@@ -191,21 +191,21 @@ export default function CamDashboardPanel() {
                   {/* Lead 2 */}
                   <tr className="hover:bg-slate-50/80 transition-colors group">
                     <td className="py-4 px-6">
-                      <button className="text-left font-bold text-slate-950 hover:text-blue-600 hover:underline flex items-center gap-1.5">
+                      <button className="text-left font-bold text-slate-950 hover:text-slate-700 hover:underline flex items-center gap-1.5">
                         Elena Markova
                         <ExternalLink className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </button>
                     </td>
                     <td className="py-4 px-3 text-slate-500 font-medium">Stratos Cloud Systems</td>
                     <td className="py-4 px-3 text-center">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-50 text-emerald-700 rounded text-[9px] font-black uppercase tracking-wider border border-emerald-100">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Qualified
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-slate-100 text-slate-800 rounded text-[9px] font-black uppercase tracking-wider border border-slate-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-900"></span> Qualified
                       </span>
                     </td>
                     <td className="py-4 px-3 font-medium text-slate-600">CRM Export Confirmation</td>
                     <td className="py-4 px-3 text-slate-500 font-medium">02:30 PM</td>
                     <td className="py-4 px-6 text-right">
-                      <span className="inline-block px-2.5 py-0.5 bg-amber-50 text-amber-600 rounded text-[9px] font-black tracking-wider uppercase border border-amber-100">
+                      <span className="inline-block px-2.5 py-0.5 bg-slate-100 text-slate-700 rounded text-[9px] font-black tracking-wider uppercase border border-slate-200">
                         Med
                       </span>
                     </td>
@@ -214,7 +214,7 @@ export default function CamDashboardPanel() {
                   {/* Lead 3 */}
                   <tr className="hover:bg-slate-50/80 transition-colors group">
                     <td className="py-4 px-6">
-                      <button className="text-left font-bold text-slate-950 hover:text-blue-600 hover:underline flex items-center gap-1.5">
+                      <button className="text-left font-bold text-slate-950 hover:text-slate-700 hover:underline flex items-center gap-1.5">
                         David Jenkins
                         <ExternalLink className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </button>
@@ -228,7 +228,7 @@ export default function CamDashboardPanel() {
                     <td className="py-4 px-3 font-medium text-slate-600">Follow up Call</td>
                     <td className="py-4 px-3 text-slate-500 font-medium">04:00 PM</td>
                     <td className="py-4 px-6 text-right">
-                      <span className="inline-block px-2.5 py-0.5 bg-blue-50 text-blue-600 rounded text-[9px] font-black tracking-wider uppercase border border-blue-100">
+                      <span className="inline-block px-2.5 py-0.5 bg-slate-50 text-slate-600 rounded text-[9px] font-black tracking-wider uppercase border border-slate-200">
                         Low
                       </span>
                     </td>
@@ -237,21 +237,21 @@ export default function CamDashboardPanel() {
                   {/* Lead 4 */}
                   <tr className="hover:bg-slate-50/80 transition-colors group">
                     <td className="py-4 px-6">
-                      <button className="text-left font-bold text-slate-950 hover:text-blue-600 hover:underline flex items-center gap-1.5">
+                      <button className="text-left font-bold text-slate-950 hover:text-slate-700 hover:underline flex items-center gap-1.5">
                         Sarah Miller
                         <ExternalLink className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </button>
                     </td>
                     <td className="py-4 px-3 text-slate-500 font-medium">Apex Global</td>
                     <td className="py-4 px-3 text-center">
-                      <span className="inline-block px-2.5 py-0.5 bg-indigo-50 text-indigo-700 rounded text-[9px] font-black uppercase tracking-wider border border-indigo-100">
+                      <span className="inline-block px-2.5 py-0.5 bg-slate-100 text-slate-700 rounded text-[9px] font-black uppercase tracking-wider border border-slate-200">
                         Meeting Set
                       </span>
                     </td>
                     <td className="py-4 px-3 font-medium text-slate-600">Prepare Slide Deck</td>
                     <td className="py-4 px-3 text-slate-900 font-bold">Tomorrow</td>
                     <td className="py-4 px-6 text-right">
-                      <span className="inline-block px-2.5 py-0.5 bg-rose-50 text-rose-600 rounded text-[9px] font-black tracking-wider uppercase border border-rose-100">
+                      <span className="inline-block px-2.5 py-0.5 bg-slate-900 text-white rounded text-[9px] font-black tracking-wider uppercase border border-slate-950">
                         High
                       </span>
                     </td>
@@ -299,7 +299,7 @@ export default function CamDashboardPanel() {
                     <td className="py-4 px-3 text-slate-900 font-bold">11:00 - 11:45</td>
                     <td className="py-4 px-3 text-slate-500 font-medium">Stakeholder Alignment</td>
                     <td className="py-4 px-3">
-                      <span className="inline-block px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded text-[9px] font-black uppercase tracking-wider">
+                      <span className="inline-block px-2.5 py-0.5 bg-slate-100 text-slate-800 border border-slate-200 rounded text-[9px] font-black uppercase tracking-wider">
                         Confirmed
                       </span>
                     </td>
@@ -352,7 +352,7 @@ export default function CamDashboardPanel() {
                     <h4 className="text-sm font-extrabold text-slate-950">James Wilson</h4>
                     <p className="text-[11px] font-medium text-slate-500 mt-0.5">CyberDyne Systems</p>
                   </div>
-                  <span className="text-[9px] font-black uppercase tracking-wider text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-100">
+                  <span className="text-[9px] font-black uppercase tracking-wider text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
                     Urgent
                   </span>
                 </div>
@@ -434,7 +434,7 @@ export default function CamDashboardPanel() {
 
               {/* Activity Item 3 */}
               <div className="relative pl-6">
-                <div className="absolute -left-[14.5px] top-0.5 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center border-4 border-white shadow-sm">
+                <div className="absolute -left-[14.5px] top-0.5 w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center border-4 border-white shadow-sm">
                   <ShieldCheck className="w-2.5 h-2.5" />
                 </div>
                 <div>
@@ -452,7 +452,7 @@ export default function CamDashboardPanel() {
           {/* Pending CRM Acceptance Card */}
           <div className="bg-[#111827] text-white rounded-xl shadow-md p-5 flex items-center justify-between border border-slate-800">
             <div>
-              <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                 Pending CRM Acceptance
               </p>
               <h4 className="text-sm font-black text-slate-100 mt-1 flex items-center gap-1.5">
