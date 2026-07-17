@@ -211,6 +211,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^3.3.4
         version: 3.10.0(react-hook-form@7.78.0(react@18.3.1))
+      '@naprocs/feature-flags':
+        specifier: workspace:^
+        version: link:../../packages/feature-flags
       '@naprocs/schemas':
         specifier: workspace:^
         version: link:../../packages/schemas

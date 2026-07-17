@@ -11,6 +11,7 @@
   "dependencies": {
     "@headlessui/react": "^2.2.10",
     "@hookform/resolvers": "^3.3.4",
+    "@naprocs/feature-flags": "workspace:^",
     "@naprocs/schemas": "workspace:^",
     "@naprocs/types": "workspace:^",
     "@radix-ui/react-slot": "^1.3.0",
