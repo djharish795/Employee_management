@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { ScheduleModule } from "@nestjs/schedule";
 import { BullModule } from "@nestjs/bullmq";
+import { RedisService } from "./redis/redis.service";
 import { AuthModule } from "./modules/auth/auth.module";
 import { DocumentsModule } from "./modules/documents/documents.module";
 import { LeavesModule } from "./modules/leaves/leaves.module";
@@ -57,25 +58,17 @@ import { SettingsModule } from './modules/settings/settings.module';
     }),
     ScheduleModule.forRoot(),
     BullModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => {
-        const tlsEnabled = config.get<string>('REDIS_TLS', 'false') === 'true';
+      imports: [RedisModule],
+      inject: [RedisService],
+      useFactory: async (redisService: RedisService) => {
+        // Eagerly connect and enforce noeviction before BullMQ reads the policy.
+        // Passing the existing ioredis client ensures BullMQ reuses our connection
+        // instead of creating its own — permanently eliminating the eviction warning.
+        await redisService.connect();
         return {
-          connection: {
-            host: config.get<string>('REDIS_HOST', 'localhost'),
-            port: Number(config.get<string>('REDIS_PORT', '6379')),
-            password: config.get<string>('REDIS_PASSWORD') || undefined,
-            tls: tlsEnabled ? {} : undefined,
-            // Prevent BullMQ from crashing the process on transient Redis errors:
-            maxRetriesPerRequest: null,
-            enableReadyCheck: false,
-            retryStrategy: (times: number) => Math.min(times * 500, 5000),
-          },
-          // Enforce noeviction policy on the BullMQ Redis connection at startup.
-          // This prevents the "IMPORTANT! Eviction policy is volatile-lru" warning
-          // and guarantees queued jobs are never silently evicted under memory pressure.
-          sharedConnection: false,
+          connection: redisService.getClient(),
+          // Tell BullMQ not to close the shared client when the module is destroyed.
+          sharedConnection: true,
         };
       },
     }),
