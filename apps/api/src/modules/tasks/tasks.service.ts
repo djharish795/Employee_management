@@ -175,7 +175,7 @@ export class TasksService {
     this.auditService.logUpdate({
       moduleName: 'Tasks',
       entityId: taskId,
-      actorId: 'unknown',
+      actorId: 'SYSTEM',
       oldValue: { status: task.status },
       newValue: { status }
     });

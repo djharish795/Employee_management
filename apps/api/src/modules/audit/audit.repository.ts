@@ -19,7 +19,7 @@ export class AuditRepository {
   constructor(private readonly prisma: PrismaService) { }
 
   async create(data: CreateAuditLogData) {
-    const actorId = data.actorId === "SYSTEM" ? undefined : data.actorId;
+    const actorId = data.actorId === "SYSTEM" || data.actorId === "unknown" ? undefined : data.actorId;
     return this.prisma.auditLog.create({
       data: {
         action: data.action,
