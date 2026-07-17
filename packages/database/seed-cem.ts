@@ -14,7 +14,7 @@ async function seedUser(email: string, employeeId: string, firstName: string) {
     return;
   }
 
-  const hashedPassword = await bcrypt.hash('Naprocs@123', 10);
+  const hashedPassword = await bcrypt.hash('ChangeMe123!', 10);
   
   const employee = await prisma.employee.create({
     data: {
