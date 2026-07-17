@@ -69,7 +69,7 @@ export function CamSidebar() {
         { title: 'Client Workspace', icon: Briefcase, href: '/cam/workspace' },
         { title: 'Dashboard', icon: LayoutDashboard, href: '/om/dashboard' },
         { title: 'Meetings', icon: Calendar, href: '/cam/meetings' },
-        { title: 'Requirements', icon: ShieldCheck, href: '/cam/qualification' },
+        { title: 'Requirements', icon: ShieldCheck, href: '/cam/requirements' },
       ] : [
         { title: 'Dashboard', icon: LayoutDashboard, href: '/cam/dashboard' },
         { title: 'Lead Workspace', icon: Briefcase, href: '/cam/workspace' },
