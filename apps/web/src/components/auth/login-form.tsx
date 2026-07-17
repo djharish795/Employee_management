@@ -86,6 +86,12 @@ export const LoginForm: React.FC = () => {
         router.push("/mfa");
       } else if (res.token && res.refreshToken) {
         const role = res.role ?? "EMPLOYEE";
+        
+        // Write the role cookie to keep it in sync with layout hydration fallbacks
+        if (typeof document !== "undefined") {
+          document.cookie = `role=${role}; path=/; max-age=${7 * 24 * 60 * 60}`;
+        }
+
         setAuthSession({
           accessToken: res.token,
           refreshToken: res.refreshToken,

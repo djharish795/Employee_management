@@ -25,52 +25,138 @@ export enum SidebarType {
   EMPLOYEE = "EMPLOYEE",
 }
 
-export const ROLE_SIDEBAR_TYPE: Record<UserRole, SidebarType> = {
-  [UserRole.SUPER_ADMIN]: SidebarType.CEO,
-  [UserRole.CEO]: SidebarType.CEO,
-  [UserRole.CTO]: SidebarType.CEO,
-  [UserRole.COO]: SidebarType.CEO,
-  [UserRole.OPERATIONS_HEAD]: SidebarType.CEO,
-  [UserRole.CFO]: SidebarType.CEO,
-  [UserRole.CHRO]: SidebarType.CEO,
-  [UserRole.HR]: SidebarType.CEO,
-  [UserRole.FINANCE]: SidebarType.CEO,
-  [UserRole.MANAGER]: SidebarType.CEO,
-  [UserRole.TEAM_LEAD]: SidebarType.TEAM_LEAD,
-  [UserRole.EMPLOYEE]: SidebarType.EMPLOYEE,
-  [UserRole.IT]: SidebarType.CEO,
-  [UserRole.CEM]: SidebarType.CEM,
-  [UserRole.OM]: SidebarType.CEM,
-  [UserRole.OE]: SidebarType.CEM,
-  [UserRole.CRM]: SidebarType.CEM,
-};
-
-export function getSidebarTypeForRole(role: string): SidebarType {
-  return ROLE_SIDEBAR_TYPE[role as UserRole] ?? SidebarType.EMPLOYEE;
+export interface RoleRegistryEntry {
+  role: UserRole;
+  defaultDashboard: string;
+  sidebarType: SidebarType;
+  allowedNamespaces: string[];
 }
 
-export const ROLE_DASHBOARD_PATH: Record<UserRole, string> = {
-  [UserRole.SUPER_ADMIN]: "/admin/dashboard",
-  [UserRole.CEO]: "/executive/dashboard",
-  [UserRole.CTO]: "/cto/dashboard",
-  [UserRole.COO]: "/executive/dashboard",
-  [UserRole.OPERATIONS_HEAD]: "/executive/dashboard",
-  [UserRole.CFO]: "/finance/dashboard",
-  [UserRole.CHRO]: "/hr/dashboard",
-  [UserRole.HR]: "/hr/dashboard",
-  [UserRole.FINANCE]: "/finance/dashboard",
-  [UserRole.MANAGER]: "/employee/dashboard",
-  [UserRole.TEAM_LEAD]: "/employee/dashboard",
-  [UserRole.EMPLOYEE]: "/employee/dashboard",
-  [UserRole.IT]: "/admin/dashboard",
-  [UserRole.CEM]: "/cam/dashboard",
-  [UserRole.OE]: "/oe/dashboard",
-  [UserRole.OM]: "/om/dashboard",
-  [UserRole.CRM]: "/om/dashboard",
+export const ROLE_REGISTRY: Record<UserRole, RoleRegistryEntry> = {
+  [UserRole.SUPER_ADMIN]: {
+    role: UserRole.SUPER_ADMIN,
+    defaultDashboard: "/admin/dashboard",
+    sidebarType: SidebarType.CEO,
+    allowedNamespaces: ["/admin"]
+  },
+  [UserRole.CEO]: {
+    role: UserRole.CEO,
+    defaultDashboard: "/executive/dashboard",
+    sidebarType: SidebarType.CEO,
+    allowedNamespaces: ["/executive", "/org-chart"]
+  },
+  [UserRole.CTO]: {
+    role: UserRole.CTO,
+    defaultDashboard: "/cto/dashboard",
+    sidebarType: SidebarType.CEO,
+    allowedNamespaces: ["/cto", "/org-chart"]
+  },
+  [UserRole.COO]: {
+    role: UserRole.COO,
+    defaultDashboard: "/executive/dashboard",
+    sidebarType: SidebarType.CEO,
+    allowedNamespaces: ["/executive", "/org-chart"]
+  },
+  [UserRole.OPERATIONS_HEAD]: {
+    role: UserRole.OPERATIONS_HEAD,
+    defaultDashboard: "/executive/dashboard",
+    sidebarType: SidebarType.CEO,
+    allowedNamespaces: ["/executive", "/org-chart"]
+  },
+  [UserRole.CFO]: {
+    role: UserRole.CFO,
+    defaultDashboard: "/finance/dashboard",
+    sidebarType: SidebarType.CEO,
+    allowedNamespaces: ["/finance", "/org-chart"]
+  },
+  [UserRole.CHRO]: {
+    role: UserRole.CHRO,
+    defaultDashboard: "/hr/dashboard",
+    sidebarType: SidebarType.CEO,
+    allowedNamespaces: ["/hr", "/org-chart"]
+  },
+  [UserRole.HR]: {
+    role: UserRole.HR,
+    defaultDashboard: "/hr/dashboard",
+    sidebarType: SidebarType.CEO,
+    allowedNamespaces: ["/hr", "/org-chart", "/onboarding", "/offboarding"]
+  },
+  [UserRole.FINANCE]: {
+    role: UserRole.FINANCE,
+    defaultDashboard: "/finance/dashboard",
+    sidebarType: SidebarType.CEO,
+    allowedNamespaces: ["/finance", "/org-chart"]
+  },
+  [UserRole.MANAGER]: {
+    role: UserRole.MANAGER,
+    defaultDashboard: "/employee/dashboard",
+    sidebarType: SidebarType.CEO,
+    allowedNamespaces: ["/employee", "/org-chart"]
+  },
+  [UserRole.TEAM_LEAD]: {
+    role: UserRole.TEAM_LEAD,
+    defaultDashboard: "/employee/dashboard",
+    sidebarType: SidebarType.TEAM_LEAD,
+    allowedNamespaces: ["/employee", "/org-chart"]
+  },
+  [UserRole.EMPLOYEE]: {
+    role: UserRole.EMPLOYEE,
+    defaultDashboard: "/employee/dashboard",
+    sidebarType: SidebarType.EMPLOYEE,
+    allowedNamespaces: ["/employee"]
+  },
+  [UserRole.IT]: {
+    role: UserRole.IT,
+    defaultDashboard: "/admin/dashboard",
+    sidebarType: SidebarType.CEO,
+    allowedNamespaces: ["/admin"]
+  },
+  [UserRole.CEM]: {
+    role: UserRole.CEM,
+    defaultDashboard: "/cam/dashboard",
+    sidebarType: SidebarType.CEM,
+    allowedNamespaces: ["/cam", "/oe", "/om"]
+  },
+  [UserRole.OM]: {
+    role: UserRole.OM,
+    defaultDashboard: "/om/dashboard",
+    sidebarType: SidebarType.CEM,
+    allowedNamespaces: ["/cam", "/oe", "/om", "/org-chart"]
+  },
+  [UserRole.OE]: {
+    role: UserRole.OE,
+    defaultDashboard: "/oe/dashboard",
+    sidebarType: SidebarType.CEM,
+    allowedNamespaces: ["/cam", "/oe", "/om"]
+  },
+  [UserRole.CRM]: {
+    role: UserRole.CRM,
+    defaultDashboard: "/om/dashboard",
+    sidebarType: SidebarType.CEM,
+    allowedNamespaces: ["/cam", "/oe", "/om"]
+  }
 };
 
+export const ROLE_SIDEBAR_TYPE: Record<UserRole, SidebarType> = Object.keys(ROLE_REGISTRY).reduce((acc, key) => {
+  const k = key as UserRole;
+  acc[k] = ROLE_REGISTRY[k].sidebarType;
+  return acc;
+}, {} as Record<UserRole, SidebarType>);
+
+export function getSidebarTypeForRole(role: string): SidebarType {
+  const entry = ROLE_REGISTRY[role as UserRole];
+  return entry?.sidebarType ?? SidebarType.EMPLOYEE;
+}
+
+export const ROLE_DASHBOARD_PATH: Record<UserRole, string> = Object.keys(ROLE_REGISTRY).reduce((acc, key) => {
+  const k = key as UserRole;
+  acc[k] = ROLE_REGISTRY[k].defaultDashboard;
+  return acc;
+}, {} as Record<UserRole, string>);
+
 export function getDashboardPathForRole(role: string): string {
-  return ROLE_DASHBOARD_PATH[role as UserRole] ?? "/employee/dashboard";
+  const entry = ROLE_REGISTRY[role as UserRole];
+  return entry?.defaultDashboard ?? "/employee/dashboard";
 }
 
 export enum Permission {
