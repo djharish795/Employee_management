@@ -39,10 +39,12 @@ export class ConnectService {
         where: {
           requesterId,
           assigneeId: dto.assigneeId,
-          status: { in: [MeetStatus.PENDING, MeetStatus.RESCHEDULED] }
+          status: { in: [MeetStatus.PENDING, MeetStatus.RESCHEDULED] },
+          startTime: new Date(dto.startTime),
+          endTime: new Date(dto.endTime)
         }
       });
-      if (existing) throw new BadRequestException('A pending meet request with this employee already exists.');
+      if (existing) throw new BadRequestException('A pending meet request with this employee at this exact time already exists.');
 
       participantIds = [dto.assigneeId];
     }
@@ -87,14 +89,38 @@ export class ConnectService {
       throw new ForbiddenException("You are not authorized to accept this meet");
     }
 
-    const { eventId, meetLink } = await this.zoomService.createMeetEvent(
-      meet.title,
-      meet.description || "",
-      meet.startTime,
-      meet.endTime
-    );
+    // EMS-004: Optimistic Lock to prevent TOCTOU duplicate Zoom calls
+    const updateCount = await this.prisma.meetRequest.updateMany({
+      where: {
+        id,
+        status: meet.status, // Must still be PENDING or RESCHEDULED
+      },
+      data: {
+        status: MeetStatus.ACCEPTED,
+      },
+    });
 
-    const updatedMeet = await this.repository.updateMeetStatus(id, MeetStatus.ACCEPTED, eventId, meetLink);
+    if (updateCount.count === 0) {
+      throw new BadRequestException("Meet request was already updated by another user");
+    }
+
+    let finalEventId = meet.eventId;
+    let finalMeetLink = meet.meetLink;
+
+    if (meet.eventId) {
+      await this.zoomService.updateMeetEvent(meet.eventId, meet.startTime, meet.endTime);
+    } else {
+      const { eventId, meetLink } = await this.zoomService.createMeetEvent(
+        meet.title,
+        meet.description || "",
+        meet.startTime,
+        meet.endTime
+      );
+      finalEventId = eventId;
+      finalMeetLink = meetLink;
+    }
+
+    const updatedMeet = await this.repository.updateMeetStatus(id, MeetStatus.ACCEPTED, finalEventId || undefined, finalMeetLink || undefined);
 
     // Send Accepted emails and system notifications
     const allParticipants = [meet.requester, ...meet.participants.map(p => p.employee)];
@@ -106,7 +132,7 @@ export class ConnectService {
           `Your meeting has been accepted and a Zoom link is generated.`,
           p.officialEmail,
           "meet-accepted",
-          { meet: updatedMeet, meetLink }
+          { meet: updatedMeet, meetLink: finalMeetLink }
         );
       }
     }
@@ -126,12 +152,9 @@ export class ConnectService {
 
     const updatedMeet = await this.repository.updateMeetTime(id, dto.startTime, dto.endTime);
 
-    // If there was an existing event, we could patch it, but actually the requirement says: 
-    // "a mail must be shared informing the meet it shifted ... if okay then with the same meet link"
-    // So if accepted, we update the event. If not, it just updates the proposal.
-    if (meet.eventId) {
-      await this.zoomService.updateMeetEvent(meet.eventId, updatedMeet.startTime, updatedMeet.endTime);
-    }
+    // If there was an existing event, we DO NOT update it in Zoom immediately.
+    // The meet status is now RESCHEDULED, meaning the other party must ACCEPT it first.
+    // We just update the local proposal time.
 
     // Send reschedule emails and system notifications to the other party
     const notifyEmployees = isRequester
@@ -185,6 +208,10 @@ export class ConnectService {
     return updatedMeet;
   }
 
+  async getQuickContacts(employeeId: string): Promise<any> {
+    return this.repository.getQuickContacts(employeeId);
+  }
+
   async getMyMeetings(employeeId: string): Promise<any> {
     return this.repository.getMyMeetings(employeeId);
   }
@@ -215,12 +242,23 @@ export class ConnectService {
     if (Array.isArray(actionItems)) {
       for (const item of actionItems) {
         if (!item.taskId) {
+          let finalAssigneeId = item.assigneeId || employeeId;
+          
+          if (!item.assigneeId && meet.type !== MeetType.DEPARTMENT) {
+            // It's a 1-on-1. Assign to the other person.
+            if (meet.requesterId === employeeId) {
+              finalAssigneeId = meet.assigneeId || employeeId; // The invited person
+            } else {
+              finalAssigneeId = meet.requesterId || employeeId; // The inviter
+            }
+          }
+
           // It's a new action item, create it in Tasks table
           const task = await this.tasksService.createTask({ employeeId, role: user.role }, {
             title: item.text,
             description: `From meeting: ${meet.title}`,
             status: item.completed ? TaskStatus.DONE : TaskStatus.TODO,
-            assigneeId: employeeId, // Assigning to self by default for 1-on-1s
+            assigneeId: finalAssigneeId,
           });
           item.taskId = task.id; // Save reference back to the JSON
         } else {

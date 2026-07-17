@@ -249,7 +249,7 @@ export class LeavesService {
     return requests;
   }
 
-  async applyLeave(data: ApplyLeaveDto): Promise<unknown> {
+  async applyLeave(data: ApplyLeaveDto & { employeeId: string }): Promise<unknown> {
     const employee = await this.prisma.employee.findUnique({
       where: { id: data.employeeId },
       include: { department: true, designation: true, user: true }
@@ -515,7 +515,7 @@ export class LeavesService {
     return { message: 'Leave Applied Successfully', data: createdLeaves.length > 1 ? createdLeaves : createdLeaves[0] };
   }
 
-  async calculateLeave(data: ApplyLeaveDto): Promise<unknown> {
+  async calculateLeave(data: ApplyLeaveDto & { employeeId: string }): Promise<unknown> {
     const employee = await this.prisma.employee.findUnique({
       where: { id: data.employeeId }
     });

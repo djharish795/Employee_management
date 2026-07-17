@@ -38,17 +38,72 @@ export class ConnectRepository {
   async updateMeetStatus(id: string, status: MeetStatus, eventId?: string, meetLink?: string) {
     return this.prisma.meetRequest.update({
       where: { id },
-      data: {
-        status,
-        ...(eventId && { eventId }),
-        ...(meetLink && { meetLink })
-      },
-      include: {
-        participants: { include: { employee: true } },
-        requester: true,
-        assignee: true,
+      data: { status, eventId, meetLink },
+      include: { requester: true, participants: { include: { employee: true } } }
+    });
+  }
+
+  async getQuickContacts(employeeId: string) {
+    // 1. Get user to find manager
+    const me = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: { reportingManagerId: true }
+    });
+
+    const contactIds = new Set<string>();
+
+    if (me?.reportingManagerId) {
+      contactIds.add(me.reportingManagerId);
+    }
+
+    // 2. Get direct reports
+    const reports = await this.prisma.employee.findMany({
+      where: { reportingManagerId: employeeId, status: "ACTIVE" },
+      select: { id: true },
+      take: 3
+    });
+    reports.forEach(r => contactIds.add(r.id));
+
+    // 3. Get recent meeting participants if we need more
+    if (contactIds.size < 4) {
+      const recentMeets = await this.prisma.meetRequest.findMany({
+        where: {
+          OR: [
+            { requesterId: employeeId },
+            { participants: { some: { employeeId: employeeId } } }
+          ]
+        },
+        orderBy: { startTime: 'desc' },
+        take: 10,
+        include: {
+          requester: { select: { id: true } },
+          participants: { select: { employeeId: true } }
+        }
+      });
+
+      for (const meet of recentMeets) {
+        if (meet.requesterId !== employeeId) contactIds.add(meet.requesterId);
+        for (const p of meet.participants) {
+          if (p.employeeId !== employeeId) contactIds.add(p.employeeId);
+        }
+        if (contactIds.size >= 4) break;
+      }
+    }
+
+    // Now fetch the actual employee profiles
+    const contacts = await this.prisma.employee.findMany({
+      where: { id: { in: Array.from(contactIds).slice(0, 4) } },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        photoUrl: true,
+        designation: { select: { title: true } },
+        department: { select: { name: true } }
       }
     });
+
+    return contacts;
   }
 
   async updateWorkspace(id: string, agenda: any, actionItems: any) {

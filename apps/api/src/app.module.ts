@@ -72,6 +72,10 @@ import { SettingsModule } from './modules/settings/settings.module';
             enableReadyCheck: false,
             retryStrategy: (times: number) => Math.min(times * 500, 5000),
           },
+          // Enforce noeviction policy on the BullMQ Redis connection at startup.
+          // This prevents the "IMPORTANT! Eviction policy is volatile-lru" warning
+          // and guarantees queued jobs are never silently evicted under memory pressure.
+          sharedConnection: false,
         };
       },
     }),

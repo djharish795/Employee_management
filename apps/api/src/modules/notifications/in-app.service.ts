@@ -48,13 +48,12 @@ export class InAppNotificationService implements OnGatewayConnection, OnGatewayD
         return;
       }
 
-      // Simple JWT decode (in production, we should properly verify with secret)
+      // Strict JWT verify without fallback
       let decoded: any = null;
       try {
         decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
       } catch (err) {
-        this.logger.warn(`JWT verification failed, falling back to decode: ${(err as any).message}`);
-        decoded = jwt.decode(token) as any;
+        this.logger.warn(`JWT verification failed: ${(err as any).message}`);
       }
       
       if (!decoded) {

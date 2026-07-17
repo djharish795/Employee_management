@@ -26,7 +26,6 @@ export class ComplianceController {
 
   @RequirePermissions(RbacPermissions.COMPLIANCE_READ)
   @Get("dashboard")
-  @Permissions(Permission.READ_EMPLOYEES, Permission.READ_AUDIT)
   async getDashboardStats() {
     const totalDataVolume = "2.4 TB"; // Mock for now until S3 is fully sized
     const consentLogs = await this.consentService.getAllConsentLogs();
@@ -56,14 +55,14 @@ export class ComplianceController {
     };
   }
 
+  @RequirePermissions(RbacPermissions.COMPLIANCE_READ)
   @Get("consents")
-  @Permissions(Permission.READ_EMPLOYEES, Permission.READ_AUDIT)
   getConsents() {
     return this.consentService.getAllConsentLogs();
   }
 
+  @RequirePermissions(RbacPermissions.COMPLIANCE_READ)
   @Get("consents/me/status")
-  @Permissions(Permission.READ_OWN_PROFILE)
   async getMyConsentStatus(@CurrentUser() user: any) {
     const logs = await this.prisma.consentLog.findMany({
       where: { 
@@ -75,58 +74,70 @@ export class ComplianceController {
     return { hasConsented: logs.length > 0 };
   }
 
+  @RequirePermissions(RbacPermissions.COMPLIANCE_MANAGE)
   @Post("consents/me")
-  @Permissions(Permission.WRITE_OWN_PROFILE)
   async addMyConsent(@Body() body: { purpose: string }, @CurrentUser() user: any, @Ip() ip: string) {
     const clientIp = ip || "127.0.0.1";
     return this.consentService.addConsentLog(user.employeeId, body.purpose, user.employeeId, clientIp);
   }
 
+  @RequirePermissions(RbacPermissions.COMPLIANCE_MANAGE)
   @Post("consents")
-  @Permissions(Permission.WRITE_EMPLOYEES)
   addConsent(@Body() body: { employeeId: string; purpose: string }, @CurrentUser() user: any, @Ip() ip: string) {
     const clientIp = ip || "127.0.0.1";
     return this.consentService.addConsentLog(body.employeeId, body.purpose, user.employeeId, clientIp);
   }
 
+  @RequirePermissions(RbacPermissions.COMPLIANCE_READ)
   @Get("erasures")
-  @Permissions(Permission.READ_EMPLOYEES, Permission.READ_AUDIT)
   getErasures(): Promise<DataErasureRequest[]> {
     return this.erasureService.getAllErasureRequests();
   }
 
+  @RequirePermissions(RbacPermissions.COMPLIANCE_MANAGE)
   @Post("erasures/:id/process")
-  @Permissions(Permission.WRITE_EMPLOYEES)
   processErasure(@Param("id") id: string, @Body() body: { action: "APPROVE" | "REJECT" }, @CurrentUser() user: any): Promise<DataErasureRequest> {
     return this.erasureService.processErasureRequest(id, user.employeeId, body.action);
   }
 
+  @RequirePermissions(RbacPermissions.COMPLIANCE_READ)
   @Get("grievances")
-  @Permissions(Permission.READ_EMPLOYEES, Permission.READ_AUDIT)
   getGrievances() {
     return this.grievanceService.getAllGrievanceCases();
   }
 
+  @RequirePermissions(RbacPermissions.COMPLIANCE_READ)
+  @Get("grievances/me")
+  getMyGrievances(@CurrentUser() user: any) {
+    return this.grievanceService.getMyGrievances(user.employeeId);
+  }
+
+  @RequirePermissions(RbacPermissions.COMPLIANCE_MANAGE)
+  @Patch("grievances/:id/resolve")
+  resolveGrievance(@Param("id") id: string, @Body() body: { resolution: string }, @CurrentUser() user: any) {
+    return this.grievanceService.resolveGrievance(id, body.resolution, user.employeeId);
+  }
+
+  @RequirePermissions(RbacPermissions.COMPLIANCE_MANAGE)
   @Post("erasures")
-  @Permissions(Permission.WRITE_OWN_PROFILE, Permission.WRITE_EMPLOYEES)
   createErasureRequest(@Body() body: { notes?: string }, @CurrentUser() user: any): Promise<DataErasureRequest> {
     return this.erasureService.createErasureRequest(user.employeeId, body.notes);
   }
 
+  @RequirePermissions(RbacPermissions.COMPLIANCE_MANAGE)
   @Patch("consents/:id/revoke")
-  @Permissions(Permission.WRITE_OWN_PROFILE, Permission.WRITE_EMPLOYEES)
   revokeConsent(@Param("id") id: string, @CurrentUser() user: any): Promise<ConsentLog> {
     return this.consentService.revokeConsent(id, user.employeeId, user.role);
   }
 
+  @RequirePermissions(RbacPermissions.COMPLIANCE_MANAGE)
   @Post("grievances")
-  @Permissions(Permission.READ_OWN_PROFILE)
   createGrievance(@Body() body: { description: string }, @CurrentUser() user: any): Promise<GrievanceCase> {
     return this.grievanceService.createGrievance(user.employeeId, body.description);
   }
 
+  @RequirePermissions(RbacPermissions.COMPLIANCE_READ)
   @Get("policies")
-  @Permissions(Permission.READ_OWN_PROFILE)
   getPolicies() {
     return [
       { id: "1", title: "Data Protection Policy", url: `${process.env.FRONTEND_URL}/policies/data-protection`, updated: "2024-01-01" },
@@ -134,8 +145,8 @@ export class ComplianceController {
     ];
   }
 
+  @RequirePermissions(RbacPermissions.COMPLIANCE_READ)
   @Get("reports")
-  @Permissions(Permission.READ_AUDIT)
   getReports() {
     return [
       { id: "1", title: "Q1 Compliance Audit", date: "2024-03-31", url: "#" },

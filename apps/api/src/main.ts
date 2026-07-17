@@ -1,6 +1,7 @@
 import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
@@ -11,6 +12,13 @@ async function bootstrap() {
   app.enableCors({
     origin: process.env.WS_CORS_ORIGIN ?? "http://localhost:3000",
     credentials: true,
+  });
+
+  // EMS-SECURITY: Prevent browser cache stealing
+  app.use(helmet());
+  app.use((req: any, res: any, next: any) => {
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
+    next();
   });
 
   app.useGlobalPipes(

@@ -123,7 +123,8 @@ export class TasksService {
         where: { id: dto.projectId },
         data: { issueCounter: { increment: 1 } }
       });
-      issueKey = `${project.key || 'TASK'}-${project.issueCounter}`;
+      const fallbackKey = project.name ? project.name.substring(0, 3).toUpperCase() : `PRJ${project.id.substring(0, 3).toUpperCase()}`;
+      issueKey = `${project.key || fallbackKey}-${project.issueCounter}`;
     } else if (dto.assigneeId && dto.assigneeId !== creatorId) {
       if (!isManagerOrHigher) {
         if (user.role === RbacRoles.TEAM_LEAD) {
@@ -134,6 +135,17 @@ export class TasksService {
         } else {
           throw new ForbiddenException("You can only assign generic tasks to yourself.");
         }
+      }
+    }
+
+    // EMS-006: Block CTO from assigning tasks to Finance
+    if (user.role === 'CTO' && dto.assigneeId) {
+      const assigneeRecord = await this.prisma.employee.findUnique({
+        where: { id: dto.assigneeId },
+        include: { department: true }
+      });
+      if (assigneeRecord?.department?.code === 'FIN' || assigneeRecord?.department?.name?.toUpperCase().includes('FINANCE')) {
+        throw new ForbiddenException("CTO cannot assign tasks directly to Finance personnel.");
       }
     }
 
@@ -236,17 +248,43 @@ export class TasksService {
     return updatedTask;
   }
 
-  async updateTaskStatus(taskId: string, status: TaskStatus): Promise<any> {
+  async updateTaskStatus(taskId: string, status: TaskStatus, previousStatus: TaskStatus, user: any): Promise<any> {
     const task = await this.getTask(taskId);
-    const updatedTask = await this.tasksRepo.updateTask(taskId, { status });
+    
+    // Check permission (from updateTask general check logic)
+    const isManagerOrHigher = RbacGroups.MANAGER_OR_HIGHER.includes(user.role as any);
+    const isAssignee = user.employeeId === task.assigneeId;
+
+    if (!isAssignee && !isManagerOrHigher) {
+      throw new ForbiddenException("Only the assigned employee or a Manager can change the status of this task.");
+    }
+
+    if (!previousStatus) {
+      throw new BadRequestException("previousStatus is required to update task status.");
+    }
+
+    // EMS-005: Optimistic Lock
+    const updateResult = await this.prisma.task.updateMany({
+      where: {
+        id: taskId,
+        status: previousStatus,
+      },
+      data: { status }
+    });
+
+    if (updateResult.count === 0) {
+      throw new BadRequestException("Task status was already updated by another user or the previous status did not match.");
+    }
+
     this.auditService.logUpdate({
       moduleName: 'Tasks',
       entityId: taskId,
-      actorId: 'SYSTEM',
-      oldValue: { status: task.status },
+      actorId: user.employeeId,
+      oldValue: { status: previousStatus },
       newValue: { status }
     });
-    return updatedTask;
+    
+    return this.getTask(taskId);
   }
 
   async getTask(taskId: string): Promise<any> {

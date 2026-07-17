@@ -7,32 +7,27 @@ export class SettingsService {
 
   async getDashboardMetrics() {
     const totalUsers = await this.prisma.employee.count();
-    
+
     // Count active distinct roles
     const activeRoles = await this.prisma.user.findMany({
       select: { role: true },
       distinct: ['role'],
     }).then(r => r.length);
 
-    // Count active workflows
-    const activeWorkflows = await this.prisma.workflowDefinition.count({
-      where: { isActive: true }
-    });
+    // Workflows: workflowDefinition does not exist in schema — derive count from audit logs
+    // or return 0 until the Workflow model is added to the Prisma schema in a future migration.
+    const activeWorkflows = 0;
 
-    // Check integrations
-    const connectSettings = await this.prisma.connectSettings.findFirst();
-    let integrationsConnected = 0;
-    if (connectSettings) {
-      if (connectSettings.slackEnabled) integrationsConnected++;
-      if (connectSettings.googleWorkspaceEnabled) integrationsConnected++;
-      if (connectSettings.zoomEnabled) integrationsConnected++;
-      if (connectSettings.awsEnabled) integrationsConnected++;
-    }
+    // ConnectSettings only tracks calendar/notification flags — no slack/zoom/aws booleans exist.
+    // Count employees who have connected their Google Calendar as a proxy for "active integrations".
+    const integrationsConnected = await this.prisma.connectSettings.count({
+      where: { googleCalendarConnected: true }
+    });
 
     // Security alerts (failed logins, blocked devices in last 24h)
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    
+
     const securityAlerts = await this.prisma.auditLog.count({
       where: {
         action: { in: ['FAILED_LOGIN', 'MFA_FAILED', 'DEVICE_BLOCKED'] },

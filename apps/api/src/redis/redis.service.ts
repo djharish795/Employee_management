@@ -37,6 +37,16 @@ export class RedisService implements OnModuleDestroy {
     if (this.client.status === "wait") {
       await this.client.connect();
     }
+    // Enforce noeviction policy required by BullMQ for reliable queue operations.
+    // This suppresses the "IMPORTANT! Eviction policy is volatile-lru" warning
+    // and ensures queued jobs are never silently dropped due to memory pressure.
+    if (this.client.status === "ready") {
+      try {
+        await this.client.config("SET", "maxmemory-policy", "noeviction");
+      } catch {
+        // AWS ElastiCache may not allow CONFIG SET — safe to ignore in managed environments.
+      }
+    }
   }
 
   getClient(): Redis {
@@ -55,9 +65,15 @@ export class RedisService implements OnModuleDestroy {
     return JSON.parse(raw) as T;
   }
 
-  async del(key: string): Promise<void> {
+  async del(...keys: string[]): Promise<void> {
+    if (keys.length === 0) return;
     await this.connect();
-    await this.client.del(key);
+    await this.client.del(...keys);
+  }
+
+  async keys(pattern: string): Promise<string[]> {
+    await this.connect();
+    return this.client.keys(pattern);
   }
 
   async onModuleDestroy() {

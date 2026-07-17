@@ -1,9 +1,6 @@
 import { IsString, IsOptional, IsBoolean, IsArray } from "class-validator";
 
 export class ApplyLeaveDto {
-  @IsString()
-  employeeId!: string;
-
   @IsArray()
   @IsString({ each: true })
   leaveTypeIds!: string[];

@@ -26,6 +26,25 @@ export class DashboardController {
     return this.dashboardService.getHrOverview();
   }
 
+  // EMS-008: Missing Dashboard Endpoints
+  @RequirePermissions(RbacPermissions.DASHBOARD_VIEW)
+  @Get("headcount")
+  getHeadcount() {
+    return this.dashboardService.getHeadcount();
+  }
+
+  @RequirePermissions(RbacPermissions.DASHBOARD_VIEW)
+  @Get("attendance-summary")
+  getAttendanceSummary() {
+    return this.dashboardService.getAttendanceSummary();
+  }
+
+  @RequirePermissions(RbacPermissions.DASHBOARD_VIEW)
+  @Get("department-attendance")
+  getDepartmentAttendanceOverview() {
+    return this.dashboardService.getDepartmentAttendanceOverview();
+  }
+
   @RequirePermissions(RbacPermissions.DASHBOARD_VIEW)
   @Get("cto-overview")
   getCtoOverview() {

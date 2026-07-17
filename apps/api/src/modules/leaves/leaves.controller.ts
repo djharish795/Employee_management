@@ -5,8 +5,10 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
 import { RbacPermissions } from '../../common/rbac/rbac.config';
 
+import { RbacGuard } from '../../common/guards/rbac.guard';
+
 @Controller('leaves')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RbacGuard)
 export class LeavesController {
 
   constructor(private readonly leaveService: LeavesService) { }
@@ -33,25 +35,29 @@ export class LeavesController {
 
   @RequirePermissions(RbacPermissions.LEAVE_CREATE)
   @Post('apply')
-  applyLeave(@Body() data: ApplyLeaveDto): Promise<unknown> {
-    return this.leaveService.applyLeave(data);
+  applyLeave(@Body() data: ApplyLeaveDto, @Req() req: any): Promise<unknown> {
+    const employeeId = req.user?.employeeId;
+    return this.leaveService.applyLeave({ ...data, employeeId });
   }
 
   @RequirePermissions(RbacPermissions.LEAVE_READ)
   @Post('calculate')
-  calculateLeave(@Body() data: ApplyLeaveDto): Promise<unknown> {
-    return this.leaveService.calculateLeave(data);
+  calculateLeave(@Body() data: ApplyLeaveDto, @Req() req: any): Promise<unknown> {
+    const employeeId = req.user?.employeeId;
+    return this.leaveService.calculateLeave({ ...data, employeeId });
   }
 
   @RequirePermissions(RbacPermissions.LEAVE_APPROVE)
   @Post(':id/approve')
-  approveLeave(@Param('id') id: string, @Body('approverId') approverId: string): Promise<unknown> {
+  approveLeave(@Param('id') id: string, @Req() req: any): Promise<unknown> {
+    const approverId = req.user?.employeeId;
     return this.leaveService.approveLeave(id, approverId);
   }
 
   @RequirePermissions(RbacPermissions.LEAVE_REJECT)
   @Post(':id/reject')
-  rejectLeave(@Param('id') id: string, @Body('approverId') approverId: string, @Body('reason') reason: string): Promise<unknown> {
+  rejectLeave(@Param('id') id: string, @Req() req: any, @Body('reason') reason: string): Promise<unknown> {
+    const approverId = req.user?.employeeId;
     return this.leaveService.rejectLeave(id, approverId, reason || 'No reason provided');
   }
 

@@ -1,10 +1,63 @@
 import { Injectable, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { EmployeeStatus } from "@naprocs/database";
+import { AttendanceService } from "../attendance/attendance.service";
 
 @Injectable()
 export class DashboardService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly attendanceService: AttendanceService
+  ) { }
+
+  // EMS-008: Database level aggregation for headcount
+  async getHeadcount() {
+    const totalCapacity = await this.prisma.employee.count({
+      where: { status: { notIn: [EmployeeStatus.EXITED, EmployeeStatus.CANCELLED, EmployeeStatus.ONBOARDING] } }
+    });
+    const activeEmployees = await this.prisma.employee.count({ where: { status: 'ACTIVE' } });
+    const newJoins = await this.prisma.employee.count({
+      where: {
+        status: 'ACTIVE',
+        joiningDate: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) },
+      },
+    });
+    return {
+      total: totalCapacity,
+      active: activeEmployees,
+      newJoins: newJoins,
+      vacantPositions: totalCapacity - activeEmployees
+    };
+  }
+
+  // EMS-008: Database level aggregation for attendance
+  async getAttendanceSummary() {
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    const [presentCount, wfhCount, onLeaveCount] = await Promise.all([
+      this.prisma.attendanceRecord.count({ where: { date: today, status: { in: ['PRESENT', 'EARLY_CHECKOUT', 'HALF_DAY', 'LATE'] } } }),
+      this.prisma.attendanceRecord.count({ where: { date: today, status: 'WFH' } }),
+      this.prisma.leaveRequest.count({
+        where: {
+          status: 'APPROVED',
+          startDate: { lte: today },
+          endDate: { gte: today }
+        }
+      })
+    ]);
+
+    const activeEmployees = await this.prisma.employee.count({ where: { status: 'ACTIVE' } });
+    const absentCount = Math.max(0, activeEmployees - (presentCount + wfhCount + onLeaveCount));
+
+    return {
+      present: presentCount + wfhCount,
+      wfh: wfhCount,
+      onLeave: onLeaveCount,
+      absent: absentCount,
+      notPunchedIn: absentCount
+    };
+  }
 
   async getMetrics() {
     const totalEmployees = await this.prisma.employee.count({
@@ -131,27 +184,24 @@ export class DashboardService {
     };
   }
 
-  async getHrOverview() {
-    const today = new Date();
+  async getManagerOverview(managerId: string) {
+    return { message: "Manager Overview - Implementation Pending" };
+  }
+
+  async getDepartmentAttendanceOverview(dateStr?: string) {
+    const today = dateStr ? new Date(dateStr) : new Date();
     today.setUTCHours(0, 0, 0, 0);
 
-    const totalCapacity = await this.prisma.employee.count({
-      where: { status: { notIn: [EmployeeStatus.EXITED, EmployeeStatus.CANCELLED, EmployeeStatus.ONBOARDING] } }
-    });
-    const activeEmployees = await this.prisma.employee.count({ where: { status: 'ACTIVE' } });
-    const newJoins = await this.prisma.employee.count({
-      where: {
-        status: 'ACTIVE',
-        joiningDate: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) },
-      },
+    const employees = await this.prisma.employee.findMany({
+      where: { status: 'ACTIVE' },
+      include: { department: true }
     });
 
-    const todayRecords = await this.prisma.attendanceRecord.findMany({
-      where: { date: today },
+    const records = await this.prisma.attendanceRecord.findMany({
+      where: { date: today }
     });
-    
-    // Find all employees on an approved leave today
-    const todayLeaves = await this.prisma.leaveRequest.findMany({
+
+    const leaves = await this.prisma.leaveRequest.findMany({
       where: {
         status: 'APPROVED',
         startDate: { lte: today },
@@ -159,25 +209,50 @@ export class DashboardService {
       }
     });
 
-    let presentCount = 0;
-    let wfhCount = 0;
-    let absentCount = 0;
-    
-    const onLeaveCount = todayLeaves.length;
+    const deptMap: Record<string, any> = {};
 
-    for (const record of todayRecords) {
-      if (['PRESENT', 'EARLY_CHECKOUT', 'HALF_DAY', 'LATE'].includes(record.status)) {
-        presentCount++;
-      } else if (record.status === 'WFH') {
-        wfhCount++;
-      } else if (record.status === 'ABSENT') {
-        absentCount++;
+    for (const emp of employees) {
+      if (!emp.departmentId) continue;
+      
+      const deptName = emp.department?.name || "Unknown";
+      if (!deptMap[emp.departmentId]) {
+        deptMap[emp.departmentId] = {
+          departmentId: emp.departmentId,
+          departmentName: deptName,
+          total: 0,
+          present: 0,
+          wfh: 0,
+          onLeave: 0,
+          absent: 0
+        };
+      }
+      
+      deptMap[emp.departmentId].total++;
+      
+      const empRecord = records.find(r => r.employeeId === emp.id);
+      const empLeave = leaves.find(l => l.employeeId === emp.id);
+
+      if (empLeave) {
+        deptMap[emp.departmentId].onLeave++;
+      } else if (empRecord) {
+        if (['PRESENT', 'EARLY_CHECKOUT', 'HALF_DAY', 'LATE'].includes(empRecord.status)) {
+          deptMap[emp.departmentId].present++;
+        } else if (empRecord.status === 'WFH') {
+          deptMap[emp.departmentId].wfh++;
+        } else {
+          deptMap[emp.departmentId].absent++;
+        }
+      } else {
+        deptMap[emp.departmentId].absent++;
       }
     }
 
-    // Include employees with no record and no leave as "Not Punched In"
-    const totalAccounted = presentCount + wfhCount + onLeaveCount + absentCount;
-    const notPunchedIn = Math.max(0, activeEmployees - totalAccounted) + absentCount;
+    return Object.values(deptMap);
+  }
+
+  async getHrOverview() {
+    const headcount = await this.getHeadcount();
+    const attendance = await this.getAttendanceSummary();
 
     const pendingRequests = await this.prisma.leaveRequest.findMany({
       where: { status: 'PENDING' },
@@ -223,8 +298,8 @@ export class DashboardService {
     });
 
     return {
-      headcount: { total: totalCapacity, active: activeEmployees, newJoins: newJoins },
-      attendance: { present: presentCount, wfh: wfhCount, notPunchedIn: notPunchedIn, onLeave: onLeaveCount, total: activeEmployees },
+      headcount: { total: headcount.total, active: headcount.active, newJoins: headcount.newJoins },
+      attendance: { present: attendance.present, wfh: attendance.wfh, notPunchedIn: attendance.notPunchedIn, onLeave: attendance.onLeave, total: headcount.active },
       leaves: {
         pendingCount: pendingLeaveCount,
         requests: pendingRequests.map(r => ({

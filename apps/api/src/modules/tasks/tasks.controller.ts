@@ -50,9 +50,6 @@ export class TasksController {
   @Post()
   @Permissions(Permission.WRITE_OWN_PROFILE)
   async createTask(@CurrentUser() user: any, @Body() dto: any): Promise<any> {
-    if (user.role !== 'TEAM_LEAD' && user.role !== 'CTO') {
-      throw new ForbiddenException("Only Team Leads and CTO can create tasks");
-    }
     return this.tasksService.createTask(user, dto);
   }
 
@@ -100,17 +97,14 @@ export class TasksController {
   async updateStatus(
     @Param("id") id: string,
     @CurrentUser() user: any,
-    @Body() dto: { status: TaskStatus }
+    @Body() dto: { status: TaskStatus, previousStatus: TaskStatus }
   ): Promise<any> {
-    return this.tasksService.updateTask(id, user, { status: dto.status });
+    return this.tasksService.updateTaskStatus(id, dto.status, dto.previousStatus, user);
   }
 
   @Delete(":id")
   @Permissions(Permission.WRITE_OWN_PROFILE)
   async deleteTask(@CurrentUser() user: any, @Param("id") id: string): Promise<any> {
-    if (user.role !== 'TEAM_LEAD' && user.role !== 'CTO') {
-      throw new ForbiddenException("Only Team Leads and CTO can delete tasks");
-    }
     return this.tasksService.deleteTask(id, user);
   }
 }

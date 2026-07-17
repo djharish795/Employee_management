@@ -58,6 +58,12 @@ export class EmployeesController {
     return this.employeesService.getOrgChart();
   }
 
+  @Get("search-directory")
+  @Permissions(Permission.READ_OWN_PROFILE, Permission.READ_EMPLOYEES)
+  searchDirectory(@Query("q") query: string): Promise<any> {
+    return this.employeesService.searchDirectory(query);
+  }
+
   @Post("org-chart/reassign")
   @Permissions(Permission.WRITE_EMPLOYEES) // Requires HR/CEO permission to update structure
   async reassignManager(@Body() body: ReassignManagerDto) {
