@@ -61,10 +61,16 @@ export function CamSidebar() {
     otherItems.push({ title: 'Settings', icon: Settings, href: '/settings' });
   }
 
+  const isCrm = storeRole === 'CRM';
   const navGroups = [
     {
-      label: 'CAM PORTAL',
-      items: [
+      label: isCrm ? 'CRM PORTAL' : 'CAM PORTAL',
+      items: isCrm ? [
+        { title: 'Client Workspace', icon: Briefcase, href: '/cam/workspace' },
+        { title: 'Dashboard', icon: LayoutDashboard, href: '/om/dashboard' },
+        { title: 'Meetings', icon: Calendar, href: '/cam/meetings' },
+        { title: 'Requirements', icon: ShieldCheck, href: '/cam/qualification' },
+      ] : [
         { title: 'Dashboard', icon: LayoutDashboard, href: '/cam/dashboard' },
         { title: 'Lead Workspace', icon: Briefcase, href: '/cam/workspace' },
         { title: 'Follow-up Hub', icon: History, href: '/cam/follow-ups' },
@@ -96,8 +102,12 @@ export function CamSidebar() {
       <div className={`p-5 pb-4 flex items-center ${collapsed ? 'justify-center px-3' : 'justify-between'}`}>
         {!collapsed && (
           <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight leading-snug">Naprocs EMS</h2>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-wide mt-0.5 uppercase">{displayRole} Portal</p>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight leading-snug">
+              {isCrm ? 'CRM Portal' : 'Naprocs EMS'}
+            </h2>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-wide mt-0.5 uppercase">
+              {isCrm ? 'Operational Execution' : `${displayRole} Portal`}
+            </p>
           </div>
         )}
         <button
