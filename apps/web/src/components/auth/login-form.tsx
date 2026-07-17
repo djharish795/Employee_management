@@ -48,11 +48,28 @@ export const LoginForm: React.FC = () => {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "", rememberDevice: false },
   });
+
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const emailParam = params.get("email");
+      const passwordParam = params.get("password");
+      if (emailParam || passwordParam) {
+        reset({
+          email: emailParam || "",
+          password: passwordParam || "",
+          rememberDevice: false
+        });
+      }
+    }
+  }, [reset]);
+
 
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
