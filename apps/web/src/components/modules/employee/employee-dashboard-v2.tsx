@@ -51,7 +51,7 @@ export default function EmployeeDashboardV2() {
     queryFn: () => fetchMyLogs(),
     staleTime: 60_000,
   });
-  const logs = logsQuery.data || [];
+  const logs = logsQuery.data?.data || [];
 
   // ── Today's attendance state from backend ─────────────────────────────────
   const todayQuery = useQuery({

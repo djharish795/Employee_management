@@ -6,10 +6,9 @@ export const fetchTodayStatus = async (): Promise<{ state: "IN" | "BREAK" | "OUT
   return data;
 };
 
-export const fetchMyLogs = async (page = 1, limit = 100): Promise<AttendanceLog[]> => {
+export const fetchMyLogs = async (page = 1, limit = 20): Promise<{ data: AttendanceLog[], total: number, page: number, limit: number }> => {
   const { data } = await apiClient.get(`/attendance/my-logs?page=${page}&limit=${limit}`);
-  // Assuming the backend returns { data: AttendanceLog[], total: number }
-  return data.data; 
+  return data;
 };
 
 export const fetchMyKpis = async (): Promise<AttendanceKPIs> => {
@@ -35,9 +34,37 @@ export const fetchSummaryToday = async (date?: string, departmentId?: string): P
   return data;
 };
 
-export const fetchAllLogs = async (page = 1, limit = 500): Promise<AttendanceLog[]> => {
-  const { data } = await apiClient.get(`/attendance/all-logs?page=${page}&limit=${limit}`);
-  return data.data;
+export const fetchAllLogs = async (
+  page = 1,
+  limit = 20,
+  filterStatus?: string,
+  filterMonth?: string,
+  searchQuery?: string
+): Promise<{ data: AttendanceLog[], total: number, page: number, limit: number }> => {
+  const params = new URLSearchParams();
+  params.append("page", page.toString());
+  params.append("limit", limit.toString());
+  
+  if (filterStatus) params.append("status", filterStatus);
+  
+  if (filterMonth) {
+    // filterMonth is expected to be "MMM YYYY" e.g., "Jul 2026"
+    const date = new Date(filterMonth);
+    if (!isNaN(date.getTime())) {
+      params.append("month", (date.getMonth() + 1).toString());
+      params.append("year", date.getFullYear().toString());
+    }
+  }
+
+  // Not implemented in backend yet but we can pass it if we want server-side searching
+  if (searchQuery) params.append("search", searchQuery);
+
+  const { data } = await apiClient.get(`/attendance/all-logs?${params.toString()}`);
+  return data;
+};
+
+export const exportAllLogsCsv = () => {
+  window.open(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/attendance/export-all`, '_blank');
 };
 
 export const fetchRegularizations = async (): Promise<RegularizationRequest[]> => {

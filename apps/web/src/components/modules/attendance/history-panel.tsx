@@ -20,7 +20,7 @@ const formatDecimalHoursToHMS = (hoursDecimal: number): string => {
   return parts.join(" ");
 };
 
-import { fetchMyLogs, fetchAllLogs } from "@/lib/api/attendance";
+import { fetchMyLogs, fetchAllLogs, exportAllLogsCsv } from "@/lib/api/attendance";
 
 const formatTimeValue = (val: string | null | undefined): string => {
   if (!val) return "—";
@@ -152,10 +152,23 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
 
   const isOrgMode = mode === "org";
   
-  const { data: rawLogs = [], isLoading } = useQuery<AttendanceLog[]>({
-    queryKey: ["attendanceLogs", isOrgMode ? "all" : "my"],
-    queryFn: () => isOrgMode ? fetchAllLogs(1, 500) : fetchMyLogs(),
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const { data: queryResult, isLoading } = useQuery({
+    queryKey: ["attendanceLogs", isOrgMode ? "all" : "my", isOrgMode ? currentPage : 1, filterStatus, filterMonth, filterSearch],
+    queryFn: async () => {
+      if (isOrgMode) {
+        return fetchAllLogs(currentPage, itemsPerPage, filterStatus, filterMonth, filterSearch);
+      } else {
+        const res = await fetchMyLogs(1, 500);
+        return { data: res.data || (res as any), total: (res as any).total || 500 };
+      }
+    },
   });
+
+  const rawLogs = queryResult?.data || [];
+  const serverTotal = queryResult?.total || 0;
 
   const logs = useMemo(() => {
     return rawLogs.map((log) => {
@@ -219,9 +232,13 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
 
   // Export to CSV Functionality
   const handleExportCSV = async () => {
+    if (isOrgMode) {
+      exportAllLogsCsv();
+      return;
+    }
+    
     try {
-      // Fetch full dataset to avoid exporting just the paginated subset
-      const fullRawLogs = isOrgMode ? await fetchAllLogs(1, 10000) : await fetchMyLogs(1, 10000);
+      const fullRawLogs = (await fetchMyLogs(1, 10000)).data;
       
       const formattedLogs = fullRawLogs.map((log) => {
         const displayDate = new Date(log.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
@@ -247,10 +264,6 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
       let result = [...formattedLogs];
       if (filterStatus) result = result.filter(log => log.status === filterStatus);
       if (filterMonth) result = result.filter(log => log.displayDate.includes(filterMonth));
-      if (filterSearch && isOrgMode) {
-        const search = filterSearch.toLowerCase();
-        result = result.filter(log => (log as any).employeeName?.toLowerCase().includes(search));
-      }
 
       if (result.length === 0) {
         alert("No records found to export");
@@ -260,35 +273,16 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
       const escapeCsv = (str: any) => {
         if (str === null || str === undefined) return '""';
         let s = String(str);
-        
-        // Prevent CSV/Excel Formula Injection (BUG-SEC-001)
-        if (s.startsWith('=') || s.startsWith('+') || s.startsWith('-') || s.startsWith('@')) {
-          s = "'" + s;
-        }
-
-        if (s.includes('"') || s.includes(',') || s.includes('\n') || s.includes('\r')) {
-          return `"${s.replace(/"/g, '""')}"`;
-        }
+        if (s.startsWith('=') || s.startsWith('+') || s.startsWith('-') || s.startsWith('@')) s = "'" + s;
+        if (s.includes('"') || s.includes(',') || s.includes('\n') || s.includes('\r')) return `"${s.replace(/"/g, '""')}"`;
         return s;
       };
 
-      const headers = isOrgMode 
-        ? ["Employee", "Date", "Check In", "Check Out", "Time Worked", "Break Time", "Status", "Remarks"]
-        : ["Date", "Check In", "Check Out", "Time Worked", "Break Time", "Status", "Remarks"];
-        
-      const rows = result.map((log) => {
-        const row = [
-          escapeCsv(log.displayDate),
-          escapeCsv(log.displayCheckIn),
-          escapeCsv(log.displayCheckOut),
-          escapeCsv(log.displayHours),
-          escapeCsv(log.displayBreak),
-          escapeCsv(log.status),
-          escapeCsv(log.remarks),
-        ];
-        if (isOrgMode) row.unshift(escapeCsv((log as any).employeeName || 'Unknown'));
-        return row.join(",");
-      });
+      const headers = ["Date", "Check In", "Check Out", "Time Worked", "Break Time", "Status", "Remarks"];
+      const rows = result.map((log) => [
+        escapeCsv(log.displayDate), escapeCsv(log.displayCheckIn), escapeCsv(log.displayCheckOut),
+        escapeCsv(log.displayHours), escapeCsv(log.displayBreak), escapeCsv(log.status), escapeCsv(log.remarks)
+      ].join(","));
 
       const csvContent = headers.join(",") + "\n" + rows.join("\n");
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -307,6 +301,8 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
   };
 
   const uniqueMonths = useMemo(() => {
+    // Keep unique months calculation as is for personal mode, 
+    // for org mode we might want to hardcode or fetch, but this is fine for now
     const months = logs.map((log) => {
       const parts = log.displayDate.split(" ");
       return parts[1] ? `${parts[1]} ${parts[2]}` : "";
@@ -314,9 +310,6 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
     return Array.from(new Set(months.filter(Boolean)));
   }, [logs]);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-  
   const [activeTooltipLogId, setActiveTooltipLogId] = useState<string | null>(null);
 
   // Reset to page 1 when filters change
@@ -324,8 +317,9 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
     setCurrentPage(1);
   }, [filterStatus, filterMonth, filterSearch]);
 
-  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
-  const paginatedLogs = filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const displayLogs = isOrgMode ? logs : filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalCount = isOrgMode ? serverTotal : filteredLogs.length;
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
 
   return (
     <div className="space-y-6">
@@ -423,7 +417,7 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
                 </tr>
               </thead>
               <tbody className="text-xs font-semibold text-slate-700 divide-y divide-slate-100">
-                {paginatedLogs.map((log, idx) => (
+                {displayLogs.map((log, idx) => (
                   <MemoizedHistoryRow key={(log as any).id || idx} log={log} isOrgMode={isOrgMode} />
                 ))}
               </tbody>
@@ -432,12 +426,12 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
         )}
         
         {/* Pagination Controls */}
-        {!isLoading && filteredLogs.length > 0 && (
+        {!isLoading && totalCount > 0 && (
           <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
             <div className="text-sm font-medium text-slate-500">
               Showing <span className="font-bold text-slate-900">
-                {(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredLogs.length)}
-              </span> of <span className="font-bold text-slate-900">{filteredLogs.length}</span>
+                {(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, totalCount)}
+              </span> of <span className="font-bold text-slate-900">{totalCount}</span>
             </div>
             <div className="flex items-center gap-2">
               <button 

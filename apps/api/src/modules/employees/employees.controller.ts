@@ -3,7 +3,7 @@ import { EmployeesService } from "./employees.service";
 import { CreateEmployeeDto } from "./dto/create-employee.dto";
 import { UpdateEmployeeDto } from "./dto/update-employee.dto";
 import { OnboardingDraftStepDto } from "./dto/onboarding-step.dto";
-import { EmployeeIdParamDto, ReassignManagerDto, CompleteOnboardingDto } from "./dto/employee-params.dto";
+import { EmployeeIdParamDto, ReassignManagerDto, CompleteOnboardingDto, EmployeeFilterDto } from "./dto/employee-params.dto";
 import { PaginationParams, PaginatedResult } from "../../common/utils/pagination.util";
 import { EmployeeResponseDto } from "./dto/employee-response.dto";
 import { UseGuards, UseInterceptors } from "@nestjs/common";
@@ -73,7 +73,7 @@ export class EmployeesController {
 
   @Get()
   @Permissions(Permission.READ_EMPLOYEES, Permission.READ_TEAM_PROFILES)
-  getEmployees(@Query() params: PaginationParams): Promise<PaginatedResult<EmployeeResponseDto>> {
+  getEmployees(@Query() params: EmployeeFilterDto): Promise<PaginatedResult<EmployeeResponseDto>> {
     return this.employeesService.getEmployees(params);
   }
 

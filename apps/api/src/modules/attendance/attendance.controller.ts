@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Query, Ip, Patch, Param, BadRequestException } from "@nestjs/common";
+import { Controller, Get, Post, Body, UseGuards, Query, Ip, Patch, Param, BadRequestException, Res } from "@nestjs/common";
 import { AttendanceService } from "./attendance.service";
 import { AttendanceCronService } from "./attendance.cron";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
@@ -88,6 +88,15 @@ export class AttendanceController {
     return this.attendanceService.getAllLogs(query, user);
   }
 
+  @Get("export-all")
+  @Permissions(Permission.READ_EMPLOYEES, Permission.READ_TEAM_PROFILES)
+  async exportAllLogs(@Query() query: any, @CurrentUser() user?: any, @Res() res?: any) {
+    const csv = await this.attendanceService.exportAllLogs(query, user);
+    res.header('Content-Type', 'text/csv');
+    res.attachment('attendance_logs.csv');
+    return res.send(csv);
+  }
+
   @Get("team-view")
   @Permissions(Permission.READ_TEAM_PROFILES)
   async getTeamAttendanceView(
@@ -116,6 +125,7 @@ export class AttendanceController {
   }
 
   @Patch("regularizations/:id/action")
+  @Permissions(Permission.READ_OWN_PROFILE)
   // We remove the strict @Permissions(Permission.WRITE_EMPLOYEES) because managers need to approve their team's requests without needing global WRITE_EMPLOYEES permission.
   // The attendance.service.ts internally verifies if the CurrentUser is the employee's manager or an HR admin.
   async actionRegularization(

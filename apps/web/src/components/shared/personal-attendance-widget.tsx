@@ -4,6 +4,7 @@ import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Clock, LogOut, Loader2 } from "lucide-react";
 import { fetchTodayStatus, submitPunch } from "@/lib/api/attendance";
+import EarlyCheckoutModal from "@/components/shared/early-checkout-modal";
 
 export function PersonalAttendanceWidget() {
   const queryClient = useQueryClient();
@@ -32,10 +33,24 @@ export function PersonalAttendanceWidget() {
     },
   });
 
+  const [showCheckoutModal, setShowCheckoutModal] = React.useState(false);
+
+  const getSecondsElapsed = () => {
+    let secs = todayQuery.data?.offset || 0;
+    if ((todayState === "IN" || todayState === "BREAK") && todayQuery.data?.startTime) {
+      secs += Math.floor((Date.now() - new Date(todayQuery.data.startTime).getTime()) / 1000);
+    }
+    return secs;
+  };
+
   const handlePunch = () => {
     if (punchMutation.isPending) return;
     const nextAction = isPunchedIn ? "OUT" : "IN";
-    punchMutation.mutate(nextAction);
+    if (nextAction === "OUT") {
+      setShowCheckoutModal(true);
+    } else {
+      punchMutation.mutate(nextAction);
+    }
   };
 
   // ── Formatted clock-in time ───────────────────────────────────────────────
@@ -49,8 +64,19 @@ export function PersonalAttendanceWidget() {
   })();
 
   return (
-    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-sm mb-6 sm:mb-8 transition-colors">
-      <div className="flex items-center gap-4">
+    <>
+      <EarlyCheckoutModal
+        isOpen={showCheckoutModal}
+        secondsElapsed={getSecondsElapsed()}
+        isPending={punchMutation.isPending}
+        onClose={() => setShowCheckoutModal(false)}
+        onConfirm={() => {
+          setShowCheckoutModal(false);
+          punchMutation.mutate("OUT");
+        }}
+      />
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-sm mb-6 sm:mb-8 transition-colors">
+        <div className="flex items-center gap-4">
         <div className="flex flex-col">
           <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Today's Status</p>
           <div className="flex items-center gap-2">
@@ -86,5 +112,6 @@ export function PersonalAttendanceWidget() {
         )}
       </button>
     </div>
+    </>
   );
 }

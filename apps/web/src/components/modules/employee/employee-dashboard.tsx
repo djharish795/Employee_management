@@ -13,6 +13,7 @@ import {
   fetchMyKpis,
   submitPunch,
 } from "@/lib/api/attendance";
+import EarlyCheckoutModal from "@/components/shared/early-checkout-modal";
 
 // Format seconds into h mm string
 const fmtHours = (secs: number) => {
@@ -71,10 +72,24 @@ export default function EmployeeDashboardPanel() {
     },
   });
 
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+
+  const getSecondsElapsed = () => {
+    let secs = todayQuery.data?.offset || 0;
+    if ((todayState === "IN" || todayState === "BREAK") && todayQuery.data?.startTime) {
+      secs += Math.floor((Date.now() - new Date(todayQuery.data.startTime).getTime()) / 1000);
+    }
+    return secs;
+  };
+
   const handlePunch = () => {
     if (punchMutation.isPending) return;
     const nextAction = isPunchedIn ? "OUT" : "IN";
-    punchMutation.mutate(nextAction);
+    if (nextAction === "OUT") {
+      setShowCheckoutModal(true);
+    } else {
+      punchMutation.mutate(nextAction);
+    }
   };
 
   // ── Formatted clock-in time ───────────────────────────────────────────────
@@ -104,6 +119,16 @@ export default function EmployeeDashboardPanel() {
 
   return (
     <div className="space-y-6">
+      <EarlyCheckoutModal
+        isOpen={showCheckoutModal}
+        secondsElapsed={getSecondsElapsed()}
+        isPending={punchMutation.isPending}
+        onClose={() => setShowCheckoutModal(false)}
+        onConfirm={() => {
+          setShowCheckoutModal(false);
+          punchMutation.mutate("OUT");
+        }}
+      />
 
       {/* ── KPI Cards ─────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
