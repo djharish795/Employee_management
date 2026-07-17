@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { ROLE_REGISTRY, getDashboardPathForRole, getSidebarTypeForRole } from '@naprocs/types';
+import { ROLE_REGISTRY, getDashboardPathForRole, getSidebarTypeForRole, UserRole as RbacUserRole } from '@naprocs/types';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -46,10 +46,10 @@ async function main() {
     const dbRole = user.role;
     const resolvedDashboard = getDashboardPathForRole(dbRole);
     const resolvedSidebar = getSidebarTypeForRole(dbRole);
-    const registryEntry = ROLE_REGISTRY[dbRole as any];
+    const registryEntry = ROLE_REGISTRY[dbRole as RbacUserRole];
     
     // Check default dashboard match
-    const expectedEntry = ROLE_REGISTRY[testUser.expectedRole as any];
+    const expectedEntry = ROLE_REGISTRY[testUser.expectedRole as RbacUserRole];
     const expectedDashboard = expectedEntry?.defaultDashboard || '/employee/dashboard';
     const expectedSidebar = expectedEntry?.sidebarType || 'EMPLOYEE';
     
