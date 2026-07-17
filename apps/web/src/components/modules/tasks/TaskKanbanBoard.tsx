@@ -87,7 +87,7 @@ export function TaskKanbanBoard({ initialTasks, projectId, onTaskUpdated }: { in
             key={col.id}
             onDrop={(e) => handleDrop(e, col.id as any)}
             onDragOver={handleDragOver}
-            className="flex flex-col gap-4 p-4 bg-gray-50 rounded-xl min-w-[320px] max-w-[320px] max-h-full overflow-y-auto"
+            className="flex flex-col gap-4 p-4 bg-gray-50 rounded-xl min-w-[320px] max-w-[320px] max-h-full overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent"
           >
             <h2 className="text-sm font-semibold text-gray-700 uppercase">
               {col.title} ({tasks.filter((t) => t.status === col.id).length})
@@ -110,28 +110,33 @@ export function TaskKanbanBoard({ initialTasks, projectId, onTaskUpdated }: { in
                       isAssignee ? 'cursor-grab active:cursor-grabbing hover:border-blue-300 hover:shadow-md' : 'cursor-pointer hover:border-gray-300'
                     }`}
                   >
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-2">
                       <h3 className="font-medium text-gray-900">{task.title}</h3>
-                      <span
-                        className={`text-xs px-2 py-1 rounded-full font-medium ${
-                          task.priority === "HIGH"
-                            ? "bg-red-100 text-red-700"
-                            : task.priority === "MEDIUM"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : "bg-green-100 text-green-700"
-                        }`}
-                      >
-                        {task.priority}
-                      </span>
-                      {(isTeamLead || role === 'CTO') && (
-                        <button 
-                          onClick={() => handleDelete(task.id)}
-                          className="text-gray-400 hover:text-red-500 transition-colors ml-2"
-                          title="Delete task"
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full font-medium ${
+                            task.priority === "HIGH"
+                              ? "bg-red-100 text-red-700"
+                              : task.priority === "MEDIUM"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-green-100 text-green-700"
+                          }`}
                         >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
+                          {task.priority}
+                        </span>
+                        {(isTeamLead || role === 'CTO') && (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(task.id);
+                            }}
+                            className="text-gray-400 hover:text-red-500 transition-colors"
+                            title="Delete task"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                     
                     <div className="flex mt-2">
