@@ -24,7 +24,7 @@ export default function CalendarPanel() {
   // Queries
   const { data: requests = [], isLoading: loadingLeaves, error: leavesError } = useQuery<ApiLeaveRequest[]>({
     queryKey: ["leaves-calendar"],
-    queryFn: fetchLeaveCalendar,
+    queryFn: () => fetchLeaveCalendar(),
     staleTime: 60_000,
     retry: 1,
   });

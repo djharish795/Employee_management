@@ -19,7 +19,7 @@ export function CamSidebar() {
   const clearSession = useAuthStore((state) => state.clearSession);
   const { unreadCount } = useNotifications();
   const { hasPermission } = useRbac();
-  const storeRole = useAuthStore((state) => state.role) || 'CAM';
+  const storeRole = useAuthStore((state) => state.role) || 'CEM';
   const accessToken = useAuthStore((state) => state.accessToken);
   const photoUrl = useAuthStore((state) => state.photoUrl);
 

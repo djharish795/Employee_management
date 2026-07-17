@@ -8,7 +8,7 @@ import { format } from "date-fns";
 import toast from "react-hot-toast";
 import { apiClient } from "@/lib/api/client";
 
-const ALLOWED_ROLES = ["CAM", "OE", "OM", "CRM"];
+const ALLOWED_ROLES = ["CEM", "OE", "OM", "CRM"];
 
 export interface Message {
   id: string;
@@ -233,7 +233,7 @@ export function CamSchedulerChat({ messages, setMessages }: CamSchedulerChatProp
         </div>
         <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Access Restricted</h3>
         <p className="text-slate-500 dark:text-slate-400 max-w-[250px]">
-          This chat is restricted to authorized roles only (CAM, OE, OM).
+          This chat is restricted to authorized roles only (CEM, OE, OM).
         </p>
       </div>
     );
