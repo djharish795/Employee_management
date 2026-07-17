@@ -1215,7 +1215,7 @@ enum UserRole {
   TEAM_LEAD
   EMPLOYEE
   IT
-  CAM
+  CEM
   OE
   OM
 }

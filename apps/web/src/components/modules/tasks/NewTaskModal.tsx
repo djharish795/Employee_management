@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { tasksApi, Task } from "@/lib/api/tasks";
+import { apiClient } from "@/lib/api/client";
 import { X } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -11,6 +12,7 @@ export function NewTaskModal({
   onTaskCreated,
   projectId,
   projectMembers = [],
+  projects = [],
   userRole,
   isQa = false
 }: {
@@ -19,6 +21,7 @@ export function NewTaskModal({
   onTaskCreated: (task: Task) => void;
   projectId?: string;
   projectMembers?: any[];
+  projects?: any[];
   userRole?: string | null;
   isQa?: boolean;
 }) {
@@ -30,8 +33,26 @@ export function NewTaskModal({
     description: "",
     type: defaultType,
     priority: "MEDIUM",
-    assigneeId: ""
+    assigneeId: "",
+    selectedProjectId: projectId === "MY_TASKS" ? "" : (projectId || "")
   });
+  
+  const [localMembers, setLocalMembers] = useState<any[]>(projectMembers);
+
+  useEffect(() => {
+    if (formData.selectedProjectId) {
+      apiClient.get(`/projects/${formData.selectedProjectId}`).then(res => {
+        if (res.data && res.data.assignments) {
+          setLocalMembers(res.data.assignments.map((a: any) => a.employee).filter(Boolean));
+        }
+      }).catch(err => {
+        console.error("Failed to fetch project members", err);
+        setLocalMembers([]);
+      });
+    } else {
+      setLocalMembers(projectMembers);
+    }
+  }, [formData.selectedProjectId, projectMembers]);
 
   if (!isOpen) return null;
 
@@ -45,13 +66,19 @@ export function NewTaskModal({
         type: formData.type as any,
         priority: formData.priority as any,
         assigneeId: formData.assigneeId || undefined,
-        projectId: projectId === "MY_TASKS" ? undefined : projectId
+        projectId: formData.selectedProjectId || undefined
       });
       toast.success("Task created successfully!");
-      onTaskCreated(newTask);
+      // Ensure the task has required fields for the Kanban board to render it properly
+      const safeTask = {
+        ...newTask,
+        status: newTask?.status || "TODO",
+        id: newTask?.id || Date.now().toString()
+      };
+      onTaskCreated(safeTask);
       onClose();
-    } catch (err) {
-      toast.error("Failed to create task");
+    } catch (err: any) {
+      toast.error(`Failed to create task: ${err.response?.data?.message || err.message}`);
     } finally {
       setLoading(false);
     }
@@ -102,6 +129,24 @@ export function NewTaskModal({
             </select>
           </div>
 
+          {projectId === "MY_TASKS" && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Project</label>
+              <select
+                value={formData.selectedProjectId}
+                onChange={(e) => setFormData({ ...formData, selectedProjectId: e.target.value })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              >
+                <option value="">None (Generic Task)</option>
+                {projects?.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700">Title</label>
             <input
@@ -147,7 +192,7 @@ export function NewTaskModal({
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               >
                 <option value="">Unassigned (Self)</option>
-                {projectMembers && projectMembers.map(member => (
+                {localMembers && localMembers.map(member => (
                   <option key={member.id} value={member.id}>
                     {member.firstName} {member.lastName} {member.designation?.title ? `- ${member.designation.title}` : ""}
                   </option>

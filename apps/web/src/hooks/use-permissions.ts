@@ -10,7 +10,7 @@ export function usePermissions() {
   const canManageEmployees = ["SUPER_ADMIN", "CHRO", "HR", "IT"].includes(role || "");
   const canViewEmployeesList = [
     "SUPER_ADMIN", "CEO", "CTO", "COO", "CFO", "CHRO", "HR", 
-    "FINANCE", "MANAGER", "TEAM_LEAD", "IT", "CAM", "OE", "OM"
+    "FINANCE", "MANAGER", "TEAM_LEAD", "IT", "CEM", "OE", "OM"
   ].includes(role || "");
   
   const canManageLeaves = ["SUPER_ADMIN", "CEO", "CTO", "HR", "CHRO", "MANAGER", "TEAM_LEAD", "OM"].includes(role || "");

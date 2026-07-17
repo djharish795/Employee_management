@@ -12,14 +12,14 @@ export enum UserRole {
   TEAM_LEAD = "TEAM_LEAD",
   EMPLOYEE = "EMPLOYEE",
   IT = "IT",
-  CAM = "CAM",
+  CEM = "CEM",
   OM = "OM",
   OE = "OE",
 }
 
 export enum SidebarType {
   CEO = "CEO",
-  CAM = "CAM",
+  CEM = "CEM",
   TEAM_LEAD = "TEAM_LEAD",
   EMPLOYEE = "EMPLOYEE",
 }
@@ -38,9 +38,9 @@ export const ROLE_SIDEBAR_TYPE: Record<UserRole, SidebarType> = {
   [UserRole.TEAM_LEAD]: SidebarType.TEAM_LEAD,
   [UserRole.EMPLOYEE]: SidebarType.EMPLOYEE,
   [UserRole.IT]: SidebarType.CEO,
-  [UserRole.CAM]: SidebarType.CAM,
-  [UserRole.OM]: SidebarType.CAM,
-  [UserRole.OE]: SidebarType.CAM,
+  [UserRole.CEM]: SidebarType.CEM,
+  [UserRole.OM]: SidebarType.CEM,
+  [UserRole.OE]: SidebarType.CEM,
 };
 
 export function getSidebarTypeForRole(role: string): SidebarType {
@@ -61,7 +61,7 @@ export const ROLE_DASHBOARD_PATH: Record<UserRole, string> = {
   [UserRole.TEAM_LEAD]: "/employee/dashboard",
   [UserRole.EMPLOYEE]: "/employee/dashboard",
   [UserRole.IT]: "/admin/dashboard",
-  [UserRole.CAM]: "/cam/scheduler",
+  [UserRole.CEM]: "/cam/dashboard",
   [UserRole.OE]: "/oe/dashboard",
   [UserRole.OM]: "/om/dashboard",
 };
@@ -122,11 +122,13 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.READ_AUDIT,
     Permission.MANAGE_PROJECTS,
     Permission.ACCESS_SETTINGS,
+    Permission.WRITE_OWN_PROFILE,
   ],
   [UserRole.CTO]: [
     Permission.READ_EMPLOYEES,
     Permission.READ_AUDIT,
     Permission.MANAGE_PROJECTS,
+    Permission.WRITE_OWN_PROFILE,
   ],
   [UserRole.COO]: [
     Permission.READ_EMPLOYEES,
@@ -141,7 +143,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   [UserRole.IT]: [
     Permission.READ_EMPLOYEES,
   ],
-  [UserRole.CAM]: [
+  [UserRole.CEM]: [
     Permission.READ_EMPLOYEES,
   ],
   [UserRole.OM]: [

@@ -10,7 +10,7 @@ type ColumnStatus = WorkflowInstance["status"];
 const COLUMNS: { id: ColumnStatus; label: string; color: string }[] = [
   { id: "PENDING", label: "Pending", color: "bg-slate-100 border-slate-200" },
   { id: "IN_PROGRESS", label: "In Progress", color: "bg-blue-50 border-blue-200" },
-  { id: "COMPLETED", label: "Completed", color: "bg-emerald-50 border-emerald-200" },
+  { id: "APPROVED", label: "Completed", color: "bg-emerald-50 border-emerald-200" },
   { id: "CANCELLED", label: "Cancelled", color: "bg-red-50 border-red-200" },
 ];
 

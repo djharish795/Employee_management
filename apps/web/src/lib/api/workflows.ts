@@ -2,7 +2,7 @@ import { apiClient } from "./client";
 
 export interface WorkflowInstance {
   id: string;
-  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+  status: "PENDING" | "IN_PROGRESS" | "APPROVED" | "CANCELLED";
   workflowId: string;
   workflow: {
     id: string;

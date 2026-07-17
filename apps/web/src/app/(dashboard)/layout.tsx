@@ -57,7 +57,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const sidebarType = getSidebarTypeForRole(activeRole);
   
   const renderSidebar = () => {
-    if (sidebarType === SidebarType.CAM) return <CamSidebar />;
+    if (sidebarType === SidebarType.CEM) return <CamSidebar />;
     if (sidebarType === SidebarType.TEAM_LEAD) return <TeamLeadSidebar />;
     if (sidebarType === SidebarType.CEO) return <CeoSidebar />;
     return <EmployeeSidebar />;
