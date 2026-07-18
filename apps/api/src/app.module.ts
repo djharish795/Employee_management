@@ -60,17 +60,21 @@ import { CrmModule } from "./modules/crm/crm.module";
     }),
     ScheduleModule.forRoot(),
     BullModule.forRootAsync({
-      imports: [RedisModule],
-      inject: [RedisService],
-      useFactory: async (redisService: RedisService) => {
-        // Eagerly connect and enforce noeviction before BullMQ reads the policy.
-        // Passing the existing ioredis client ensures BullMQ reuses our connection
-        // instead of creating its own — permanently eliminating the eviction warning.
-        await redisService.connect();
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (config: ConfigService) => {
+        const host = config.get<string>("REDIS_HOST");
+        const port = Number(config.get<string>("REDIS_PORT", "6379"));
+        const password = config.get<string>("REDIS_PASSWORD") || undefined;
+        const tlsEnabled = config.get<string>("REDIS_TLS", "false") === "true";
+
         return {
-          connection: redisService.getClient(),
-          // Tell BullMQ not to close the shared client when the module is destroyed.
-          sharedConnection: true,
+          connection: {
+            host,
+            port,
+            password,
+            tls: tlsEnabled ? {} : undefined,
+          },
         };
       },
     }),
