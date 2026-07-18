@@ -29,7 +29,7 @@ async function main() {
   today.setHours(5, 30, 0, 0); // Start of day in IST
 
   const datesToSeed: Date[] = [];
-  for (let i = 0; i <= 30; i++) {
+  for (let i = 1; i <= 30; i++) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
     // Skip weekends for general attendance

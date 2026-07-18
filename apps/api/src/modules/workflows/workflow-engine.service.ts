@@ -30,13 +30,22 @@ export class WorkflowEngineService {
       throw new BadRequestException(`Workflow ${type} has no steps defined`);
     }
 
+    const initiatorUser = await this.prisma.user.findUnique({
+      where: { employeeId: initiatorId }
+    });
+
+    let initialStepIndex = 0;
+    if (type === "ASSET_REQUEST" && initiatorUser?.role === "OM" && steps.length > 1) {
+      initialStepIndex = 1;
+    }
+
     const instance = await this.prisma.workflowInstance.create({
       data: {
         workflowId: workflow.id,
         resourceId,
         resourceType: type,
         initiatedById: initiatorId,
-        currentStepIndex: 0,
+        currentStepIndex: initialStepIndex,
         status: "PENDING",
         metadata: payload, // save payload as metadata
       }
@@ -47,10 +56,10 @@ export class WorkflowEngineService {
       actorId: initiatorId,
       resource: "WorkflowInstance",
       resourceId: instance.id,
-      newValue: { type, resourceId, currentStepIndex: 0, payload }
+      newValue: { type, resourceId, currentStepIndex: initialStepIndex, payload }
     });
 
-    await this.notifyAssignee(instance.id, steps[0]);
+    await this.notifyAssignee(instance.id, steps[initialStepIndex]);
 
     return instance;
   }
@@ -58,10 +67,10 @@ export class WorkflowEngineService {
   private async notifyAssignee(instanceId: string, step: any) {
     const instance = await this.prisma.workflowInstance.findUnique({
       where: { id: instanceId },
-      include: { 
+      include: {
         initiatedBy: {
           include: { department: { include: { head: true } } }
-        } 
+        }
       }
     });
     if (!instance) return;
@@ -155,7 +164,7 @@ export class WorkflowEngineService {
           where: { id: instanceId, status: "PENDING", currentStepIndex: instance.currentStepIndex },
           data: { status: "REJECTED" }
         });
-        
+
         if (updateResult.count === 0) {
           throw new Error("ConcurrencyConflict");
         }
@@ -186,11 +195,11 @@ export class WorkflowEngineService {
           status: isFinalStep ? "APPROVED" : "PENDING"
         }
       });
-      
+
       if (updateResult.count === 0) {
         throw new Error("ConcurrencyConflict");
       }
-      
+
       const updated = await this.prisma.workflowInstance.findUnique({ where: { id: instanceId } });
 
       await this.auditService.createLog({
@@ -235,11 +244,11 @@ export class WorkflowEngineService {
         where: { id: instanceId, status: instance.status },
         data: { status }
       });
-      
+
       if (updateResult.count === 0) {
         throw new Error("ConcurrencyConflict");
       }
-      
+
       const updated = await this.prisma.workflowInstance.findUnique({ where: { id: instanceId } });
 
       await this.auditService.createLog({
@@ -338,6 +347,26 @@ export class WorkflowEngineService {
           });
         }
       });
+    } else if (instance.resourceType === "ASSET_REQUEST") {
+      // Find any assignment that was made for this request and undo it
+      const assignment = await this.prisma.assetAssignment.findFirst({
+        where: {
+          notes: { contains: instance.id },
+          returnedAt: null
+        }
+      });
+
+      if (assignment) {
+        await this.prisma.assetAssignment.update({
+          where: { id: assignment.id },
+          data: { returnedAt: new Date() }
+        });
+
+        await this.prisma.asset.update({
+          where: { id: assignment.assetId },
+          data: { status: "AVAILABLE", currentHolderId: null }
+        });
+      }
     }
   }
 

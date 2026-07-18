@@ -112,7 +112,7 @@ async function main() {
   // 4. Workflows
   const workflowsData = [
     { type: WorkflowType.LEAVE, name: 'Leave Approval Workflow', steps: [{step: 1, approverRole: 'MANAGER'}, {step: 2, approverRole: 'HR'}] },
-    { type: WorkflowType.ASSET_REQUEST, name: 'Asset Request Workflow', steps: [{step: 1, approverRole: 'MANAGER'}, {step: 2, approverRole: 'IT'}] },
+    { type: WorkflowType.ASSET_REQUEST, name: 'Asset Request Workflow', steps: [{step: 1, approverRole: 'OM'}, {step: 2, approverRole: 'CEO'}] },
     { type: WorkflowType.RECRUITMENT, name: 'Recruitment Workflow', steps: [{step: 1, approverRole: 'MANAGER'}, {step: 2, approverRole: 'HR'}] },
     { type: WorkflowType.PROMOTION, name: 'Promotion Workflow', steps: [{step: 1, approverRole: 'MANAGER'}, {step: 2, approverRole: 'DEPARTMENT_HEAD'}, {step: 3, approverRole: 'HR'}, {step: 4, approverRole: 'CEO'}] },
     { type: WorkflowType.OFFBOARDING, name: 'Offboarding Workflow', steps: [{step: 1, approverRole: 'MANAGER'}, {step: 2, approverRole: 'IT'}, {step: 3, approverRole: 'HR'}] },

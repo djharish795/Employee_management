@@ -8,13 +8,11 @@ export type AssetCategory =
   | "LAPTOP"
   | "DESKTOP"
   | "MONITOR"
-  | "PHONE"
-  | "HEADSET"
-  | "KEYBOARD"
-  | "MOUSE"
-  | "TABLET"
-  | "FURNITURE"
+  | "MOBILE_DEVICE"
+  | "SIM"
   | "ACCESS_CARD"
+  | "SOFTWARE_LICENCE"
+  | "CLOUD_ACCOUNT"
   | "OTHER";
 
 export interface Asset {
@@ -52,6 +50,8 @@ export interface AssetRequest {
   requestDate: string;
   responseDate: string | null;
   respondedBy: string | null;
+  currentStepIndex: number;
+  requestType: "GENERAL" | "ONBOARDING" | "OFFBOARDING";
 }
 
 export interface AssetKPIs {

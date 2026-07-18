@@ -49,6 +49,11 @@ export function CamSidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed]   = useState(false);
   const [mounted, setMounted]       = useState(false);
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+
+  const toggleExpand = (title: string) => {
+    setExpandedItems(prev => ({ ...prev, [title]: !prev[title] }));
+  };
   
   React.useEffect(() => { setMounted(true); }, []);
 
@@ -119,14 +124,14 @@ export function CamSidebar() {
           label: 'OPERATIONS',
           items: sharedOpsItems,
         },
-        {
+          {
           label: 'MY WORKPLACE',
           items: [
             { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
             { title: 'Connect', icon: MessageSquare, href: '/connect' },
             { title: 'Attendance', icon: CalendarCheck, href: '/attendance' },
             { title: 'Leaves', icon: Calendar, href: '/leaves' },
-            { title: 'Assets', icon: Monitor, href: '/assets' },
+            { title: 'Assets', icon: Monitor, href: '/assets/my' },
             { title: 'Knowledge Base', icon: BookOpen, href: '/knowledge' },
           ]
         },
@@ -181,7 +186,7 @@ export function CamSidebar() {
     : storeRole === 'OM' ? 'New Report'
     : 'New Lead';
 
-  const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => (
+  const renderSidebarContent = (onNavigate?: () => void) => (
     <>
       {/* Brand Header */}
       <div className={`p-5 pb-4 flex items-center ${collapsed ? 'justify-center px-3' : 'justify-between'}`}>
@@ -227,7 +232,7 @@ export function CamSidebar() {
                   </div>
                 );
               }
-              const isActive = item.href ? (pathname === item.href || pathname.startsWith(item.href + '/')) : false;
+              const isActive = item.href ? (pathname === item.href || pathname.startsWith(item.href + '/')) : (item.subItems?.some((s: any) => pathname === s.href) || false);
               
               if (item.locked && item.href) {
                   return (
@@ -243,28 +248,67 @@ export function CamSidebar() {
               
               return (
                 <div key={item.title} className="space-y-1">
-                  <Link
-                    href={item.href}
-                    onClick={onNavigate}
-                    title={collapsed ? item.title : undefined}
-                    className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                      collapsed ? 'justify-center' : ''
-                    } ${
-                      isActive
-                        ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-900 dark:text-white font-semibold'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <item.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`} />
-                      {!collapsed && item.title}
+                  {item.href ? (
+                    <Link
+                      href={item.href}
+                      onClick={onNavigate}
+                      title={collapsed ? item.title : undefined}
+                      className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                        collapsed ? 'justify-center' : ''
+                      } ${
+                        isActive
+                          ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-900 dark:text-white font-semibold'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <item.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`} />
+                        {!collapsed && item.title}
+                      </div>
+                      {!collapsed && item.badge && (
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  ) : (
+                    <button 
+                      onClick={() => item.subItems ? toggleExpand(item.title) : undefined}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium ${collapsed ? 'justify-center' : ''} ${isActive ? 'text-slate-900 dark:text-white font-semibold bg-slate-100 dark:bg-slate-800/50' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white transition-colors'}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <item.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`} />
+                        {!collapsed && item.title}
+                      </div>
+                      {!collapsed && item.subItems && (
+                        <span className="text-slate-400">
+                          {expandedItems[item.title] ? '▲' : '▼'}
+                        </span>
+                      )}
+                    </button>
+                  )}
+
+                  {!collapsed && item.subItems && expandedItems[item.title] && (
+                    <div className="flex flex-col gap-1 pl-10 mt-1">
+                      {item.subItems.map((sub: any) => {
+                        const isSubActive = pathname === sub.href;
+                        return (
+                          <Link 
+                            key={sub.title} 
+                            href={sub.href} 
+                            onClick={onNavigate}
+                            className={`block px-3 py-2 text-[13px] rounded-lg transition-colors ${
+                              isSubActive 
+                              ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-900 dark:text-white font-semibold' 
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-900/50'
+                            }`}
+                          >
+                            {sub.title}
+                          </Link>
+                        );
+                      })}
                     </div>
-                    {!collapsed && item.badge && (
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
-                        {item.badge}
-                      </span>
-                    )}
-                  </Link>
+                  )}
                 </div>
               );
             })}
@@ -313,7 +357,7 @@ export function CamSidebar() {
             >
               <X className="w-5 h-5" />
             </button>
-            <SidebarContent onNavigate={() => setMobileOpen(false)} />
+            {renderSidebarContent(() => setMobileOpen(false))}
           </aside>
         </div>
       )}
@@ -324,7 +368,7 @@ export function CamSidebar() {
           collapsed ? 'w-20' : 'w-64'
         }`}
       >
-        <SidebarContent />
+        {renderSidebarContent()}
       </aside>
     </>
   );

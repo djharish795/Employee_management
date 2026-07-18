@@ -11,6 +11,7 @@ import {
   BarChart3,
   ChevronDown,
   Check,
+  Monitor,
 } from "lucide-react";
 import { AssetRole } from "@/types/assets";
 
@@ -28,24 +29,33 @@ export default function AssetsLayout({ children }: AssetsLayoutProps) {
   const activeRole = role as any;
   const pathname = usePathname();
   const currentUserRole = useAuthStore((state) => state.role) || "EMPLOYEE";
-  const isEmployeeLevel = ["EMPLOYEE", "MANAGER", "TEAM_LEAD"].includes(currentUserRole);
+  let isEmployeeLevel = ["EMPLOYEE", "MANAGER", "TEAM_LEAD", "CRM", "CEM", "OE"].includes(currentUserRole);
   const effectiveRole = isEmployeeLevel ? "EMPLOYEE" : activeRole;
 
   const navItems = React.useMemo(() => {
-    const items = [
-      { title: "Dashboard", href: "/assets", icon: LayoutDashboard },
-      { title: "Inventory", href: "/assets/inventory", icon: Package },
-      { title: "Requests", href: "/assets/requests", icon: ClipboardList },
-      { title: "Reports", href: "/assets/reports", icon: BarChart3 },
-    ];
+    let items: Array<{ title: string; href: string; icon: any; isSpecial?: boolean }> = [];
+    if (effectiveRole === "EMPLOYEE") {
+      items = [
+        { title: "Dashboard", href: "/assets/my", icon: LayoutDashboard },
+        { title: "Requests", href: "/assets/my/requests", icon: ClipboardList },
+      ];
+    } else {
+      items = [
+        { title: "My Assets", href: "/assets/my", icon: Monitor, isSpecial: true },
+        { title: "Admin Dashboard", href: "/assets", icon: LayoutDashboard },
+        { title: "Inventory", href: "/assets/inventory", icon: Package },
+        { title: "Requests", href: "/assets/requests", icon: ClipboardList },
+        { title: "Reports", href: "/assets/reports", icon: BarChart3 },
+      ];
+    }
 
     return items.filter((item) => {
-      // Only IT_ADMIN and ADMIN can see full inventory and reports
+      // Only IT_ADMIN, ADMIN, HR, CEO, OM, and CTO can see inventory
       if (item.href === "/assets/inventory") {
-        return ["IT_ADMIN", "ADMIN", "HR", "CEO"].includes(effectiveRole);
+        return ["IT_ADMIN", "ADMIN", "HR", "CEO", "OM", "CTO"].includes(effectiveRole);
       }
       if (item.href === "/assets/reports") {
-        return ["IT_ADMIN", "ADMIN", "CEO"].includes(effectiveRole);
+        return ["IT_ADMIN", "ADMIN", "CEO", "OM"].includes(effectiveRole);
       }
       return true;
     });
@@ -73,15 +83,15 @@ export default function AssetsLayout({ children }: AssetsLayoutProps) {
       <div className="p-8 max-w-[1400px] mx-auto w-full flex-1 flex flex-col gap-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-5 bg-white/40 p-4 rounded-xl backdrop-blur-sm shadow-sm">
-          <div>
-            <div className="flex items-center gap-4 flex-wrap">
-              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-                Asset Management
-              </h1>
-
-
+          <div className="flex-1">
+            <div className="flex items-center justify-between gap-4 flex-wrap w-full">
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                  Asset Management
+                </h1>
+                <p className="text-sm font-medium text-slate-500 mt-1">{subtitle}</p>
+              </div>
             </div>
-            <p className="text-sm font-medium text-slate-500 mt-1">{subtitle}</p>
           </div>
 
           {/* Sub-nav Tabs */}
@@ -89,13 +99,19 @@ export default function AssetsLayout({ children }: AssetsLayoutProps) {
             {navItems.map((item) => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
+              
+              let activeStyle = "bg-white text-slate-900 shadow-sm";
+              if (isActive && item.isSpecial) {
+                activeStyle = "bg-violet-50 text-violet-700 shadow-sm border border-violet-200";
+              }
+              
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs font-bold transition-all ${
                     isActive
-                      ? "bg-white text-slate-900 shadow-sm"
+                      ? activeStyle
                       : "text-slate-500 hover:text-slate-900"
                   }`}
                 >

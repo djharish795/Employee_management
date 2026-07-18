@@ -49,6 +49,12 @@ export class AssetsKpiController {
   }
 
   @RequirePermissions(RbacPermissions.ASSETS_READ)
+  @Get("departments")
+  async getDepartments(@CurrentUser() user: any) {
+    return this.assetsService.getDepartmentBreakdown(user.role as UserRole);
+  }
+
+  @RequirePermissions(RbacPermissions.ASSETS_READ)
   @Get("trends")
   async getTrends(
     @CurrentUser() user: any,
@@ -77,7 +83,7 @@ export class AssetsController {
   @Get("my")
   @Permissions(Permission.READ_OWN_PROFILE)
   async findMyAssets(@CurrentUser() user: any) {
-    return this.assetsService.findAll(user.role as UserRole, user.employeeId, {
+    return this.assetsService.findAll("EMPLOYEE" as UserRole, user.employeeId, {
       status: "ASSIGNED" as any
     });
   }
@@ -214,4 +220,3 @@ export class AssetRequestsController {
     return this.assetsService.respondToRequest(user.role as UserRole, id, user.employeeId, dto);
   }
 }
-

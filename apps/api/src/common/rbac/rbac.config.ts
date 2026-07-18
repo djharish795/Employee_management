@@ -163,6 +163,7 @@ export const RbacRoles = {
   AR: 'AR',
   ADMIN: 'ADMIN',
   TR: 'TR',
+  OM: 'OM',
 } as const;
 
 export type RbacRoleType = typeof RbacRoles[keyof typeof RbacRoles];
@@ -216,6 +217,7 @@ export const RbacRolePermissionsMapping: Record<RbacRoleType, RbacPermissionType
   [RbacRoles.AR]: [],
   [RbacRoles.ADMIN]: [],
   [RbacRoles.TR]: [],
+  [RbacRoles.OM]: [],
 };
 
 /**
@@ -226,10 +228,10 @@ export const RbacGroups = {
   LEAD_OR_MANAGER: [RbacRoles.TEAM_LEAD, RbacRoles.MANAGER, RbacRoles.CTO, RbacRoles.CEO, RbacRoles.SUPER_ADMIN],
   MANAGER_OR_HIGHER: [RbacRoles.MANAGER, RbacRoles.CTO, RbacRoles.CEO, RbacRoles.SUPER_ADMIN],
   LEAVE_APPROVERS: [RbacRoles.TL, RbacRoles.QA, RbacRoles.MANAGER],
-  ASSET_PRIVILEGED: [RbacRoles.SUPER_ADMIN, RbacRoles.IT, RbacRoles.HR, RbacRoles.CHRO, RbacRoles.CEO, RbacRoles.CTO],
-  ASSET_VIEWERS: [RbacRoles.SUPER_ADMIN, RbacRoles.CEO, RbacRoles.CTO, RbacRoles.CHRO, RbacRoles.HR, RbacRoles.IT],
-  ASSET_FINANCIAL_VIEWERS: [RbacRoles.SUPER_ADMIN, RbacRoles.CEO, RbacRoles.FINANCE, RbacRoles.IT, RbacRoles.HR, RbacRoles.CHRO], // Note: CFO mapped to FINANCE
-  ASSET_WRITERS: [RbacRoles.SUPER_ADMIN, RbacRoles.IT, RbacRoles.HR],
+  ASSET_PRIVILEGED: [RbacRoles.SUPER_ADMIN, RbacRoles.IT, RbacRoles.HR, RbacRoles.CHRO, RbacRoles.CEO, RbacRoles.CTO, RbacRoles.OM],
+  ASSET_VIEWERS: [RbacRoles.SUPER_ADMIN, RbacRoles.CEO, RbacRoles.CTO, RbacRoles.CHRO, RbacRoles.HR, RbacRoles.IT, RbacRoles.OM],
+  ASSET_FINANCIAL_VIEWERS: [RbacRoles.SUPER_ADMIN, RbacRoles.CEO, RbacRoles.FINANCE, RbacRoles.IT, RbacRoles.HR, RbacRoles.CHRO, RbacRoles.OM], // Note: CFO mapped to FINANCE
+  ASSET_WRITERS: [RbacRoles.SUPER_ADMIN, RbacRoles.IT, RbacRoles.HR, RbacRoles.OM],
   ASSET_MANAGERS: [RbacRoles.MANAGER, RbacRoles.TEAM_LEAD],
   COMPLIANCE_ADMINS: [RbacRoles.SUPER_ADMIN, RbacRoles.HR, RbacRoles.COMPLIANCE_OFFICER, RbacRoles.LEGAL],
   KNOWLEDGE_WRITERS: [RbacRoles.SUPER_ADMIN, RbacRoles.CEO, RbacRoles.CTO, RbacRoles.COO, RbacRoles.OPERATIONS_HEAD, RbacRoles.CHRO, RbacRoles.HR, RbacRoles.IT],

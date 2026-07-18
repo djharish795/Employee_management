@@ -91,6 +91,33 @@ export default function OnboardingDetailsPage() {
     }
   });
 
+  const { data: assetRequests = [], refetch: refetchAssetRequests } = useQuery({
+    queryKey: ['employee-asset-requests', id],
+    queryFn: async () => {
+      const res = await apiClient.get('/assets/requests', { params: { scope: 'all' } });
+      const allReqs = res.data?.data || res.data || [];
+      return allReqs.filter((r: any) => r.targetEmployeeId === id || (session?.employee && r.targetEmployeeId === session.employee.id));
+    },
+    enabled: !!id
+  });
+
+  const requestAsset = useMutation({
+    mutationFn: async () => {
+      await apiClient.post('/assets/requests', {
+        category: 'LAPTOP',
+        description: `Onboarding Asset Request for ${session?.employee?.firstName}`,
+        justification: 'Required for new hire onboarding.',
+        priority: 'HIGH',
+        requestType: 'ONBOARDING',
+        targetEmployeeId: session?.employee?.id
+      });
+    },
+    onSuccess: () => {
+      showToast("Asset Request Initiated!");
+      refetchAssetRequests();
+    }
+  });
+
   if (isLoading) return <div className="flex h-full items-center justify-center bg-slate-50"><Loader2 className="w-8 h-8 animate-spin text-slate-400" /></div>;
   if (error || !session) return <div className="flex h-full items-center justify-center bg-slate-50 text-slate-500">Failed to load session details.</div>;
 
@@ -246,41 +273,40 @@ export default function OnboardingDetailsPage() {
             <div className="space-y-6">
               
               <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
-                <h3 className="text-sm font-bold text-slate-900 mb-4 border-b border-slate-100 pb-3">IT & Asset Request</h3>
+                <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                  <h3 className="text-sm font-bold text-slate-900">IT & Asset Request</h3>
+                  {assetRequests.length === 0 && (
+                    <button
+                      onClick={() => requestAsset.mutate()}
+                      disabled={requestAsset.isPending}
+                      className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold uppercase rounded transition-colors disabled:opacity-50"
+                    >
+                      {requestAsset.isPending ? "Initiating..." : "Initiate Request"}
+                    </button>
+                  )}
+                </div>
                 <div className="space-y-4">
-                  <div>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Laptop</p>
-                    <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                      <Laptop className="w-4 h-4 text-slate-400" />
-                      {session.laptopType || 'Not specified'}
+                  {assetRequests.length > 0 ? (
+                    assetRequests.map((req: any) => (
+                      <div key={req.id} className="p-3 border border-slate-200 rounded-lg">
+                        <div className="flex justify-between items-start mb-2">
+                          <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">{req.assetCategory.replace(/_/g, " ")}</p>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                            req.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' :
+                            req.status === 'REJECTED' ? 'bg-rose-100 text-rose-700' :
+                            'bg-amber-100 text-amber-700'
+                          }`}>
+                            {req.status}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500">{req.description}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-slate-500 text-center py-4 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                      No asset requests initiated yet.
                     </div>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Accessories</p>
-                    <div className="flex flex-wrap gap-2">
-                      {(session.accessories || []).map((acc: string) => (
-                        <span key={acc} className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-medium">
-                          {acc}
-                        </span>
-                      ))}
-                      {(!session.accessories || session.accessories.length === 0) && (
-                        <span className="text-sm text-slate-500">None requested</span>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Software Access</p>
-                    <div className="flex flex-wrap gap-2">
-                      {(session.software || []).map((sw: string) => (
-                        <span key={sw} className="px-2 py-1 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded text-xs font-medium">
-                          {sw}
-                        </span>
-                      ))}
-                      {(!session.software || session.software.length === 0) && (
-                        <span className="text-sm text-slate-500">Standard suite only</span>
-                      )}
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
 

@@ -21,8 +21,8 @@ export const assetsApi = {
     return data.data ?? data;
   },
 
-  activity: async () => {
-    const { data } = await apiClient.get(`${BASE}/activity`);
+  activity: async (scope?: "ALL" | "MINE") => {
+    const { data } = await apiClient.get(`${BASE}/activity`, { params: scope ? { scope } : {} });
     return data.data ?? data;
   },
 
@@ -87,9 +87,12 @@ export const assetsApi = {
 
   // ─── Asset Requests ─────────────────────────────────────────────────────
 
-  listRequests: async (statusFilter?: string) => {
+  listRequests: async (statusFilter?: string, scope?: string) => {
     const { data } = await apiClient.get(`${BASE}/requests`, {
-      params: statusFilter ? { status: statusFilter } : undefined,
+      params: { 
+        ...(statusFilter ? { status: statusFilter } : {}),
+        ...(scope ? { scope } : {})
+      },
     });
     return data.data ?? data;
   },
@@ -99,6 +102,8 @@ export const assetsApi = {
     description: string;
     justification: string;
     priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+    requestType?: string;
+    targetEmployeeId?: string;
   }) => {
     const { data } = await apiClient.post(`${BASE}/requests`, payload);
     return data.data ?? data;
@@ -108,7 +113,7 @@ export const assetsApi = {
     id: string,
     payload: { status: "APPROVED" | "REJECTED"; notes?: string }
   ) => {
-    const { data } = await apiClient.patch(`${BASE}/requests/${id}/respond`, payload);
+    const { data } = await apiClient.post(`${BASE}/requests/${id}/respond`, payload);
     return data.data ?? data;
   },
 
@@ -126,6 +131,11 @@ export const assetsApi = {
 
   kpiFinancials: async () => {
     const { data } = await apiClient.get(`${BASE}/kpis/financials`);
+    return data.data ?? data;
+  },
+
+  kpiDepartments: async () => {
+    const { data } = await apiClient.get(`${BASE}/kpis/departments`);
     return data.data ?? data;
   },
 

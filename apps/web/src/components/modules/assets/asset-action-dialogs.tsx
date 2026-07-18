@@ -241,6 +241,12 @@ export function FulfillRequestDialog({ request, onClose }: { request: any, onClo
 
   const availableAssets = (availableAssetsObj?.assets || []) as Asset[];
 
+  React.useEffect(() => {
+    if (availableAssets.length > 0 && !selectedAssetId) {
+      setSelectedAssetId(availableAssets[0].id);
+    }
+  }, [availableAssets, selectedAssetId]);
+
   const fulfillMutation = useMutation({
     mutationFn: async () => {
       // 1. Mark request as APPROVED

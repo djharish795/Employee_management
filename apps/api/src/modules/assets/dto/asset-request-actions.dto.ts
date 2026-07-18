@@ -17,6 +17,10 @@ export class CreateAssetRequestDto {
   @IsOptional()
   @IsString()
   targetEmployeeId?: string;
+
+  @IsOptional()
+  @IsEnum(["REGULAR", "ONBOARDING", "OFFBOARDING"])
+  requestType?: "REGULAR" | "ONBOARDING" | "OFFBOARDING";
 }
 
 export class RespondAssetRequestDto {

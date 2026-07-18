@@ -24,10 +24,11 @@ const CATEGORY_OPTIONS: { value: AssetCategory; label: string }[] = [
   { value: "LAPTOP", label: "Laptop" },
   { value: "DESKTOP", label: "Desktop" },
   { value: "MONITOR", label: "Monitor" },
-  { value: "PHONE", label: "Mobile Phone" },
-  { value: "HEADSET", label: "Headset" },
-  { value: "KEYBOARD", label: "Keyboard" },
-  { value: "TABLET", label: "Tablet" },
+  { value: "MOBILE_DEVICE", label: "Mobile Device" },
+  { value: "SIM", label: "SIM Card" },
+  { value: "ACCESS_CARD", label: "Access Card" },
+  { value: "SOFTWARE_LICENCE", label: "Software Licence" },
+  { value: "CLOUD_ACCOUNT", label: "Cloud Account" },
   { value: "OTHER", label: "Other" },
 ];
 

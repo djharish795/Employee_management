@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Search, Bell, CheckCircle2, Circle, Clock, Check, AlertCircle, AlertTriangle, Lock, HelpCircle, Calendar } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { apiClient } from '@/lib/api/client';
+import { useQuery } from '@tanstack/react-query';
 
 // ─── Interfaces (No Hardcoded Mock Data) ─────────────────────────────────────────
 interface ChecklistItem {
@@ -133,6 +134,38 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
       }
     } catch (err) {
       console.error("Failed to fetch offboarding details", err);
+    }
+  };
+
+  const { data: assetRequests = [], refetch: refetchAssetRequests } = useQuery({
+    queryKey: ['employee-asset-requests', params.id],
+    queryFn: async () => {
+      const res = await apiClient.get('/assets/requests', { params: { scope: 'all' } });
+      const allReqs = res.data?.data || res.data || [];
+      return allReqs.filter((r: any) => r.targetEmployeeId === params.id || (data && r.targetEmployeeId === data.id));
+    },
+    enabled: !!params.id || !!data
+  });
+
+  const [isRetrievalLoading, setIsRetrievalLoading] = useState(false);
+  const requestAssetRetrieval = async () => {
+    if (!data) return;
+    setIsRetrievalLoading(true);
+    try {
+      await apiClient.post('/assets/requests', {
+        category: 'LAPTOP',
+        description: `Offboarding Asset Retrieval for ${data.name}`,
+        justification: 'Employee is offboarding.',
+        priority: 'HIGH',
+        requestType: 'OFFBOARDING',
+        targetEmployeeId: data.id
+      });
+      alert('Asset retrieval requested successfully!');
+      refetchAssetRequests();
+    } catch (err) {
+      alert('Failed to request asset retrieval.');
+    } finally {
+      setIsRetrievalLoading(false);
     }
   };
 
@@ -366,7 +399,23 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
             
             {/* Asset Recovery */}
             <div className="mb-8">
-              <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-4">Asset Recovery</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Asset Recovery</h3>
+                {data.checklists.assetRecovery.length > 0 && assetRequests.length === 0 && (
+                  <button
+                    onClick={requestAssetRetrieval}
+                    disabled={isRetrievalLoading}
+                    className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold uppercase rounded transition-colors disabled:opacity-50"
+                  >
+                    {isRetrievalLoading ? "Requesting..." : "Request Retrieval"}
+                  </button>
+                )}
+                {assetRequests.length > 0 && (
+                  <span className="px-2 py-1 bg-rose-100 text-rose-700 text-[10px] font-bold uppercase tracking-wider rounded">
+                    Retrieval Requested
+                  </span>
+                )}
+              </div>
               <div className="space-y-1">
                 {data.checklists.assetRecovery.map(item => renderChecklistItem(item, 'assetRecovery'))}
               </div>

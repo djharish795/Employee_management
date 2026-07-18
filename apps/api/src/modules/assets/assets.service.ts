@@ -168,11 +168,20 @@ export class AssetsService {
 
   // ─── Asset Requests ────────────────────────────────────────────────────────
 
-  async findRequests(role: UserRole, employeeId: string, statusFilter?: string): Promise<any> {
+  async findRequests(role: UserRole, employeeId: string, statusFilter?: string, scope?: string): Promise<any> {
     // Employees see only their own requests; IT/Admins see all
     const isPrivileged = RbacGroups.ASSET_PRIVILEGED.includes(role as any);
-    const resolvedEmployeeId = isPrivileged ? undefined : employeeId;
-    return this.assetsRepository.findRequests({ status: statusFilter, employeeId: resolvedEmployeeId });
+    const resolvedEmployeeId = (isPrivileged && scope !== 'my') ? undefined : employeeId;
+    const requests = await this.assetsRepository.findRequests({ status: statusFilter, employeeId: resolvedEmployeeId });
+    if (!isPrivileged) {
+      return requests.map((req: any) => {
+        if (req.status === "PENDING") {
+          return { ...req, currentStepIndex: 0 };
+        }
+        return req;
+      });
+    }
+    return requests;
   }
 
   async createRequest(employeeId: string, dto: CreateAssetRequestDto): Promise<any> {
@@ -187,6 +196,7 @@ export class AssetsService {
         justification: dto.justification,
         priority: dto.priority,
         targetEmployeeId: dto.targetEmployeeId,
+        requestType: dto.requestType || "REGULAR",
       }
     );
   }
@@ -212,6 +222,11 @@ export class AssetsService {
   async getFinancialSummary(role: UserRole): Promise<any> {
     this.validateFinancialRole(role);
     return this.assetsRepository.getFinancialSummary();
+  }
+
+  async getDepartmentBreakdown(role: UserRole): Promise<any> {
+    this.validateKPIRole(role);
+    return this.assetsRepository.getDepartmentBreakdown();
   }
 
   async getLifecycleTrends(
@@ -245,9 +260,9 @@ export class AssetsService {
     return this.assetsRepository.getCtoAssets();
   }
 
-  async getRecentActivity(role: UserRole, employeeId: string): Promise<any> {
+  async getRecentActivity(role: UserRole, employeeId: string, scope?: string): Promise<any> {
     const isPrivileged = RbacGroups.ASSET_PRIVILEGED.includes(role as any);
-    const resolvedEmployeeId = isPrivileged ? undefined : employeeId;
-    return this.assetsRepository.getRecentActivity(15, resolvedEmployeeId);
+    const resolvedEmployeeId = (!isPrivileged || scope === "MINE") ? employeeId : undefined;
+    return this.assetsRepository.getRecentActivity(15, resolvedEmployeeId, isPrivileged);
   }
 }
