@@ -121,8 +121,8 @@ export default function CamSchedulerPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Meeting Scheduler</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">Manage your client consultations and upcoming strategy sessions.</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Meeting Scheduler</h1>
+          <p className="text-slate-500 mt-1">Manage your client consultations and upcoming strategy sessions.</p>
         </div>
       </div>
 
@@ -132,20 +132,20 @@ export default function CamSchedulerPage() {
         <div className="xl:col-span-8 space-y-8">
           
           {/* Calendar Card */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">{format(currentDate, "MMMM yyyy")}</h2>
+                <h2 className="text-lg font-bold text-slate-900">{format(currentDate, "MMMM yyyy")}</h2>
                 <div className="flex items-center gap-1">
                   <button 
                     onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
-                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors text-slate-600 dark:text-slate-400"
+                    className="p-1 hover:bg-slate-100 rounded-md transition-colors text-slate-600"
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
                   <button 
                     onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
-                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors text-slate-600 dark:text-slate-400"
+                    className="p-1 hover:bg-slate-100 rounded-md transition-colors text-slate-600"
                   >
                     <ChevronRight className="w-5 h-5" />
                   </button>
@@ -153,7 +153,7 @@ export default function CamSchedulerPage() {
               </div>
               <button 
                 onClick={() => setCurrentDate(today)}
-                className="px-3 py-1.5 border border-blue-200 dark:border-blue-900/50 text-blue-600 dark:text-blue-400 text-sm font-semibold rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                className="px-3 py-1.5 border border-blue-200 text-blue-600 text-sm font-semibold rounded-lg hover:bg-blue-50 transition-colors"
               >
                 Today
               </button>
@@ -169,7 +169,7 @@ export default function CamSchedulerPage() {
             </div>
 
             {/* Calendar Grid */}
-            <div className="grid grid-cols-7 border-t border-l border-slate-200 dark:border-slate-800">
+            <div className="grid grid-cols-7 border-t border-l border-slate-200">
               {calendarDays.map((day, i) => {
                 const isSelected = isSameDay(day, currentDate);
                 const isCurrentMonth = isSameMonth(day, currentDate);
@@ -186,15 +186,15 @@ export default function CamSchedulerPage() {
                   <div 
                     key={i} 
                     onClick={() => handleDateClick(day)}
-                    className={`min-h-[100px] border-r border-b border-slate-200 dark:border-slate-800 p-2 relative cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors ${!isCurrentMonth ? 'bg-slate-50 dark:bg-slate-900/50' : 'bg-white dark:bg-slate-900'} ${isSelected ? 'ring-2 ring-blue-500 ring-inset bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
+                    className={`min-h-[100px] border-r border-b border-slate-200 p-2 relative cursor-pointer hover:bg-slate-50 transition-colors ${!isCurrentMonth ? 'bg-slate-50 ' : 'bg-white '} ${isSelected ? 'ring-2 ring-blue-500 ring-inset bg-blue-50/50 ' : ''}`}
                   >
-                    <span className={`text-sm font-medium ${!isCurrentMonth ? 'text-slate-400 dark:text-slate-600' : isSelected ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-slate-700 dark:text-slate-300'}`}>
+                    <span className={`text-sm font-medium ${!isCurrentMonth ? 'text-slate-400 ' : isSelected ? 'text-blue-600 font-bold' : 'text-slate-700 '}`}>
                       {format(day, dateFormat)}
                     </span>
                     
                     <div className="mt-1 space-y-1">
                       {dayMeetings.map((meeting: any, idx) => (
-                        <div key={meeting.id} className={`px-1.5 py-0.5 text-[10px] font-bold rounded flex items-center gap-1 truncate w-full ${idx === 0 ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 'bg-slate-900 dark:bg-slate-700 text-white'}`}>
+                        <div key={meeting.id} className={`px-1.5 py-0.5 text-[10px] font-bold rounded flex items-center gap-1 truncate w-full ${idx === 0 ? 'bg-blue-100 text-blue-700 ' : 'bg-slate-900 text-white'}`}>
                           {meeting.startTime ? `${formatTime(meeting.startTime)} ` : ''}{meeting.title}
                         </div>
                       ))}
@@ -209,15 +209,15 @@ export default function CamSchedulerPage() {
 
         {/* Daily Tasks Panel */}
         <div className="xl:col-span-4 h-full xl:sticky xl:top-6">
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-6 text-slate-900 dark:text-white min-h-[600px] border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="bg-white rounded-xl p-6 text-slate-900 min-h-[600px] border border-slate-200 shadow-sm">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-[17px] font-bold text-slate-900 dark:text-white">
+              <h3 className="text-[17px] font-bold text-slate-900">
                 {isSameDay(currentDate, today) ? "Today" : format(currentDate, "EEEE d")}
               </h3>
               {isCurrentOrFuture && (
                 <button 
                   onClick={() => setIsModalOpen(true)}
-                  className="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+                  className="text-slate-400 hover:text-slate-900 transition-colors"
                   title="Add Meeting"
                 >
                   <PlusCircle className="w-5 h-5 font-light" strokeWidth={1.5} />
@@ -238,30 +238,30 @@ export default function CamSchedulerPage() {
                   return (
                     <React.Fragment key={meeting.id}>
                       {idx > 0 && meetingTimeStr && prevMeetingTimeStr !== meetingTimeStr && (
-                        <div className="text-[13px] font-medium text-slate-500 dark:text-slate-400 mt-2 mb-2">
+                        <div className="text-[13px] font-medium text-slate-500 mt-2 mb-2">
                           {meetingTimeStr}
                         </div>
                       )}
                       {idx === 0 && meetingTimeStr && (
-                        <div className="text-[13px] font-medium text-slate-500 dark:text-slate-400 mt-2 mb-2">
+                        <div className="text-[13px] font-medium text-slate-500 mt-2 mb-2">
                           {meetingTimeStr}
                         </div>
                       )}
                       <div className="flex justify-between items-center relative pl-3">
                         <div className="absolute left-0 top-0.5 bottom-0.5 w-1 bg-blue-500 rounded-full"></div>
                         <div>
-                          <h4 className="text-[15px] font-semibold text-slate-900 dark:text-slate-100">{meeting.title}</h4>
-                          <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">{meeting.description || 'No description'}</p>
+                          <h4 className="text-[15px] font-semibold text-slate-900">{meeting.title}</h4>
+                          <p className="text-[13px] text-slate-500 mt-0.5">{meeting.description || 'No description'}</p>
                         </div>
-                        <div className="w-[60px] h-[36px] bg-slate-100 dark:bg-slate-800 rounded relative overflow-hidden flex-shrink-0 ml-4 flex items-center justify-center">
-                          <div className="w-full h-full bg-blue-100 dark:bg-blue-900/30 text-blue-500 flex items-center justify-center text-[10px] font-bold">MEET</div>
+                        <div className="w-[60px] h-[36px] bg-slate-100 rounded relative overflow-hidden flex-shrink-0 ml-4 flex items-center justify-center">
+                          <div className="w-full h-full bg-blue-100 text-blue-500 flex items-center justify-center text-[10px] font-bold">MEET</div>
                         </div>
                       </div>
                     </React.Fragment>
                   );
                 })
               ) : (
-                <div className="text-[13px] text-slate-500 dark:text-slate-400">No events today.</div>
+                <div className="text-[13px] text-slate-500">No events today.</div>
               )}
             </div>
           </div>
@@ -271,12 +271,12 @@ export default function CamSchedulerPage() {
       {/* Add Task Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md border border-slate-200 dark:border-slate-800 overflow-hidden">
-            <div className="flex justify-between items-center p-4 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-white">Add Meeting for {format(currentDate, "MMM d, yyyy")}</h3>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md border border-slate-200 overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b border-slate-100">
+              <h3 className="font-bold text-slate-900">Add Meeting for {format(currentDate, "MMM d, yyyy")}</h3>
               <button 
                 onClick={() => setIsModalOpen(false)} 
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                className="text-slate-400 hover:text-slate-600 transition-colors"
                 disabled={createMeetMutation.isPending}
               >
                 <X className="w-5 h-5" />
@@ -284,42 +284,42 @@ export default function CamSchedulerPage() {
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Meeting Title</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Meeting Title</label>
                 <input 
                   type="text" 
                   value={newTaskTitle}
                   onChange={(e) => setNewTaskTitle(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-transparent text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-transparent text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500" 
                   placeholder="e.g. Discovery Call" 
                   disabled={createMeetMutation.isPending}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Time</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Time</label>
                 <input 
                   type="time" 
                   value={newTaskTime}
                   onChange={(e) => setNewTaskTime(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-transparent text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 [color-scheme:light] dark:[color-scheme:dark]" 
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-transparent text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 [color-scheme:light]" 
                   disabled={createMeetMutation.isPending}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
                 <textarea 
                   value={newTaskDesc}
                   onChange={(e) => setNewTaskDesc(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-transparent text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-transparent text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500" 
                   placeholder="Meeting details..." 
                   rows={3}
                   disabled={createMeetMutation.isPending}
                 />
               </div>
             </div>
-            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 flex justify-end gap-3 border-t border-slate-100 dark:border-slate-800">
+            <div className="p-4 bg-slate-50 flex justify-end gap-3 border-t border-slate-100">
               <button 
                 onClick={() => setIsModalOpen(false)} 
-                className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
                 disabled={createMeetMutation.isPending}
               >
                 Cancel

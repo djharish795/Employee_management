@@ -272,7 +272,7 @@ export default function EmployeeDashboardPanel() {
           {/* Pending Tasks / Compliance */}
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col" style={{ minHeight: "220px" }}>
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-900">Pending Tasks</h3>
+              <h3 className="text-base font-bold text-slate-900">Pending Tasks</h3>
               <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-bold">0</span>
             </div>
             <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
@@ -313,7 +313,7 @@ export default function EmployeeDashboardPanel() {
 
           {/* Quick Links */}
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-900 mb-4">Quick Links</h3>
+            <h3 className="text-base font-bold text-slate-900 mb-4">Quick Links</h3>
             <div className="flex flex-col gap-2">
               {[
                 { label: "Apply for Leave", href: "/leaves/apply" },

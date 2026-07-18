@@ -78,8 +78,8 @@ export function CamSidebar() {
         {
           label: 'CRM PORTAL',
           items: [
-            { title: 'Client Workspace', icon: Briefcase, href: '/crm/workspace' },
             { title: 'Dashboard', icon: LayoutDashboard, href: '/crm/dashboard' },
+            { title: 'Client Workspace', icon: Briefcase, href: '/crm/workspace' },
             { title: 'Meetings', icon: Calendar, href: '/crm/meetings' },
             { title: 'Requirements', icon: ShieldCheck, href: '/crm/requirements' },
           ]
@@ -190,7 +190,7 @@ export function CamSidebar() {
             <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight leading-snug">
               {portalLabel}
             </h2>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-wide mt-0.5 uppercase">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-wide mt-0.5 capitalize">
               {portalSub}
             </p>
           </div>
@@ -204,29 +204,14 @@ export function CamSidebar() {
         </button>
       </div>
 
-      {/* Quick Action */}
-      {!collapsed && (
-        <div className="px-4 pb-5">
-          <button className="w-full bg-slate-800 dark:bg-slate-800 hover:bg-slate-700 dark:hover:bg-slate-700 text-white flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm">
-            <Plus className="w-4 h-4" />
-            <span>{quickActionLabel}</span>
-          </button>
-        </div>
-      )}
-      {collapsed && (
-        <div className="px-3 pb-5">
-          <button className="w-full bg-slate-800 dark:bg-slate-800 hover:bg-slate-700 dark:hover:bg-slate-700 text-white flex items-center justify-center py-2.5 rounded-lg transition-colors shadow-sm" title={quickActionLabel}>
-            <Plus className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+
 
       {/* Navigation */}
       <nav className={`flex-1 space-y-6 overflow-y-auto ${collapsed ? 'px-2 py-4' : 'px-3 py-2'}`}>
         {navGroups.map((group, gIndex) => (
           <div key={group.label || gIndex} className="space-y-1.5">
             {!collapsed && group.label && (
-              <div className="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 mt-2">
+              <div className="px-3 text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 mt-2">
                 {group.label}
               </div>
             )}
@@ -262,16 +247,16 @@ export function CamSidebar() {
                     href={item.href}
                     onClick={onNavigate}
                     title={collapsed ? item.title : undefined}
-                    className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                    className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                       collapsed ? 'justify-center' : ''
                     } ${
                       isActive
-                        ? 'bg-slate-800 dark:bg-slate-800 text-white font-semibold shadow-sm'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
+                        ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-900 dark:text-white font-semibold'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <item.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500'}`} />
+                      <item.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`} />
                       {!collapsed && item.title}
                     </div>
                     {!collapsed && item.badge && (
@@ -289,34 +274,18 @@ export function CamSidebar() {
 
       {/* User Footer */}
       <div className={`p-4 border-t border-slate-200 dark:border-slate-800 ${collapsed ? 'flex justify-center' : ''}`}>
-        {!collapsed ? (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm flex-shrink-0 border border-blue-200 dark:border-blue-800">
-                {initials}
-              </div>
-              <div className="overflow-hidden">
-                <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{userName}</p>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate uppercase">{displayRole}</p>
-              </div>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
-              title="Logout"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={handleLogout}
-            className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
-            title="Logout"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
-        )}
+        <button
+          onClick={handleLogout}
+          className={`flex items-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors ${
+            collapsed 
+              ? 'w-9 h-9 rounded-full justify-center bg-slate-100 dark:bg-slate-800' 
+              : 'w-full px-4 py-2 rounded-lg gap-3 justify-start'
+          }`}
+          title="Logout"
+        >
+          <LogOut className="w-5 h-5 flex-shrink-0" />
+          {!collapsed && <span className="font-medium">Logout</span>}
+        </button>
       </div>
     </>
   );

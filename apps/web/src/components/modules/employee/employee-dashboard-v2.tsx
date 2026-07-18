@@ -315,7 +315,7 @@ export default function EmployeeDashboardV2() {
         {/* Attendance Calendar */}
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 lg:col-span-2">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-sm font-bold text-slate-900">Attendance this month</h3>
+            <h3 className="text-base font-bold text-slate-900">Attendance this month</h3>
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1))}
@@ -441,7 +441,7 @@ export default function EmployeeDashboardV2() {
 
         {/* Pending For You */}
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 flex flex-col">
-          <h3 className="text-sm font-bold text-slate-900 mb-4">Pending for you</h3>
+          <h3 className="text-base font-bold text-slate-900 mb-4">Pending for you</h3>
           <div className="space-y-3">
             {tasksQuery.isLoading ? (
               <div className="flex justify-center p-4"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
@@ -475,7 +475,7 @@ export default function EmployeeDashboardV2() {
       {/* Recent Notifications */}
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold text-slate-900">Recent notifications</h3>
+          <h3 className="text-base font-bold text-slate-900">Recent notifications</h3>
           <Link href="/notifications" className="text-xs font-bold text-blue-600 hover:text-blue-700">View all</Link>
         </div>
         <div className="space-y-4">
