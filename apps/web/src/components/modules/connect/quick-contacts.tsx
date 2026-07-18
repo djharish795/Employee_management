@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { User, Building2, Users, HeartPulse, Clock } from "lucide-react";
 import { connectApi } from "@/lib/api/connect";
+import { apiClient } from "@/lib/api/client";
 
 interface QuickContactProps {
   onSelectContact: (id: string) => void;
@@ -12,17 +13,23 @@ interface ContactState {
   nextAvailable: string;
 }
 
-export function QuickContacts({ onSelectContact, employees }: QuickContactProps) {
+export function QuickContacts({ onSelectContact }: QuickContactProps) {
   const [statuses, setStatuses] = useState<Record<string, ContactState>>({});
+  const [contactsData, setContactsData] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!employees || employees.length === 0) return;
     const loadStatuses = async () => {
-      const top4 = employees.slice(0, 4);
-      const newStatuses: Record<string, ContactState> = {};
-      const now = new Date();
-      
-      await Promise.all(top4.map(async (emp) => {
+      try {
+        const contactsRes = await apiClient.get('/connect/quick-contacts');
+        const loadedContacts = contactsRes.data || [];
+        setContactsData(loadedContacts);
+
+        if (loadedContacts.length === 0) return;
+
+        const newStatuses: Record<string, ContactState> = {};
+        const now = new Date();
+        
+        await Promise.all(loadedContacts.map(async (emp: any) => {
         try {
           const res = await connectApi.getAvailability(emp.id, now.toISOString());
           const busySlots = res.data?.busySlots || [];
@@ -45,19 +52,22 @@ export function QuickContacts({ onSelectContact, employees }: QuickContactProps)
         }
       }));
       setStatuses(newStatuses);
+    } catch (err) {
+      console.error("Failed to load quick contacts", err);
+    }
     };
     loadStatuses();
-  }, [employees]);
+  }, []);
 
   // If no employees loaded yet, show a skeleton or nothing
-  if (!employees || employees.length === 0) return null;
+  if (contactsData.length === 0) return null;
 
-  // Use the first 4 employees, mapping them to the UI icons
+  // Use the loaded contacts, mapping them to the UI icons
   const icons = [Building2, User, Users, HeartPulse];
   const iconColors = ["text-blue-600", "text-indigo-600", "text-teal-600", "text-rose-600"];
   const iconBgs = ["bg-blue-100", "bg-indigo-100", "bg-teal-100", "bg-rose-100"];
 
-  const contacts = employees.slice(0, 4).map((emp, idx) => {
+  const contacts = contactsData.map((emp, idx) => {
     const s = statuses[emp.id] || { status: "available", nextAvailable: "..." };
     return {
       id: emp.id,
