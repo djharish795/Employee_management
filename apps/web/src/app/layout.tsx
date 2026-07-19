@@ -12,7 +12,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning className={cn("font-sans", inter.variable)}>
-      <body className="antialiased min-h-screen bg-slate-50">
+      <body className={cn("antialiased min-h-screen bg-slate-50 font-sans", inter.className)}>
         <Providers>{children}</Providers>
       </body>
     </html>

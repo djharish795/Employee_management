@@ -66,6 +66,8 @@ export const LoginForm: React.FC = () => {
           password: passwordParam || "",
           rememberDevice: false
         });
+        // Immediately strip sensitive credentials from the browser URL address bar
+        window.history.replaceState({}, document.title, window.location.pathname);
       }
     }
   }, [reset]);
@@ -159,7 +161,7 @@ export const LoginForm: React.FC = () => {
       )}
 
       {/* ---- Form ---- */}
-      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+      <form method="POST" onSubmit={(e) => { e.preventDefault(); handleSubmit(onSubmit)(e); }} noValidate>
 
         {/* Email field */}
         <div>
