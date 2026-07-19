@@ -1,16 +1,51 @@
 "use client";
 
 import { usePermissions } from "@/hooks/use-permissions";
-import React from "react";
-import { Database, ShieldCheck, Save, Trash2 } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Database, ShieldCheck, Save, Trash2, Loader2 } from "lucide-react";
 import { SettingsRole } from "@/types/settings";
+import { apiClient } from "@/lib/api/client";
+import toast from "react-hot-toast";
 
-interface CompliancePanelProps {
-  
-}
+interface CompliancePanelProps {}
 
 export default function CompliancePanel() {
   const { canManageCompliance: canManage } = usePermissions();
+  const [policy, setPolicy] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const fetchPolicy = async () => {
+      try {
+        const { data } = await apiClient.get('/settings/policy');
+        setPolicy(data);
+      } catch (err) {
+        toast.error("Failed to load compliance settings");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPolicy();
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await apiClient.put("/settings/policy", policy);
+      toast.success("Compliance settings updated successfully");
+    } catch (err) {
+      toast.error("Failed to update settings");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return (
+    <div className="flex items-center justify-center p-12 text-slate-500">
+      <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading settings...
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -20,8 +55,12 @@ export default function CompliancePanel() {
           <p className="text-xs font-semibold text-slate-500">Configure global privacy rules and data retention timelines.</p>
         </div>
         {canManage && (
-          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors">
-            <Save className="w-4 h-4" /> Save Compliance Settings
+          <button 
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors disabled:opacity-50"
+          >
+            <Save className="w-4 h-4" /> {saving ? "Saving..." : "Save Compliance Settings"}
           </button>
         )}
       </div>
@@ -40,7 +79,12 @@ export default function CompliancePanel() {
                 <label className="text-xs font-bold text-slate-700 block">Ex-Employee Records</label>
                 <div className="text-[10px] text-slate-500 mt-0.5">Years to retain PII after termination.</div>
               </div>
-              <select disabled={!canManage} defaultValue="7" className="h-8 px-2 text-xs border border-slate-200 rounded focus:outline-none focus:border-indigo-500 disabled:bg-slate-50 bg-white font-medium">
+              <select 
+                disabled={!canManage} 
+                value={policy?.dataRetentionExEmployee ?? "7"} 
+                onChange={(e) => setPolicy({ ...policy, dataRetentionExEmployee: e.target.value })}
+                className="h-8 px-2 text-xs border border-slate-200 rounded focus:outline-none focus:border-indigo-500 disabled:bg-slate-50 bg-white font-medium"
+              >
                 <option value="1">1 Year</option>
                 <option value="3">3 Years</option>
                 <option value="5">5 Years</option>
@@ -54,7 +98,12 @@ export default function CompliancePanel() {
                 <label className="text-xs font-bold text-slate-700 block">System Audit Logs</label>
                 <div className="text-[10px] text-slate-500 mt-0.5">Duration to retain immutable activity logs.</div>
               </div>
-              <select disabled={!canManage} defaultValue="1" className="h-8 px-2 text-xs border border-slate-200 rounded focus:outline-none focus:border-indigo-500 disabled:bg-slate-50 bg-white font-medium">
+              <select 
+                disabled={!canManage} 
+                value={policy?.dataRetentionAuditLogs ?? "1"} 
+                onChange={(e) => setPolicy({ ...policy, dataRetentionAuditLogs: e.target.value })}
+                className="h-8 px-2 text-xs border border-slate-200 rounded focus:outline-none focus:border-indigo-500 disabled:bg-slate-50 bg-white font-medium"
+              >
                 <option value="30d">30 Days</option>
                 <option value="90d">90 Days</option>
                 <option value="1">1 Year</option>
@@ -77,7 +126,13 @@ export default function CompliancePanel() {
                 <div className="text-[10px] text-slate-500 mt-0.5">Enforce explicit consent checks before reading PII via API.</div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" className="sr-only peer" defaultChecked disabled={!canManage} />
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={policy?.strictDpdpaMode ?? true} 
+                  onChange={(e) => setPolicy({ ...policy, strictDpdpaMode: e.target.checked })}
+                  disabled={!canManage} 
+                />
                 <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
               </label>
             </div>
@@ -88,7 +143,13 @@ export default function CompliancePanel() {
                 <div className="text-[10px] text-slate-500 mt-0.5">Mask Aadhaar/PAN across all admin screens by default.</div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" className="sr-only peer" defaultChecked disabled={!canManage} />
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={policy?.autoMaskPii ?? true} 
+                  onChange={(e) => setPolicy({ ...policy, autoMaskPii: e.target.checked })}
+                  disabled={!canManage} 
+                />
                 <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
               </label>
             </div>

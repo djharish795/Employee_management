@@ -197,46 +197,84 @@ export class LeavesService {
     });
   }
 
-  private async determineQueue(employee: any): Promise<ApprovalQueueItem[]> {
+  private async determineQueue(employee: any, isEmergency: boolean): Promise<ApprovalQueueItem[]> {
     let queue: ApprovalQueueItem[] = [];
     const role = this.getRoleForEmployee(employee);
+    const policy = await this.prisma.orgPolicy.findFirst();
 
-    if (role === 'CTO') {
-      queue.push({ role: 'CEO', status: 'PENDING' });
-      return queue;
-    }
-
-    if (role === 'CEO') {
-      return queue;
-    }
-
-    const projectAssignment = await this.prisma.projectAssignment.findFirst({
-      where: { employeeId: employee.id, releasedAt: null },
-      include: {
-        project: {
-          include: {
-            assignments: {
-              where: { projectRole: 'TL', releasedAt: null }
-            }
-          }
-        }
-      }
+    // 1. Fetch from ApprovalMatrix
+    const matrix = await this.prisma.approvalMatrix.findMany({
+      where: { requesterRoleId: role, isEmergency },
+      orderBy: { stepOrder: 'asc' }
     });
 
-    let teamLeadId = undefined;
-    if (projectAssignment && projectAssignment.project.assignments.length > 0) {
-      teamLeadId = projectAssignment.project.assignments[0].employeeId;
+    if (matrix.length > 0) {
+      for (const step of matrix) {
+        let approverId = undefined;
+        if (step.approverRoleId === 'TL') {
+          const projectAssignment = await this.prisma.projectAssignment.findFirst({
+            where: { employeeId: employee.id, releasedAt: null },
+            include: { project: { include: { assignments: { where: { projectRole: 'TL', releasedAt: null } } } } }
+          });
+          if (projectAssignment && projectAssignment.project.assignments.length > 0) {
+            approverId = projectAssignment.project.assignments[0].employeeId;
+          }
+        } else if (step.approverRoleId === 'MANAGER') {
+          approverId = employee.reportingManagerId;
+        } else if (step.approverRoleId === 'HRE') {
+          approverId = employee.assignedHrId || undefined;
+        }
+
+        if (step.approverRoleId === 'CEO' && policy?.ceoLeaveApprovalScope === 'EMERGENCY_ONLY' && !isEmergency) {
+          continue; // Skip adding CEO
+        }
+
+        queue.push({ role: step.approverRoleId, status: 'PENDING', approverId });
+      }
+    } else {
+      // Fallback
+      if (role === 'CTO') {
+        queue.push({ role: 'CEO', status: 'PENDING' });
+      } else if (role !== 'CEO') {
+        const projectAssignment = await this.prisma.projectAssignment.findFirst({
+          where: { employeeId: employee.id, releasedAt: null },
+          include: { project: { include: { assignments: { where: { projectRole: 'TL', releasedAt: null } } } } }
+        });
+
+        let teamLeadId = undefined;
+        if (projectAssignment && projectAssignment.project.assignments.length > 0) {
+          teamLeadId = projectAssignment.project.assignments[0].employeeId;
+        }
+
+        if (teamLeadId && teamLeadId !== employee.id) {
+          queue.push({ role: 'TL', status: 'PENDING', approverId: teamLeadId });
+        } else if (employee.reportingManagerId) {
+          queue.push({ role: 'MANAGER', status: 'PENDING', approverId: employee.reportingManagerId });
+        }
+
+        queue.push({ role: 'HRE', status: 'PENDING', approverId: employee.assignedHrId || undefined });
+      }
+
+      // Apply CEO Scope filter on the fallback queue
+      queue = queue.filter(q => !(q.role === 'CEO' && policy?.ceoLeaveApprovalScope === 'EMERGENCY_ONLY' && !isEmergency));
     }
 
-    if (teamLeadId && teamLeadId !== employee.id) {
-      queue.push({ role: 'TL', status: 'PENDING', approverId: teamLeadId });
-    } else if (employee.reportingManagerId) {
-      queue.push({ role: 'MANAGER', status: 'PENDING', approverId: employee.reportingManagerId });
+    // CYCLE DETECTION: Ensure no duplicate approver roles or IDs
+    const uniqueQueue: ApprovalQueueItem[] = [];
+    const seenRoles = new Set<string>();
+    const seenIds = new Set<string>();
+
+    for (const q of queue) {
+      if (seenRoles.has(q.role)) continue;
+      if (q.approverId && seenIds.has(q.approverId)) continue;
+      if (q.approverId === employee.id) continue;
+
+      seenRoles.add(q.role);
+      if (q.approverId) seenIds.add(q.approverId);
+      uniqueQueue.push(q);
     }
 
-    queue.push({ role: 'HRE', status: 'PENDING', approverId: employee.assignedHrId || undefined });
-
-    return queue.filter(q => q.approverId || q.role === 'HRE');
+    return uniqueQueue.filter(q => q.approverId || ['HRE', 'CEO', 'CTO'].includes(q.role));
   }
 
   async getMyLeaves(employeeId: string): Promise<unknown> {
@@ -327,7 +365,6 @@ export class LeavesService {
 
     const currentYear = startDate.getFullYear();
     const createdLeaves = [];
-    const baseApprovalQueue = await this.determineQueue(employee);
 
     for (const leaveType of leaveTypes) {
       if (leaveType.code === 'MATERNITY') {
@@ -349,18 +386,7 @@ export class LeavesService {
         throw new BadRequestException(`${leaveType.name} requests exceeding ${leaveType.requiresDocumentAbove} consecutive days require a medical proof document.`);
       }
 
-      let approvalQueue = baseApprovalQueue;
-      if (isEmergency) {
-        const matrix = await this.prisma.approvalMatrix.findMany({ where: { isEmergency: true }, orderBy: { stepOrder: 'asc' } });
-        if (matrix.length > 0) {
-          approvalQueue = matrix.map((m: any) => ({ role: m.approverRoleId, status: 'PENDING' }));
-        } else {
-          approvalQueue = [
-            { role: 'CTO', status: 'PENDING' },
-            { role: 'CEO', status: 'PENDING' }
-          ];
-        }
-      }
+      let approvalQueue = await this.determineQueue(employee, isEmergency);
 
       let daysForThisType = totalWorkingDays;
       if (hasHalfDay) {

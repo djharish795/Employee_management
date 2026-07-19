@@ -28,9 +28,9 @@ export default function LeaveApprovalsPage() {
     return "EMPLOYEE";
   })();
 
-  // Client-side guard: employees and CEO must NOT access this page
+  // Client-side guard: employees must NOT access this page
   // Middleware covers the server path — this covers the client-side navigation path
-  const isApprover = ["ADMIN", "HR", "MANAGER"].includes(leavePanelRole);
+  const isApprover = ["ADMIN", "HR", "MANAGER", "CEO"].includes(leavePanelRole);
   React.useEffect(() => {
     if (!isApprover) {
       router.replace("/access-restricted");

@@ -227,8 +227,8 @@ export function TasksClient({ mode = "INDIVIDUAL" }: TasksClientProps) {
             </div>
             <div className="flex items-center space-x-3">
               
-              {/* Only show Create button if Team Lead or CTO */}
-              {(isTeamLead || ['CTO'].includes(role || '')) && (
+              {/* Only show Create button if Team Lead, CTO, or CEO */}
+              {(isTeamLead || ['CTO', 'CEO'].includes(role || '')) && (
                 <button 
                   onClick={() => setIsNewTaskOpen(true)}
                   className="flex items-center space-x-1 bg-[#0052CC] hover:bg-[#0047B3] text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm"

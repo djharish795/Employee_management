@@ -138,19 +138,30 @@ export class ComplianceController {
 
   @RequirePermissions(RbacPermissions.COMPLIANCE_READ)
   @Get("policies")
-  getPolicies() {
-    return [
-      { id: "1", title: "Data Protection Policy", url: `${process.env.FRONTEND_URL}/policies/data-protection`, updated: "2024-01-01" },
-      { id: "2", title: "Code of Conduct", url: `${process.env.FRONTEND_URL}/policies/code-of-conduct`, updated: "2024-01-15" }
-    ];
+  async getPolicies() {
+    const policies = await this.prisma.compliancePolicy.findMany({
+      orderBy: { updatedAt: "desc" },
+    });
+    return policies.map(p => ({
+      id: p.id,
+      title: p.title,
+      url: p.url,
+      updated: p.updatedAt.toISOString().split("T")[0]
+    }));
   }
 
   @RequirePermissions(RbacPermissions.COMPLIANCE_READ)
   @Get("reports")
-  getReports() {
-    return [
-      { id: "1", title: "Q1 Compliance Audit", date: "2024-03-31", url: "#" },
-      { id: "2", title: "Q2 DPDPA Assessment", date: "2024-06-30", url: "#" }
-    ];
+  async getReports() {
+    const filings = await this.prisma.statutoryFiling.findMany({
+      orderBy: { deadline: "asc" },
+    });
+    return filings.map(f => ({
+      id: f.id,
+      title: f.title,
+      date: f.deadline.toISOString().split("T")[0],
+      status: f.status,
+      url: "#"
+    }));
   }
 }
