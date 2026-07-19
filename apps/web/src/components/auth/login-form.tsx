@@ -89,8 +89,9 @@ export const LoginForm: React.FC = () => {
       } else if (res.token && res.refreshToken) {
         const role = res.role ?? "EMPLOYEE";
         
-        // Write the role cookie to keep it in sync with layout hydration fallbacks
+        // Write the token and role cookies to keep them in sync with layout hydration fallbacks
         if (typeof document !== "undefined") {
+          document.cookie = `token=${res.token}; path=/; max-age=${7 * 24 * 60 * 60}`;
           document.cookie = `role=${role}; path=/; max-age=${7 * 24 * 60 * 60}`;
         }
 

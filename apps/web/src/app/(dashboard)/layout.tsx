@@ -37,17 +37,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   React.useEffect(() => {
     setMounted(true);
     
-    // We delay the check by 100ms to allow Zustand to hydrate from localStorage.
-    // This entirely prevents the false-logout flash on reload, but still catches
-    // users trying to use the Back button after logging out.
+    // We check after hydration to allow Zustand to hydrate from localStorage/cookies.
+    // This prevents the false-logout flash on login/reload.
     const hydrationTimer = setTimeout(() => {
-      if (!useAuthStore.getState().role) {
+      const state = useAuthStore.getState();
+      const hasLocalStorage = typeof window !== 'undefined' && !!localStorage.getItem('auth-storage');
+      const hasCookie = typeof document !== 'undefined' && (document.cookie.includes('role=') || document.cookie.includes('token='));
+      
+      if (!state.role && !state.accessToken && !hasLocalStorage && !hasCookie) {
         router.replace('/login');
       }
-    }, 100);
+    }, 250);
 
     return () => clearTimeout(hydrationTimer);
-  }, [router]);
+  }, [router, storeRole, accessToken]);
 
   if (!mounted) return null;
 
