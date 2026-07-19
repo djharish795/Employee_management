@@ -4,6 +4,7 @@ import { usePermissions } from "@/hooks/use-permissions";
 import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { assetsApi } from "@/lib/api/assets";
 import {
   Plus,
@@ -40,6 +41,8 @@ const CATEGORY_OPTIONS: { value: AssetCategory; label: string; icon: React.Eleme
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING: "text-amber-700 bg-amber-50 border border-amber-100",
+  PENDING_OM_SELECTION: "text-amber-700 bg-amber-50 border border-amber-100",
+  PENDING_CEO_APPROVAL: "text-blue-700 bg-blue-50 border border-blue-100",
   APPROVED: "text-emerald-700 bg-emerald-50 border border-emerald-100",
   REJECTED: "text-rose-700 bg-rose-50 border border-rose-100",
   FULFILLED: "text-slate-900 bg-slate-100 border border-slate-200",
@@ -47,6 +50,8 @@ const STATUS_COLORS: Record<string, string> = {
 
 const STATUS_ICONS: Record<string, React.ElementType> = {
   PENDING: Clock,
+  PENDING_OM_SELECTION: Clock,
+  PENDING_CEO_APPROVAL: Clock,
   APPROVED: CheckCircle2,
   REJECTED: XCircle,
   FULFILLED: CheckCircle2,
@@ -96,17 +101,22 @@ export default function RequestsPanel() {
       const meta = r.metadata ?? {};
       return {
         id: r.id,
-        initiatorId: r.initiatedById,
-        requestedBy: r.initiatedBy
-          ? `${r.initiatedBy.firstName} ${r.initiatedBy.lastName}`
-          : "Unknown",
-        requestedByAvatar: r.initiatedBy
-          ? `https://api.dicebear.com/7.x/notionists/svg?seed=${r.initiatedBy.firstName}`
+        initiatorId: r.requester?.id || r.initiatedById,
+        requestedBy: r.requester
+          ? `${r.requester.firstName} ${r.requester.lastName}`
+          : r.initiatedBy
+            ? `${r.initiatedBy.firstName} ${r.initiatedBy.lastName}`
+            : "Unknown",
+        targetEmployeeName: r.employee
+          ? `${r.employee.firstName} ${r.employee.lastName}`
+          : null,
+        requestedByAvatar: (r.requester || r.initiatedBy)
+          ? `https://api.dicebear.com/7.x/notionists/svg?seed=${(r.requester || r.initiatedBy).firstName}`
           : "",
-        department: r.initiatedBy?.department?.name ?? "",
+        department: r.employee?.department?.name ?? r.initiatedBy?.department?.name ?? "",
         assetCategory: (meta.category ?? "OTHER") as AssetCategory,
-        description: meta.description ?? "",
-        justification: meta.justification ?? "",
+        description: r.reason || meta.description || `Request for ${r.employee?.firstName || 'Employee'}`,
+        justification: r.reason || meta.justification || (Array.isArray(r.requestedItems) ? r.requestedItems.join(", ") : ""),
         priority: (meta.priority ?? "MEDIUM") as AssetRequest["priority"],
         status: r.status as AssetRequest["status"],
         requestDate: new Date(r.createdAt).toLocaleDateString("en-IN", {
@@ -119,7 +129,7 @@ export default function RequestsPanel() {
           : null,
         respondedBy: meta.respondedById ?? null,
         currentStepIndex: r.currentStepIndex ?? 0,
-        requestType: (meta.requestType ?? "GENERAL") as "GENERAL" | "ONBOARDING" | "OFFBOARDING",
+        requestType: (r.type || meta.requestType || "GENERAL") as "GENERAL" | "ONBOARDING" | "OFFBOARDING",
       };
     });
   }, [rawRequests]);
@@ -346,7 +356,11 @@ export default function RequestsPanel() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-bold text-slate-900">{req.requestedBy}</span>
+                      <span className="text-sm font-bold text-slate-900">
+                        {req.targetEmployeeName 
+                          ? `${req.targetEmployeeName} (Req by: ${req.requestedBy})`
+                          : req.requestedBy}
+                      </span>
                       {req.requestType === "ONBOARDING" && (
                         <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Onboarding</span>
                       )}
@@ -402,59 +416,41 @@ export default function RequestsPanel() {
                     </div>
                   )}
 
-                  {canApprove && req.status === "PENDING" && (
+                  {canApprove && (
                     <>
-                      {activeRole === "OM" && req.currentStepIndex === 1 ? (
-                        <div className="text-xs font-semibold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-100 text-center w-full whitespace-nowrap">
+                      {activeRole === "OM" && req.status === "PENDING_CEO_APPROVAL" && (
+                        <div className="text-xs font-semibold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-100 text-center w-full whitespace-nowrap mt-2">
                           Sent to CEO for Final Approval
                         </div>
-                      ) : activeRole === "CEO" && req.currentStepIndex === 0 ? (
-                        <div className="text-xs font-semibold text-slate-500 italic">
+                      )}
+                      
+                      {activeRole === "CEO" && req.status === "PENDING_OM_SELECTION" && (
+                        <div className="text-xs font-semibold text-slate-500 italic mt-2">
                           Awaiting OM approval
                         </div>
-                      ) : activeRole === "CEO" && req.currentStepIndex === 1 ? (
-                        <div className="flex flex-col gap-2 w-full">
-                          <div className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded text-center uppercase">
-                            Approved by OM
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => respondMutation.mutate({ id: req.id, status: "REJECTED" })}
-                              disabled={respondMutation.isPending}
-                              className="flex-1 px-3 py-1.5 text-[11px] font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-md transition-colors"
-                            >
-                              Reject
-                            </button>
-                            <button
-                              onClick={() => setRequestToFulfill(req)}
-                              className="flex-1 px-3 py-1.5 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md transition-colors shadow-sm"
-                            >
-                              Approve
-                            </button>
-                          </div>
+                      )}
+                      
+                      {((activeRole === "OM" && req.status === "PENDING_OM_SELECTION") || 
+                        (activeRole === "CEO" && req.status === "PENDING_CEO_APPROVAL")) && (
+                        <div className="flex gap-2 w-full mt-2">
+                          <Link 
+                            href="/approvals/assets"
+                            className="flex-1 px-3 py-2 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md transition-colors shadow-sm text-center"
+                          >
+                            Review & Process
+                          </Link>
                         </div>
-                      ) : (
-                        <div className="flex gap-2 w-full">
-                          <button
-                            onClick={() => respondMutation.mutate({ id: req.id, status: "REJECTED" })}
-                            disabled={respondMutation.isPending}
-                            className="flex-1 px-3 py-1.5 text-[11px] font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-md transition-colors"
+                      )}
+
+                      {/* Legacy Workflow Instance Fallback */}
+                      {req.status === "PENDING" && (
+                        <div className="flex gap-2 w-full mt-2">
+                          <Link 
+                            href="/approvals/assets"
+                            className="flex-1 px-3 py-2 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md transition-colors shadow-sm text-center"
                           >
-                            Reject
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (req.currentStepIndex === 0) {
-                                respondMutation.mutate({ id: req.id, status: "APPROVED" });
-                              } else {
-                                setRequestToFulfill(req);
-                              }
-                            }}
-                            disabled={respondMutation.isPending}
-                            className="flex-1 px-3 py-1.5 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md transition-colors shadow-sm"
-                          >
-                            Approve
-                          </button>
+                            Review & Process
+                          </Link>
                         </div>
                       )}
                     </>

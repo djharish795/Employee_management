@@ -64,6 +64,28 @@ export class OffboardingService {
       });
     }
 
+    // ALSO: Create an OFFBOARDING AssetRequest to notify the Operations Manager
+    // to recover these assets on their dashboard
+    if (assignedAssets.length > 0) {
+      const requestedItems = assignedAssets.map(a => ({
+        assetId: a.asset.id,
+        name: a.asset.name,
+        category: a.asset.category,
+        serialNumber: a.asset.serialNumber
+      }));
+
+      await this.prisma.assetRequest.create({
+        data: {
+          employeeId: dto.employeeId,
+          requesterId: actorId || dto.employeeId,
+          type: "OFFBOARDING",
+          status: "PENDING_OM_SELECTION", // Send directly to OM
+          reason: "Offboarding Asset Recovery",
+          requestedItems: requestedItems as any,
+        }
+      });
+    }
+
     // 3. Populate other checklists with standard/default items
     const deactivationChecklist: ChecklistItem[] = [
       { id: "revoke_slack", label: "Revoke Slack Account", status: "pending" },

@@ -62,6 +62,10 @@ model Employee {
   assetsAssignedByMe         AssetAssignment[]          @relation("AssetAssigner")
   assetAssignments           AssetAssignment[]          @relation("AssetAssignmentEmployee")
   assetsHeld                 Asset[]                    @relation("CurrentAssetHolder")
+  assetRequestsForMe         AssetRequest[]             @relation("AssetRequestEmployee")
+  assetRequestsCreated       AssetRequest[]             @relation("AssetRequestCreator")
+  assetRequestsOMApproved    AssetRequest[]             @relation("AssetRequestOMApprover")
+  assetRequestsCEOApproved   AssetRequest[]             @relation("AssetRequestCEOApprover")
   attendanceRecords          AttendanceRecord[]
   workdaySummaries           WorkdaySummary[]
   regularizedAttendances     AttendanceRecord[]         @relation("AttendanceRegularizer")
@@ -431,6 +435,42 @@ model AssetAssignment {
   employee          Employee  @relation("AssetAssignmentEmployee", fields: [employeeId], references: [id])
 
   @@map("asset_assignments")
+}
+
+enum AssetRequestStatus {
+  PENDING_OM_SELECTION
+  PENDING_CEO_APPROVAL
+  APPROVED
+  REJECTED
+}
+
+enum AssetRequestType {
+  ONBOARDING
+  OFFBOARDING
+  GENERAL
+}
+
+model AssetRequest {
+  id               String             @id @default(cuid())
+  employeeId       String
+  requesterId      String
+  type             AssetRequestType
+  status           AssetRequestStatus @default(PENDING_OM_SELECTION)
+  requestedItems   Json               @default("[]")
+  reason           String?
+  selectedAssetIds String[]           @default([])
+  omApproverId     String?
+  ceoApproverId    String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  employee         Employee           @relation("AssetRequestEmployee", fields: [employeeId], references: [id])
+  requester        Employee           @relation("AssetRequestCreator", fields: [requesterId], references: [id])
+  omApprover       Employee?          @relation("AssetRequestOMApprover", fields: [omApproverId], references: [id])
+  ceoApprover      Employee?          @relation("AssetRequestCEOApprover", fields: [ceoApproverId], references: [id])
+
+  @@index([employeeId, status])
+  @@map("asset_requests")
 }
 
 model Notification {

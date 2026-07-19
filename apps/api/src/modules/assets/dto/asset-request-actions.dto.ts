@@ -1,26 +1,25 @@
-import { IsString, IsEnum, IsOptional } from "class-validator";
+import { IsString, IsEnum, IsOptional, IsArray, IsNotEmpty } from "class-validator";
 import { AssetCategory } from "@naprocs/database";
 
 export class CreateAssetRequestDto {
-  @IsEnum(AssetCategory)
-  category!: AssetCategory;
-
   @IsString()
-  description!: string;
+  employeeId!: string;
 
-  @IsString()
-  justification!: string;
-
-  @IsEnum(["LOW", "MEDIUM", "HIGH", "URGENT"])
-  priority!: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  @IsEnum(["ONBOARDING", "OFFBOARDING", "GENERAL"])
+  type!: "ONBOARDING" | "OFFBOARDING" | "GENERAL";
 
   @IsOptional()
-  @IsString()
-  targetEmployeeId?: string;
+  requestedItems?: any;
 
+  @IsString()
   @IsOptional()
-  @IsEnum(["REGULAR", "ONBOARDING", "OFFBOARDING"])
-  requestType?: "REGULAR" | "ONBOARDING" | "OFFBOARDING";
+  reason?: string;
+}
+
+export class OmSelectAssetRequestDto {
+  @IsArray()
+  @IsString({ each: true })
+  assetIds!: string[];
 }
 
 export class RespondAssetRequestDto {

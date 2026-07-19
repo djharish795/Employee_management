@@ -177,6 +177,7 @@ export const RbacRolePermissionsMapping: Record<RbacRoleType, RbacPermissionType
     RbacPermissions.DEPARTMENTS_READ,
     RbacPermissions.DASHBOARD_VIEW,
     RbacPermissions.AUDIT_READ,
+    RbacPermissions.ASSETS_ALLOCATE,
   ],
   [RbacRoles.HR]: [
     RbacPermissions.EMPLOYEES_READ,
@@ -217,7 +218,9 @@ export const RbacRolePermissionsMapping: Record<RbacRoleType, RbacPermissionType
   [RbacRoles.AR]: [],
   [RbacRoles.ADMIN]: [],
   [RbacRoles.TR]: [],
-  [RbacRoles.OM]: [],
+  [RbacRoles.OM]: [
+    RbacPermissions.ASSETS_ALLOCATE,
+  ],
 };
 
 /**

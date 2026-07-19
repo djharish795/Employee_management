@@ -41,12 +41,13 @@ export interface AssetRequest {
   initiatorId: string;
   requestedBy: string;
   requestedByAvatar: string;
+  targetEmployeeName?: string | null;
   department: string;
   assetCategory: AssetCategory;
   description: string;
   justification: string;
   priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
-  status: "PENDING" | "APPROVED" | "REJECTED" | "FULFILLED";
+  status: "PENDING" | "PENDING_OM_SELECTION" | "PENDING_CEO_APPROVAL" | "APPROVED" | "REJECTED" | "FULFILLED";
   requestDate: string;
   responseDate: string | null;
   respondedBy: string | null;

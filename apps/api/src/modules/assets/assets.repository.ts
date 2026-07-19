@@ -20,9 +20,10 @@ export class AssetsRepository {
       search?: string;
       page?: number;
       limit?: number;
+      employeeId?: string;
     }
   ) {
-    const { status, category, search, page = 1, limit = 50 } = filters;
+    const { status, category, search, page = 1, limit = 50, employeeId } = filters;
 
     const where: any = {};
     if (status) where.status = status;
@@ -49,6 +50,10 @@ export class AssetsRepository {
       }
     } else if (role === "CTO") {
       where.status = AssetStatus.ASSIGNED;
+    }
+    
+    if (employeeId) {
+      where.currentHolderId = employeeId;
     }
 
     const [assets, total] = await Promise.all([
@@ -223,28 +228,55 @@ export class AssetsRepository {
 
   // ─── Asset Requests (via WorkflowInstance) ─────────────────────────────────
 
-  async findRequests(filters: { status?: string; employeeId?: string }): Promise<any> {
-    const where: any = {
-      workflow: { type: "ASSET_REQUEST" },
-    };
-    if (filters.status) where.status = filters.status;
-    if (filters.employeeId) where.initiatedById = filters.employeeId;
-
-    return this.prisma.workflowInstance.findMany({
-      where,
-      include: {
-        initiatedBy: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            department: true,
-          },
-        },
-        workflow: { select: { id: true, name: true, type: true } },
+  async createAssetRequest(data: {
+    employeeId: string;
+    requesterId: string;
+    type: "ONBOARDING" | "OFFBOARDING" | "GENERAL";
+    requestedItems?: any;
+    reason?: string;
+  }) {
+    return this.prisma.assetRequest.create({
+      data: {
+        employeeId: data.employeeId,
+        requesterId: data.requesterId,
+        type: data.type,
+        requestedItems: data.requestedItems || [],
+        reason: data.reason || "",
       },
-      orderBy: { createdAt: "desc" },
     });
+  }
+
+  async getAssetRequestById(id: string) {
+    return this.prisma.assetRequest.findUnique({
+      where: { id }
+    });
+  }
+
+  async updateAssetRequest(id: string, data: any) {
+    return this.prisma.assetRequest.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async findRequests(filters: { status?: string; employeeId?: string }): Promise<any> {
+    const where: any = {};
+    if (filters.status) where.status = filters.status;
+    if (filters.employeeId) where.employeeId = filters.employeeId;
+
+    const reqs = await this.prisma.assetRequest.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      include: {
+        employee: {
+          select: { id: true, firstName: true, lastName: true, department: true }
+        },
+        requester: {
+          select: { id: true, firstName: true, lastName: true }
+        }
+      }
+    });
+    return reqs;
   }
   // ─── KPI Queries (existing, unchanged) ────────────────────────────────────
 
