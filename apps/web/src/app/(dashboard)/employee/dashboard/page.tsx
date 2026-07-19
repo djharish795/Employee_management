@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default async function EmployeeDashboardPage() {
-  // Server-side role guard — EMPLOYEE, MANAGER, TEAM_LEAD only
+  // Server-side role guard - EMPLOYEE, MANAGER, TEAM_LEAD only
   // Redirects to /access-restricted for executive roles, etc.
   await requireRole(['EMPLOYEE', 'MANAGER', 'TEAM_LEAD']);
   return (

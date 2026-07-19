@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ItDashboardPage() {
-  // Server-side role guard — SUPER_ADMIN and IT only
+  // Server-side role guard - SUPER_ADMIN and IT only
   await requireRole(['SUPER_ADMIN', 'IT']);
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] p-8 text-center animate-in fade-in zoom-in duration-500">
