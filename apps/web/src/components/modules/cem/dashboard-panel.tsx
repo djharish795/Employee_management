@@ -21,7 +21,7 @@ import {
 
 import { PersonalAttendanceWidget } from '@/components/shared/personal-attendance-widget';
 
-export default function CamDashboardPanel() {
+export default function CemDashboardPanel() {
   const [filterStatus, setFilterStatus] = useState('ALL STATUS');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 

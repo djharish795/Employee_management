@@ -113,27 +113,27 @@ export const ROLE_REGISTRY: Record<UserRole, RoleRegistryEntry> = {
   },
   [UserRole.CEM]: {
     role: UserRole.CEM,
-    defaultDashboard: "/cam/dashboard",
+    defaultDashboard: "/cem/dashboard",
     sidebarType: SidebarType.CEM,
-    allowedNamespaces: ["/cam", "/oe", "/om", "/crm"]
+    allowedNamespaces: ["/cem", "/oe", "/om", "/crm"]
   },
   [UserRole.OM]: {
     role: UserRole.OM,
     defaultDashboard: "/om/dashboard",
     sidebarType: SidebarType.CEM,
-    allowedNamespaces: ["/cam", "/oe", "/om", "/crm", "/org-chart"]
+    allowedNamespaces: ["/cem", "/oe", "/om", "/crm", "/org-chart"]
   },
   [UserRole.OE]: {
     role: UserRole.OE,
     defaultDashboard: "/oe/dashboard",
     sidebarType: SidebarType.CEM,
-    allowedNamespaces: ["/cam", "/oe", "/om", "/crm"]
+    allowedNamespaces: ["/cem", "/oe", "/om", "/crm"]
   },
   [UserRole.CRM]: {
     role: UserRole.CRM,
     defaultDashboard: "/crm/dashboard",
     sidebarType: SidebarType.CEM,
-    allowedNamespaces: ["/cam", "/oe", "/om", "/crm"]
+    allowedNamespaces: ["/cem", "/oe", "/om", "/crm"]
   }
 };
 

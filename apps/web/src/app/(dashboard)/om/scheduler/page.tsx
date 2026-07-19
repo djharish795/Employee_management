@@ -1,5 +1,5 @@
 
-import CamSchedulerPage from "../../cam/scheduler/page";
+import CamSchedulerPage from "../../cem/scheduler/page";
 
 export default function OmSchedulerPage() {
   return <CamSchedulerPage />;

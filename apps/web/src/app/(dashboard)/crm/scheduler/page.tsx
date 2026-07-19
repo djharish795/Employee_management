@@ -1,2 +1,2 @@
 "use client";
-export { default } from '../../cam/scheduler/page';
+export { default } from '../../cem/scheduler/page';

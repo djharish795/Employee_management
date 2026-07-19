@@ -215,7 +215,7 @@ export default function FieldWorkRequestPage() {
     if (isSubmitting) return;
     const id = await saveRequest('Draft');
     if (id) {
-      router.push('/cam/reports');
+      router.push('/cem/reports');
     }
   };
 
@@ -235,7 +235,7 @@ export default function FieldWorkRequestPage() {
         <div className="flex items-center gap-3 mb-6">
           <button 
             type="button"
-            onClick={() => router.push('/cam/reports')}
+            onClick={() => router.push('/cem/reports')}
             className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -506,7 +506,7 @@ export default function FieldWorkRequestPage() {
             <div>
               <button 
                 type="button"
-                onClick={() => router.push('/cam/reports')}
+                onClick={() => router.push('/cem/reports')}
                 className="flex items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
               >
                 <X className="w-4 h-4" />
@@ -549,7 +549,7 @@ export default function FieldWorkRequestPage() {
               Your field work request has been logged under ID <span className="font-bold text-slate-900 dark:text-white">{submittedId}</span>. It is currently under review by the operations department.
             </p>
             <button 
-              onClick={() => router.push('/cam/reports')}
+              onClick={() => router.push('/cem/reports')}
               className="w-full h-11 bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:bg-slate-800 dark:hover:bg-slate-100 rounded-lg text-sm font-bold shadow-sm transition-colors"
             >
               Go to Reports

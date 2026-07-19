@@ -15,7 +15,7 @@ import { useNotifications } from '@/hooks/use-notifications';
 import { useRbac } from '@/hooks/use-rbac';
 import { Permission } from '@naprocs/types';
 
-export function CamSidebar() {
+export function CemSidebar() {
   const pathname  = usePathname();
   const router    = useRouter();
   const clearSession = useAuthStore((state) => state.clearSession);
@@ -70,7 +70,7 @@ export function CamSidebar() {
   }
 
   // ─── Shared Operations items (Reports + Scheduler) for CRM, CEM, OM ───
-  const opsPrefix = storeRole === 'CRM' ? '/crm' : (storeRole === 'OM' ? '/om' : '/cam');
+  const opsPrefix = storeRole === 'CRM' ? '/crm' : (storeRole === 'OM' ? '/om' : '/cem');
   const sharedOpsItems = [
     { title: 'Reports', icon: FileBarChart, href: `${opsPrefix}/reports` },
     { title: 'Scheduler', icon: Clock, href: `${opsPrefix}/scheduler` },
@@ -116,7 +116,7 @@ export function CamSidebar() {
           items: [
             { title: 'Dashboard', icon: LayoutDashboard, href: '/om/dashboard' },
             { title: 'Work Reports', icon: ClipboardList, href: '/om/work-reports' },
-            { title: 'Field Operations', icon: Wrench, href: '/cam/meetings' },
+            { title: 'Field Operations', icon: Wrench, href: '/cem/meetings' },
             { title: 'Team Overview', icon: Users, href: '/org-chart' },
           ]
         },
@@ -142,13 +142,13 @@ export function CamSidebar() {
     // Default: CEM (and OE)
     return [
       {
-        label: 'CAM PORTAL',
+        label: 'CEM PORTAL',
         items: [
-          { title: 'Dashboard', icon: LayoutDashboard, href: '/cam/dashboard' },
-          { title: 'Lead Workspace', icon: Briefcase, href: '/cam/workspace' },
-          { title: 'Follow-up Hub', icon: History, href: '/cam/follow-ups' },
-          { title: 'Meetings', icon: Calendar, href: '/cam/meetings' },
-          { title: 'Qualification', icon: ShieldCheck, href: '/cam/qualification' },
+          { title: 'Dashboard', icon: LayoutDashboard, href: '/cem/dashboard' },
+          { title: 'Lead Workspace', icon: Briefcase, href: '/cem/workspace' },
+          { title: 'Follow-up Hub', icon: History, href: '/cem/follow-ups' },
+          { title: 'Meetings', icon: Calendar, href: '/cem/meetings' },
+          { title: 'Qualification', icon: ShieldCheck, href: '/cem/qualification' },
         ]
       },
       {

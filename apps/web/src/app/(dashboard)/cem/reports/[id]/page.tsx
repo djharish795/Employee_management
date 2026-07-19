@@ -68,7 +68,7 @@ export default function FieldWorkRequestDetailsPage() {
       try {
         await updateFieldWork(requestId, { status: 'CANCELLED' });
         alert("Request canceled successfully.");
-        router.push('/cam/reports');
+        router.push('/cem/reports');
       } catch (error: any) {
         console.error("Failed to cancel request", error);
         alert(error?.response?.data?.message || "Failed to cancel request.");
@@ -110,7 +110,7 @@ export default function FieldWorkRequestDetailsPage() {
         await rejectFieldWork(requestId, reason);
       }
       alert(`Request ${newStatus.toLowerCase()} successfully.`);
-      router.push('/cam/reports');
+      router.push('/cem/reports');
     } catch (error: any) {
       console.error(`Failed to ${newStatus.toLowerCase()} request`, error);
       alert(error?.response?.data?.message || `Failed to ${newStatus.toLowerCase()} request.`);
@@ -135,7 +135,7 @@ export default function FieldWorkRequestDetailsPage() {
             The requested field work request could not be found or you do not have permission to view it.
           </p>
           <button 
-            onClick={() => router.push('/cam/reports')}
+            onClick={() => router.push('/cem/reports')}
             className="w-full h-10 bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:bg-slate-800 dark:hover:bg-slate-100 rounded-lg text-sm font-bold shadow-sm transition-colors"
           >
             Back to Reports
@@ -182,7 +182,7 @@ export default function FieldWorkRequestDetailsPage() {
         
         {/* Navigation Breadcrumb */}
         <div className="flex items-center gap-2 text-xs font-bold text-slate-500 mb-4 uppercase tracking-wider">
-          <button onClick={() => router.push('/cam/reports')} className="hover:text-slate-900 dark:hover:text-white transition-colors">Requests</button>
+          <button onClick={() => router.push('/cem/reports')} className="hover:text-slate-900 dark:hover:text-white transition-colors">Requests</button>
           <span>&gt;</span>
           <span className="text-slate-900 dark:text-white">{request.id}</span>
         </div>
@@ -191,7 +191,7 @@ export default function FieldWorkRequestDetailsPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-3">
             <button 
-              onClick={() => router.push('/cam/reports')}
+              onClick={() => router.push('/cem/reports')}
               className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm"
             >
               <ArrowLeft className="w-4 h-4" />

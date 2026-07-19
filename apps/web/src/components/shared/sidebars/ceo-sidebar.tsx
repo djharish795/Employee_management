@@ -113,8 +113,8 @@ const getNavGroups = (role: string, unreadCount: number, hasSettingsAccess: bool
           { title: 'Dashboard', icon: LayoutDashboard, href: '/employee/dashboard' },
           { title: 'Work Reports', icon: BarChart3, href: '/om/work-reports' },
           { title: 'Approvals', icon: CheckSquare, href: '/om/approvals' },
-          { title: 'Scheduler', icon: Calendar, href: '/cam/scheduler' },
-          { title: 'Reports', icon: BarChart3, href: '/cam/reports' },
+          { title: 'Scheduler', icon: Calendar, href: '/cem/scheduler' },
+          { title: 'Reports', icon: BarChart3, href: '/cem/reports' },
         ]
       },
       {

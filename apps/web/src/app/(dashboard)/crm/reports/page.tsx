@@ -1,2 +1,2 @@
 "use client";
-export { default } from '../../cam/reports/page';
+export { default } from '../../cem/reports/page';

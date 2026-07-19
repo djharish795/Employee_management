@@ -107,7 +107,7 @@ export default function CamReportsPage() {
           
           <div className="flex items-center gap-3">
             <button 
-              onClick={() => router.push('/cam/reports/field-request')}
+              onClick={() => router.push('/cem/reports/field-request')}
               className="flex items-center gap-2 px-4 py-2 bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:bg-slate-800 dark:hover:bg-slate-100 rounded-lg text-sm font-semibold transition-colors shadow-sm"
             >
               Field Work Request
@@ -259,7 +259,7 @@ export default function CamReportsPage() {
                           {req.status === 'DRAFT' || req.status === 'Draft' ? (
                             <>
                               <button 
-                                onClick={() => router.push(`/cam/reports/field-request?id=${req.id}`)}
+                                onClick={() => router.push(`/cem/reports/field-request?id=${req.id}`)}
                                 className="text-sm font-bold text-slate-900 dark:text-white hover:underline"
                               >
                                 Edit
@@ -274,7 +274,7 @@ export default function CamReportsPage() {
                           ) : (
                             <>
                               <button 
-                                onClick={() => router.push(`/cam/reports/${req.id}`)}
+                                onClick={() => router.push(`/cem/reports/${req.id}`)}
                                 className="text-sm font-bold text-slate-900 dark:text-white hover:underline"
                               >
                                 View

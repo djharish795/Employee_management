@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { CeoSidebar } from '@/components/shared/sidebars/ceo-sidebar';
 import { EmployeeSidebar } from '@/components/shared/sidebars/employee-sidebar';
 import { TeamLeadSidebar } from '@/components/shared/sidebars/team-lead-sidebar';
-import { CamSidebar } from '@/components/shared/sidebars/cam-sidebar';
+import { CemSidebar } from '@/components/shared/sidebars/cem-sidebar';
 import { Topbar } from '@/components/shared/topbar';
 import { getSidebarTypeForRole, SidebarType } from '@naprocs/types';
 import { useRbac } from '@/hooks/use-rbac';
@@ -58,7 +58,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const sidebarType = getSidebarTypeForRole(activeRole);
   
   const renderSidebar = () => {
-    if (sidebarType === SidebarType.CEM) return <CamSidebar />;
+    if (sidebarType === SidebarType.CEM) return <CemSidebar />;
     if (sidebarType === SidebarType.TEAM_LEAD) return <TeamLeadSidebar />;
     if (sidebarType === SidebarType.CEO) return <CeoSidebar />;
     return <EmployeeSidebar />;
