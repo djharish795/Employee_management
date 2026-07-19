@@ -105,7 +105,7 @@ export function NewTaskModal({
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
             >
               {/* Show everything to managers or CTO */}
-              {['MANAGER', 'CTO', 'SUPER_ADMIN'].includes(userRole || '') ? (
+              {['MANAGER', 'CTO', 'SUPER_ADMIN', 'CEO'].includes(userRole || '') ? (
                 <>
                   <option value="TASK">Task</option>
                   <option value="STORY">Story</option>

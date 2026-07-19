@@ -33,7 +33,7 @@ export default function DashboardPanel() {
     return "EMPLOYEE";
   })();
 
-  // ── 1. My Leave KPI & Balance ─────────────────────────────────────────────────────────
+  // ------ 1. My Leave KPI & Balance ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   const kpiQuery = useQuery<ApiLeaveKpi>({
     queryKey: ["leaves-kpi", employeeId],
     queryFn: () => fetchMyLeaveKpi(employeeId!),
@@ -42,7 +42,7 @@ export default function DashboardPanel() {
     retry: 2,
   });
 
-  // ── 2. Leave Calendar (recent requests) ──────────────────────────────────
+  // ------ 2. Leave Calendar (recent requests) ------------------------------------------------------------------------------------------------------
   const calendarQuery = useQuery<ApiLeaveRequest[]>({
     queryKey: ["leaves-calendar"],
     queryFn: () => fetchLeaveCalendar(),
@@ -51,7 +51,7 @@ export default function DashboardPanel() {
     retry: 1,
   });
 
-  // ── 3. WFH requests for this month ───────────────────────────────────────
+  // ------ 3. WFH requests for this month ---------------------------------------------------------------------------------------------------------------------
   const wfhQuery = useQuery<ApiWfhRequest[]>({
     queryKey: ["wfh-my", employeeId],
     queryFn: () => fetchMyWfh(employeeId!),
@@ -60,7 +60,7 @@ export default function DashboardPanel() {
     retry: 1,
   });
 
-  // ── Computed leave KPIs ───────────────────────────────────────────────────
+  // ------ Computed leave KPIs ---------------------------------------------------------------------------------------------------------------------------------------------------------
   const kpi = useMemo(() => {
     if (!kpiQuery.data) return null;
     const { totalLeaves, usedLeaves, pendingLeaves, availableLeaves, details } = kpiQuery.data;
@@ -86,7 +86,7 @@ export default function DashboardPanel() {
     };
   }, [kpiQuery.data]);
 
-  // ── Half-day specific balance ─────────────────────────────────────────────
+  // ------ Half-day specific balance ---------------------------------------------------------------------------------------------------------------------------------------
   const halfDayBalance = useMemo(() => {
     if (!kpiQuery.data) return null;
     const hd = kpiQuery.data.details.find(d => d.leaveType.code === "CL_HALF");
@@ -97,7 +97,7 @@ export default function DashboardPanel() {
 
   const maxWfh = activeRole === "CEO" ? 5 : activeRole === "MANAGER" || activeRole === "HR" ? 2 : 1;
 
-  // ── WFH this month ────────────────────────────────────────────────────────
+  // ------ WFH this month ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   const wfhThisMonth = useMemo(() => {
     if (!wfhQuery.data) return { used: 0, pending: 0, max: maxWfh };
     const now = new Date();
@@ -110,7 +110,7 @@ export default function DashboardPanel() {
     return { used, pending, max: maxWfh };
   }, [wfhQuery.data, maxWfh]);
 
-  // ── Recent leave requests ─────────────────────────────────────────────────
+  // ------ Recent leave requests ---------------------------------------------------------------------------------------------------------------------------------------------------
   const recentRequests = useMemo(() => {
     if (!calendarQuery.data) return [];
     const items = calendarQuery.data as any[];
@@ -120,7 +120,7 @@ export default function DashboardPanel() {
     return items.slice(0, 5);
   }, [calendarQuery.data, employeeId]);
 
-  // ── Balance breakdown (excluding CL_HALF, shown separately) ──────────────
+  // ------ Balance breakdown (excluding CL_HALF, shown separately) ------------------------------------------
   const balanceDetails = (kpiQuery.data?.details ?? []).filter(d => d.leaveType.code !== "CL_HALF");
 
   const isLoading = kpiQuery.isLoading;
@@ -140,7 +140,7 @@ export default function DashboardPanel() {
   return (
     <div className="space-y-6">
 
-      {/* ── Global Summary Cards ──────────────────────────────────────────── */}
+      {/* ------ Global Summary Cards ------------------------------------------------------------------------------------------------------------------------------------ */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Total Allocated (Yearly) */}
         <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow-lg relative overflow-hidden">
@@ -179,7 +179,7 @@ export default function DashboardPanel() {
         </div>
       </div>
 
-      {/* ── Detailed Breakdown Cards ──────────────────────────────────────── */}
+      {/* ------ Detailed Breakdown Cards ------------------------------------------------------------------------------------------------------------------------ */}
       <h4 className="text-sm font-bold text-slate-700 mb-2 mt-8 border-b border-slate-100 pb-2">Leave Breakdown</h4>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
 
@@ -323,10 +323,10 @@ export default function DashboardPanel() {
         </div>
       </div>
 
-      {/* ── Main Content Grid ──────────────────────────────────────────────── */}
+      {/* ------ Main Content Grid ------------------------------------------------------------------------------------------------------------------------------------------------ */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
 
-        {/* ── Left: Recent Leave Requests ───────────────────────────────────── */}
+        {/* ------ Left: Recent Leave Requests --------------------------------------------------------------------------------------------------------------- */}
         <div className="xl:col-span-2 space-y-6">
 
           {/* Leave History Table */}
@@ -389,7 +389,7 @@ export default function DashboardPanel() {
                         <td className="px-5 py-3.5 uppercase text-[9px] tracking-wide text-slate-500 font-bold">
                           {leaveTypeName}
                         </td>
-                        <td className="px-5 py-3.5">{fmtDate(req.startDate)} – {fmtDate(req.endDate)}</td>
+                        <td className="px-5 py-3.5">{fmtDate(req.startDate)} --- {fmtDate(req.endDate)}</td>
                         <td className="px-5 py-3.5 text-center font-bold text-slate-900">{req.totalDays}</td>
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-3">
@@ -492,7 +492,7 @@ export default function DashboardPanel() {
           )}
         </div>
 
-        {/* ── Right: Quick Operations ────────────────────────────────────────── */}
+        {/* ------ Right: Quick Operations ------------------------------------------------------------------------------------------------------------------------------ */}
         <div className="space-y-5">
 
           {/* Quick Actions */}

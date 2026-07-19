@@ -5,9 +5,11 @@ import { RbacGuard } from '../../common/guards/rbac.guard';
 import { Permissions } from '../../common/decorators/permissions.decorator';
 import { Permission } from '@naprocs/types';
 import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
+import { RequiresPhase } from '../../common/decorators/requires-phase.decorator';
 import { RbacPermissions } from '../../common/rbac/rbac.config';
 
 @Controller('reports')
+@RequiresPhase(2)
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 

@@ -38,14 +38,30 @@ export class NotificationsService {
     });
   }
 
-  async createNotification(employeeId: string, title: string, body: string, type: NotificationType): Promise<any> {
+  async createNotification(employeeId: string, title: string, body: string, type: NotificationType, referenceId?: string): Promise<any> {
+    // Deduplication check: Do not create if a similar notification exists in the last 15 minutes
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+    const existing = await this.prisma.notification.findFirst({
+      where: {
+        recipientId: employeeId,
+        title,
+        type,
+        createdAt: { gte: fifteenMinutesAgo }
+      }
+    });
+
+    if (existing) {
+      return existing; // Return existing instead of duplicating
+    }
+
     const notification = await this.prisma.notification.create({
       data: {
         recipientId: employeeId,
         title,
         body,
         type,
-        isRead: false
+        isRead: false,
+        data: referenceId ? { referenceId } : undefined
       }
     });
 

@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -141,7 +142,30 @@ model Employee {
   payrollSyncEvents          PayrollSyncEvent[]
   fieldWorkRequests          FieldWorkRequest[]         @relation("FieldWorkRequester")
   fieldWorkApprovals         FieldWorkRequest[]         @relation("FieldWorkApprover")
+  compliancePoliciesUpdated  CompliancePolicy[]         @relation("PolicyUpdater")
   @@map("employees")
+}
+
+model CompliancePolicy {
+  id          String    @id @default(cuid())
+  title       String
+  url         String
+  updatedAt   DateTime  @updatedAt
+  updatedById String
+  
+  updatedBy   Employee  @relation("PolicyUpdater", fields: [updatedById], references: [id])
+  
+  @@map("compliance_policies")
+}
+
+model StatutoryFiling {
+  id          String    @id @default(cuid())
+  title       String
+  deadline    DateTime  @db.Date
+  status      String    @default("PENDING") // PENDING, FILED, OVERDUE
+  filedAt     DateTime?
+  
+  @@map("statutory_filings")
 }
 
 enum FieldWorkStatus {
@@ -1903,4 +1927,44 @@ model WorkflowDefinition {
   updatedAt DateTime @updatedAt
 
   @@map("workflow_definitions")
+}
+
+model OrgPolicy {
+  id                        String   @id @default(cuid())
+  ceoCanEditEmployeeDetails Boolean  @default(false)
+  ceoLeaveApprovalScope     String   @default("EMERGENCY_ONLY")
+  mfaRequired               Boolean  @default(false)
+  passwordMinLength         Int      @default(8)
+  passwordComplexity        Boolean  @default(true)
+  emailNotificationsEnabled Boolean  @default(true)
+  inAppNotificationsEnabled Boolean  @default(true)
+  pushNotificationsEnabled  Boolean  @default(false)
+  dataRetentionExEmployee   String   @default("7")
+  dataRetentionAuditLogs    String   @default("1")
+  strictDpdpaMode           Boolean  @default(true)
+  autoMaskPii               Boolean  @default(true)
+  updatedAt                 DateTime @updatedAt
+  updatedById               String?
+  @@map("org_policies")
+}
+
+model RevokedToken {
+  id        String   @id @default(cuid())
+  jti       String   @unique
+  expiresAt DateTime
+  revokedAt DateTime @default(now())
+  @@map("revoked_tokens")
+}
+
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  subject     String
+  bodyHtml    String   @db.Text
+  variables   String[]
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+
+  @@map("email_templates")
 }

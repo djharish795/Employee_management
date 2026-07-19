@@ -582,8 +582,16 @@ export class EmployeesService {
 
     // Ownership Validation for Write
     if (currentUser && currentUser.role) {
-      const hasGlobal = this.rbacService.hasPermission(currentUser.role, [Permission.WRITE_EMPLOYEES]);
+      let hasGlobal = this.rbacService.hasPermission(currentUser.role, [Permission.WRITE_EMPLOYEES]);
       const hasOwn = this.rbacService.hasPermission(currentUser.role, [Permission.WRITE_OWN_PROFILE]);
+
+      // Enforce dynamic CEO edit policy
+      if (currentUser.role === 'CEO' && currentUser.employeeId !== id) {
+        const policy = await this.prisma.orgPolicy.findFirst();
+        if (!policy?.ceoCanEditEmployeeDetails) {
+          hasGlobal = false;
+        }
+      }
 
       if (!hasGlobal) {
         if (hasOwn && currentUser.employeeId === id) {

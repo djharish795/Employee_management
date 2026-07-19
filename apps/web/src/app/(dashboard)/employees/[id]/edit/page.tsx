@@ -14,6 +14,8 @@ import { AssetsForm } from '@/components/employees/assets-form';
 import { AccessControlForm } from '@/components/employees/access-control-form';
 import { WizardStep } from '@/types/employee';
 import { useAuthStore } from '@/store/auth';
+import { usePermissions } from '@/hooks/use-permissions';
+import { apiClient } from '@/lib/api/client';
 
 const STEPS: WizardStep[] = [
   { num: 1, title: 'Personal Info', active: false, completed: false },
@@ -37,16 +39,41 @@ export default function EditEmployeePage() {
   const [employeeData, setEmployeeData] = useState<any>(null);
   const accessToken = useAuthStore((state) => state.accessToken);
 
+  const { canManageEmployees, role } = usePermissions();
+
   useEffect(() => {
-    async function fetchEmployee() {
+    async function fetchEmployeeAndPolicy() {
       try {
         const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
-        const res = await fetch(`${url}/employees/${id}`, {
-          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-        });
-        if (res.ok) {
-          const data = await res.json();
-          // Map backend data to form format where necessary
+        
+        // Parallel fetch employee and policy
+        const [empRes, policyRes] = await Promise.all([
+          fetch(`${url}/employees/${id}`, {
+            headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+          }),
+          apiClient.get("/settings/policy")
+        ]);
+
+        if (empRes.ok) {
+          const data = await empRes.json();
+          const policy = policyRes.data;
+
+          // Permission Check
+          let canEdit = canManageEmployees;
+          if (role === "CEO" && policy?.ceoCanEditEmployeeDetails) {
+            canEdit = true;
+          }
+
+          if (!canEdit && data.employeeId !== id && data.id !== id) { // assuming id could be employeeId or db id
+            // Check if they are trying to edit someone else
+            const myEmployeeId = useAuthStore.getState().employeeId;
+            if (data.id !== myEmployeeId) {
+              alert("You do not have permission to edit this profile.");
+              router.push(`/employees/${id}`);
+              return;
+            }
+          }
+
           const formatted = {
             ...data,
             emergencyContact: data.emergencyContact || {},
@@ -59,8 +86,8 @@ export default function EditEmployeePage() {
         setIsLoading(false);
       }
     }
-    fetchEmployee();
-  }, [id, accessToken]);
+    fetchEmployeeAndPolicy();
+  }, [id, accessToken, canManageEmployees, role, router]);
 
   const handleStepSave = async (stepData: any) => {
     setIsSubmitting(true);

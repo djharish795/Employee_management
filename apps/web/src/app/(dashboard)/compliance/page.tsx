@@ -361,7 +361,7 @@ export default function ComplianceDashboardPage() {
             <div className="bg-slate-900 rounded-xl p-5 shadow-sm">
               <div className="text-[11px] font-medium text-slate-400 mb-2">Total Data Volume</div>
               <div className="flex items-end gap-3">
-                <span className="text-2xl font-bold text-white">{dashboardStats?.totalDataVolume || "—"}</span>
+                <span className="text-2xl font-bold text-white">{dashboardStats?.totalDataVolume || "---"}</span>
                 <span className="text-[10px] font-bold text-emerald-400 mb-1">Active</span>
               </div>
             </div>
@@ -377,7 +377,7 @@ export default function ComplianceDashboardPage() {
             <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
               <div className="text-[11px] font-medium text-slate-500 mb-2">Avg. Erasure Time</div>
               <div className="flex items-end gap-3">
-                <span className="text-2xl font-bold text-slate-900">{dashboardStats?.avgErasureTime || "—"} Days</span>
+                <span className="text-2xl font-bold text-slate-900">{dashboardStats?.avgErasureTime || "---"} Days</span>
                 <span className="text-[10px] font-bold text-emerald-600 mb-1">Within SLA</span>
               </div>
             </div>
