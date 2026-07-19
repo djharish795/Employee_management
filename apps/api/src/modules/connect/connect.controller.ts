@@ -61,6 +61,13 @@ export class ConnectController {
     return this.connectService.getMyMeetings(employeeId);
   }
 
+  @Get("quick-contacts")
+  @Permissions(Permission.READ_OWN_PROFILE)
+  async getQuickContacts(@Req() req: Request) {
+    const employeeId = (req.user as any).employeeId;
+    return this.connectService.getQuickContacts(employeeId);
+  }
+
   @Get("goals")
   @Permissions(Permission.READ_OWN_PROFILE)
   async getMyGoals(@Req() req: Request) {

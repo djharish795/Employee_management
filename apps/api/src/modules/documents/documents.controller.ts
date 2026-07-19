@@ -5,6 +5,8 @@ import { DocumentsService } from "./documents.service";
 import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
 import { RbacPermissions } from '../../common/rbac/rbac.config';
 
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
+
 @Controller("documents")
 @UseGuards(JwtAuthGuard, RbacGuard)
 export class DocumentsController {
@@ -12,11 +14,11 @@ export class DocumentsController {
 
   @RequirePermissions(RbacPermissions.DOCUMENTS_UPLOAD)
   @Post("upload-url")
-  async getUploadUrl(@Body() body: { fileName: string; contentType: string }) {
+  async getUploadUrl(@Body() body: { fileName: string; contentType: string }, @CurrentUser() user: any) {
     if (!body.fileName || !body.contentType) {
       throw new BadRequestException("fileName and contentType are required");
     }
-    const result = await this.documentsService.generateUploadUrl(body.fileName, body.contentType);
+    const result = await this.documentsService.generateUploadUrl(body.fileName, body.contentType, user);
     return {
       message: "Upload URL generated successfully",
       data: result,
@@ -25,11 +27,11 @@ export class DocumentsController {
 
   @RequirePermissions(RbacPermissions.DOCUMENTS_READ)
   @Get("view-url")
-  async getDownloadUrl(@Query("objectKey") objectKey: string) {
+  async getDownloadUrl(@Query("objectKey") objectKey: string, @CurrentUser() user: any) {
     if (!objectKey) {
       throw new BadRequestException("objectKey query parameter is required");
     }
-    const url = await this.documentsService.generateDownloadUrl(objectKey);
+    const url = await this.documentsService.generateDownloadUrl(objectKey, user);
     return {
       message: "View URL generated successfully",
       data: { url },

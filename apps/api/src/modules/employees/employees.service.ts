@@ -462,6 +462,49 @@ export class EmployeesService {
     return employees;
   }
 
+  async searchDirectory(query: string) {
+    if (!query || query.trim().length === 0) return [];
+
+    const employees = await this.prisma.employee.findMany({
+      where: {
+        status: "ACTIVE",
+        OR: [
+          { firstName: { contains: query, mode: "insensitive" } },
+          { lastName: { contains: query, mode: "insensitive" } },
+          { designation: { title: { contains: query, mode: "insensitive" } } },
+          { department: { name: { contains: query, mode: "insensitive" } } }
+        ]
+      },
+      select: {
+        id: true,
+        employeeId: true,
+        firstName: true,
+        lastName: true,
+        officialEmail: true,
+        photoUrl: true,
+        department: { select: { name: true } },
+        designation: { select: { title: true } }
+      },
+      take: 10
+    });
+
+    for (const emp of employees) {
+      if (emp.photoUrl && !emp.photoUrl.startsWith("http")) {
+        try {
+          const command = new GetObjectCommand({
+            Bucket: this.bucketName,
+            Key: emp.photoUrl,
+          });
+          emp.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
+        } catch (e) {
+          console.error(`Failed to sign URL for search directory emp ${emp.id}:`, e);
+        }
+      }
+    }
+
+    return employees;
+  }
+
   async getOrgStats() {
     const totalEmployees = await this.prisma.employee.count({ where: { status: "ACTIVE" } });
     const departmentsCount = await this.prisma.department.count();
@@ -577,6 +620,34 @@ export class EmployeesService {
 
       if (existingEmail && existingEmail.id !== id) {
         throw new ConflictException("An employee with this official email already exists.");
+      }
+    }
+
+    // Prevent cyclic management loops
+    if (dto.reportingManagerId && dto.reportingManagerId !== employee.reportingManagerId) {
+      if (dto.reportingManagerId === id) {
+        throw new ConflictException("An employee cannot be their own manager.");
+      }
+      
+      const newManager = await this.prisma.employee.findUnique({ where: { id: dto.reportingManagerId } });
+      if (!newManager) throw new NotFoundException("New manager not found.");
+
+      let currentManagerId: string | null = newManager.reportingManagerId;
+      const visited = new Set<string>();
+      visited.add(dto.reportingManagerId);
+
+      while (currentManagerId) {
+        if (currentManagerId === id) {
+          throw new ConflictException("Cannot assign a subordinate as a manager. This would create a circular reporting line.");
+        }
+        if (visited.has(currentManagerId)) {
+          break; // Break on existing cycle just in case
+        }
+        visited.add(currentManagerId);
+        
+        const currentManager = await this.prisma.employee.findUnique({ where: { id: currentManagerId } });
+        if (!currentManager) break;
+        currentManagerId = currentManager.reportingManagerId;
       }
     }
 

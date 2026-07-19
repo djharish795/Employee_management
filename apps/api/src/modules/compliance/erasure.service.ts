@@ -3,10 +3,16 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { maskEmployeePii } from "../../common/utils/pii-masker.util";
 import { createS3Client, deleteFromS3 } from "../../common/utils/s3.util";
 import { ErasureRequestStatus, DataErasureRequest } from "@naprocs/database";
+import { AuditService } from "../audit/audit.service";
+import { RedisService } from "../../redis/redis.service";
 
 @Injectable()
 export class ErasureService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private auditService: AuditService,
+    private redisService: RedisService
+  ) {}
 
   async getAllErasureRequests(): Promise<DataErasureRequest[]> {
     return this.prisma.dataErasureRequest.findMany({
@@ -29,7 +35,7 @@ export class ErasureService {
       throw new BadRequestException("A pending erasure request already exists for this employee.");
     }
 
-    return this.prisma.dataErasureRequest.create({
+    const request = await this.prisma.dataErasureRequest.create({
       data: {
         employeeId,
         requestedById: employeeId,
@@ -37,6 +43,15 @@ export class ErasureService {
         status: ErasureRequestStatus.PENDING,
       }
     });
+
+    await this.auditService.logCreate({
+      moduleName: 'Compliance',
+      entityId: request.id,
+      actorId: employeeId,
+      metadata: { action: 'CREATED_ERASURE_REQUEST' }
+    });
+
+    return request;
   }
 
   async processErasureRequest(id: string, approvedById: string, action: "APPROVE" | "REJECT"): Promise<DataErasureRequest> {
@@ -50,7 +65,7 @@ export class ErasureService {
     }
 
     if (action === "REJECT") {
-      return this.prisma.dataErasureRequest.update({
+      const updated = await this.prisma.dataErasureRequest.update({
         where: { id },
         data: {
           status: ErasureRequestStatus.REJECTED,
@@ -58,6 +73,15 @@ export class ErasureService {
           processedAt: new Date(),
         },
       });
+
+      await this.auditService.logUpdate({
+        moduleName: 'Compliance',
+        entityId: id,
+        actorId: approvedById,
+        metadata: { action: 'REJECTED_ERASURE_REQUEST' }
+      });
+
+      return updated;
     }
 
     // Fetch employee before masking to get their current document keys
@@ -94,7 +118,13 @@ export class ErasureService {
       }
     }
 
-    return this.prisma.dataErasureRequest.update({
+    // Terminate active sessions for the erased employee
+    const activeSessionKeys = await this.redisService.keys(`session:*:${request.employeeId}`);
+    if (activeSessionKeys.length > 0) {
+      await this.redisService.del(...activeSessionKeys);
+    }
+
+    const updated = await this.prisma.dataErasureRequest.update({
       where: { id },
       data: {
         status: ErasureRequestStatus.COMPLETED,
@@ -104,5 +134,14 @@ export class ErasureService {
         fieldsErased: fieldsErased as any,
       },
     });
+
+    await this.auditService.logUpdate({
+      moduleName: 'Compliance',
+      entityId: id,
+      actorId: approvedById,
+      metadata: { action: 'APPROVED_ERASURE_REQUEST' }
+    });
+
+    return updated;
   }
 }

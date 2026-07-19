@@ -6,6 +6,9 @@ import { S3Client } from "@aws-sdk/client-s3";
 import { createS3Client, generatePresignedDownloadUrl } from "../../common/utils/s3.util";
 import { v4 as uuidv4 } from "uuid";
 import { AuditService } from "../audit/audit.service";
+import { PrismaService } from "../../prisma/prisma.service";
+import { RbacGroups } from "../../common/rbac/rbac.config";
+import { ForbiddenException } from "@nestjs/common";
 
 @Injectable()
 export class DocumentsService {
@@ -15,6 +18,7 @@ export class DocumentsService {
 
   constructor(
     private readonly auditService: AuditService,
+    private readonly prisma: PrismaService,
   ) {
     // Trim bucket name — dotenv does NOT strip inline comments, so raw env
     // values may include trailing " # comment" text if .env has inline comments.
@@ -33,6 +37,7 @@ export class DocumentsService {
   async generateUploadUrl(
     fileName: string,
     contentType: string,
+    user?: any
   ): Promise<{ uploadUrl: string; objectKey: string }> {
     const ALLOWED_CONTENT_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
     if (!ALLOWED_CONTENT_TYPES.includes(contentType)) {
@@ -57,11 +62,10 @@ export class DocumentsService {
         Expires: 900 // 15 minutes
       });
 
-      // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
       this.auditService.logCreate({
         moduleName: 'Documents',
         entityId: objectKey,
-        actorId: 'unknown',
+        actorId: user?.employeeId || 'unknown',
         metadata: { action: 'GENERATE_UPLOAD_URL', fileName, contentType }
       });
 
@@ -83,17 +87,31 @@ export class DocumentsService {
    * Generates a 15-minute presigned URL to securely view/download a file.
    * Access ONLY via pre-signed URLs (15-min expiry) as per AGENTS.md.
    */
-  async generateDownloadUrl(objectKey: string): Promise<string> {
+  async generateDownloadUrl(objectKey: string, user?: any): Promise<string> {
     if (!objectKey) return "";
+
+    if (user) {
+      const isGlobalReader = RbacGroups.HR_OR_SUPER_ADMIN.includes(user.role as any);
+      if (!isGlobalReader) {
+        // Enforce IDOR check: Verify the objectKey exists somewhere in this user's profile
+        const employee = await this.prisma.employee.findUnique({ where: { id: user.employeeId } });
+        if (!employee) throw new ForbiddenException("Employee not found");
+        
+        const profileStr = JSON.stringify(employee);
+        if (!profileStr.includes(objectKey)) {
+          // It might be in their assignments or requests
+          throw new ForbiddenException("You are not authorized to view this document");
+        }
+      }
+    }
 
     try {
       const url = await generatePresignedDownloadUrl(this.s3, this.bucketName, objectKey);
 
-      // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
       this.auditService.logExport({
         moduleName: 'Documents',
         entityId: objectKey,
-        actorId: 'unknown',
+        actorId: user?.employeeId || 'unknown',
         metadata: { action: 'GENERATE_DOWNLOAD_URL' }
       });
 

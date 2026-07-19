@@ -34,11 +34,10 @@ export class ConsentService {
       },
     });
 
-    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
     await this.auditService.logCreate({
       moduleName: 'Compliance',
       entityId: log.id,
-      actorId: 'unknown',
+      actorId: collectedById, // The HR admin or user who collected it
       metadata: { employeeId, purpose }
     });
 
@@ -64,11 +63,10 @@ export class ConsentService {
       data: { revokedAt: new Date() }
     });
 
-    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
     await this.auditService.logUpdate({
       moduleName: 'Compliance',
       entityId: id,
-      actorId: 'unknown',
+      actorId: employeeId, // The person who requested revocation
       metadata: { action: 'REVOKED' }
     });
 
