@@ -1968,3 +1968,130 @@ model EmailTemplate {
 
   @@map("email_templates")
 }
+
+model ClientLead {
+  id               String   @id @default(cuid())
+  company          String
+  industry         String
+  phone            String
+  email            String
+  priority         String
+  stage            Int
+  assignedCem      String
+  leadOwner        String
+  createdDate      String
+  updatedDate      String
+  sourceQuality    Int
+  leadSource       String
+  clientHealth     String
+  changeRequests   Json?
+  attachments      String[]
+  stakeholders     Json?
+  requirementsList Json?
+  meetingsHistory  Json?
+  notes            String[]
+  calls            String[]
+
+  @@map("client_leads")
+}
+
+model IncomingHandoff {
+  id           String @id @default(cuid())
+  company      String
+  industry     String
+  assignedBy   String
+  assignedDate String
+  phone        String
+  email        String
+  priority     String
+
+  @@map("incoming_handoffs")
+}
+
+model Requirement {
+  id               String   @id @default(cuid())
+  title            String
+  clientName       String
+  module           String
+  priority         String
+  status           String
+  category         String
+  businessNeed     String
+  description      String
+  expectedDelivery String
+  clientNotes      String
+  internalNotes    String
+  owner            String
+  assignedCrm      String
+  createdBy        String
+  requestedBy      String
+  decisionMaker    String
+  approver         String
+  dependencies     Json?
+  attachments      String[]
+  timeline         Json?
+
+  @@map("requirements")
+}
+
+model CrmActivityLog {
+  id          String   @id @default(cuid())
+  clientId    String?
+  clientName  String?
+  action      String
+  description String
+  createdAt   DateTime @default(now())
+
+  @@map("crm_activity_logs")
+}
+
+model Meeting {
+  id                 String   @id @default(cuid())
+  client             String
+  leadId             String
+  leadName           String
+  date               String
+  time               String
+  type               String
+  assignedEmployee   String
+  status             String   @default("SCHEDULED")
+  outcome            String?  @default("None")
+  nextAction         String?  @default("None")
+  nextFollowUpDate   String?
+  nextActionOwner    String?
+  notes              String?  @db.Text
+  requirements       String?  @db.Text
+  concerns           String?  @db.Text
+  decisionMakers     String?
+  handoffCompleted   Boolean  @default(false)
+  clientPhone        String?
+  interactionCount   Int?     @default(1)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("meetings")
+}
+
+model FollowUp {
+  id             String   @id @default(uuid())
+  leadName       String
+  role           String?
+  company        String
+  email          String
+  phone          String
+  currentStage   String   @default("Contacted")
+  type           String
+  nextAction     String
+  dueDate        DateTime
+  priority       String   @default("Medium")
+  lastNote       String?
+  status         String   @default("Pending")
+  outcome        String?  @default("None")
+  assignedCem    String
+  notesHistory   String[]
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("follow_ups")
+}

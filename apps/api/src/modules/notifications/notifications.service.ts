@@ -70,4 +70,16 @@ export class NotificationsService {
 
     return notification;
   }
+  async notifyRole(role: string, title: string, body: string, type: NotificationType, referenceId?: string): Promise<void> {
+    const users = await this.prisma.user.findMany({
+      where: { role: role as any, status: 'ACTIVE', employeeId: { not: null } },
+      select: { employeeId: true }
+    });
+
+    for (const user of users) {
+      if (user.employeeId) {
+        await this.createNotification(user.employeeId, title, body, type, referenceId);
+      }
+    }
+  }
 }

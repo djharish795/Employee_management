@@ -15,11 +15,14 @@ interface ChecklistItem {
   text?: string;
 }
 
+import { NotificationsService } from "../notifications/notifications.service";
+
 @Injectable()
 export class OffboardingService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly auditService: AuditService
+    private readonly auditService: AuditService,
+    private readonly notificationsService: NotificationsService
   ) {}
 
   async initiate(dto: InitiateOffboardingDto, actorId?: string): Promise<any> {
@@ -155,6 +158,24 @@ export class OffboardingService {
         exitType: dto.exitType
       }
     });
+
+    const empName = employee.firstName ? `${employee.firstName} ${employee.lastName}` : employee.personalEmail;
+
+    await this.notificationsService.notifyRole(
+      'HR',
+      'Offboarding Initiated',
+      `Offboarding has been initiated for ${empName}. Please begin your checklist.`,
+      'SYSTEM_ALERT',
+      result.id
+    );
+
+    await this.notificationsService.notifyRole(
+      'OM',
+      'Offboarding Initiated - Action Required',
+      `Offboarding has been initiated for ${empName}. Please collect their assets.`,
+      'SYSTEM_ALERT',
+      result.id
+    );
 
     return result;
   }

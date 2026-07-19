@@ -57,10 +57,20 @@ export default function AssetApprovalsPage() {
     mutationFn: async ({ id, assetIds, notes }: { id: string, assetIds: string[], notes: string }) => {
       // For each asset to recover, call the OM return endpoint
       for (const assetId of assetIds) {
-        await apiClient.post(`/assets/${assetId}/return`, { returnedCondition: notes || "Returned in Offboarding" });
+        try {
+          await apiClient.post(`/assets/${assetId}/return`, { returnedCondition: notes || "Returned in Offboarding" });
+        } catch (e: any) {
+          // If asset is already returned (not assigned), ignore the error and continue
+          if (e?.response?.data?.message === "Asset is not currently assigned") {
+            console.log(`Asset ${assetId} already returned.`);
+            // Also ensure the request is marked approved in case the previous attempt failed halfway
+            await apiClient.patch(`/assets/requests/${id}/om-select`, { assetIds: [] }).catch(() => {});
+          } else {
+            throw e;
+          }
+        }
       }
-      // Finally, mark the request itself as APPROVED (completed)
-      await apiClient.patch(`/assets/requests/${id}/ceo-approve`, { status: "APPROVED", notes });
+      // The backend returnAsset function now automatically marks the offboarding request as APPROVED
     },
     onSuccess: () => {
       showToast("Assets recovered successfully.");

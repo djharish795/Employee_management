@@ -23,6 +23,8 @@ import {
   Check
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
+import { useEffect } from 'react';
+import { apiClient } from '@/lib/api/client';
 
 interface FollowUp {
   id: string;
@@ -50,97 +52,37 @@ interface FollowUp {
 }
 
 export default function FollowUpHubPage() {
-  const [followUps, setFollowUps] = useState<FollowUp[]>([
-    {
-      id: '1',
-      leadName: 'Alex Linderman',
-      role: 'Director of Sales',
-      company: 'Nexus Corp',
-      currentStage: 'Meeting Done',
-      type: 'Phone Call',
-      nextAction: 'Send Proposal',
-      dueDate: '2023-10-24 14:00',
-      priority: 'High',
-      lastNote: 'Interested in demo. Budget discussion pending final sign-off.',
-      status: 'Pending',
-      outcome: 'None',
-      email: 'a.linderman@nexuscorp.com',
-      phone: '+1 (555) 019-2834',
-      assignedCem: 'Julian Vancore',
-      leadOwner: 'Marketing Inbound',
-      createdDate: '2023-10-10',
-      notesHistory: [
-        'Initial discussion: Interested in enterprise migration services.',
-        'CTO joined: Focused on security and deployment speed.'
-      ],
-      communicationHistory: [
-        'Phone Call (Oct 20) - 15 mins - Discussed compliance.',
-        'Email Outbound (Oct 21) - Sent security questionnaire.'
-      ],
-      meetingHistory: [
-        'Discovery Session (Oct 22) - Completed successfully.'
-      ]
-    },
-    {
-      id: '2',
-      leadName: 'Sarah Kinsley',
-      role: 'Operations Lead',
-      company: 'CloudFlow Solutions',
-      currentStage: 'Contacted',
-      type: 'Email',
-      nextAction: 'Collect Requirements',
-      dueDate: '2023-10-24 16:30',
-      priority: 'Medium',
-      lastNote: 'Waiting for management approval. Follow up with case studies.',
-      status: 'Pending',
-      outcome: 'None',
-      email: 's.kinsley@cloudflow.io',
-      phone: '+1 (555) 043-9812',
-      assignedCem: 'Julian Vancore',
-      leadOwner: 'Outbound Campaign',
-      createdDate: '2023-10-15',
-      notesHistory: [
-        'Sent standard brochure. Sarah requested client reference stories.'
-      ],
-      communicationHistory: [
-        'Email Outbound (Oct 18) - Brochure sent.',
-        'Email Inbound (Oct 19) - Requested reference case studies.'
-      ],
-      meetingHistory: []
-    },
-    {
-      id: '3',
-      leadName: 'Marcus Reed',
-      role: 'CFO',
-      company: 'Stellar Systems',
-      currentStage: 'Follow Up',
-      type: 'Meeting',
-      nextAction: 'Call CTO',
-      dueDate: '2023-10-24 10:15',
-      priority: 'Low',
-      lastNote: 'Budget discussion pending. Needs custom licensing model detail.',
-      status: 'Missed',
-      outcome: 'None',
-      email: 'm.reed@stellar.com',
-      phone: '+1 (555) 089-7612',
-      assignedCem: 'Julian Vancore',
-      leadOwner: 'CEO Referral',
-      createdDate: '2023-10-05',
-      notesHistory: [
-        'CFO concerns regarding initial setup cost amortization.'
-      ],
-      communicationHistory: [
-        'Meeting Zoom (Oct 12) - High-level architectural walkthrough.',
-        'Phone Call (Oct 15) - Licensing model debate.'
-      ],
-      meetingHistory: [
-        'Initial Kickoff (Oct 12) - Completed.',
-        'CFO Alignment (Oct 24) - Missed.'
-      ]
-    }
-  ]);
+  const [followUps, setFollowUps] = useState<FollowUp[]>([]);
+  const [metrics, setMetrics] = useState({ todayCount: 0, missedCount: 0, qualifiedCount: 0 });
+  const [isLoading, setIsLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState<'Today' | 'Upcoming' | 'Missed' | 'Completed'>('Today');
+
+  // Filters State
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterStage, setFilterStage] = useState('All');
+  const [filterType, setFilterType] = useState('All');
+  const [filterPriority, setFilterPriority] = useState('All');
+
+  const fetchFollowUps = async () => {
+    try {
+      setIsLoading(true);
+      const [listRes, summaryRes] = await Promise.all([
+        apiClient.get('/cem/follow-ups'),
+        apiClient.get('/cem/follow-ups/summary')
+      ]);
+      setFollowUps(listRes.data);
+      setMetrics(summaryRes.data);
+    } catch (error) {
+      toast.error('Failed to load follow-ups.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFollowUps();
+  }, []);
 
   // Modals / Drawer State
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
@@ -157,6 +99,7 @@ export default function FollowUpHubPage() {
   const [newAction, setNewAction] = useState<FollowUp['nextAction']>('Collect Requirements');
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('');
+  const [newAmPm, setNewAmPm] = useState<'AM' | 'PM'>('PM');
   const [newPriority, setNewPriority] = useState<FollowUp['priority']>('Medium');
   const [newNote, setNewNote] = useState('');
   const [newEmail, setNewEmail] = useState('');
@@ -170,52 +113,75 @@ export default function FollowUpHubPage() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  const handleCreateFollowUp = (e: React.FormEvent) => {
+  const formatDueDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const handleCreateFollowUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLead || !newCompany || !newDate || !newTime || !newEmail || !newPhone) return;
 
-    const formattedDueDate = `${newDate} ${newTime}`;
+    let [hours, minutes] = newTime.split(':');
+    if (!hours || !minutes) {
+      toast.error('Invalid time format. Use HH:MM');
+      return;
+    }
+    
+    let hoursNum = parseInt(hours, 10);
+    if (newAmPm === 'PM' && hoursNum < 12) hoursNum += 12;
+    if (newAmPm === 'AM' && hoursNum === 12) hoursNum = 0;
+    
+    const time24 = `${hoursNum.toString().padStart(2, '0')}:${minutes}`;
+    const formattedDueDate = `${newDate}T${time24}:00`;
 
-    const newFU: FollowUp = {
-      id: (followUps.length + 1).toString(),
-      leadName: newLead,
-      role: newRole || 'Lead Contact',
-      company: newCompany,
-      currentStage: newStage,
-      type: newType,
-      nextAction: newAction,
-      dueDate: formattedDueDate,
-      priority: newPriority,
-      lastNote: newNote || 'Initial task logged.',
-      status: 'Pending',
-      outcome: 'None',
-      email: newEmail,
-      phone: newPhone,
-      assignedCem: 'Julian Vancore',
-      leadOwner: 'Marketing Inbound',
-      createdDate: new Date().toISOString().split('T')[0],
-      notesHistory: newNote ? [newNote] : [],
-      communicationHistory: [],
-      meetingHistory: []
-    };
+    try {
+      await apiClient.post('/cem/follow-ups', {
+        leadName: newLead,
+        role: newRole || 'Lead Contact',
+        company: newCompany,
+        currentStage: newStage,
+        type: newType,
+        nextAction: newAction,
+        dueDate: formattedDueDate,
+        priority: newPriority,
+        lastNote: newNote || 'Initial task logged.',
+        email: newEmail,
+        phone: newPhone,
+      });
 
-    setFollowUps([newFU, ...followUps]);
-    setIsNewModalOpen(false);
-    toast.success('Follow-up task created successfully!');
+      toast.success('Follow-up task created successfully!');
+      fetchFollowUps();
+      setIsNewModalOpen(false);
 
-    // Reset Form
-    setNewLead('');
-    setNewRole('');
-    setNewCompany('');
-    setNewStage('Contacted');
-    setNewType('Phone Call');
-    setNewAction('Collect Requirements');
-    setNewDate('');
-    setNewTime('');
-    setNewPriority('Medium');
-    setNewNote('');
-    setNewEmail('');
-    setNewPhone('');
+      // Reset Form
+      setNewLead('');
+      setNewRole('');
+      setNewCompany('');
+      setNewStage('Contacted');
+      setNewType('Phone Call');
+      setNewAction('Collect Requirements');
+      setNewDate('');
+      setNewTime('');
+      setNewAmPm('PM');
+      setNewPriority('Medium');
+      setNewNote('');
+      setNewEmail('');
+      setNewPhone('');
+    } catch (error) {
+      toast.error('Failed to create follow-up task.');
+    }
   };
 
   const openOutcomeModal = (fu: FollowUp) => {
@@ -225,41 +191,22 @@ export default function FollowUpHubPage() {
     setIsOutcomeModalOpen(true);
   };
 
-  const handleSaveOutcome = (e: React.FormEvent) => {
+  const handleSaveOutcome = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFollowUp) return;
 
-    setFollowUps(prev => prev.map(f => {
-      if (f.id === selectedFollowUp.id) {
-        let nextStage: FollowUp['currentStage'] = f.currentStage;
-        let nextStatus: FollowUp['status'] = 'Completed';
+    try {
+      await apiClient.put(`/cem/follow-ups/${selectedFollowUp.id}/outcome`, {
+        outcome: outcomeSelect,
+        outcomeNote: outcomeNote
+      });
 
-        if (outcomeSelect === 'Qualified') {
-          nextStage = 'Qualified';
-          nextStatus = 'Qualified';
-        } else if (outcomeSelect === 'Needs Follow Up' || outcomeSelect === 'Meeting Required') {
-          nextStage = 'Follow Up';
-          nextStatus = 'Pending';
-        }
-
-        const updatedNotes = outcomeNote 
-          ? [...(f.notesHistory || []), `Outcome: ${outcomeSelect} - ${outcomeNote}`] 
-          : f.notesHistory;
-
-        return {
-          ...f,
-          status: nextStatus,
-          outcome: outcomeSelect,
-          currentStage: nextStage,
-          lastNote: outcomeNote || `Follow-up complete. Outcome: ${outcomeSelect}`,
-          notesHistory: updatedNotes
-        };
-      }
-      return f;
-    }));
-
-    setIsOutcomeModalOpen(false);
-    toast.success('Follow-up outcome logged successfully!');
+      toast.success('Follow-up outcome logged successfully!');
+      fetchFollowUps();
+      setIsOutcomeModalOpen(false);
+    } catch (error) {
+      toast.error('Failed to log outcome.');
+    }
   };
 
   const openDetailDrawer = (fu: FollowUp) => {
@@ -268,24 +215,40 @@ export default function FollowUpHubPage() {
   };
 
   // Summary Metrics calculations
-  const todayCount = followUps.filter(f => f.status === 'Pending' || f.status === 'Qualified').length;
-  const missedCount = followUps.filter(f => f.status === 'Missed').length;
-  const qualifiedCount = followUps.filter(f => f.currentStage === 'Qualified' || f.status === 'Qualified').length;
+  const { todayCount, missedCount, qualifiedCount } = metrics;
 
-  // Filter list by Active Tab selection
+  // Filter list by Active Tab & Filters
   const filteredFollowUps = followUps.filter(f => {
+    // 1. Tab Filtering (Date based)
+    const dueDate = new Date(f.dueDate);
+    const now = new Date();
+    
+    // Set both to midnight to compare just the date
+    const dateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+    const todayOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    const isToday = dateOnly.getTime() === todayOnly.getTime();
+    const isPast = dateOnly.getTime() < todayOnly.getTime();
+    const isFuture = dateOnly.getTime() > todayOnly.getTime();
+
+    let tabMatch = false;
     if (activeTab === 'Today') {
-      return f.status === 'Pending' || f.status === 'Qualified';
+      tabMatch = (f.status === 'Pending' || f.status === 'Qualified') && isToday;
+    } else if (activeTab === 'Upcoming') {
+      tabMatch = f.status === 'Pending' && isFuture;
+    } else if (activeTab === 'Missed') {
+      tabMatch = f.status === 'Missed' || (f.status === 'Pending' && isPast);
+    } else if (activeTab === 'Completed') {
+      tabMatch = f.status === 'Completed' || f.status === 'Qualified';
     }
-    if (activeTab === 'Upcoming') {
-      return f.status === 'Pending';
-    }
-    if (activeTab === 'Missed') {
-      return f.status === 'Missed';
-    }
-    if (activeTab === 'Completed') {
-      return f.status === 'Completed';
-    }
+
+    if (!tabMatch) return false;
+
+    // 2. Dropdown Filtering
+    if (filterStage !== 'All' && f.currentStage !== filterStage) return false;
+    if (filterType !== 'All' && f.type !== filterType) return false;
+    if (filterPriority !== 'All' && f.priority !== filterPriority) return false;
+
     return true;
   });
 
@@ -302,8 +265,11 @@ export default function FollowUpHubPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
-            <SlidersHorizontal className="w-4 h-4 text-slate-500" /> Filter
+          <button 
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider border rounded-lg transition-colors shadow-sm ${showFilters ? 'bg-slate-100 border-slate-300 text-slate-900' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+          >
+            <SlidersHorizontal className="w-4 h-4" /> Filter
           </button>
           <button 
             onClick={() => setIsNewModalOpen(true)}
@@ -330,6 +296,52 @@ export default function FollowUpHubPage() {
           </button>
         ))}
       </div>
+
+      {/* Filters Bar */}
+      {showFilters && (
+        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4 animate-in slide-in-from-top-2">
+          <div>
+            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Stage</label>
+            <select
+              value={filterStage}
+              onChange={(e) => setFilterStage(e.target.value)}
+              className="w-full h-10 px-3 py-2 border border-slate-200 rounded-lg bg-white text-slate-700 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-bold"
+            >
+              <option value="All">All Stages</option>
+              <option value="Contacted">Contacted</option>
+              <option value="Meeting Done">Meeting Done</option>
+              <option value="Follow Up">Follow Up</option>
+              <option value="Qualified">Qualified</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Type</label>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="w-full h-10 px-3 py-2 border border-slate-200 rounded-lg bg-white text-slate-700 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-bold"
+            >
+              <option value="All">All Types</option>
+              <option value="Phone Call">Phone Call</option>
+              <option value="Email">Email</option>
+              <option value="Meeting">Meeting</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Priority</label>
+            <select
+              value={filterPriority}
+              onChange={(e) => setFilterPriority(e.target.value)}
+              className="w-full h-10 px-3 py-2 border border-slate-200 rounded-lg bg-white text-slate-700 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-bold"
+            >
+              <option value="All">All Priorities</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+          </div>
+        </div>
+      )}
 
       {/* 3 Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -435,7 +447,7 @@ export default function FollowUpHubPage() {
 
                     {/* Due Date */}
                     <td className="py-5 px-3 text-slate-500 font-medium whitespace-nowrap">
-                      {fu.dueDate}
+                      {formatDueDate(fu.dueDate)}
                     </td>
 
                     {/* Priority */}
@@ -491,10 +503,6 @@ export default function FollowUpHubPage() {
                           title="View Details"
                         >
                           <FileText className="w-4 h-4" />
-                        </button>
-
-                        <button className="p-1 hover:text-slate-800 transition-colors" title="Reschedule">
-                          <Calendar className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -669,14 +677,33 @@ export default function FollowUpHubPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Time</label>
-                  <input 
-                    type="time" 
-                    value={newTime}
-                    onChange={(e) => setNewTime(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-transparent text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-semibold" 
-                    required
-                  />
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Time (HH:MM)</label>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="text" 
+                      value={newTime}
+                      onChange={(e) => setNewTime(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-transparent text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-semibold" 
+                      placeholder="05:30"
+                      required
+                    />
+                    <div className="flex bg-slate-100 rounded-lg p-1 border border-slate-200 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setNewAmPm('AM')}
+                        className={`px-3 py-1 rounded-md text-[10px] font-black transition-colors ${newAmPm === 'AM' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
+                      >
+                        AM
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNewAmPm('PM')}
+                        className={`px-3 py-1 rounded-md text-[10px] font-black transition-colors ${newAmPm === 'PM' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
+                      >
+                        PM
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div>

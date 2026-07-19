@@ -4,6 +4,8 @@ import { ApplyLeaveDto } from './dto/apply-leave.dto';
 import { WorkflowEngineService } from '../workflows/workflow-engine.service';
 import { AuditService } from '../audit/audit.service';
 
+import { NotificationsService } from '../notifications/notifications.service';
+
 export interface ApprovalQueueItem {
   role: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -18,7 +20,8 @@ export class LeavesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly workflowEngine: WorkflowEngineService,
-    private readonly auditService: AuditService
+    private readonly auditService: AuditService,
+    private readonly notificationsService: NotificationsService
   ) { }
 
   async getLeavesKPI(employeeId: string): Promise<unknown> {
@@ -527,6 +530,28 @@ export class LeavesService {
         metadata: { leaveTypeId: leaveType.id, startDate: leave.startDate, endDate: leave.endDate }
       });
 
+      const queue = approvalQueue as unknown as ApprovalQueueItem[];
+      if (queue.length > 0) {
+        const firstStep = queue[0];
+        if (firstStep.approverId) {
+          await this.notificationsService.createNotification(
+            firstStep.approverId,
+            'New Leave Request',
+            `${employee.firstName} ${employee.lastName} has applied for leave.`,
+            'LEAVE_STATUS',
+            leave.id
+          );
+        } else {
+          await this.notificationsService.notifyRole(
+            firstStep.role,
+            'New Leave Request',
+            `${employee.firstName} ${employee.lastName} has applied for leave.`,
+            'LEAVE_STATUS',
+            leave.id
+          );
+        }
+      }
+
       try {
         await this.workflowEngine.startWorkflow('LEAVE', leave.id, employee.id, {
           leaveTypeId: leaveType.id,
@@ -829,6 +854,35 @@ export class LeavesService {
         metadata: { approverId }
       });
 
+      if (isFinished) {
+        await this.notificationsService.createNotification(
+          leave.employeeId,
+          'Leave Approved',
+          `Your leave request from ${leave.startDate.toDateString()} to ${leave.endDate.toDateString()} has been fully approved.`,
+          'LEAVE_STATUS',
+          leave.id
+        );
+      } else {
+        const nextStep = queue[nextStepIndex];
+        if (nextStep.approverId) {
+          await this.notificationsService.createNotification(
+            nextStep.approverId,
+            'Leave Approval Required',
+            `A leave request from ${leave.employee?.firstName || 'Employee'} requires your approval.`,
+            'LEAVE_STATUS',
+            leave.id
+          );
+        } else {
+          await this.notificationsService.notifyRole(
+            nextStep.role,
+            'Leave Approval Required',
+            `A leave request from ${leave.employee?.firstName || 'Employee'} requires your approval.`,
+            'LEAVE_STATUS',
+            leave.id
+          );
+        }
+      }
+
       return { message: isFinished ? 'Leave Approved Successfully' : `Leave Approved by ${approverRole}, pending next step.` };
     });
   }
@@ -949,6 +1003,14 @@ export class LeavesService {
       actorId: approverId,
       metadata: { approverId, reason }
     });
+
+    await this.notificationsService.createNotification(
+      leave.employeeId,
+      'Leave Rejected',
+      `Your leave request from ${leave.startDate.toDateString()} to ${leave.endDate.toDateString()} was rejected. Reason: ${reason}`,
+      'LEAVE_STATUS',
+      leave.id
+    );
 
     return { message: 'Leave Rejected Successfully' };
   }

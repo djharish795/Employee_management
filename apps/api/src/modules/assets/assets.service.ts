@@ -158,6 +158,10 @@ export class AssetsService {
     if (asset.status !== AssetStatus.ASSIGNED) {
       throw new BadRequestException("Asset is not currently assigned");
     }
+    
+    // Save holder ID before return clears it
+    const holderId = asset.currentHolderId;
+    
     const result = await this.assetsRepository.returnAsset(assetId, returnedCondition);
     await this.auditService.logUpdate({
       moduleName: "Asset",
@@ -165,6 +169,31 @@ export class AssetsService {
       actorId: actorId,
       metadata: { action: 'RETURNED', returnedCondition, notes },
     });
+
+    // Notify HR and resolve the offboarding request if there was a holder
+    if (holderId) {
+      // Find the pending OFFBOARDING asset request for this employee
+      const requests = await this.assetsRepository.findRequests({ employeeId: holderId });
+      const pendingOffboardingReq = requests.find((r: any) => r.type === 'OFFBOARDING' && (r.status === 'PENDING_OM_SELECTION' || r.status === 'PENDING_CEO_APPROVAL'));
+      
+      if (pendingOffboardingReq) {
+        // Mark the request as APPROVED to complete the loop
+        await this.assetsRepository.updateAssetRequest(pendingOffboardingReq.id, { 
+          status: 'APPROVED', 
+          omApproverId: actorId 
+        });
+
+        if (pendingOffboardingReq.requesterId) {
+          await this.notificationsService.createNotification(
+            pendingOffboardingReq.requesterId,
+            "Asset Returned by OM",
+            `The asset (${asset.name}) assigned to ${holderId} has been collected and the retrieval request is complete.`,
+            NotificationType.ASSET_STATUS
+          );
+        }
+      }
+    }
+
     return result;
   }
 
@@ -177,13 +206,23 @@ export class AssetsService {
   }
 
   async createRequest(employeeId: string, dto: CreateAssetRequestDto): Promise<any> {
-    return this.assetsRepository.createAssetRequest({
+    const request = await this.assetsRepository.createAssetRequest({
       employeeId: dto.employeeId,
       requesterId: employeeId,
       type: dto.type,
       requestedItems: dto.requestedItems,
       reason: dto.reason,
     });
+
+    await this.notificationsService.notifyRole(
+      'OM', 
+      'New Asset Request', 
+      `An employee has initiated a new asset request (${dto.type}).`, 
+      'ASSET_STATUS', 
+      request.id
+    );
+
+    return request;
   }
 
   async omSelectAsset(role: UserRole, omId: string, requestId: string, dto: OmSelectAssetRequestDto): Promise<any> {
@@ -204,6 +243,14 @@ export class AssetsService {
       actorId: omId,
       metadata: { action: "OM_APPROVED", notes: "Sent to CEO" },
     });
+
+    await this.notificationsService.notifyRole(
+      'CEO', 
+      'Asset Approval Required', 
+      `The Operations Manager has processed an asset request and it awaits your final approval.`, 
+      'APPROVAL_ALERT', 
+      requestId
+    );
 
     return updated;
   }

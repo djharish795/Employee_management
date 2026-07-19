@@ -7,11 +7,13 @@ import { WorkflowsModule } from "../workflows/workflows.module";
 import { BullModule } from "@nestjs/bullmq";
 import { LeavesProcessor } from "./leaves.processor";
 import { LeavesSchedulerService } from "./leaves-scheduler.service";
+import { NotificationsModule } from "../notifications/notifications.module";
 
 @Module({
   imports: [
     PrismaModule, 
     WorkflowsModule,
+    NotificationsModule,
     BullModule.registerQueue({
       name: 'leaves-queue',
     }),

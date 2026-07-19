@@ -142,7 +142,7 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
     queryFn: async () => {
       const res = await apiClient.get('/assets/requests', { params: { scope: 'all' } });
       const allReqs = res.data?.data || res.data || [];
-      return allReqs.filter((r: any) => r.targetEmployeeId === params.id || (data && r.targetEmployeeId === data.id));
+      return allReqs.filter((r: any) => r.employeeId === params.id || (data && r.employeeId === data.id) || r.targetEmployeeId === params.id);
     },
     enabled: !!params.id || !!data
   });
@@ -153,12 +153,13 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
     setIsRetrievalLoading(true);
     try {
       await apiClient.post('/assets/requests', {
-        category: 'LAPTOP',
-        description: `Offboarding Asset Retrieval for ${data.name}`,
-        justification: 'Employee is offboarding.',
-        priority: 'HIGH',
-        requestType: 'OFFBOARDING',
-        targetEmployeeId: data.id
+        employeeId: data.id,
+        type: 'OFFBOARDING',
+        reason: 'Employee is offboarding.',
+        requestedItems: { 
+          category: 'LAPTOP', 
+          description: `Offboarding Asset Retrieval for ${data.name}` 
+        }
       });
       alert('Asset retrieval requested successfully!');
       refetchAssetRequests();
@@ -277,6 +278,8 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
     if (item.status === "completed") {
       icon = <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />;
       textNode = <span className="ml-auto text-[11px] font-medium text-slate-500">{item.text}</span>;
+    } else if (item.status === "pending" && section === "assetRecovery" && assetRequests.some((r: any) => r.type === 'OFFBOARDING' && (r.status === 'APPROVED' || r.status === 'RETURNED'))) {
+      textNode = <span className="ml-auto px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-sm border border-blue-200">Asset Returned by OM</span>;
     } else if (item.status === "pending") {
       if (item.text) {
         textNode = <span className="ml-auto px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-sm border border-slate-200">{item.text}</span>;

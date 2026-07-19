@@ -412,7 +412,7 @@ export default function RequestsPanel() {
 
                   {req.status === "APPROVED" && (
                     <div className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-100 text-center w-full whitespace-nowrap mt-2">
-                      Approved by CEO
+                      {req.requestType === "OFFBOARDING" ? "Returned by OM" : "Approved by CEO"}
                     </div>
                   )}
 

@@ -40,6 +40,7 @@ import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
 import { SettingsModule } from './modules/settings/settings.module';
 
 import { CrmModule } from "./modules/crm/crm.module";
+import { CemModule } from "./modules/cem/cem.module";
 
 @Module({
   imports: [
@@ -111,6 +112,7 @@ import { CrmModule } from "./modules/crm/crm.module";
     ProjectsModule,
     SettingsModule,
     CrmModule,
+    CemModule,
   ],
   providers: [
     {

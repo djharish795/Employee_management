@@ -170,6 +170,7 @@ export enum Permission {
   MANAGE_PROJECTS = "MANAGE_PROJECTS",
   ACCESS_SETTINGS = "ACCESS_SETTINGS",
   READ_PAYROLL = "READ_PAYROLL",
+  ACCESS_CEM = "ACCESS_CEM",
 }
 
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
@@ -205,6 +206,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.READ_AUDIT,
     Permission.WRITE_OWN_PROFILE,
     Permission.READ_PAYROLL,
+    Permission.ACCESS_CEM,
   ],
   [UserRole.FINANCE]: [
     Permission.READ_EMPLOYEES,
@@ -239,16 +241,20 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
   [UserRole.CEM]: [
     Permission.READ_EMPLOYEES,
+    Permission.ACCESS_CEM,
   ],
   [UserRole.OM]: [
     Permission.READ_EMPLOYEES,
     Permission.APPROVE_FIELD_REQUESTS,
+    Permission.ACCESS_CEM,
   ],
   [UserRole.OE]: [
     Permission.READ_EMPLOYEES,
+    Permission.ACCESS_CEM,
   ],
   [UserRole.CRM]: [
     Permission.READ_EMPLOYEES,
+    Permission.ACCESS_CEM,
   ],
 };
 

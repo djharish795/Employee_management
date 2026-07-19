@@ -211,19 +211,26 @@ export class AssetsRepository {
       orderBy: { assignedAt: "desc" },
     });
 
-    if (!latestAssignment) return null;
+    const updates: any[] = [];
+    
+    if (latestAssignment) {
+      updates.push(
+        this.prisma.assetAssignment.update({
+          where: { id: latestAssignment.id },
+          data: { returnedAt: new Date(), returnedCondition },
+        })
+      );
+    }
 
-    const [assignment] = await this.prisma.$transaction([
-      this.prisma.assetAssignment.update({
-        where: { id: latestAssignment.id },
-        data: { returnedAt: new Date(), returnedCondition },
-      }),
+    updates.push(
       this.prisma.asset.update({
         where: { id: assetId },
         data: { status: AssetStatus.AVAILABLE, currentHolderId: null },
-      }),
-    ]);
-    return assignment;
+      })
+    );
+
+    const result = await this.prisma.$transaction(updates);
+    return latestAssignment ? result[0] : result[0];
   }
 
   // ─── Asset Requests (via WorkflowInstance) ─────────────────────────────────

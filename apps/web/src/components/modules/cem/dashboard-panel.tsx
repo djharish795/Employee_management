@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   UserPlus, 
@@ -20,10 +20,73 @@ import {
 } from 'lucide-react';
 
 import { PersonalAttendanceWidget } from '@/components/shared/personal-attendance-widget';
+import toast, { Toaster } from 'react-hot-toast';
 
 export default function CemDashboardPanel() {
   const [filterStatus, setFilterStatus] = useState('ALL STATUS');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+
+  useEffect(() => {
+    // Fetch live CRM clients from our new backend endpoint
+    fetch('/api/v1/crm/clients')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.data && data.data.length > 0) {
+          // Map backend data to frontend format
+          const mappedLeads = data.data.map((c: any) => ({
+            id: c.id,
+            name: c.leadOwner !== 'Manual Creation' ? c.leadOwner : 'Contact Person',
+            company: c.company,
+            stage: c.stage === 1 ? 'INITIAL DISCOVERY' : c.stage === 2 ? 'EXPLORATORY' : c.stage === 3 ? 'QUALIFIED' : 'MEETING SET',
+            nextAction: (c.notes && c.notes.length > 0) ? c.notes[0] : 'Review Profile',
+            dueDate: c.updatedDate ? new Date(c.updatedDate).toLocaleDateString() : 'Pending',
+            priority: c.priority || 'Med',
+            style: 'bg-indigo-50 text-indigo-700 border-indigo-200' // Highlight live data
+          }));
+          
+          // Prepend live API leads to the mock data so we don't lose the mock data
+          setActiveLeads(prev => {
+            // filter out any duplicates if id matches just in case
+            const existingIds = mappedLeads.map((m: any) => m.id);
+            const filteredMock = prev.filter(p => !existingIds.includes(p.id));
+            return [...mappedLeads, ...filteredMock];
+          });
+        }
+      })
+      .catch(err => console.error("Error fetching clients from DB:", err));
+  }, []);
+
+  const [activeLeads, setActiveLeads] = useState([
+    { id: 1, name: 'Robert Chen', company: 'Aether Logistics Corp', stage: 'INITIAL DISCOVERY', nextAction: 'Technical Specs Review', dueDate: '10:00 AM (Overdue)', priority: 'High', style: 'bg-slate-100 text-slate-600' },
+    { id: 2, name: 'Elena Markova', company: 'Stratos Cloud Systems', stage: 'QUALIFIED', nextAction: 'CRM Export Confirmation', dueDate: '02:30 PM', priority: 'Med', style: 'bg-slate-100 text-slate-800 border-slate-200' },
+    { id: 3, name: 'David Jenkins', company: 'Mainframe Solutions Ltd', stage: 'EXPLORATORY', nextAction: 'Follow up Call', dueDate: '04:00 PM', priority: 'Low', style: 'bg-slate-100 text-slate-600' },
+    { id: 4, name: 'Sarah Miller', company: 'Apex Global', stage: 'MEETING SET', nextAction: 'Prepare Slide Deck', dueDate: 'Tomorrow', priority: 'High', style: 'bg-slate-100 text-slate-700 border-slate-200' },
+  ]);
+
+  const [readyForCrm, setReadyForCrm] = useState([
+    { id: 1, name: 'James Wilson', company: 'CyberDyne Systems', priority: 'Urgent', qualifiedBy: 'Sarah Jenkins (CAM)', qualifiedDate: 'Oct 23, 2023' },
+    { id: 2, name: 'Maria Garcia', company: 'Initech Corp', priority: 'Med', qualifiedBy: 'Sarah Jenkins (CAM)', qualifiedDate: 'Oct 24, 2023' },
+  ]);
+
+  const [pendingAcceptanceCount, setPendingAcceptanceCount] = useState(3);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleExport = () => toast.success("Report exported successfully.");
+  const handleFollowUp = () => toast.success("Action logged.");
+  const handleAssignToCrm = (id: number) => {
+    setReadyForCrm(prev => prev.filter(l => l.id !== id));
+    toast.success("Lead transferred to CRM team.");
+  };
+  const handleRefreshCrm = () => {
+    setIsRefreshing(true);
+    setTimeout(() => {
+      setPendingAcceptanceCount(prev => Math.max(0, prev - 1));
+      setIsRefreshing(false);
+      toast.success("CRM Acceptance status refreshed.");
+    }, 1000);
+  };
+  const handleJoinMeeting = () => toast.loading("Connecting to Zoom...", { duration: 1500 });
+  const handlePrepareMeeting = () => toast.success("Opening preparation notes...");
 
   // Current formatted date
   const todayFormatted = new Date().toLocaleDateString('en-US', {
@@ -35,6 +98,7 @@ export default function CemDashboardPanel() {
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto w-full font-sans pb-10">
       
+      <Toaster position="top-right" />
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -44,7 +108,7 @@ export default function CemDashboardPanel() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold capitalize tracking-wide text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
+          <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold capitalize tracking-wide text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
             <Download className="w-4 h-4 text-slate-500" /> Export Report
           </button>
 
@@ -165,99 +229,31 @@ export default function CemDashboardPanel() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-800">
-                  {/* Lead 1 */}
-                  <tr className="hover:bg-slate-50/80 transition-colors group">
-                    <td className="py-4 px-6">
-                      <button className="text-left font-bold text-slate-900 hover:text-slate-700 hover:underline flex items-center gap-1.5">
-                        Robert Chen
-                        <ExternalLink className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </button>
-                    </td>
-                    <td className="py-4 px-3 text-slate-500 font-medium">Aether Logistics Corp</td>
-                    <td className="py-4 px-3 text-center">
-                      <span className="inline-block px-2.5 py-0.5 bg-slate-100 text-slate-600 rounded text-[9px] font-bold capitalize tracking-wide">
-                        Initial Discovery
-                      </span>
-                    </td>
-                    <td className="py-4 px-3 font-bold text-slate-900">Technical Specs Review</td>
-                    <td className="py-4 px-3">
-                      <span className="text-slate-900 font-bold">10:00 AM (Overdue)</span>
-                    </td>
-                    <td className="py-4 px-6 text-right">
-                      <span className="inline-block px-2.5 py-0.5 bg-slate-900 text-white rounded text-[9px] font-bold tracking-wider uppercase border border-slate-900">
-                        High
-                      </span>
-                    </td>
-                  </tr>
-
-                  {/* Lead 2 */}
-                  <tr className="hover:bg-slate-50/80 transition-colors group">
-                    <td className="py-4 px-6">
-                      <button className="text-left font-bold text-slate-900 hover:text-slate-700 hover:underline flex items-center gap-1.5">
-                        Elena Markova
-                        <ExternalLink className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </button>
-                    </td>
-                    <td className="py-4 px-3 text-slate-500 font-medium">Stratos Cloud Systems</td>
-                    <td className="py-4 px-3 text-center">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-slate-100 text-slate-800 rounded text-[9px] font-bold capitalize tracking-wide border border-slate-200">
-                        <span className="w-1.5 h-1.5 rounded-full bg-slate-900"></span> Qualified
-                      </span>
-                    </td>
-                    <td className="py-4 px-3 font-medium text-slate-600">CRM Export Confirmation</td>
-                    <td className="py-4 px-3 text-slate-500 font-medium">02:30 PM</td>
-                    <td className="py-4 px-6 text-right">
-                      <span className="inline-block px-2.5 py-0.5 bg-slate-100 text-slate-700 rounded text-[9px] font-bold tracking-wider uppercase border border-slate-200">
-                        Med
-                      </span>
-                    </td>
-                  </tr>
-
-                  {/* Lead 3 */}
-                  <tr className="hover:bg-slate-50/80 transition-colors group">
-                    <td className="py-4 px-6">
-                      <button className="text-left font-bold text-slate-900 hover:text-slate-700 hover:underline flex items-center gap-1.5">
-                        David Jenkins
-                        <ExternalLink className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </button>
-                    </td>
-                    <td className="py-4 px-3 text-slate-500 font-medium">Mainframe Solutions Ltd</td>
-                    <td className="py-4 px-3 text-center">
-                      <span className="inline-block px-2.5 py-0.5 bg-slate-100 text-slate-600 rounded text-[9px] font-bold capitalize tracking-wide">
-                        Exploratory
-                      </span>
-                    </td>
-                    <td className="py-4 px-3 font-medium text-slate-600">Follow up Call</td>
-                    <td className="py-4 px-3 text-slate-500 font-medium">04:00 PM</td>
-                    <td className="py-4 px-6 text-right">
-                      <span className="inline-block px-2.5 py-0.5 bg-slate-50 text-slate-600 rounded text-[9px] font-bold tracking-wider uppercase border border-slate-200">
-                        Low
-                      </span>
-                    </td>
-                  </tr>
-
-                  {/* Lead 4 */}
-                  <tr className="hover:bg-slate-50/80 transition-colors group">
-                    <td className="py-4 px-6">
-                      <button className="text-left font-bold text-slate-900 hover:text-slate-700 hover:underline flex items-center gap-1.5">
-                        Sarah Miller
-                        <ExternalLink className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </button>
-                    </td>
-                    <td className="py-4 px-3 text-slate-500 font-medium">Apex Global</td>
-                    <td className="py-4 px-3 text-center">
-                      <span className="inline-block px-2.5 py-0.5 bg-slate-100 text-slate-700 rounded text-[9px] font-bold capitalize tracking-wide border border-slate-200">
-                        Meeting Set
-                      </span>
-                    </td>
-                    <td className="py-4 px-3 font-medium text-slate-600">Prepare Slide Deck</td>
-                    <td className="py-4 px-3 text-slate-900 font-bold">Tomorrow</td>
-                    <td className="py-4 px-6 text-right">
-                      <span className="inline-block px-2.5 py-0.5 bg-slate-900 text-white rounded text-[9px] font-bold tracking-wider uppercase border border-slate-900">
-                        High
-                      </span>
-                    </td>
-                  </tr>
+                  {activeLeads.filter(l => filterStatus === 'ALL STATUS' || l.stage === filterStatus).map(lead => (
+                    <tr key={lead.id} className="hover:bg-slate-50/80 transition-colors group">
+                      <td className="py-4 px-6">
+                        <Link href="/cem/workspace" className="text-left font-bold text-slate-900 hover:text-slate-700 hover:underline flex items-center gap-1.5">
+                          {lead.name}
+                          <ExternalLink className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </Link>
+                      </td>
+                      <td className="py-4 px-3 text-slate-500 font-medium">{lead.company}</td>
+                      <td className="py-4 px-3 text-center">
+                        <span className={`inline-block px-2.5 py-0.5 rounded text-[9px] font-bold capitalize tracking-wide ${lead.style}`}>
+                          {lead.stage.toLowerCase()}
+                        </span>
+                      </td>
+                      <td className="py-4 px-3 font-bold text-slate-900">{lead.nextAction}</td>
+                      <td className="py-4 px-3">
+                        <span className="text-slate-900 font-bold">{lead.dueDate}</span>
+                      </td>
+                      <td className="py-4 px-6 text-right">
+                        <span className={`inline-block px-2.5 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase ${lead.priority === 'High' ? 'bg-slate-900 text-white border border-slate-900' : 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+                          {lead.priority}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -306,7 +302,7 @@ export default function CemDashboardPanel() {
                       </span>
                     </td>
                     <td className="py-4 px-6 text-right">
-                      <button className="px-4 py-1.5 text-[10px] font-bold tracking-widest uppercase text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors shadow-sm">
+                      <button onClick={handleJoinMeeting} className="px-4 py-1.5 text-[10px] font-bold tracking-widest uppercase text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors shadow-sm">
                         Join
                       </button>
                     </td>
@@ -326,7 +322,7 @@ export default function CemDashboardPanel() {
                       </span>
                     </td>
                     <td className="py-4 px-6 text-right">
-                      <button className="px-4 py-1.5 text-[10px] font-bold tracking-widest uppercase text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
+                      <button onClick={handlePrepareMeeting} className="px-4 py-1.5 text-[10px] font-bold tracking-widest uppercase text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
                         Prepare
                       </button>
                     </td>
@@ -335,6 +331,79 @@ export default function CemDashboardPanel() {
               </table>
             </div>
           </div>
+
+          {/* Bottom Left Grid for balanced layout */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Recent Activity */}
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
+              <h2 className="text-base font-bold text-slate-900 pb-2 border-b border-slate-100">
+                Recent Activity
+              </h2>
+
+              <div className="relative pl-2 border-l border-slate-100 ml-2.5 space-y-6 py-2">
+                {/* Activity Item 1 */}
+                <div className="relative pl-6">
+                  <div className="absolute -left-[14.5px] top-0.5 w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center border-4 border-white shadow-sm">
+                    <Share2 className="w-2.5 h-2.5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-700 leading-snug">
+                      New lead <span className="text-slate-900 font-semibold">'Titan Dynamics'</span> assigned via Automation
+                    </p>
+                    <span className="inline-block text-[10px] font-medium text-slate-400 mt-1">
+                      08:42 AM
+                    </span>
+                  </div>
+                </div>
+
+                {/* Activity Item 2 */}
+                <div className="relative pl-6">
+                  <div className="absolute -left-[14.5px] top-0.5 w-6 h-6 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center border-4 border-white shadow-sm">
+                    <Calendar className="w-2.5 h-2.5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-700 leading-snug">
+                      Meeting with Robert Chen rescheduled
+                    </p>
+                    <span className="inline-block text-[10px] font-medium text-slate-400 mt-1">
+                      09:15 AM
+                    </span>
+                  </div>
+                </div>
+
+                {/* Activity Item 3 */}
+                <div className="relative pl-6">
+                  <div className="absolute -left-[14.5px] top-0.5 w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center border-4 border-white shadow-sm">
+                    <ShieldCheck className="w-2.5 h-2.5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-700 leading-snug">
+                      Lead <span className="text-slate-900 font-semibold">'Elena Markova'</span> marked as Qualified
+                    </p>
+                    <span className="inline-block text-[10px] font-medium text-slate-400 mt-1">
+                      10:05 AM
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Pending CRM Acceptance Card */}
+            <div className="bg-white text-slate-900 rounded-xl shadow-md p-5 flex items-center justify-between border border-slate-200 h-fit">
+              <div>
+                <p className="text-xs font-semibold text-slate-500 capitalize">
+                  Pending CRM Acceptance
+                </p>
+                <h4 className="text-sm font-bold text-slate-900 mt-1 flex items-center gap-1.5">
+                  {pendingAcceptanceCount} Leads Waiting For CRM Acceptance
+                </h4>
+              </div>
+              <button onClick={handleRefreshCrm} className={`w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 text-slate-400 transition-colors shadow-inner ${isRefreshing ? 'animate-spin text-indigo-600 border-indigo-200' : ''}`}>
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
         </div>
 
         {/* Right Sidebar Widgets */}
@@ -394,7 +463,7 @@ export default function CemDashboardPanel() {
                 </div>
                 <div className="flex items-center justify-between mt-1 pt-2 border-t border-slate-100">
                   <span className="text-[10px] font-semibold text-slate-400">Last touch: Oct 08</span>
-                  <button className="px-3 py-1 text-[9px] font-bold tracking-wider uppercase text-white bg-slate-900 rounded hover:bg-slate-800 transition-colors">
+                  <button onClick={handleFollowUp} className="px-3 py-1 text-[9px] font-bold tracking-wider uppercase text-white bg-slate-900 rounded hover:bg-slate-800 transition-colors">
                     Send Follow Up
                   </button>
                 </div>
@@ -412,7 +481,7 @@ export default function CemDashboardPanel() {
                 </div>
                 <div className="flex items-center justify-between mt-1 pt-2 border-t border-slate-100">
                   <span className="text-[10px] font-semibold text-slate-400">Last touch: Oct 10</span>
-                  <button className="px-3 py-1 text-[9px] font-bold tracking-wider uppercase text-slate-700 bg-white border border-slate-200 rounded hover:bg-slate-50 transition-colors">
+                  <button onClick={handleFollowUp} className="px-3 py-1 text-[9px] font-bold tracking-wider uppercase text-slate-700 bg-white border border-slate-200 rounded hover:bg-slate-50 transition-colors">
                     Schedule Sync
                   </button>
                 </div>
@@ -427,123 +496,33 @@ export default function CemDashboardPanel() {
             </h2>
             
             <div className="space-y-3">
-              {/* Card Item 1 */}
-              <div className="border border-slate-200 rounded-xl p-4 flex flex-col gap-3 hover:border-slate-300 transition-all bg-white">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="text-sm font-semibold text-slate-900">James Wilson</h4>
-                    <p className="text-[11px] font-medium text-slate-500 mt-0.5">CyberDyne Systems</p>
+              {readyForCrm.length > 0 ? readyForCrm.map(lead => (
+                <div key={lead.id} className="border border-slate-200 rounded-xl p-4 flex flex-col gap-3 hover:border-slate-300 transition-all bg-white">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="text-sm font-semibold text-slate-900">{lead.name}</h4>
+                      <p className="text-[11px] font-medium text-slate-500 mt-0.5">{lead.company}</p>
+                    </div>
+                    <span className="text-[9px] font-bold capitalize tracking-wide text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                      {lead.priority}
+                    </span>
                   </div>
-                  <span className="text-[9px] font-bold capitalize tracking-wide text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                    Urgent
-                  </span>
-                </div>
 
-                <div className="text-[10px] space-y-1 text-slate-500 font-medium bg-slate-50 p-2 rounded-lg border border-slate-100">
-                  <div><span className="font-bold text-slate-700">Qualified By:</span> Sarah Jenkins (CAM)</div>
-                  <div><span className="font-bold text-slate-700">Qualified Date:</span> Oct 23, 2023</div>
-                </div>
-                
-                <div className="flex items-center justify-end mt-1 pt-2 border-t border-slate-100">
-                  <button className="px-3.5 py-1.5 text-[10px] font-bold tracking-wider uppercase text-white bg-slate-900 rounded hover:bg-slate-800 transition-colors">
-                    Assign To CRM
-                  </button>
-                </div>
-              </div>
-
-              {/* Card Item 2 */}
-              <div className="border border-slate-200 rounded-xl p-4 flex flex-col gap-3 hover:border-slate-300 transition-all bg-white">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="text-sm font-semibold text-slate-900">Maria Garcia</h4>
-                    <p className="text-[11px] font-medium text-slate-500 mt-0.5">Initech Corp</p>
+                  <div className="text-[10px] space-y-1 text-slate-500 font-medium bg-slate-50 p-2 rounded-lg border border-slate-100">
+                    <div><span className="font-bold text-slate-700">Qualified By:</span> {lead.qualifiedBy}</div>
+                    <div><span className="font-bold text-slate-700">Qualified Date:</span> {lead.qualifiedDate}</div>
                   </div>
-                  <span className="text-[9px] font-bold capitalize tracking-wide text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
-                    Med
-                  </span>
+                  
+                  <div className="flex items-center justify-end mt-1 pt-2 border-t border-slate-100">
+                    <button onClick={() => handleAssignToCrm(lead.id)} className="px-3.5 py-1.5 text-[10px] font-bold tracking-wider uppercase text-white bg-slate-900 rounded hover:bg-slate-800 transition-colors">
+                      Assign To CRM
+                    </button>
+                  </div>
                 </div>
-
-                <div className="text-[10px] space-y-1 text-slate-500 font-medium bg-slate-50 p-2 rounded-lg border border-slate-100">
-                  <div><span className="font-bold text-slate-700">Qualified By:</span> Sarah Jenkins (CAM)</div>
-                  <div><span className="font-bold text-slate-700">Qualified Date:</span> Oct 24, 2023</div>
-                </div>
-                
-                <div className="flex items-center justify-end mt-1 pt-2 border-t border-slate-100">
-                  <button className="px-3.5 py-1.5 text-[10px] font-bold tracking-wider uppercase text-white bg-slate-900 rounded hover:bg-slate-800 transition-colors">
-                    Assign To CRM
-                  </button>
-                </div>
-              </div>
+              )) : (
+                <p className="text-xs text-slate-500 italic">No leads ready for assignment.</p>
+              )}
             </div>
-          </div>
-
-          {/* Recent Activity */}
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
-            <h2 className="text-base font-bold text-slate-900 pb-2 border-b border-slate-100">
-              Recent Activity
-            </h2>
-
-            <div className="relative pl-2 border-l border-slate-100 ml-2.5 space-y-6 py-2">
-              {/* Activity Item 1 */}
-              <div className="relative pl-6">
-                <div className="absolute -left-[14.5px] top-0.5 w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center border-4 border-white shadow-sm">
-                  <Share2 className="w-2.5 h-2.5" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-700 leading-snug">
-                    New lead <span className="text-slate-900 font-semibold">'Titan Dynamics'</span> assigned via Automation
-                  </p>
-                  <span className="inline-block text-[10px] font-medium text-slate-400 mt-1">
-                    08:42 AM
-                  </span>
-                </div>
-              </div>
-
-              {/* Activity Item 2 */}
-              <div className="relative pl-6">
-                <div className="absolute -left-[14.5px] top-0.5 w-6 h-6 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center border-4 border-white shadow-sm">
-                  <Calendar className="w-2.5 h-2.5" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-700 leading-snug">
-                    Meeting with Robert Chen rescheduled
-                  </p>
-                  <span className="inline-block text-[10px] font-medium text-slate-400 mt-1">
-                    09:15 AM
-                  </span>
-                </div>
-              </div>
-
-              {/* Activity Item 3 */}
-              <div className="relative pl-6">
-                <div className="absolute -left-[14.5px] top-0.5 w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center border-4 border-white shadow-sm">
-                  <ShieldCheck className="w-2.5 h-2.5" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-700 leading-snug">
-                    Lead <span className="text-slate-900 font-semibold">'Elena Markova'</span> marked as Qualified
-                  </p>
-                  <span className="inline-block text-[10px] font-medium text-slate-400 mt-1">
-                    10:05 AM
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Pending CRM Acceptance Card */}
-          <div className="bg-white text-slate-900 rounded-xl shadow-md p-5 flex items-center justify-between border border-slate-200">
-            <div>
-              <p className="text-xs font-semibold text-slate-500 capitalize">
-                Pending CRM Acceptance
-              </p>
-              <h4 className="text-sm font-bold text-slate-900 mt-1 flex items-center gap-1.5">
-                3 Leads Waiting For CRM Acceptance
-              </h4>
-            </div>
-            <button className="w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center hover:bg-slate-800 hover:text-white text-slate-300 transition-colors shadow-inner">
-              <RefreshCw className="w-3.5 h-3.5" />
-            </button>
           </div>
 
         </div>

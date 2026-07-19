@@ -187,4 +187,23 @@ export class CrmService {
     });
     return { success: true, id };
   }
+
+  async transferToCrm(id: string, actorId?: string) {
+    const transferred = await this.repository.transferToCrm(id);
+    if (!transferred) {
+      throw new NotFoundException(`Client ${id} not found`);
+    }
+    await this.auditService.logUpdate({
+      moduleName: "CRM_CLIENT",
+      entityId: id,
+      actorId,
+      newValue: { stage: 6, assignedCem: "CRM Team", status: "TRANSFERRED_TO_CRM" },
+    });
+    return { success: true, data: transferred };
+  }
+
+  async getRecentActivity() {
+    const data = await this.repository.getRecentActivity();
+    return { data };
+  }
 }
