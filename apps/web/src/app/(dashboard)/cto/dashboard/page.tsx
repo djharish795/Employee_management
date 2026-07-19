@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CtoDashboardPage() {
-  // Server-side role guard — CTO only
+  // Server-side role guard  CTO only
   await requireRole(['CTO']);
   return <CtoDashboardClient />;
 }

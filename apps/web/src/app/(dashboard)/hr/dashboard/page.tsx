@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 export default async function HrDashboardPage() {
-  // Server-side role guard — HR and CHRO only
+  // Server-side role guard  HR and CHRO only
   await requireRole(['HR', 'CHRO']);
   return <HrDashboardClient />;
 }

@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 };
 
 export default async function FinanceDashboardPage() {
-  // Server-side role guard — FINANCE and CFO only
+  // Server-side role guard  FINANCE and CFO only
   await requireRole(['FINANCE', 'CFO']);
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] p-8 text-center">

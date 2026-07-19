@@ -97,7 +97,6 @@ export class SettingsService {
       distinct: ['role'],
     }).then(r => r.length);
 
-<<<<<<< HEAD
     // Count active workflows
     const activeWorkflows = await this.prisma.workflow.count({
       where: { isActive: true }
@@ -123,17 +122,6 @@ export class SettingsService {
     } else {
       integrationsConnected = 3; // Default default mock count
     }
-=======
-    // Workflows: workflowDefinition does not exist in schema — derive count from audit logs
-    // or return 0 until the Workflow model is added to the Prisma schema in a future migration.
-    const activeWorkflows = 0;
-
-    // ConnectSettings only tracks calendar/notification flags — no slack/zoom/aws booleans exist.
-    // Count employees who have connected their Google Calendar as a proxy for "active integrations".
-    const integrationsConnected = await this.prisma.connectSettings.count({
-      where: { googleCalendarConnected: true }
-    });
->>>>>>> 4133cbb4193bf42e0ad84c0fac538668ec843086
 
     // Security alerts (failed logins, blocked devices in last 24h)
     const yesterday = new Date();
