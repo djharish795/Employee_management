@@ -16,10 +16,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const storeRole = useAuthStore((state) => state.role);
 
   const [activeRole, setActiveRole] = React.useState(() => {
-    if (typeof document !== 'undefined') {
-      const cookieRole = document.cookie.match(new RegExp('(^| )role=([^;]+)'))?.[2] ?? null;
-      return (storeRole || cookieRole)?.toUpperCase() ?? 'EMPLOYEE';
-    }
+    // Read role exclusively from Zustand store (hydrated from JWT at login).
+    // NEVER read the plain 'role' cookie — it is unsigned and can be tampered with.
     return storeRole?.toUpperCase() ?? 'EMPLOYEE';
   });
 
