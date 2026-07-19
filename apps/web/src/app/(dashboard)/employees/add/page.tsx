@@ -73,7 +73,9 @@ export default function AddEmployeePage() {
       });
 
       if (!res.ok) {
-        throw new Error("Failed to save draft step");
+        const errBody = await res.json().catch(() => ({ message: 'Unknown error' }));
+        const msg = errBody?.message || `Server error ${res.status}`;
+        throw new Error(msg);
       }
 
       const data = await res.json();
@@ -86,9 +88,9 @@ export default function AddEmployeePage() {
       } else {
         await completeOnboarding(data.draftId || draftId);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("Validation failed or server error.");
+      alert(`Error: ${error?.message || 'Validation failed or server error.'}`);
     } finally {
       setIsSubmitting(false);
     }

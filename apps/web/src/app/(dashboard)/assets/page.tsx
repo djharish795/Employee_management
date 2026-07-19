@@ -9,7 +9,7 @@ import { useAuthStore } from "@/store/auth";
 export default function AssetsDashboardPage() {
   const { role: activeRole } = usePermissions();
   const currentUserRole = useAuthStore((state) => state.role) || "EMPLOYEE";
-  const isEmployeeLevel = ["EMPLOYEE", "MANAGER", "TEAM_LEAD"].includes(currentUserRole);
+  const isEmployeeLevel = ["EMPLOYEE", "MANAGER", "TEAM_LEAD", "CRM", "CEM", "OE", "OM"].includes(currentUserRole);
   const effectiveRole = isEmployeeLevel ? "EMPLOYEE" : activeRole;
 
 

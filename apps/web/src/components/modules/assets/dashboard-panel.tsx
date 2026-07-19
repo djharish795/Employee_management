@@ -21,6 +21,7 @@ import {
   Shield,
 } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Asset, AssetActivity, AssetKPIs, AssetRole, AssetRequest } from "@/types/assets";
 import { assetsApi } from "@/lib/api/assets";
 
@@ -93,7 +94,9 @@ const CATEGORY_DISTRIBUTION = [
 export default function DashboardPanel() {
   const { role } = usePermissions();
   const activeRole = role as any;
-  const isEmployee = ["EMPLOYEE", "MANAGER", "TEAM_LEAD"].includes(activeRole);
+  const pathname = usePathname();
+  const forceEmployee = pathname?.includes('/assets/my');
+  const isEmployee = forceEmployee || (["EMPLOYEE", "MANAGER", "TEAM_LEAD", "CRM", "CEM", "OE", "OM"].includes(activeRole) && activeRole !== 'OM');
   const { isAdmin: isITOrAdmin } = usePermissions();
 
   const { data: summaryKpis } = useQuery({
@@ -122,14 +125,14 @@ export default function DashboardPanel() {
   const myAssets = (myAssetsObj?.assets || []) as Asset[];
 
   const { data: recentActivityObj } = useQuery({
-    queryKey: ["assetActivity"],
-    queryFn: async () => assetsApi.activity(),
+    queryKey: ["assetActivity", isEmployee ? "MINE" : "ALL"],
+    queryFn: async () => assetsApi.activity(isEmployee ? "MINE" : "ALL"),
   });
   const recentActivity = (recentActivityObj || []) as AssetActivity[];
 
   const { data: pendingRequestsObj } = useQuery({
-    queryKey: ["pendingRequests"],
-    queryFn: async () => assetsApi.listRequests(),
+    queryKey: ["pendingRequests", isEmployee ? "my" : "all"],
+    queryFn: async () => assetsApi.listRequests(undefined, isEmployee ? "my" : undefined),
     enabled: isEmployee,
   });
   const pendingRequests = (pendingRequestsObj?.requests || pendingRequestsObj || []) as AssetRequest[];
@@ -412,7 +415,13 @@ export default function DashboardPanel() {
                       </div>
                     </div>
                     <div className="text-[10px] font-semibold text-slate-400 flex-shrink-0 mt-0.5">
-                      {event.timestamp}
+                      {new Date(event.timestamp).toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </div>
                   </div>
                 );

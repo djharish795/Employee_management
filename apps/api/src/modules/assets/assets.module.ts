@@ -9,9 +9,10 @@ import { AssetsRepository } from "./assets.repository";
 import { PrismaModule } from "../../prisma/prisma.module";
 import { WorkflowsModule } from "../workflows/workflows.module";
 import { AuditModule } from "../audit/audit.module";
+import { NotificationsModule } from "../notifications/notifications.module";
 
 @Module({
-  imports: [PrismaModule, WorkflowsModule, AuditModule],
+  imports: [PrismaModule, WorkflowsModule, AuditModule, NotificationsModule],
   controllers: [
     AssetsKpiController,
     AssetRequestsController,

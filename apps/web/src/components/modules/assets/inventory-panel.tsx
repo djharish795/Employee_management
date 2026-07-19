@@ -69,7 +69,15 @@ const CONDITION_COLORS: Record<string, string> = {
 };
 
 const ALL_CATEGORIES: AssetCategory[] = [
-  "LAPTOP", "DESKTOP", "MONITOR", "PHONE", "HEADSET", "KEYBOARD", "TABLET", "OTHER",
+  "LAPTOP",
+  "DESKTOP",
+  "MONITOR",
+  "MOBILE_DEVICE",
+  "SIM",
+  "ACCESS_CARD",
+  "SOFTWARE_LICENCE",
+  "CLOUD_ACCOUNT",
+  "OTHER"
 ];
 
 const ALL_STATUSES: AssetStatus[] = [
@@ -132,7 +140,8 @@ export default function InventoryPanel() {
 
   const filtered = assets;
 
-  const { isAdmin: canEdit } = usePermissions();
+  const { isAdmin, role } = usePermissions();
+  const canEdit = isAdmin || role === "OM";
 
   return (
     <div className="space-y-5">

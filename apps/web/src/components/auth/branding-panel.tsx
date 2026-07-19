@@ -19,7 +19,7 @@ export const BrandingPanel: React.FC = () => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // ── state ──────────────────────────────────────────────────────────────
+    // ------ state ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     let W = 0, H = 0, DPR = 1;
     let rafId: number;
     let nodes: Array<{
@@ -34,7 +34,7 @@ export const BrandingPanel: React.FC = () => {
     }> = [];
     const mouse = { x: 0, y: 0, active: false };
 
-    // ── resize ─────────────────────────────────────────────────────────────
+    // ------ resize ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     function resize() {
       DPR = Math.min(window.devicePixelRatio || 1, 2);
       W = wrap!.clientWidth;
@@ -46,7 +46,7 @@ export const BrandingPanel: React.FC = () => {
       ctx!.setTransform(DPR, 0, 0, DPR, 0, 0);
     }
 
-    // ── nodes ──────────────────────────────────────────────────────────────
+    // ------ nodes ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     function nodeCount() {
       return Math.max(40, Math.round((W * H) / 16000));
     }
@@ -68,16 +68,16 @@ export const BrandingPanel: React.FC = () => {
     resize();
     makeNodes();
 
-    // ── constants ──────────────────────────────────────────────────────────
+    // ------ constants ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     const LINK_DIST = 130;
     const MOUSE_LINK_DIST = 190;
     const MOUSE_PULL_DIST = 170;
 
-    // ── draw loop ──────────────────────────────────────────────────────────
+    // ------ draw loop ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     function step() {
       ctx!.clearRect(0, 0, W, H);
 
-      // ── update node positions + mouse attraction ──
+      // ------ update node positions + mouse attraction ------
       for (const p of nodes) {
         p.x += p.vx;
         p.y += p.vy;
@@ -112,7 +112,7 @@ export const BrandingPanel: React.FC = () => {
         }
       }
 
-      // ── draw node-to-node edges ──
+      // ------ draw node-to-node edges ------
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
           const a = nodes[i], b = nodes[j];
@@ -130,7 +130,7 @@ export const BrandingPanel: React.FC = () => {
         }
       }
 
-      // ── draw mouse-to-node edges ──
+      // ------ draw mouse-to-node edges ------
       if (mouse.active) {
         for (const p of nodes) {
           const dx = p.x - mouse.x, dy = p.y - mouse.y;
@@ -147,7 +147,7 @@ export const BrandingPanel: React.FC = () => {
         }
       }
 
-      // ── draw nodes with twinkle ──
+      // ------ draw nodes with twinkle ------
       for (const p of nodes) {
         const twinkle = 0.55 + Math.sin(p.tw) * 0.25;
         ctx!.beginPath();
@@ -156,7 +156,7 @@ export const BrandingPanel: React.FC = () => {
         ctx!.fill();
       }
 
-      // ── mouse glow halo ──
+      // ------ mouse glow halo ------
       if (mouse.active) {
         const grad = ctx!.createRadialGradient(
           mouse.x, mouse.y, 0,
@@ -170,7 +170,7 @@ export const BrandingPanel: React.FC = () => {
         ctx!.fill();
       }
 
-      // ── comet streaks ──
+      // ------ comet streaks ------
       comets.forEach((c) => {
         c.x += c.vx;
         c.y += c.vy;
@@ -201,7 +201,7 @@ export const BrandingPanel: React.FC = () => {
 
     step();
 
-    // ── comet spawner (every 3.2 s) ────────────────────────────────────────
+    // ------ comet spawner (every 3.2 s) ------------------------------------------------------------------------------------------------------------------------
     const cometInterval = setInterval(() => {
       const fromLeft = Math.random() < 0.5;
       const y = Math.random() * H * 0.6;
@@ -215,7 +215,7 @@ export const BrandingPanel: React.FC = () => {
       });
     }, 3200);
 
-    // ── event handlers ─────────────────────────────────────────────────────
+    // ------ event handlers ---------------------------------------------------------------------------------------------------------------------------------------------------------------
     function handleMouseMove(e: MouseEvent) {
       const r = wrap!.getBoundingClientRect();
       mouse.x = e.clientX - r.left;
@@ -259,7 +259,7 @@ export const BrandingPanel: React.FC = () => {
     wrap.addEventListener("mouseup", handleMouseUp);
     window.addEventListener("resize", handleResize);
 
-    // ── cleanup ────────────────────────────────────────────────────────────
+    // ------ cleanup ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     return () => {
       cancelAnimationFrame(rafId);
       clearInterval(cometInterval);
@@ -273,7 +273,7 @@ export const BrandingPanel: React.FC = () => {
 
   return (
     <>
-      {/* ── Keyframe animations injected once ── */}
+      {/* ------ Keyframe animations injected once ------ */}
       <style>{`
         @keyframes naprocs-drift1 {
           0%   { transform: translate(0,0) rotate(0deg); }
@@ -306,7 +306,7 @@ export const BrandingPanel: React.FC = () => {
         }
       `}</style>
 
-      {/* ── Left panel ── */}
+      {/* ------ Left panel ------ */}
       <div
         ref={panelRef}
         className="hidden lg:flex"
@@ -321,7 +321,7 @@ export const BrandingPanel: React.FC = () => {
           cursor: "none",
         }}
       >
-        {/* Canvas — particle + comet network */}
+        {/* Canvas --- particle + comet network */}
         <canvas
           ref={canvasRef}
           style={{
@@ -332,10 +332,10 @@ export const BrandingPanel: React.FC = () => {
           }}
         />
 
-        {/* ── Floating circuit shapes ── */}
+        {/* ------ Floating circuit shapes ------ */}
         <div style={{ position: "absolute", inset: 0, zIndex: 2, pointerEvents: "none" }}>
 
-          {/* fs-1  — hexagon, top-left */}
+          {/* fs-1  --- hexagon, top-left */}
           <div style={{
             position: "absolute", width: 70, height: 70,
             top: "10%", left: "8%", opacity: 0.35,
@@ -347,7 +347,7 @@ export const BrandingPanel: React.FC = () => {
             </svg>
           </div>
 
-          {/* fs-2  — circle with centre dot, bottom-left */}
+          {/* fs-2  --- circle with centre dot, bottom-left */}
           <div style={{
             position: "absolute", width: 46, height: 46,
             top: "70%", left: "14%", opacity: 0.35,
@@ -359,7 +359,7 @@ export const BrandingPanel: React.FC = () => {
             </svg>
           </div>
 
-          {/* fs-3  — square with connector pins, top-right */}
+          {/* fs-3  --- square with connector pins, top-right */}
           <div style={{
             position: "absolute", width: 90, height: 90,
             top: "18%", left: "82%", opacity: 0.35,
@@ -375,7 +375,7 @@ export const BrandingPanel: React.FC = () => {
             </svg>
           </div>
 
-          {/* fs-4  — mini hexagon, bottom-right */}
+          {/* fs-4  --- mini hexagon, bottom-right */}
           <div style={{
             position: "absolute", width: 36, height: 36,
             top: "78%", left: "78%", opacity: 0.35,
@@ -387,7 +387,7 @@ export const BrandingPanel: React.FC = () => {
             </svg>
           </div>
 
-          {/* fs-5  — dashed circle, middle-left */}
+          {/* fs-5  --- dashed circle, middle-left */}
           <div style={{
             position: "absolute", width: 56, height: 56,
             top: "46%", left: "6%", opacity: 0.35,
@@ -399,7 +399,7 @@ export const BrandingPanel: React.FC = () => {
             </svg>
           </div>
 
-          {/* fs-6  — small rounded rect, middle-right */}
+          {/* fs-6  --- small rounded rect, middle-right */}
           <div style={{
             position: "absolute", width: 64, height: 64,
             top: "55%", left: "88%", opacity: 0.35,
@@ -412,7 +412,7 @@ export const BrandingPanel: React.FC = () => {
           </div>
         </div>
 
-        {/* ── Pulse rings ── */}
+        {/* ------ Pulse rings ------ */}
         <div style={{
           position: "absolute", zIndex: 2,
           width: 1, height: 1, top: "50%", left: "50%",
@@ -432,7 +432,7 @@ export const BrandingPanel: React.FC = () => {
           ))}
         </div>
 
-        {/* ── Inner orbit — spins forward ── */}
+        {/* ------ Inner orbit --- spins forward ------ */}
         <div style={{
           position: "absolute", zIndex: 2,
           top: "50%", left: "50%",
@@ -453,7 +453,7 @@ export const BrandingPanel: React.FC = () => {
           }} />
         </div>
 
-        {/* ── Outer orbit — spins reverse ── */}
+        {/* ------ Outer orbit --- spins reverse ------ */}
         <div style={{
           position: "absolute", zIndex: 2,
           top: "50%", left: "50%",
@@ -474,7 +474,7 @@ export const BrandingPanel: React.FC = () => {
           }} />
         </div>
 
-        {/* ── Custom cursor dot — snaps instantly ── */}
+        {/* ------ Custom cursor dot --- snaps instantly ------ */}
         <div ref={cursorDotRef} style={{
           position: "absolute",
           top: 0, left: 0,
@@ -489,7 +489,7 @@ export const BrandingPanel: React.FC = () => {
           transition: "opacity .2s ease",
         }} />
 
-        {/* ── Custom cursor ring — scales on click ── */}
+        {/* ------ Custom cursor ring --- scales on click ------ */}
         <div ref={cursorRingRef} style={{
           position: "absolute",
           top: 0, left: 0,
@@ -503,7 +503,7 @@ export const BrandingPanel: React.FC = () => {
           transition: "opacity .2s ease, transform .15s ease",
         }} />
 
-        {/* ── Brand — logo + tagline ── */}
+        {/* ------ Brand --- logo + tagline ------ */}
         <div style={{
           position: "relative",
           zIndex: 3,
@@ -513,16 +513,16 @@ export const BrandingPanel: React.FC = () => {
           pointerEvents: "none",
           userSelect: "none",
         }}>
-          {/* Logo card — breathing animation */}
+          {/* Logo card --- breathing animation */}
           <div style={{
             padding: 10,
             animation: "naprocs-breathe 5s ease-in-out infinite",
           }}>
             {/*
-              ✅ Using naprocs-logo.png — the full brand identity image
+              --- Using naprocs-logo.png --- the full brand identity image
                  (circuit "n" icon  + "NAPROCS TECHNOLOGIES" text)
-              ✅ NO filter/invert: displayed in its natural teal+purple colors
-              ✅ drop-shadow only for the glow effect
+              --- NO filter/invert: displayed in its natural teal+purple colors
+              --- drop-shadow only for the glow effect
             */}
             <Image
               src="/naprocs-logo.png"

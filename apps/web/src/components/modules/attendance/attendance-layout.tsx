@@ -16,6 +16,7 @@ interface AttendanceLayoutProps {
 export default function AttendanceLayout({ children }: AttendanceLayoutProps) {
   const { role } = usePermissions();
   const activeRole = role as any;
+  const isEmployeeView = ["EMPLOYEE", "CRM", "CEM", "OE", "OM"].includes(activeRole);
   const pathname = usePathname();
 
   const navItems = React.useMemo(() => {
@@ -49,7 +50,7 @@ export default function AttendanceLayout({ children }: AttendanceLayoutProps) {
               </span>
             </div>
             <p className="text-sm font-medium text-slate-500 mt-1">
-              {activeRole === "EMPLOYEE"
+              {isEmployeeView
                 ? "Track your hours, daily logs and submit corrections."
                 : "Monitor shift metrics, team punches and generate reports."}
             </p>

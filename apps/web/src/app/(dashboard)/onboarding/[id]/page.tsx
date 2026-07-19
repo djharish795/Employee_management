@@ -46,8 +46,12 @@ export default function OnboardingDetailsPage() {
 
   const [isScheduleModalOpen, setIsScheduleModalOpen] = React.useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = React.useState(false);
+  const [isAssetRequestModalOpen, setIsAssetRequestModalOpen] = React.useState(false);
   const [callDate, setCallDate] = React.useState("");
   const [callTime, setCallTime] = React.useState("10:00");
+  const [assetItems, setAssetItems] = React.useState<string[]>([]);
+  const [otherAsset, setOtherAsset] = React.useState('');
+  const [assetReason, setAssetReason] = React.useState('');
 
   const sendReminder = useMutation({
     mutationFn: async () => {
@@ -88,6 +92,41 @@ export default function OnboardingDetailsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['onboarding-session', id] });
       queryClient.invalidateQueries({ queryKey: ['onboarding-metrics'] });
+    }
+  });
+
+  const { data: assetRequests = [], refetch: refetchAssetRequests } = useQuery({
+    queryKey: ['employee-asset-requests', session?.employee?.id],
+    queryFn: async () => {
+      const res = await apiClient.get('/assets/requests', { params: { scope: 'all' } });
+      const allReqs = res.data?.data || res.data || [];
+      return allReqs.filter((r: any) => {
+        const targetId = r.employeeId || r.metadata?.targetEmployeeId;
+        return targetId === session?.employee?.id || targetId === session?.employee?.employeeId;
+      });
+    },
+    enabled: !!session?.employee?.id
+  });
+
+  const requestAsset = useMutation({
+    mutationFn: async (finalItems: string[]) => {
+      await apiClient.post('/assets/requests', {
+        employeeId: session?.employee?.id,
+        type: 'ONBOARDING',
+        requestedItems: finalItems,
+        reason: assetReason
+      });
+    },
+    onSuccess: () => {
+      showToast("Asset Request Initiated!");
+      setIsAssetRequestModalOpen(false);
+      setAssetItems([]);
+      setOtherAsset('');
+      setAssetReason('');
+      refetchAssetRequests();
+    },
+    onError: (err: any) => {
+      showToast(err?.response?.data?.message || err.message || "Failed to send request");
     }
   });
 
@@ -246,41 +285,46 @@ export default function OnboardingDetailsPage() {
             <div className="space-y-6">
               
               <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
-                <h3 className="text-sm font-bold text-slate-900 mb-4 border-b border-slate-100 pb-3">IT & Asset Request</h3>
+                <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                  <h3 className="text-sm font-bold text-slate-900">IT & Asset Request</h3>
+                  {assetRequests.length === 0 && (
+                    <button
+                      onClick={() => setIsAssetRequestModalOpen(true)}
+                      disabled={requestAsset.isPending}
+                      className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold uppercase rounded transition-colors disabled:opacity-50"
+                    >
+                      {requestAsset.isPending ? "Initiating..." : "Initiate Request"}
+                    </button>
+                  )}
+                </div>
                 <div className="space-y-4">
-                  <div>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Laptop</p>
-                    <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                      <Laptop className="w-4 h-4 text-slate-400" />
-                      {session.laptopType || 'Not specified'}
+                  {assetRequests.length > 0 ? (
+                    assetRequests.map((req: any) => {
+                      const type = req.type || req.metadata?.requestType || "ONBOARDING";
+                      const requestedItems = Array.isArray(req.requestedItems) ? req.requestedItems.join(", ") : (req.metadata?.justification || "Assets");
+                      const reason = req.reason || req.metadata?.description;
+                      
+                      return (
+                      <div key={req.id} className="p-3 border border-slate-200 rounded-lg">
+                        <div className="flex justify-between items-start mb-2">
+                          <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">{type}</p>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                            req.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' :
+                            req.status === 'REJECTED' ? 'bg-rose-100 text-rose-700' :
+                            'bg-amber-100 text-amber-700'
+                          }`}>
+                            {req.status}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 font-medium">Requested: {requestedItems}</p>
+                        {reason && <p className="text-xs text-slate-400 mt-1">Reason: {reason}</p>}
+                      </div>
+                    )})
+                  ) : (
+                    <div className="text-sm text-slate-500 text-center py-4 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                      No asset requests initiated yet.
                     </div>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Accessories</p>
-                    <div className="flex flex-wrap gap-2">
-                      {(session.accessories || []).map((acc: string) => (
-                        <span key={acc} className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-medium">
-                          {acc}
-                        </span>
-                      ))}
-                      {(!session.accessories || session.accessories.length === 0) && (
-                        <span className="text-sm text-slate-500">None requested</span>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Software Access</p>
-                    <div className="flex flex-wrap gap-2">
-                      {(session.software || []).map((sw: string) => (
-                        <span key={sw} className="px-2 py-1 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded text-xs font-medium">
-                          {sw}
-                        </span>
-                      ))}
-                      {(!session.software || session.software.length === 0) && (
-                        <span className="text-sm text-slate-500">Standard suite only</span>
-                      )}
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
@@ -397,6 +441,76 @@ export default function OnboardingDetailsPage() {
                 disabled={cancelOnboarding.isPending}
                 className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition-colors disabled:opacity-50">
                 {cancelOnboarding.isPending ? 'Canceling...' : 'Yes, Cancel Onboarding'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isAssetRequestModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="p-6 border-b border-slate-100">
+              <h3 className="text-lg font-bold text-slate-900">Initiate Asset Request</h3>
+              <p className="text-sm text-slate-500 mt-1">Request hardware or software for {employee.firstName}.</p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-2">Required Assets</label>
+                <div className="space-y-2">
+                  {['Laptop', 'Monitor', 'Mobile Phone', 'SIM Card', 'Software Licenses'].map(item => (
+                    <label key={item} className="flex items-center gap-2 text-sm text-slate-600">
+                      <input 
+                        type="checkbox" 
+                        checked={assetItems.includes(item)}
+                        onChange={(e) => {
+                          if (e.target.checked) setAssetItems([...assetItems, item]);
+                          else setAssetItems(assetItems.filter(i => i !== item));
+                        }}
+                        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      {item}
+                    </label>
+                  ))}
+                </div>
+                <div className="mt-3">
+                  <input 
+                    type="text"
+                    value={otherAsset}
+                    onChange={(e) => setOtherAsset(e.target.value)}
+                    placeholder="Other requirement (type here...)"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Reason / Notes</label>
+                <textarea 
+                  value={assetReason}
+                  onChange={(e) => setAssetReason(e.target.value)}
+                  placeholder="e.g., Required for client calls..."
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  rows={3}
+                />
+              </div>
+            </div>
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+              <button 
+                onClick={() => setIsAssetRequestModalOpen(false)}
+                className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">
+                Cancel
+              </button>
+              <button 
+                onClick={() => {
+                  const finalItems = [...assetItems];
+                  if (otherAsset.trim()) finalItems.push(otherAsset.trim());
+                  
+                  if (finalItems.length === 0) return showToast("Please select or type at least one asset item");
+                  requestAsset.mutate(finalItems);
+                }}
+                disabled={requestAsset.isPending}
+                className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-50">
+                {requestAsset.isPending ? 'Sending...' : 'Send to Approvals'}
               </button>
             </div>
           </div>

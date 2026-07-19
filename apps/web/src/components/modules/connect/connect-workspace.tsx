@@ -12,17 +12,28 @@ export function ConnectWorkspace() {
   const [employees, setEmployees] = useState<any[]>([]);
   const router = useRouter();
 
+  const [isSearching, setIsSearching] = useState(false);
+
   useEffect(() => {
-    const fetchEmployees = async () => {
+    if (searchQuery.trim().length === 0) {
+      setEmployees([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
       try {
-        const res = await apiClient.get('/employees/org-chart');
+        const res = await apiClient.get(`/employees/search-directory?q=${encodeURIComponent(searchQuery)}`);
         if (res.data) setEmployees(res.data);
       } catch (err) {
         console.error("Failed to fetch employees for search:", err);
+      } finally {
+        setIsSearching(false);
       }
-    };
-    fetchEmployees();
-  }, []);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   return (
     <div className="w-full flex flex-col gap-10">
@@ -51,15 +62,7 @@ export function ConnectWorkspace() {
           {/* Search Dropdown */}
           {searchQuery.trim().length > 0 && (
             <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden text-left animate-in fade-in slide-in-from-top-2 duration-200 max-h-64 overflow-y-auto">
-              {employees
-                .filter(e => {
-                  const fullName = `${e.firstName || ""} ${e.lastName || ""}`.toLowerCase();
-                  const role = e.designation?.title?.toLowerCase() || "";
-                  const dept = e.department?.name?.toLowerCase() || "";
-                  const query = searchQuery.toLowerCase();
-                  return fullName.includes(query) || role.includes(query) || dept.includes(query);
-                })
-                .map((emp) => (
+              {employees.length > 0 ? employees.map((emp) => (
                   <button 
                     key={emp.id}
                     onClick={() => router.push(`/connect/${emp.id}`)}
@@ -68,17 +71,9 @@ export function ConnectWorkspace() {
                     <span className="text-sm font-bold text-slate-900">{emp.firstName} {emp.lastName}</span>
                     <span className="text-xs font-medium text-slate-500">{emp.designation?.title || "Employee"} • {emp.department?.name || "Naprocs"}</span>
                   </button>
-                ))}
-              {/* Empty state */}
-              {employees.filter(e => {
-                  const fullName = `${e.firstName || ""} ${e.lastName || ""}`.toLowerCase();
-                  const role = e.designation?.title?.toLowerCase() || "";
-                  const dept = e.department?.name?.toLowerCase() || "";
-                  const query = searchQuery.toLowerCase();
-                  return fullName.includes(query) || role.includes(query) || dept.includes(query);
-                }).length === 0 && (
+                )) : (
                 <div className="px-4 py-4 text-center text-sm font-medium text-slate-500">
-                  No colleagues found for "{searchQuery}"
+                  {isSearching ? "Searching..." : `No colleagues found for "${searchQuery}"`}
                 </div>
               )}
             </div>

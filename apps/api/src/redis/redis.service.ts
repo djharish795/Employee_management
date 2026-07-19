@@ -19,7 +19,6 @@ export class RedisService implements OnModuleDestroy {
       port,
       password,
       tls: tlsEnabled ? {} : undefined,
-      maxRetriesPerRequest: null,
       enableOfflineQueue: true,
       lazyConnect: true,
       retryStrategy: (times) => {
@@ -37,18 +36,18 @@ export class RedisService implements OnModuleDestroy {
     if (this.client.status === "wait") {
       await this.client.connect();
     }
-    // Enforce noeviction policy required by BullMQ for reliable queue operations.
-    // This suppresses the "IMPORTANT! Eviction policy is volatile-lru" warning
-    // and ensures queued jobs are never silently dropped due to memory pressure.
-    if (this.client.status === "ready") {
-      try {
-        await this.client.config("SET", "maxmemory-policy", "noeviction");
-      } catch {
-        // AWS ElastiCache may not allow CONFIG SET — safe to ignore in managed environments.
-      }
-    }
   }
 
+  /**
+   * Returns the shared ioredis client instance.
+   * 
+   * @warning ARCHITECTURAL CONSTRAINT:
+   * DO NOT use this shared client instance for WebSockets, Pub/Sub, or BullMQ Workers.
+   * Operations like `SUBSCRIBE`, `BLPOP`, or `BRPOPLPUSH` are blocking commands. 
+   * If executed on this shared instance, they will instantly deadlock the entire 
+   * application's caching and session mechanisms, resulting in "Connection is closed" crashes.
+   * For blocking operations, you MUST instantiate a separate, dedicated `ioredis` connection.
+   */
   getClient(): Redis {
     return this.client;
   }

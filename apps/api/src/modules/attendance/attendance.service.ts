@@ -50,6 +50,35 @@ export class AttendanceService {
       await this.redis.setJson(key, state, 60 * 60 * 24);
     }
 
+    // Handle stale IN or BREAK states from a previous day (e.g. if the midnight cron job missed it)
+    if (state && (state.state === "IN" || state.state === "BREAK") && state.shiftDate && state.shiftDate !== today.toISOString()) {
+      const shiftDate = new Date(state.shiftDate);
+      const record = await this.prisma.attendanceRecord.findUnique({
+        where: { employeeId_date: { employeeId, date: shiftDate } }
+      });
+
+      if (record && !record.checkOutTime && record.checkInTime) {
+        const midnight = new Date(record.date);
+        midnight.setUTCHours(23, 59, 59, 999);
+        const checkInTime = record.checkInTime.getTime();
+        const totalElapsedSeconds = Math.floor((midnight.getTime() - checkInTime) / 1000) - ((record as any).totalBreakSeconds || 0);
+        const workHours = Math.max(0, totalElapsedSeconds / 3600);
+
+        await this.prisma.attendanceRecord.update({
+          where: { id: record.id },
+          data: {
+            checkOutTime: midnight,
+            workHours: Number(workHours.toFixed(2)),
+            isRegularized: false,
+            notes: (record.notes ? record.notes + "\n" : "") + "System Auto-Checkout at midnight (Late processing). Requires HR Regularization."
+          }
+        });
+      }
+
+      state = { state: "OUT", startTime: 0, offset: 0, shiftDate: null };
+      await this.redis.setJson(key, state, 60 * 60 * 24);
+    }
+
     if (!state) {
       const dbRecord = await this.prisma.attendanceRecord.findUnique({
         where: { employeeId_date: { employeeId, date: today } }

@@ -20,9 +20,10 @@ export class AssetsRepository {
       search?: string;
       page?: number;
       limit?: number;
+      employeeId?: string;
     }
   ) {
-    const { status, category, search, page = 1, limit = 50 } = filters;
+    const { status, category, search, page = 1, limit = 50, employeeId } = filters;
 
     const where: any = {};
     if (status) where.status = status;
@@ -47,6 +48,12 @@ export class AssetsRepository {
       } else {
         where.currentHolderId = userId;
       }
+    } else if (role === "CTO") {
+      where.status = AssetStatus.ASSIGNED;
+    }
+    
+    if (employeeId) {
+      where.currentHolderId = employeeId;
     }
 
     const [assets, total] = await Promise.all([
@@ -221,28 +228,55 @@ export class AssetsRepository {
 
   // ─── Asset Requests (via WorkflowInstance) ─────────────────────────────────
 
-  async findRequests(filters: { status?: string; employeeId?: string }): Promise<any> {
-    const where: any = {
-      workflow: { type: "ASSET_REQUEST" },
-    };
-    if (filters.status) where.status = filters.status;
-    if (filters.employeeId) where.initiatedById = filters.employeeId;
-
-    return this.prisma.workflowInstance.findMany({
-      where,
-      include: {
-        initiatedBy: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            department: true,
-          },
-        },
-        workflow: { select: { id: true, name: true, type: true } },
+  async createAssetRequest(data: {
+    employeeId: string;
+    requesterId: string;
+    type: "ONBOARDING" | "OFFBOARDING" | "GENERAL";
+    requestedItems?: any;
+    reason?: string;
+  }) {
+    return this.prisma.assetRequest.create({
+      data: {
+        employeeId: data.employeeId,
+        requesterId: data.requesterId,
+        type: data.type,
+        requestedItems: data.requestedItems || [],
+        reason: data.reason || "",
       },
-      orderBy: { createdAt: "desc" },
     });
+  }
+
+  async getAssetRequestById(id: string) {
+    return this.prisma.assetRequest.findUnique({
+      where: { id }
+    });
+  }
+
+  async updateAssetRequest(id: string, data: any) {
+    return this.prisma.assetRequest.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async findRequests(filters: { status?: string; employeeId?: string }): Promise<any> {
+    const where: any = {};
+    if (filters.status) where.status = filters.status;
+    if (filters.employeeId) where.employeeId = filters.employeeId;
+
+    const reqs = await this.prisma.assetRequest.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      include: {
+        employee: {
+          select: { id: true, firstName: true, lastName: true, department: true }
+        },
+        requester: {
+          select: { id: true, firstName: true, lastName: true }
+        }
+      }
+    });
+    return reqs;
   }
   // ─── KPI Queries (existing, unchanged) ────────────────────────────────────
 
@@ -373,6 +407,63 @@ export class AssetsRepository {
     };
   }
 
+  async getDepartmentBreakdown(): Promise<any> {
+    const assignments = await this.prisma.assetAssignment.findMany({
+      where: { returnedAt: null },
+      include: {
+        asset: true,
+        employee: {
+          include: {
+            department: true,
+          }
+        },
+      }
+    });
+
+    const deptMap: Record<string, { count: number, value: number }> = {};
+
+    assignments.forEach(a => {
+      const dept = a.employee?.department?.name || "Unassigned";
+      if (!deptMap[dept]) {
+        deptMap[dept] = { count: 0, value: 0 };
+      }
+      deptMap[dept].count += 1;
+      deptMap[dept].value += Number(a.asset.purchaseCost || 0);
+    });
+
+    const colors = [
+      { bg: "bg-violet-500", text: "text-violet-700" },
+      { bg: "bg-blue-500", text: "text-blue-700" },
+      { bg: "bg-emerald-500", text: "text-emerald-700" },
+      { bg: "bg-amber-500", text: "text-amber-700" },
+      { bg: "bg-rose-500", text: "text-rose-700" },
+      { bg: "bg-sky-500", text: "text-sky-700" },
+    ];
+
+    let colorIndex = 0;
+    
+    // Relative percentage based on the max department for charting purposes
+    const maxCount = Math.max(...Object.values(deptMap).map(d => d.count), 1);
+
+    return Object.entries(deptMap).map(([dept, data]) => {
+      const color = colors[colorIndex % colors.length];
+      colorIndex++;
+      
+      const valueFormatted = data.value >= 100000 
+        ? `₹${(data.value / 100000).toFixed(1)}L` 
+        : `₹${data.value.toLocaleString()}`;
+
+      return {
+        dept,
+        count: data.count,
+        value: valueFormatted,
+        percent: Math.round((data.count / maxCount) * 100),
+        bg: color.bg,
+        text: color.text
+      };
+    }).sort((a, b) => b.count - a.count);
+  }
+
   async getLifecycleTrends(
     startDate: Date,
     endDate: Date,
@@ -478,7 +569,7 @@ export class AssetsRepository {
     return { metrics: { totalDevices, softwareLicenses, dueForRefresh }, assets, totalCount: assets.length };
   }
 
-  async getRecentActivity(limit = 10, employeeId?: string): Promise<any[]> {
+  async getRecentActivity(limit = 10, employeeId?: string, isPrivilegedViewer: boolean = false): Promise<any[]> {
     // 1. Fetch recent assignments
     const assignments = await this.prisma.assetAssignment.findMany({
       where: employeeId ? { employeeId } : undefined,
@@ -550,19 +641,46 @@ export class AssetsRepository {
 
     // Map Requests (Pending/Approved/Rejected)
     for (const app of approvals) {
+      let actionLabel = "REQUESTED";
+      let performedByLabel = app.initiatedBy ? `${app.initiatedBy.firstName} ${app.initiatedBy.lastName}` : "System";
+      let targetLabel = app.initiatedBy ? `${app.initiatedBy.firstName} ${app.initiatedBy.lastName}` : null;
+
+      if (app.status === "PENDING") {
+        if (!isPrivilegedViewer) {
+          actionLabel = "REQUESTED";
+          targetLabel = "Waiting for Approval";
+          performedByLabel = app.initiatedBy ? `${app.initiatedBy.firstName} ${app.initiatedBy.lastName}` : "System";
+        } else if (app.currentStepIndex === 1) {
+          // If it was just created (updatedAt very close to createdAt), it was an auto-skip by OM
+          const timeDiff = new Date(app.updatedAt).getTime() - new Date(app.createdAt).getTime();
+          if (timeDiff < 1000) {
+            actionLabel = "REQUESTED";
+            targetLabel = "Sent to CEO";
+          } else {
+            actionLabel = "APPROVED";
+            performedByLabel = "Operations Manager";
+            targetLabel = "Sent to CEO";
+          }
+        }
+      } else if (app.status === "APPROVED") {
+        actionLabel = "APPROVED";
+        performedByLabel = "CEO / Admin";
+      } else if (app.status === "REJECTED") {
+        actionLabel = "REJECTED";
+        performedByLabel = app.currentStepIndex === 0 ? "Operations Manager" : "CEO / Admin";
+      }
+
       activity.push({
-        id: `app-${app.id}`,
-        action: app.status === "PENDING" ? "REQUESTED" : app.status === "APPROVED" ? "APPROVED" : "REJECTED",
+        id: `app-${app.id}-${app.currentStepIndex}`, // add step index to make ID unique if state changes
+        action: actionLabel,
         assetName: `Asset Request`,
         assetTag: `REQ-${app.id.slice(-5).toUpperCase()}`,
-        performedBy: app.status === "PENDING" 
-          ? (app.initiatedBy ? `${app.initiatedBy.firstName} ${app.initiatedBy.lastName}` : "System") 
-          : "HR / IT Admin",
+        performedBy: performedByLabel,
         performedByAvatar: app.status === "PENDING" && app.initiatedBy 
           ? `${process.env.AVATAR_API_URL}?seed=${app.initiatedBy.firstName}` 
           : "",
-        targetEmployee: app.initiatedBy ? `${app.initiatedBy.firstName} ${app.initiatedBy.lastName}` : null,
-        timestamp: app.status === "PENDING" ? app.createdAt.toISOString() : app.updatedAt.toISOString(),
+        targetEmployee: targetLabel,
+        timestamp: app.status === "PENDING" && app.currentStepIndex === 0 ? app.createdAt.toISOString() : app.updatedAt.toISOString(),
       });
     }
 

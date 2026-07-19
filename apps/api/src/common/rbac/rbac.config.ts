@@ -97,6 +97,10 @@ export const RbacPermissions = {
   ENGAGEMENT_READ: 'engagement.read',
   ENGAGEMENT_MANAGE: 'engagement.manage',
 
+  // Settings
+  SETTINGS_VIEW: 'settings.view',
+  SETTINGS_MANAGE: 'settings.manage',
+
   // Talent & Succession
   TALENT_READ: 'talent.read',
   TALENT_MANAGE: 'talent.manage',
@@ -126,8 +130,6 @@ export const RbacPermissions = {
 
   // System
   AUDIT_READ: 'audit.read',
-  SETTINGS_VIEW: 'settings.view',
-  SETTINGS_MANAGE: 'settings.manage',
   ROLES_READ: 'roles.read',
   ROLES_MANAGE: 'roles.manage',
 } as const;
@@ -161,6 +163,7 @@ export const RbacRoles = {
   AR: 'AR',
   ADMIN: 'ADMIN',
   TR: 'TR',
+  OM: 'OM',
 } as const;
 
 export type RbacRoleType = typeof RbacRoles[keyof typeof RbacRoles];
@@ -174,6 +177,19 @@ export const RbacRolePermissionsMapping: Record<RbacRoleType, RbacPermissionType
     RbacPermissions.DEPARTMENTS_READ,
     RbacPermissions.DASHBOARD_VIEW,
     RbacPermissions.AUDIT_READ,
+    RbacPermissions.ASSETS_ALLOCATE,
+    RbacPermissions.TASKS_READ,
+    RbacPermissions.TASKS_CREATE,
+    RbacPermissions.TASKS_ASSIGN,
+    RbacPermissions.TASKS_UPDATE,
+    RbacPermissions.DOCUMENTS_READ,
+    RbacPermissions.DOCUMENTS_UPLOAD,
+    RbacPermissions.COMPLIANCE_READ,
+    RbacPermissions.COMPLIANCE_MANAGE,
+    RbacPermissions.NOTIFICATIONS_READ,
+    RbacPermissions.NOTIFICATIONS_MANAGE,
+    RbacPermissions.SETTINGS_VIEW,
+    RbacPermissions.SETTINGS_MANAGE,
   ],
   [RbacRoles.HR]: [
     RbacPermissions.EMPLOYEES_READ,
@@ -214,6 +230,9 @@ export const RbacRolePermissionsMapping: Record<RbacRoleType, RbacPermissionType
   [RbacRoles.AR]: [],
   [RbacRoles.ADMIN]: [],
   [RbacRoles.TR]: [],
+  [RbacRoles.OM]: [
+    RbacPermissions.ASSETS_ALLOCATE,
+  ],
 };
 
 /**
@@ -224,10 +243,10 @@ export const RbacGroups = {
   LEAD_OR_MANAGER: [RbacRoles.TEAM_LEAD, RbacRoles.MANAGER, RbacRoles.CTO, RbacRoles.CEO, RbacRoles.SUPER_ADMIN],
   MANAGER_OR_HIGHER: [RbacRoles.MANAGER, RbacRoles.CTO, RbacRoles.CEO, RbacRoles.SUPER_ADMIN],
   LEAVE_APPROVERS: [RbacRoles.TL, RbacRoles.QA, RbacRoles.MANAGER],
-  ASSET_PRIVILEGED: [RbacRoles.SUPER_ADMIN, RbacRoles.IT, RbacRoles.HR, RbacRoles.CHRO, RbacRoles.CEO, RbacRoles.CTO],
-  ASSET_VIEWERS: [RbacRoles.SUPER_ADMIN, RbacRoles.CEO, RbacRoles.CTO, RbacRoles.CHRO, RbacRoles.HR, RbacRoles.IT],
-  ASSET_FINANCIAL_VIEWERS: [RbacRoles.SUPER_ADMIN, RbacRoles.CEO, RbacRoles.FINANCE, RbacRoles.IT, RbacRoles.HR, RbacRoles.CHRO], // Note: CFO mapped to FINANCE
-  ASSET_WRITERS: [RbacRoles.SUPER_ADMIN, RbacRoles.IT, RbacRoles.HR],
+  ASSET_PRIVILEGED: [RbacRoles.SUPER_ADMIN, RbacRoles.IT, RbacRoles.HR, RbacRoles.CHRO, RbacRoles.CEO, RbacRoles.CTO, RbacRoles.OM],
+  ASSET_VIEWERS: [RbacRoles.SUPER_ADMIN, RbacRoles.CEO, RbacRoles.CTO, RbacRoles.CHRO, RbacRoles.HR, RbacRoles.IT, RbacRoles.OM],
+  ASSET_FINANCIAL_VIEWERS: [RbacRoles.SUPER_ADMIN, RbacRoles.CEO, RbacRoles.FINANCE, RbacRoles.IT, RbacRoles.HR, RbacRoles.CHRO, RbacRoles.OM], // Note: CFO mapped to FINANCE
+  ASSET_WRITERS: [RbacRoles.SUPER_ADMIN, RbacRoles.IT, RbacRoles.HR, RbacRoles.OM],
   ASSET_MANAGERS: [RbacRoles.MANAGER, RbacRoles.TEAM_LEAD],
   COMPLIANCE_ADMINS: [RbacRoles.SUPER_ADMIN, RbacRoles.HR, RbacRoles.COMPLIANCE_OFFICER, RbacRoles.LEGAL],
   KNOWLEDGE_WRITERS: [RbacRoles.SUPER_ADMIN, RbacRoles.CEO, RbacRoles.CTO, RbacRoles.COO, RbacRoles.OPERATIONS_HEAD, RbacRoles.CHRO, RbacRoles.HR, RbacRoles.IT],

@@ -21,7 +21,7 @@ export class AuthService {
     private readonly redis: RedisService,
   ) { }
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto, ipAddress?: string, userAgent?: string) {
     const email = dto.email.trim().toLowerCase();
 
     const user = await this.prisma.user.findUnique({
@@ -59,11 +59,27 @@ export class AuthService {
       if (tlAssignment) isTeamLead = true;
     }
 
+    // Fetch dynamic MFA policy
+    const policy = await this.prisma.orgPolicy.findFirst();
+    const isMfaRequired = policy?.mfaRequired ?? false;
+
+    if (isMfaRequired) {
+      const challenge = await this.mfa.createEmailOtpChallenge(user.id, user.email);
+      return {
+        success: true,
+        mfaRequired: true,
+        challengeId: challenge.challengeId,
+        method: challenge.method,
+      };
+    }
+
     const issued = await this.tokens.issueTokens({
       userId: user.id,
       email: user.email,
       role: isTeamLead && user.role === 'EMPLOYEE' ? 'TEAM_LEAD' : (user.role as any),
       employeeId: user.employeeId ?? undefined,
+      ipAddress,
+      userAgent,
     });
 
     let finalRedirectPath = issued.redirectPath;
@@ -84,7 +100,7 @@ export class AuthService {
     };
   }
 
-  async verifyMfa(dto: MfaVerifyDto) {
+  async verifyMfa(dto: MfaVerifyDto, ipAddress?: string, userAgent?: string) {
     const challenge = await this.mfa.verifyChallenge(dto.challengeId, dto.code);
     if (!challenge) {
       throw new UnauthorizedException("Invalid or expired verification code.");
@@ -109,6 +125,8 @@ export class AuthService {
       email: user.email,
       role: user.role as UserRole,
       employeeId: user.employeeId ?? undefined,
+      ipAddress,
+      userAgent,
     });
 
     return {
@@ -184,5 +202,49 @@ export class AuthService {
       isTeamLead,
       employeeStatus: user.employee?.status ?? null,
     };
+  }
+
+  async logout(userId: string, jti?: string, refreshToken?: string) {
+    if (jti) {
+      // 24h TTL is an approximation based on token validity
+      await this.redis.setJson(`auth:revoked:${jti}`, true, 86400);
+    }
+
+    if (refreshToken) {
+      await this.redis.del(`auth:refresh:${refreshToken}`);
+      await this.redis.del(`auth:session:${userId}:${refreshToken}`);
+    }
+
+    return { success: true };
+  }
+
+  async getActiveSessions(userId: string) {
+    const pattern = `auth:session:${userId}:*`;
+    const keys = await this.redis.keys(pattern);
+    
+    const sessions = [];
+    for (const key of keys) {
+      const data = await this.redis.getJson<any>(key);
+      if (data) {
+        const parts = key.split(':');
+        const refreshToken = parts[parts.length - 1];
+        sessions.push({
+          id: refreshToken,
+          ipAddress: data.ipAddress || 'Authorized IP',
+          userAgent: data.userAgent || 'Authorized Session',
+          createdAt: data.createdAt,
+          lastActive: data.createdAt,
+          isCurrent: false,
+        });
+      }
+    }
+    
+    return sessions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async revokeSession(userId: string, sessionId: string) {
+    await this.redis.del(`auth:refresh:${sessionId}`);
+    await this.redis.del(`auth:session:${userId}:${sessionId}`);
+    return { success: true };
   }
 }

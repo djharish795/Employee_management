@@ -18,14 +18,7 @@ interface ReportsPanelProps {
 
 }
 
-const DEPT_ASSET_DATA = [
-  { dept: "Engineering", count: 132, value: "₹68.4L", percent: 90, bg: "bg-violet-500", text: "text-violet-700" },
-  { dept: "Design", count: 48, value: "₹22.1L", percent: 62, bg: "bg-blue-500", text: "text-blue-700" },
-  { dept: "Sales", count: 76, value: "₹31.5L", percent: 80, bg: "bg-emerald-500", text: "text-emerald-700" },
-  { dept: "HR", count: 24, value: "₹9.8L", percent: 55, bg: "bg-amber-500", text: "text-amber-700" },
-  { dept: "Finance", count: 22, value: "₹8.4L", percent: 50, bg: "bg-rose-500", text: "text-rose-700" },
-  { dept: "Leadership", count: 18, value: "₹15.2L", percent: 40, bg: "bg-sky-500", text: "text-sky-700" },
-];
+// The DEPT_ASSET_DATA array is replaced by dynamic API data
 
 const MONTHLY_ADDITIONS = [
   { month: "Jan", count: 12 },
@@ -76,10 +69,16 @@ export default function ReportsPanel() {
     enabled: !isEmployee,
   });
 
-  const isLoading = summaryLoading || financialLoading || categoryLoading || trendsLoading;
+  const { data: deptKpis, isLoading: deptLoading } = useQuery({
+    queryKey: ["kpiDepartments"],
+    queryFn: async () => assetsApi.kpiDepartments(),
+    enabled: !isEmployee,
+  });
+
+  const isLoading = summaryLoading || financialLoading || categoryLoading || trendsLoading || deptLoading;
 
   const data = React.useMemo(() => {
-    if (!summaryKpis || !financialKpis) {
+    if (!summaryKpis) {
       return {
         totalAssets: 0,
         totalValue: 0,
@@ -90,8 +89,8 @@ export default function ReportsPanel() {
       };
     }
 
-    const totalInvestment = financialKpis.totalInvestment || 0;
-    const activeValuation = financialKpis.activeValuation || 0;
+    const totalInvestment = financialKpis?.totalInvestment || 0;
+    const activeValuation = financialKpis?.activeValuation || 0;
     const depreciation = totalInvestment > 0 ? ((totalInvestment - activeValuation) / totalInvestment) * 100 : 0;
     const retiredCount = summaryKpis.countsByStatus?.RETIRED || 0;
     const newThisMonth = trendsKpis && trendsKpis.length > 0 ? trendsKpis[trendsKpis.length - 1].assetsProcured : 0;
@@ -273,7 +272,7 @@ export default function ReportsPanel() {
             </span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {DEPT_ASSET_DATA.map((dept, i) => (
+            {(deptKpis || []).map((dept: any, i: number) => (
               <div key={i} className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <div>

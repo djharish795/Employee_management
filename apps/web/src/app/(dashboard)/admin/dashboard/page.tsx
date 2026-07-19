@@ -1,3 +1,5 @@
+import { requireRole } from '@/lib/auth/server-auth';
+
 import React from 'react';
 import { Metadata } from 'next';
 
@@ -6,7 +8,9 @@ export const metadata: Metadata = {
   description: 'IT Dashboard for Enterprise Management System',
 };
 
-export default function ItDashboardPage() {
+export default async function ItDashboardPage() {
+  // Server-side role guard - SUPER_ADMIN and IT only
+  await requireRole(['SUPER_ADMIN', 'IT']);
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] p-8 text-center animate-in fade-in zoom-in duration-500">
       <div className="w-16 h-16 bg-slate-100 text-slate-900 rounded-2xl flex items-center justify-center mb-6 shadow-sm border border-slate-200">
@@ -29,3 +33,4 @@ export default function ItDashboardPage() {
     </div>
   );
 }
+

@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -62,6 +63,10 @@ model Employee {
   assetsAssignedByMe         AssetAssignment[]          @relation("AssetAssigner")
   assetAssignments           AssetAssignment[]          @relation("AssetAssignmentEmployee")
   assetsHeld                 Asset[]                    @relation("CurrentAssetHolder")
+  assetRequestsForMe         AssetRequest[]             @relation("AssetRequestEmployee")
+  assetRequestsCreated       AssetRequest[]             @relation("AssetRequestCreator")
+  assetRequestsOMApproved    AssetRequest[]             @relation("AssetRequestOMApprover")
+  assetRequestsCEOApproved   AssetRequest[]             @relation("AssetRequestCEOApprover")
   attendanceRecords          AttendanceRecord[]
   workdaySummaries           WorkdaySummary[]
   regularizedAttendances     AttendanceRecord[]         @relation("AttendanceRegularizer")
@@ -137,7 +142,30 @@ model Employee {
   payrollSyncEvents          PayrollSyncEvent[]
   fieldWorkRequests          FieldWorkRequest[]         @relation("FieldWorkRequester")
   fieldWorkApprovals         FieldWorkRequest[]         @relation("FieldWorkApprover")
+  compliancePoliciesUpdated  CompliancePolicy[]         @relation("PolicyUpdater")
   @@map("employees")
+}
+
+model CompliancePolicy {
+  id          String    @id @default(cuid())
+  title       String
+  url         String
+  updatedAt   DateTime  @updatedAt
+  updatedById String
+  
+  updatedBy   Employee  @relation("PolicyUpdater", fields: [updatedById], references: [id])
+  
+  @@map("compliance_policies")
+}
+
+model StatutoryFiling {
+  id          String    @id @default(cuid())
+  title       String
+  deadline    DateTime  @db.Date
+  status      String    @default("PENDING") // PENDING, FILED, OVERDUE
+  filedAt     DateTime?
+  
+  @@map("statutory_filings")
 }
 
 enum FieldWorkStatus {
@@ -431,6 +459,42 @@ model AssetAssignment {
   employee          Employee  @relation("AssetAssignmentEmployee", fields: [employeeId], references: [id])
 
   @@map("asset_assignments")
+}
+
+enum AssetRequestStatus {
+  PENDING_OM_SELECTION
+  PENDING_CEO_APPROVAL
+  APPROVED
+  REJECTED
+}
+
+enum AssetRequestType {
+  ONBOARDING
+  OFFBOARDING
+  GENERAL
+}
+
+model AssetRequest {
+  id               String             @id @default(cuid())
+  employeeId       String
+  requesterId      String
+  type             AssetRequestType
+  status           AssetRequestStatus @default(PENDING_OM_SELECTION)
+  requestedItems   Json               @default("[]")
+  reason           String?
+  selectedAssetIds String[]           @default([])
+  omApproverId     String?
+  ceoApproverId    String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  employee         Employee           @relation("AssetRequestEmployee", fields: [employeeId], references: [id])
+  requester        Employee           @relation("AssetRequestCreator", fields: [requesterId], references: [id])
+  omApprover       Employee?          @relation("AssetRequestOMApprover", fields: [omApproverId], references: [id])
+  ceoApprover      Employee?          @relation("AssetRequestCEOApprover", fields: [ceoApproverId], references: [id])
+
+  @@index([employeeId, status])
+  @@map("asset_requests")
 }
 
 model Notification {
@@ -1210,6 +1274,10 @@ model ConnectSettings {
   minNoticeHours          Int      @default(2)
   emailNotifications      Boolean  @default(true)
   systemNotifications     Boolean  @default(true)
+  slackEnabled            Boolean  @default(false)
+  googleWorkspaceEnabled  Boolean  @default(false)
+  zoomEnabled             Boolean  @default(false)
+  awsEnabled              Boolean  @default(false)
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 
@@ -1849,4 +1917,54 @@ model ApprovalMatrix {
   updatedAt       DateTime @updatedAt
 
   @@map("approval_matrix")
+}
+
+model WorkflowDefinition {
+  id        String   @id @default(cuid())
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("workflow_definitions")
+}
+
+model OrgPolicy {
+  id                        String   @id @default(cuid())
+  ceoCanEditEmployeeDetails Boolean  @default(false)
+  ceoLeaveApprovalScope     String   @default("EMERGENCY_ONLY")
+  mfaRequired               Boolean  @default(false)
+  passwordMinLength         Int      @default(8)
+  passwordComplexity        Boolean  @default(true)
+  emailNotificationsEnabled Boolean  @default(true)
+  inAppNotificationsEnabled Boolean  @default(true)
+  pushNotificationsEnabled  Boolean  @default(false)
+  dataRetentionExEmployee   String   @default("7")
+  dataRetentionAuditLogs    String   @default("1")
+  strictDpdpaMode           Boolean  @default(true)
+  autoMaskPii               Boolean  @default(true)
+  updatedAt                 DateTime @updatedAt
+  updatedById               String?
+  @@map("org_policies")
+}
+
+model RevokedToken {
+  id        String   @id @default(cuid())
+  jti       String   @unique
+  expiresAt DateTime
+  revokedAt DateTime @default(now())
+  @@map("revoked_tokens")
+}
+
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  subject     String
+  bodyHtml    String   @db.Text
+  variables   String[]
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+
+  @@map("email_templates")
 }

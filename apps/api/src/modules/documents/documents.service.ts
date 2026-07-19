@@ -124,4 +124,54 @@ export class DocumentsService {
       throw new InternalServerErrorException("Failed to generate document download URL");
     }
   }
+
+  /**
+   * Uploads a file directly to S3 after stripping EXIF data if it is an image.
+   */
+  async uploadAndStripExif(file: Express.Multer.File, user?: any): Promise<{ objectKey: string }> {
+    const ALLOWED_CONTENT_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+    if (!ALLOWED_CONTENT_TYPES.includes(file.mimetype)) {
+      throw new BadRequestException(`Invalid file type. Allowed types: ${ALLOWED_CONTENT_TYPES.join(', ')}`);
+    }
+    if (file.size > 5242880) { // 5MB
+      throw new BadRequestException("File is too large. Max size is 5MB");
+    }
+
+    try {
+      const fileExtension = file.originalname.split(".").pop() || "bin";
+      const objectKey = `onboarding/${uuidv4()}.${fileExtension}`;
+      let bufferToUpload = file.buffer;
+
+      // If it's an image, strip EXIF metadata using sharp
+      if (file.mimetype.startsWith('image/')) {
+        const sharp = require('sharp');
+        bufferToUpload = await sharp(file.buffer).toBuffer();
+      }
+
+      const command = new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: objectKey,
+        Body: bufferToUpload,
+        ContentType: file.mimetype,
+      });
+
+      await this.s3.send(command);
+
+      this.auditService.logCreate({
+        moduleName: 'Documents',
+        entityId: objectKey,
+        actorId: user?.employeeId || 'unknown',
+        metadata: { action: 'UPLOAD_DOCUMENT', fileName: file.originalname, contentType: file.mimetype }
+      });
+
+      return { objectKey };
+    } catch (error: any) {
+      this.logger.error("[DocumentsService] Error uploading file:", {
+        message: error?.message,
+        code: error?.Code || error?.name,
+        bucket: this.bucketName,
+      }, error.stack || error);
+      throw new InternalServerErrorException("Failed to upload document");
+    }
+  }
 }

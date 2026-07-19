@@ -7,6 +7,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from '../../redis/redis.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import jwt = require('jsonwebtoken');
 
 @WebSocketGateway({
@@ -25,7 +26,10 @@ export class InAppNotificationService implements OnGatewayConnection, OnGatewayD
   // Map employeeId to a set of socket IDs (to support multiple devices)
   private userSockets: Map<string, Set<string>> = new Map();
 
-  constructor(private readonly redisService: RedisService) {}
+  constructor(
+    private readonly redisService: RedisService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   async handleConnection(client: Socket) {
     try {
@@ -97,12 +101,23 @@ export class InAppNotificationService implements OnGatewayConnection, OnGatewayD
   /**
    * Pushes a real-time notification to the connected client(s) of a specific employee
    */
-  emitNotification(employeeId: string, notification: any) {
+  async emitNotification(employeeId: string, notification: any) {
+    const policy = await this.prisma.orgPolicy.findFirst();
+    if (policy && !policy.inAppNotificationsEnabled) {
+      this.logger.debug(`In-App notification to ${employeeId} blocked by OrgPolicy.`);
+      return;
+    }
+
     this.server.to(`employee_${employeeId}`).emit('new_notification', notification);
     this.logger.debug(`Emitted notification to employee_${employeeId}`);
   }
 
-  broadcastEvent(event: string, payload: any) {
+  async broadcastEvent(event: string, payload: any) {
+    const policy = await this.prisma.orgPolicy.findFirst();
+    if (policy && !policy.inAppNotificationsEnabled) {
+      return;
+    }
+
     this.server.emit(event, payload);
     this.logger.debug(`Broadcasted event ${event}`);
   }

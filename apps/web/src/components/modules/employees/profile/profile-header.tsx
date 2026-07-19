@@ -11,6 +11,7 @@ import * as XLSX from "xlsx";
 import Image from "next/image";
 
 import { usePermissions } from "@/hooks/use-permissions";
+import { apiClient } from "@/lib/api/client";
 
 interface ProfileHeaderProps {
   profile: FullEmployeeProfile;
@@ -21,6 +22,7 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [avatarHovered, setAvatarHovered] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [policy, setPolicy] = useState<any>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
@@ -32,11 +34,22 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
+    
+    // Fetch org policy for dynamic permissions
+    apiClient.get("/settings/policy").then((res) => {
+      setPolicy(res.data);
+    }).catch(console.error);
+
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const { canManageEmployees } = usePermissions();
-  const canEdit = canManageEmployees;
+  const { canManageEmployees, role } = usePermissions();
+  let canEdit = canManageEmployees;
+  
+  if (role === "CEO" && policy?.ceoCanEditEmployeeDetails) {
+    canEdit = true;
+  }
+  
   const canAssignAssets = canManageEmployees;
   const canGenerateReport = canManageEmployees;
 

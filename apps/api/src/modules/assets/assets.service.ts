@@ -7,20 +7,22 @@ import {
 import { RbacGroups, RbacRoles } from "../../common/rbac/rbac.config";
 import { AssetsRepository } from "./assets.repository";
 import { UserRole } from "@naprocs/types";
-import { AssetStatus, AssetCategory } from "@naprocs/database";
+import { AssetStatus, AssetCategory, NotificationType } from "@naprocs/database";
 import { CreateAssetDto } from "./dto/create-asset.dto";
 import { UpdateAssetDto } from "./dto/update-asset.dto";
 import { AssignAssetDto } from "./dto/assign-asset.dto";
-import { CreateAssetRequestDto, RespondAssetRequestDto } from "./dto/asset-request-actions.dto";
+import { CreateAssetRequestDto, RespondAssetRequestDto, OmSelectAssetRequestDto } from "./dto/asset-request-actions.dto";
 import { WorkflowEngineService } from "../workflows/workflow-engine.service";
 import { AuditService } from "../audit/audit.service";
+import { NotificationsService } from "../notifications/notifications.service";
 
 @Injectable()
 export class AssetsService {
   constructor(
     private readonly assetsRepository: AssetsRepository,
     private readonly workflowEngine: WorkflowEngineService,
-    private readonly auditService: AuditService
+    private readonly auditService: AuditService,
+    private readonly notificationsService: NotificationsService
   ) {}
 
   // ─── Role guards ─────────────────────────────────────────────────────────
@@ -149,7 +151,7 @@ export class AssetsService {
     return result;
   }
 
-  async returnAsset(role: UserRole, actorId: string, assetId: string, returnedCondition?: string) {
+  async returnAsset(role: UserRole, actorId: string, assetId: string, returnedCondition?: string, notes?: string) {
     this.validateWriteRole(role);
     const asset = await this.assetsRepository.findById(assetId);
     if (!asset) throw new NotFoundException(`Asset ${assetId} not found`);
@@ -161,40 +163,108 @@ export class AssetsService {
       moduleName: "Asset",
       entityId: assetId,
       actorId: actorId,
-      metadata: { action: 'RETURNED', returnedCondition },
+      metadata: { action: 'RETURNED', returnedCondition, notes },
     });
     return result;
   }
 
   // ─── Asset Requests ────────────────────────────────────────────────────────
 
-  async findRequests(role: UserRole, employeeId: string, statusFilter?: string): Promise<any> {
-    // Employees see only their own requests; IT/Admins see all
+  async findRequests(role: UserRole, employeeId: string, statusFilter?: string, scope?: string): Promise<any> {
     const isPrivileged = RbacGroups.ASSET_PRIVILEGED.includes(role as any);
-    const resolvedEmployeeId = isPrivileged ? undefined : employeeId;
+    const resolvedEmployeeId = (isPrivileged && scope !== 'my') ? undefined : employeeId;
     return this.assetsRepository.findRequests({ status: statusFilter, employeeId: resolvedEmployeeId });
   }
 
   async createRequest(employeeId: string, dto: CreateAssetRequestDto): Promise<any> {
-    const resourceId = `asset-req-${Date.now()}`;
-    return this.workflowEngine.startWorkflow(
-      "ASSET_REQUEST",
-      resourceId,
-      employeeId,
-      {
-        category: dto.category,
-        description: dto.description,
-        justification: dto.justification,
-        priority: dto.priority,
-        targetEmployeeId: dto.targetEmployeeId,
-      }
-    );
+    return this.assetsRepository.createAssetRequest({
+      employeeId: dto.employeeId,
+      requesterId: employeeId,
+      type: dto.type,
+      requestedItems: dto.requestedItems,
+      reason: dto.reason,
+    });
   }
 
-  async respondToRequest(role: UserRole, instanceId: string, respondedById: string, dto: RespondAssetRequestDto): Promise<any> {
-    // Relies on @RequirePermissions(RbacPermissions.ASSETS_ALLOCATE) in controller
-    const action = dto.status === "APPROVED" ? "APPROVE" : "REJECT";
-    return this.workflowEngine.processApproval(instanceId, action, respondedById, dto.notes);
+  async omSelectAsset(role: UserRole, omId: string, requestId: string, dto: OmSelectAssetRequestDto): Promise<any> {
+    const req = await this.assetsRepository.getAssetRequestById(requestId);
+    if (!req) throw new NotFoundException("Asset request not found");
+    if (req.status !== "PENDING_OM_SELECTION") throw new BadRequestException("Request is not waiting for OM selection");
+    
+    console.log(`[OM_SELECT] Updating request ${requestId} with assets ${dto.assetIds}`);
+    const updated = await this.assetsRepository.updateAssetRequest(requestId, {
+      selectedAssetIds: dto.assetIds,
+      omApproverId: omId,
+      status: "PENDING_CEO_APPROVAL"
+    });
+
+    await this.auditService.logUpdate({
+      moduleName: "Asset",
+      entityId: requestId,
+      actorId: omId,
+      metadata: { action: "OM_APPROVED", notes: "Sent to CEO" },
+    });
+
+    return updated;
+  }
+
+  async ceoApproveAsset(role: UserRole, ceoId: string, requestId: string, dto: RespondAssetRequestDto): Promise<any> {
+    const req = await this.assetsRepository.getAssetRequestById(requestId);
+    if (!req) throw new NotFoundException("Asset request not found");
+    if (req.status !== "PENDING_CEO_APPROVAL") throw new BadRequestException("Request is not waiting for CEO approval");
+    
+    console.log(`[CEO_APPROVE] Approving request ${requestId} with status ${dto.status}`);
+    if (dto.status === "APPROVED") {
+      // Assign the selected assets
+      for (const assetId of req.selectedAssetIds) {
+        await this.assetsRepository.assign(assetId, req.employeeId, ceoId, "Assigned via Asset Request: " + dto.notes);
+      }
+      const updated = await this.assetsRepository.updateAssetRequest(requestId, {
+        ceoApproverId: ceoId,
+        status: "APPROVED"
+      });
+      await this.auditService.logUpdate({
+        moduleName: "Asset",
+        entityId: requestId,
+        actorId: ceoId,
+        metadata: { action: "APPROVED", notes: dto.notes },
+      });
+
+      // Notify Requester (HR)
+      if (req.requesterId) {
+        await this.notificationsService.createNotification(
+          req.requesterId,
+          "Asset Request Approved",
+          `CEO has approved the asset request for ${updated.type}.`,
+          NotificationType.ASSET_STATUS
+        );
+      }
+
+      return updated;
+    } else {
+      const updated = await this.assetsRepository.updateAssetRequest(requestId, {
+        ceoApproverId: ceoId,
+        status: "REJECTED"
+      });
+      await this.auditService.logUpdate({
+        moduleName: "Asset",
+        entityId: requestId,
+        actorId: ceoId,
+        metadata: { action: "REJECTED", notes: dto.notes },
+      });
+
+      // Notify Requester (HR)
+      if (req.requesterId) {
+        await this.notificationsService.createNotification(
+          req.requesterId,
+          "Asset Request Rejected",
+          `CEO has rejected the asset request for ${updated.type}.`,
+          NotificationType.ASSET_STATUS
+        );
+      }
+
+      return updated;
+    }
   }
 
   // ─── KPIs (existing) ──────────────────────────────────────────────────────
@@ -212,6 +282,11 @@ export class AssetsService {
   async getFinancialSummary(role: UserRole): Promise<any> {
     this.validateFinancialRole(role);
     return this.assetsRepository.getFinancialSummary();
+  }
+
+  async getDepartmentBreakdown(role: UserRole): Promise<any> {
+    this.validateKPIRole(role);
+    return this.assetsRepository.getDepartmentBreakdown();
   }
 
   async getLifecycleTrends(
@@ -245,9 +320,9 @@ export class AssetsService {
     return this.assetsRepository.getCtoAssets();
   }
 
-  async getRecentActivity(role: UserRole, employeeId: string): Promise<any> {
+  async getRecentActivity(role: UserRole, employeeId: string, scope?: string): Promise<any> {
     const isPrivileged = RbacGroups.ASSET_PRIVILEGED.includes(role as any);
-    const resolvedEmployeeId = isPrivileged ? undefined : employeeId;
-    return this.assetsRepository.getRecentActivity(15, resolvedEmployeeId);
+    const resolvedEmployeeId = (!isPrivileged || scope === "MINE") ? employeeId : undefined;
+    return this.assetsRepository.getRecentActivity(15, resolvedEmployeeId, isPrivileged);
   }
 }

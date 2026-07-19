@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
-import { APP_FILTER, APP_INTERCEPTOR } from "@nestjs/core";
+import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from "@nestjs/core";
+import { PhaseGuard } from "./common/guards/phase.guard";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { ScheduleModule } from "@nestjs/schedule";
@@ -38,6 +39,8 @@ import { ProjectsModule } from './modules/projects/projects.module';
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
 import { SettingsModule } from './modules/settings/settings.module';
 
+import { CrmModule } from "./modules/crm/crm.module";
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -58,17 +61,21 @@ import { SettingsModule } from './modules/settings/settings.module';
     }),
     ScheduleModule.forRoot(),
     BullModule.forRootAsync({
-      imports: [RedisModule],
-      inject: [RedisService],
-      useFactory: async (redisService: RedisService) => {
-        // Eagerly connect and enforce noeviction before BullMQ reads the policy.
-        // Passing the existing ioredis client ensures BullMQ reuses our connection
-        // instead of creating its own — permanently eliminating the eviction warning.
-        await redisService.connect();
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (config: ConfigService) => {
+        const host = config.get<string>("REDIS_HOST");
+        const port = Number(config.get<string>("REDIS_PORT", "6379"));
+        const password = config.get<string>("REDIS_PASSWORD") || undefined;
+        const tlsEnabled = config.get<string>("REDIS_TLS", "false") === "true";
+
         return {
-          connection: redisService.getClient(),
-          // Tell BullMQ not to close the shared client when the module is destroyed.
-          sharedConnection: true,
+          connection: {
+            host,
+            port,
+            password,
+            tls: tlsEnabled ? {} : undefined,
+          },
         };
       },
     }),
@@ -103,11 +110,16 @@ import { SettingsModule } from './modules/settings/settings.module';
     LifecycleModule,
     ProjectsModule,
     SettingsModule,
+    CrmModule,
   ],
   providers: [
     {
       provide: APP_FILTER,
       useClass: AllExceptionsFilter,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PhaseGuard,
     },
   ],
 })

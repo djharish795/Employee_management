@@ -8,13 +8,11 @@ export type AssetCategory =
   | "LAPTOP"
   | "DESKTOP"
   | "MONITOR"
-  | "PHONE"
-  | "HEADSET"
-  | "KEYBOARD"
-  | "MOUSE"
-  | "TABLET"
-  | "FURNITURE"
+  | "MOBILE_DEVICE"
+  | "SIM"
   | "ACCESS_CARD"
+  | "SOFTWARE_LICENCE"
+  | "CLOUD_ACCOUNT"
   | "OTHER";
 
 export interface Asset {
@@ -43,15 +41,18 @@ export interface AssetRequest {
   initiatorId: string;
   requestedBy: string;
   requestedByAvatar: string;
+  targetEmployeeName?: string | null;
   department: string;
   assetCategory: AssetCategory;
   description: string;
   justification: string;
   priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
-  status: "PENDING" | "APPROVED" | "REJECTED" | "FULFILLED";
+  status: "PENDING" | "PENDING_OM_SELECTION" | "PENDING_CEO_APPROVAL" | "APPROVED" | "REJECTED" | "FULFILLED";
   requestDate: string;
   responseDate: string | null;
   respondedBy: string | null;
+  currentStepIndex: number;
+  requestType: "GENERAL" | "ONBOARDING" | "OFFBOARDING";
 }
 
 export interface AssetKPIs {

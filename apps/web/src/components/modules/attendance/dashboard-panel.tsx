@@ -32,6 +32,7 @@ const formatDecimalHoursToHMS = (hoursDecimal: number): string => {
 export default function DashboardPanel() {
   const { role } = usePermissions();
   const activeRole = role as any;
+  const isEmployeeView = ["EMPLOYEE", "CRM", "CEM", "OE", "OM"].includes(activeRole);
   const employeeId = useAuthStore((state) => state.employeeId);
   const queryClient = useQueryClient();
 
@@ -372,7 +373,7 @@ export default function DashboardPanel() {
       />
 
       {/* KPIs Grid */}
-      {activeRole === "EMPLOYEE" ? (
+      {isEmployeeView ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">This Week</div>
@@ -787,7 +788,7 @@ export default function DashboardPanel() {
           </div>
 
           {/* Pending Approvals Widget - Hidden for Regular Employee */}
-          {activeRole !== "EMPLOYEE" && (
+          {!isEmployeeView && (
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-sm">
               <div className="flex justify-between items-center mb-3">
                 <h3 className="text-sm font-bold text-slate-900">Team Approvals</h3>

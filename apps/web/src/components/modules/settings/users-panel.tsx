@@ -172,6 +172,11 @@ export default function UsersPanel() {
     getPaginationRowModel: getPaginationRowModel(),
   });
 
+  const uniqueRoles = useMemo(() => {
+    const roles = apiUsers.map(u => u.role).filter(Boolean);
+    return Array.from(new Set(roles)).sort();
+  }, [apiUsers]);
+
   return (
     <div className="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col h-[700px]">
       
@@ -196,12 +201,9 @@ export default function UsersPanel() {
               className="h-full bg-transparent text-xs font-semibold text-slate-700 focus:outline-none px-2 cursor-pointer border-r border-slate-100"
             >
               <option value="">All Roles</option>
-              <option value="CEO">CEO</option>
-              <option value="CTO">CTO</option>
-              <option value="HR Admin">HR Admin</option>
-              <option value="IT Admin">IT Admin</option>
-              <option value="Manager">Manager</option>
-              <option value="Employee">Employee</option>
+              {uniqueRoles.map(role => (
+                <option key={role} value={role}>{role}</option>
+              ))}
             </select>
             <select 
               value={statusFilter} 

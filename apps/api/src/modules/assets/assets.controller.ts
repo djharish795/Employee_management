@@ -21,7 +21,7 @@ import { AssetStatus, AssetCategory } from "@naprocs/database";
 import { CreateAssetDto } from "./dto/create-asset.dto";
 import { UpdateAssetDto } from "./dto/update-asset.dto";
 import { AssignAssetDto } from "./dto/assign-asset.dto";
-import { CreateAssetRequestDto, RespondAssetRequestDto } from "./dto/asset-request-actions.dto";
+import { CreateAssetRequestDto, RespondAssetRequestDto, OmSelectAssetRequestDto } from "./dto/asset-request-actions.dto";
 
 // ─── KPI Controller ────────────────────────────────────────────────────────
 
@@ -46,6 +46,12 @@ export class AssetsKpiController {
   @Get("financials")
   async getFinancials(@CurrentUser() user: any) {
     return this.assetsService.getFinancialSummary(user.role as UserRole);
+  }
+
+  @RequirePermissions(RbacPermissions.ASSETS_READ)
+  @Get("departments")
+  async getDepartments(@CurrentUser() user: any) {
+    return this.assetsService.getDepartmentBreakdown(user.role as UserRole);
   }
 
   @RequirePermissions(RbacPermissions.ASSETS_READ)
@@ -77,7 +83,7 @@ export class AssetsController {
   @Get("my")
   @Permissions(Permission.READ_OWN_PROFILE)
   async findMyAssets(@CurrentUser() user: any) {
-    return this.assetsService.findAll(user.role as UserRole, user.employeeId, {
+    return this.assetsService.findAll("EMPLOYEE" as UserRole, user.employeeId, {
       status: "ASSIGNED" as any
     });
   }
@@ -105,8 +111,11 @@ export class AssetsController {
   // Recent Activity
   @Get("activity")
   @Permissions(Permission.READ_OWN_PROFILE)
-  async getActivity(@CurrentUser() user: any) {
-    return this.assetsService.getRecentActivity(user.role as UserRole, user.employeeId);
+  async getActivity(
+    @CurrentUser() user: any,
+    @Query("scope") scope?: string
+  ) {
+    return this.assetsService.getRecentActivity(user.role as UserRole, user.employeeId, scope);
   }
 
   // CTO view (tech asset overview)
@@ -203,15 +212,25 @@ export class AssetRequestsController {
     return this.assetsService.createRequest(user.employeeId, dto);
   }
 
-  @Post(":id/respond")
+  @Patch(":id/om-select")
   @RequirePermissions(RbacPermissions.ASSETS_ALLOCATE)
   @Permissions(Permission.READ_EMPLOYEES)
-  async respondToRequest(
+  async omSelectAsset(
+    @CurrentUser() user: any,
+    @Param("id") id: string,
+    @Body() dto: OmSelectAssetRequestDto
+  ) {
+    return this.assetsService.omSelectAsset(user.role as UserRole, user.employeeId, id, dto);
+  }
+
+  @Patch(":id/ceo-approve")
+  @RequirePermissions(RbacPermissions.ASSETS_ALLOCATE)
+  @Permissions(Permission.READ_EMPLOYEES)
+  async ceoApproveAsset(
     @CurrentUser() user: any,
     @Param("id") id: string,
     @Body() dto: RespondAssetRequestDto
   ) {
-    return this.assetsService.respondToRequest(user.role as UserRole, id, user.employeeId, dto);
+    return this.assetsService.ceoApproveAsset(user.role as UserRole, user.employeeId, id, dto);
   }
 }
-

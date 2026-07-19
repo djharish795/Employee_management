@@ -1,15 +1,15 @@
 "use client";
 
 import { usePermissions } from "@/hooks/use-permissions";
-import React, { useState } from "react";
-import { Shield, Copy, Save, AlertTriangle, Eye, Check } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Shield, Copy, Save, AlertTriangle, Eye, Check, Loader2 } from "lucide-react";
 import { SettingsRole, SystemModule, PermissionAction } from "@/types/settings";
+import { apiClient } from "@/lib/api/client";
+import toast from "react-hot-toast";
 
-interface PermissionsPanelProps {
-  
-}
+interface PermissionsPanelProps {}
 
-const MODULES: { id: SystemModule; label: string }[] = [
+const MODULES: { id: string; label: string }[] = [
   { id: "EMPLOYEES", label: "Employee Directory" },
   { id: "ATTENDANCE", label: "Attendance & Time" },
   { id: "LEAVES", label: "Leave Management" },
@@ -17,35 +17,68 @@ const MODULES: { id: SystemModule; label: string }[] = [
   { id: "PAYROLL", label: "Payroll (Phase 2)" },
   { id: "AUDIT", label: "System Audit Logs" },
   { id: "SETTINGS", label: "Enterprise Settings" },
+  { id: "DEPARTMENTS", label: "Departments" },
+  { id: "DOCUMENTS", label: "Documents" },
+  { id: "COMPLIANCE", label: "Compliance" },
 ];
 
-const ACTIONS: PermissionAction[] = ["READ", "WRITE", "DELETE", "APPROVE", "MANAGE"];
-
-const ROLES = ["CEO", "HR Admin", "IT Admin", "Manager", "Employee", "Compliance Officer"];
+const ACTIONS: string[] = ["READ", "CREATE", "UPDATE", "DELETE", "APPROVE", "MANAGE", "VIEW"];
 
 export default function PermissionsPanel() {
   const { role } = usePermissions();
   const activeRole = role as any;
   const { isAdmin: canManageRBAC } = usePermissions();
   
-  // Create a complex bitmask-like simulation state for checkboxes
-  const [matrixState, setMatrixState] = useState<Record<string, boolean>>({
-    // Pre-seed some mock data: [ROLE]_[MODULE]_[ACTION]
-    "CEO_EMPLOYEES_READ": true, "CEO_ATTENDANCE_READ": true, "CEO_LEAVES_READ": true, "CEO_PAYROLL_READ": true, "CEO_AUDIT_READ": true,
-    "HR Admin_EMPLOYEES_READ": true, "HR Admin_EMPLOYEES_WRITE": true, "HR Admin_EMPLOYEES_MANAGE": true, "HR Admin_LEAVES_READ": true, "HR Admin_LEAVES_APPROVE": true,
-    "IT Admin_ASSETS_READ": true, "IT Admin_ASSETS_WRITE": true, "IT Admin_ASSETS_MANAGE": true, "IT Admin_SETTINGS_READ": true, "IT Admin_SETTINGS_MANAGE": true,
-    "Employee_EMPLOYEES_READ": true, "Employee_ATTENDANCE_READ": true, "Employee_ATTENDANCE_WRITE": true, "Employee_LEAVES_READ": true, "Employee_LEAVES_WRITE": true,
-    "Manager_EMPLOYEES_READ": true, "Manager_ATTENDANCE_READ": true, "Manager_LEAVES_READ": true, "Manager_LEAVES_APPROVE": true,
-  });
+  const [matrixState, setMatrixState] = useState<Record<string, boolean>>({});
+  const [rolesList, setRolesList] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [hoverRow, setHoverRow] = useState<string | null>(null);
   const [hoverCol, setHoverCol] = useState<string | null>(null);
 
-  const togglePermission = (role: string, mod: SystemModule, action: PermissionAction) => {
-    if (!canManageRBAC) return;
-    const key = `${role}_${mod}_${action}`;
-    setMatrixState(prev => ({ ...prev, [key]: !prev[key] }));
+  useEffect(() => {
+    const fetchPermissions = async () => {
+      try {
+        const { data } = await apiClient.get('/settings/permissions');
+        
+        // Setup ROLES
+        const roles = Object.values(data.roles) as string[];
+        // Filter out shorthand or internal roles to keep the UI clean
+        const displayRoles = roles.filter(r => !["OR", "OPS", "AR", "ADMIN", "TR", "TL"].includes(r));
+        setRolesList(displayRoles);
+
+        // Setup matrix state
+        const newState: Record<string, boolean> = {};
+        Object.entries(data.matrix).forEach(([roleKey, permissions]: [string, any]) => {
+          permissions.forEach((perm: string) => {
+            // perm is like 'employees.read' or 'leave.approve'
+            const [mod, action] = perm.split('.');
+            if (mod && action) {
+              const key = `${roleKey}_${mod.toUpperCase()}_${action.toUpperCase()}`;
+              newState[key] = true;
+            }
+          });
+        });
+        setMatrixState(newState);
+      } catch (err) {
+        toast.error("Failed to load RBAC permissions");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPermissions();
+  }, []);
+
+  const togglePermission = (role: string, mod: string, action: string) => {
+    // Note: The UI is currently Read-Only. Toggle is disabled.
+    return;
   };
+
+  if (loading) return (
+    <div className="flex items-center justify-center p-12 text-slate-500">
+      <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading RBAC Matrix...
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -93,16 +126,16 @@ export default function PermissionsPanel() {
               <th className="p-4 min-w-[200px] sticky left-0 z-20 bg-slate-50 border-r border-slate-200 shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
                 <div className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Module / Action</div>
               </th>
-              {ROLES.map((role) => (
+              {rolesList.map((r) => (
                 <th 
-                  key={role} 
+                  key={r} 
                   className={`p-4 min-w-[120px] text-center border-r border-slate-200 last:border-0 transition-colors ${
-                    hoverCol === role ? 'bg-indigo-50/50' : ''
+                    hoverCol === r ? 'bg-indigo-50/50' : ''
                   }`}
-                  onMouseEnter={() => setHoverCol(role)}
+                  onMouseEnter={() => setHoverCol(r)}
                   onMouseLeave={() => setHoverCol(null)}
                 >
-                  <div className="text-xs font-bold text-slate-900">{role}</div>
+                  <div className="text-xs font-bold text-slate-900">{r}</div>
                 </th>
               ))}
             </tr>
@@ -112,7 +145,7 @@ export default function PermissionsPanel() {
               <React.Fragment key={mod.id}>
                 {/* Module Header Row */}
                 <tr className="bg-slate-100/50">
-                  <td colSpan={ROLES.length + 1} className="px-4 py-2 text-xs font-bold text-slate-800 border-y border-slate-200">
+                  <td colSpan={rolesList.length + 1} className="px-4 py-2 text-xs font-bold text-slate-800 border-y border-slate-200">
                     {mod.label}
                   </td>
                 </tr>
@@ -131,17 +164,17 @@ export default function PermissionsPanel() {
                         <div className="w-1.5 h-1.5 rounded-full bg-slate-300"></div> {action}
                       </td>
                       
-                      {ROLES.map((role) => {
-                        const key = `${role}_${mod.id}_${action}`;
+                      {rolesList.map((r) => {
+                        const key = `${r}_${mod.id}_${action}`;
                         const isChecked = !!matrixState[key];
                         
                         return (
                           <td 
-                            key={role} 
+                            key={r} 
                             className={`p-0 text-center border-r border-slate-100 last:border-0 transition-colors ${
-                              hoverCol === role || hoverRow === rowId ? 'bg-indigo-50/30' : ''
+                              hoverCol === r || hoverRow === rowId ? 'bg-indigo-50/30' : ''
                             }`}
-                            onMouseEnter={() => setHoverCol(role)}
+                            onMouseEnter={() => setHoverCol(r)}
                             onMouseLeave={() => setHoverCol(null)}
                           >
                             <label className={`w-full h-full flex items-center justify-center p-3 cursor-pointer ${!canManageRBAC && 'cursor-not-allowed opacity-70'}`}>
@@ -156,7 +189,7 @@ export default function PermissionsPanel() {
                                 type="checkbox" 
                                 className="hidden" 
                                 checked={isChecked}
-                                onChange={() => togglePermission(role, mod.id, action)}
+                                onChange={() => togglePermission(r, mod.id, action)}
                                 disabled={!canManageRBAC}
                               />
                             </label>

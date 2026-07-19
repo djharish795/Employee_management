@@ -57,7 +57,7 @@ export function Sidebar() {
     { title: 'Employees', icon: Users, href: '/employees' },
     { title: 'Attendance', icon: CalendarCheck, href: '/attendance' },
     { title: 'Leaves', icon: Calendar, href: '/leaves' },
-    { title: 'Assets', icon: MonitorSmartphone, href: '/assets' },
+    { title: 'Assets', icon: MonitorSmartphone, href: (role === 'HR' || role === 'OM' || role === 'CHRO') ? '/assets/my' : '/assets' },
     { title: 'Compliance', icon: ShieldCheck, href: '/compliance' },
     { title: 'Audit Log', icon: History, href: '/audit' },
     { title: 'Onboarding', icon: UserPlus, href: '/onboarding' },

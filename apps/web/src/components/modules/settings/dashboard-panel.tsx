@@ -39,7 +39,7 @@ export default function SettingsDashboardPanel() {
               <Users className="w-4.5 h-4.5" />
             </div>
             <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
-              <ArrowUpRight className="w-3 h-3" /> 12
+              <ArrowUpRight className="w-3 h-3" /> {kpis.newUsers ?? 12}
             </span>
           </div>
           <div className="text-2xl font-bold text-slate-900">{kpis.totalUsers}</div>

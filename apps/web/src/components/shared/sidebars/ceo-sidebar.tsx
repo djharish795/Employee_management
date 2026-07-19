@@ -45,6 +45,7 @@ const getNavGroups = (role: string, unreadCount: number, hasSettingsAccess: bool
           { title: 'Employees', icon: Users, href: '/employees' },
           { title: 'Compliance', icon: ShieldCheck, href: '/compliance' },
           { title: 'Leaves', icon: Calendar, href: '/leaves' },
+          { title: 'Assets', icon: Monitor, href: '/assets' },
         ]
       },
       {
