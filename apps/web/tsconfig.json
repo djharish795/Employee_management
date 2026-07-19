@@ -18,7 +18,13 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@naprocs/feature-flags": ["../../packages/feature-flags/src/index.ts"],
+      "@naprocs/types": ["../../packages/types/src/index.ts"],
+      "@naprocs/schemas": ["../../packages/schemas/src/index.ts"],
+      "@naprocs/logger": ["../../packages/logger/src/index.ts"],
+      "@naprocs/ui": ["../../packages/ui/src/index.ts"],
+      "@naprocs/database": ["../../packages/database/src/index.ts"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
