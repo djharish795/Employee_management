@@ -53,7 +53,7 @@ export async function middleware(request: NextRequest) {
       }
     } catch (err) {
       console.warn("Invalid JWT in middleware", err);
-      // Token is expired, tampered, or wrong secret — treat as unauthenticated
+      // Token is expired, tampered, or wrong secret â€” treat as unauthenticated
     }
   }
 
@@ -76,14 +76,14 @@ export async function middleware(request: NextRequest) {
     // Clear potentially stale/invalid cookie and redirect to login
     const response = NextResponse.redirect(new URL('/login', request.url));
     if (token) {
-      // Token existed but failed verification — clear it
+      // Token existed but failed verification â€” clear it
       response.cookies.delete('token');
     }
     return response;
   }
 
   // --- Module-level RBAC (verified users only) -----------------------------
-  // SECURITY: Use `isVerified` not `token` — expired/tampered tokens must not
+  // SECURITY: Use `isVerified` not `token` â€” expired/tampered tokens must not
   // bypass the access control layer.
   if (isVerified) {
     if (employeeStatus === 'ONBOARDING' && pathname !== '/employee/onboarding' && !pathname.startsWith('/api')) {
@@ -91,7 +91,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // --- Strict cross-role namespace isolation using ROLE_REGISTRY -----------
-    // This is the authoritative check — it reads the user's allowed namespaces
+    // This is the authoritative check â€” it reads the user's allowed namespaces
     // directly from the ROLE_REGISTRY instead of a hardcoded/incomplete list.
     const registryEntry = ROLE_REGISTRY[role as UserRole];
     const allowedNamespaces: string[] = registryEntry?.allowedNamespaces ?? ['/employee'];
@@ -107,33 +107,33 @@ export async function middleware(request: NextRequest) {
       );
 
       if (!hasNsAccess) {
-        // Hard redirect to the user's own dashboard — they have no business here
+        // Hard redirect to the user's own dashboard â€” they have no business here
         return NextResponse.redirect(new URL(targetDashboard, request.url));
       }
     }
 
-    // 1. Leave Approvals — only approver roles (HR, CHRO, MANAGER, CTO, SUPER_ADMIN)
+    // 1. Leave Approvals â€” only approver roles (HR, CHRO, MANAGER, CTO, SUPER_ADMIN)
     if (pathname.startsWith('/leaves/approvals') && !leaveApproverRoles.has(role)) {
       return NextResponse.redirect(new URL('/access-restricted', request.url));
     }
 
-    // 2. Audit Log — SUPER_ADMIN only per RBAC matrix
+    // 2. Audit Log â€” SUPER_ADMIN only per RBAC matrix
     if (pathname.startsWith('/audit') && role !== 'SUPER_ADMIN') {
       return NextResponse.redirect(new URL('/access-restricted', request.url));
     }
 
-    // 3. Employee directory — plain EMPLOYEE role cannot access the directory
+    // 3. Employee directory â€” plain EMPLOYEE role cannot access the directory
     if (pathname.startsWith('/employees') && !employeeViewRoles.has(role)) {
       return NextResponse.redirect(new URL('/access-restricted', request.url));
     }
 
-    // 4. Employee add/edit write operations — HR, CHRO, SUPER_ADMIN, IT only
+    // 4. Employee add/edit write operations â€” HR, CHRO, SUPER_ADMIN, IT only
     const isEmployeeWrite = pathname.startsWith('/employees/add') || !!pathname.match(/^\/employees\/[^/]+\/edit/);
     if (isEmployeeWrite && !['HR', 'CHRO', 'SUPER_ADMIN', 'IT'].includes(role)) {
       return NextResponse.redirect(new URL('/access-restricted', request.url));
     }
 
-    // 5. Admin panel — SUPER_ADMIN and IT only (enforced by namespace above too)
+    // 5. Admin panel â€” SUPER_ADMIN and IT only (enforced by namespace above too)
     if (pathname.startsWith('/admin') && !['SUPER_ADMIN', 'IT'].includes(role)) {
       return NextResponse.redirect(new URL('/access-restricted', request.url));
     }

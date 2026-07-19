@@ -189,7 +189,7 @@ export default function WorkflowsPage() {
                         }`}>
                           <div className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Approval Stage</div>
                           <button onClick={(e) => { e.stopPropagation(); setSteps(steps.filter(s => s.id !== step.id)); }} className="hover:text-rose-600 text-slate-300">
-                            ×
+                            Ã—
                           </button>
                         </div>
                         <h3 className="text-sm font-bold text-slate-900">{step.title}</h3>
