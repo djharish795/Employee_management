@@ -191,7 +191,7 @@ export default function CamReportsPage() {
                   </button>
                 </div>
               ) : (
-                <h3 className="font-bold text-slate-900 dark:text-white">Recently Generated</h3>
+                <h3 className="font-bold text-slate-900 dark:text-white">My Requests</h3>
               )}
               <div className="flex items-center gap-2">
                 <button className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">

@@ -249,7 +249,6 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
   [UserRole.CRM]: [
     Permission.READ_EMPLOYEES,
-    Permission.APPROVE_FIELD_REQUESTS,
   ],
 };
 
