@@ -22,9 +22,10 @@ interface AuthState {
   isTeamLead: boolean;
   accessToken: string | null;
   refreshToken: string | null;
+  isFirstLogin: boolean;
   setTempSession: (session: TempSession | null) => void;
   setDeviceDetails: (details: DeviceDetails | null) => void;
-  setAuthSession: (params: { role: string; employeeId: string | null; isTeamLead?: boolean; accessToken?: string; refreshToken?: string; }) => void;
+  setAuthSession: (params: { role: string; employeeId: string | null; isTeamLead?: boolean; accessToken?: string; refreshToken?: string; isFirstLogin?: boolean; }) => void;
   setPhotoUrl: (url: string | null) => void;
   clearSession: () => void;
 }
@@ -40,10 +41,11 @@ export const useAuthStore = create<AuthState>()(
       isTeamLead: false,
       accessToken: null,
       refreshToken: null,
+      isFirstLogin: false,
       setTempSession: (session) => set({ tempSession: session }),
       setDeviceDetails: (details) => set({ deviceDetails: details }),
-      setAuthSession: ({ role, employeeId, isTeamLead = false, accessToken = null, refreshToken = null }) =>
-        set({ role, employeeId, isTeamLead, accessToken, refreshToken, tempSession: null }),
+      setAuthSession: ({ role, employeeId, isTeamLead = false, accessToken = null, refreshToken = null, isFirstLogin = false }) =>
+        set({ role, employeeId, isTeamLead, accessToken, refreshToken, isFirstLogin, tempSession: null }),
       setPhotoUrl: (url) => set({ photoUrl: url }),
       clearSession: () => {
         if (typeof document !== "undefined") {
@@ -61,6 +63,7 @@ export const useAuthStore = create<AuthState>()(
           isTeamLead: false,
           accessToken: null,
           refreshToken: null,
+          isFirstLogin: false,
         });
       },
     }),

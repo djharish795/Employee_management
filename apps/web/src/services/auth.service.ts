@@ -1,4 +1,4 @@
-import { DeviceDetails } from "../store/auth";
+import { DeviceDetails } from "../store/auth";
 
 export interface LoginResponse {
   mfaRequired: boolean;
@@ -10,6 +10,7 @@ export interface LoginResponse {
   redirectPath?: string;
   employeeId?: string | null;
   isTeamLead?: boolean;
+  isFirstLogin?: boolean;
 }
 
 export interface VerifyMFAResponse {
@@ -22,6 +23,7 @@ export interface VerifyMFAResponse {
   deviceDetails?: DeviceDetails;
   employeeId?: string | null;
   isTeamLead?: boolean;
+  isFirstLogin?: boolean;
 }
 
 export class AuthService {

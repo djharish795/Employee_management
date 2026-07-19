@@ -95,7 +95,7 @@ export default function DashboardPanel() {
     return { available, allocated: Number(hd.allocated) };
   }, [kpiQuery.data]);
 
-  const maxWfh = activeRole === "CEO" ? 5 : activeRole === "MANAGER" || activeRole === "HR" ? 2 : 1;
+  const maxWfh = 1;
 
   // ------ WFH this month ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   const wfhThisMonth = useMemo(() => {

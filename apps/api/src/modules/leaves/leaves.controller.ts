@@ -7,9 +7,12 @@ import { RbacPermissions } from '../../common/rbac/rbac.config';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 import { RbacGuard } from '../../common/guards/rbac.guard';
+import { Permissions } from '../../common/decorators/permissions.decorator';
+import { Permission } from '@naprocs/types';
 
 @Controller('leaves')
 @UseGuards(JwtAuthGuard, RbacGuard)
+@Permissions(Permission.READ_OWN_PROFILE, Permission.WRITE_OWN_PROFILE)
 export class LeavesController {
 
   constructor(private readonly leaveService: LeavesService) { }

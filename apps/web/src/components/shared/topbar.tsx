@@ -364,7 +364,7 @@ export function Topbar() {
       {/* Profile with Dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <div className="flex items-center gap-2 sm:gap-3 cursor-pointer group outline-none">
+          <div id="tour-profile-menu" className="flex items-center gap-2 sm:gap-3 cursor-pointer group outline-none">
             {/* Hide text name on mobile, show only avatar */}
             <div className="hidden sm:flex text-right flex-col justify-center">
               <span className="text-sm font-bold text-slate-900 dark:text-white leading-tight">{isMounted ? userName : "User"}</span>

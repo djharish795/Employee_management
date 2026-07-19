@@ -244,7 +244,7 @@ export default function EmployeeDashboardV2() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div id="tour-dashboard-stats" className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Today's Status */}
         <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex flex-col justify-between">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Today's Status</p>
@@ -440,7 +440,7 @@ export default function EmployeeDashboardV2() {
         </div>
 
         {/* Pending For You */}
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 flex flex-col">
+        <div id="tour-quick-actions" className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 flex flex-col">
           <h3 className="text-base font-bold text-slate-900 mb-4">Pending for you</h3>
           <div className="space-y-3">
             {tasksQuery.isLoading ? (

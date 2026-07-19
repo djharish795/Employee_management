@@ -101,6 +101,7 @@ export const LoginForm: React.FC = () => {
           role,
           employeeId: res.employeeId ?? null,
           isTeamLead: res.isTeamLead ?? false,
+          isFirstLogin: res.isFirstLogin ?? false,
         });
         // Use a hard navigation (window.location) instead of router.push.
         // router.push is a client-side transition — it does NOT re-run the middleware

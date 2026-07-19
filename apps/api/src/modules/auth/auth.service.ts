@@ -46,6 +46,8 @@ export class AuthService {
       throw new UnauthorizedException("Invalid email or password.");
     }
 
+    const isFirstLogin = !user.lastLoginAt;
+
     await this.prisma.user.update({
       where: { id: user.id },
       data: { lastLoginAt: new Date() },
@@ -97,6 +99,7 @@ export class AuthService {
       employeeId: user.employeeId ?? null,
       isTeamLead,
       employeeStatus: user.employee?.status ?? null,
+      isFirstLogin,
     };
   }
 
@@ -114,6 +117,8 @@ export class AuthService {
     if (!user || user.status !== "ACTIVE") {
       throw new ForbiddenException("Account is not allowed to sign in.");
     }
+
+    const isFirstLogin = !user.lastLoginAt;
 
     await this.prisma.user.update({
       where: { id: user.id },
@@ -137,6 +142,7 @@ export class AuthService {
       redirectPath: issued.redirectPath,
       employeeId: user.employeeId ?? null,
       unknownDevice: false,
+      isFirstLogin,
     };
   }
 

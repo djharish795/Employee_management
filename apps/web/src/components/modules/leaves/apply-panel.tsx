@@ -40,6 +40,7 @@ export default function ApplyPanel() {
   const [delegateName, setDelegateName] = useState("");
   const [dateError, setDateError] = useState("");
   const [leaveSubmitError, setLeaveSubmitError] = useState("");
+  const [halfDaySession, setHalfDaySession] = useState("FIRST_DAY");
 
   // ── WFH Form State ──────────────────────────────────────────────────────
   const [wfhDate, setWfhDate] = useState("");
@@ -130,7 +131,7 @@ export default function ApplyPanel() {
         reason: `${leaveReason}${emergencyPhone ? ` | Emergency: ${emergencyPhone}` : ""}${delegateName ? ` | Delegate: ${delegateName}` : ""}`,
         attachmentUrl: fileName || undefined,
         isHalfDay: isHalfDayType,
-        halfDaySession: isHalfDayType ? "FIRST_DAY" : null
+        halfDaySession: isHalfDayType ? halfDaySession : null
       });
     },
     onSuccess: () => {
@@ -249,9 +250,16 @@ export default function ApplyPanel() {
                   </div>
 
                   {isHalfDayType && (
-                    <div className="flex items-center gap-2 text-indigo-700 bg-indigo-50 border border-indigo-100 p-3 rounded-lg text-[11px] font-bold">
-                      <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                      Half day — start & end dates must be the same single day.
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Leave Session</label>
+                      <select
+                        value={halfDaySession}
+                        onChange={(e) => setHalfDaySession(e.target.value)}
+                        className="w-full h-10 px-3.5 border border-slate-200 rounded-lg bg-white text-xs focus:outline-none focus:ring-2 focus:ring-slate-900/20"
+                      >
+                        <option value="FIRST_DAY">First Half</option>
+                        <option value="LAST_DAY">Second Half</option>
+                      </select>
                     </div>
                   )}
 
@@ -335,7 +343,7 @@ export default function ApplyPanel() {
                     <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wide border-b border-slate-200 pb-1">Summary of Application</h4>
                     <div className="grid grid-cols-2 gap-y-2.5 text-xs font-semibold">
                       <span className="text-slate-400">Leave Type</span>
-                      <span className="text-slate-800 font-bold">{selectedBalance?.leaveType.name}</span>
+                      <span className="text-slate-800 font-bold">{selectedBalance?.leaveType.name} {isHalfDayType && (halfDaySession === "FIRST_DAY" ? "(First Half)" : "(Second Half)")}</span>
                       <span className="text-slate-400">Duration</span>
                       <span className="text-slate-800 font-bold">{startDate} → {endDate} ({leaveDays} {leaveDays === 0.5 ? "half day" : "days"})</span>
                       <span className="text-slate-400">Reason</span>
