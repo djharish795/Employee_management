@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Body, Param, Req, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Req, UseGuards, Query, ForbiddenException } from '@nestjs/common';
 import { ApplyLeaveDto } from './dto/apply-leave.dto';
 import { LeavesService } from './leaves.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
 import { RbacPermissions } from '../../common/rbac/rbac.config';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 import { RbacGuard } from '../../common/guards/rbac.guard';
 
@@ -15,8 +16,23 @@ export class LeavesController {
 
   @RequirePermissions(RbacPermissions.LEAVE_READ)
   @Get('kpi')
-  getLeavesKPI(@Query('employeeId') employeeId: string): Promise<unknown> {
-    return this.leaveService.getLeavesKPI(employeeId);
+  getLeavesKPI(
+    @Query('employeeId') requestedId: string,
+    @CurrentUser() user: any
+  ): Promise<unknown> {
+    // SECURITY: Ownership enforcement.
+    // Privileged roles (HR, CHRO, MANAGER, CTO, CEO, SUPER_ADMIN) can query any employee's KPI.
+    // Regular employees can ONLY query their own KPI — any attempt to pass another
+    // employee's ID is rejected with a 403 Forbidden.
+    const privilegedRoles = ['HR', 'CHRO', 'MANAGER', 'TEAM_LEAD', 'CTO', 'CEO', 'COO', 'SUPER_ADMIN', 'FINANCE', 'CFO', 'CHRO'];
+    const callerRole = (user.role as string)?.toUpperCase();
+    const targetId = requestedId || user.employeeId;
+
+    if (targetId !== user.employeeId && !privilegedRoles.includes(callerRole)) {
+      throw new ForbiddenException('You can only view your own leave KPI.');
+    }
+
+    return this.leaveService.getLeavesKPI(targetId);
   }
 
   @RequirePermissions(RbacPermissions.LEAVE_READ)
@@ -76,9 +92,9 @@ export class LeavesController {
 
   @RequirePermissions(RbacPermissions.LEAVE_READ)
   @Get('calendar')
-  getCalendar(@Req() req: any): Promise<unknown> {
-    const employeeId = req.user?.employeeId || req.query.employeeId;
-    return this.leaveService.getCalendar(employeeId);
+  getCalendar(@CurrentUser() user: any): Promise<unknown> {
+    // Always use the authenticated user's own ID from the JWT
+    return this.leaveService.getCalendar(user.employeeId);
   }
 
 }
