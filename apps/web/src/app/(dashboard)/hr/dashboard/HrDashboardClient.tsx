@@ -14,6 +14,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api/client";
 import { Loader2 } from "lucide-react";
 import { PersonalAttendanceWidget } from "@/components/shared/personal-attendance-widget";
+import { CheckInButton } from '@/components/shared/check-in-button';
 import { RecentNotificationsWidget } from '@/components/shared/recent-notifications-widget';
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -169,7 +170,8 @@ export default function HrDashboardPage() {
           <h1 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white tracking-tight">HR Overview</h1>
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">Today is {dateString}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <CheckInButton />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-semibold rounded-md shadow-sm transition-colors focus:outline-none">

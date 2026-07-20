@@ -14,6 +14,7 @@ import { HighlightsPanel } from '@/components/executive-dashboard/HighlightsPane
 import { QuickLinks } from '@/components/executive-dashboard/QuickLinks';
 import { LeavesSummaryWidget } from '@/components/executive-dashboard/LeavesSummaryWidget';
 import { PersonalAttendanceWidget } from '@/components/shared/personal-attendance-widget';
+import { CheckInButton } from '@/components/shared/check-in-button';
 
 // Types
 import { QuickLinkType } from '@/types/executive-dashboard';
@@ -107,14 +108,17 @@ export function DashboardClient() {
           <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Organisation overview</h1>
           <p className="text-xs sm:text-sm font-medium text-slate-500 mt-1">Reporting period: {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</p>
         </div>
-        <Button 
-          onClick={handleExport}
-          variant="outline" 
-          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white text-slate-700 border-slate-200 hover:bg-slate-100 font-semibold shadow-sm"
-        >
-          <Download className="w-4 h-4" />
-          Export report
-        </Button>
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <CheckInButton />
+          <Button 
+            onClick={handleExport}
+            variant="outline" 
+            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white text-slate-700 border-slate-200 hover:bg-slate-100 font-semibold shadow-sm"
+          >
+            <Download className="w-4 h-4" />
+            Export report
+          </Button>
+        </div>
       </div>
 
       {/* Personal Attendance Check-in/Check-out */}

@@ -1,13 +1,15 @@
 "use client";
 
 import React from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Clock, LogOut, Loader2 } from "lucide-react";
-import { fetchTodayStatus, submitPunch } from "@/lib/api/attendance";
-import EarlyCheckoutModal from "@/components/shared/early-checkout-modal";
+import { useQuery } from "@tanstack/react-query";
+import { fetchTodayStatus } from "@/lib/api/attendance";
+import { fetchMyLeaveKpi } from "@/lib/api/leaves";
+import { assetsApi } from "@/lib/api/assets";
+import { useAuthStore } from "@/store/auth";
+import { Lock } from "lucide-react";
 
 export function PersonalAttendanceWidget() {
-  const queryClient = useQueryClient();
+  const employeeId = useAuthStore(state => state.employeeId);
 
   // ── Today's attendance state from backend ─────────────────────────────────
   const todayQuery = useQuery({
@@ -21,37 +23,7 @@ export function PersonalAttendanceWidget() {
   const isPunchedIn = todayState === "IN" || todayState === "BREAK";
 
   // ── Punch mutation ────────────────────────────────────────────────────────
-  const punchMutation = useMutation({
-    mutationFn: (action: "IN" | "OUT") => submitPunch(action),
-    onSuccess: (newData) => {
-      // Instantly update local state with backend response
-      queryClient.setQueryData(["attendanceStatus"], newData);
 
-      // Refresh background data
-      queryClient.invalidateQueries({ queryKey: ["attendanceKpis"] });
-      queryClient.invalidateQueries({ queryKey: ["attendanceLogs"] });
-    },
-  });
-
-  const [showCheckoutModal, setShowCheckoutModal] = React.useState(false);
-
-  const getSecondsElapsed = () => {
-    let secs = todayQuery.data?.offset || 0;
-    if ((todayState === "IN" || todayState === "BREAK") && todayQuery.data?.startTime) {
-      secs += Math.floor((Date.now() - new Date(todayQuery.data.startTime).getTime()) / 1000);
-    }
-    return secs;
-  };
-
-  const handlePunch = () => {
-    if (punchMutation.isPending) return;
-    const nextAction = isPunchedIn ? "OUT" : "IN";
-    if (nextAction === "OUT") {
-      setShowCheckoutModal(true);
-    } else {
-      punchMutation.mutate(nextAction);
-    }
-  };
 
   // ── Formatted clock-in time ───────────────────────────────────────────────
   const checkInTimeDisplay = (() => {
@@ -63,55 +35,92 @@ export function PersonalAttendanceWidget() {
     });
   })();
 
+  const leaveKpiQuery = useQuery({
+    queryKey: ["leaves-kpi", employeeId],
+    queryFn: () => fetchMyLeaveKpi(employeeId!),
+    enabled: !!employeeId,
+  });
+
+  const assetsQuery = useQuery({
+    queryKey: ["myAssets"],
+    queryFn: assetsApi.getMy,
+    staleTime: 60_000,
+  });
+
+  const PHASE_2_ENABLED = process.env.NEXT_PUBLIC_PHASE_2_ENABLED === 'true';
+
+  const leaveBalance = leaveKpiQuery.data?.availableLeaves ?? "--";
+  const assetsAssigned = assetsQuery.data?.length ?? 0;
+
   return (
     <>
-      <EarlyCheckoutModal
-        isOpen={showCheckoutModal}
-        secondsElapsed={getSecondsElapsed()}
-        isPending={punchMutation.isPending}
-        onClose={() => setShowCheckoutModal(false)}
-        onConfirm={() => {
-          setShowCheckoutModal(false);
-          punchMutation.mutate("OUT");
-        }}
-      />
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-sm mb-6 sm:mb-8 transition-colors">
-        <div className="flex items-center gap-4">
-        <div className="flex flex-col">
-          <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Today's Status</p>
-          <div className="flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full ${isPunchedIn ? 'bg-emerald-500' : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32400 ? 'bg-orange-500' : 'bg-emerald-500') : 'bg-slate-300 dark:bg-slate-600')}`}></span>
-            <span className={`text-base font-bold ${isPunchedIn ? 'text-emerald-600 dark:text-emerald-400' : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32400 ? 'text-orange-600 dark:text-orange-400' : 'text-emerald-600 dark:text-emerald-400') : 'text-slate-600 dark:text-slate-400')}`}>
-              {isPunchedIn ? 'Present' : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32400 ? 'Early Checkout' : 'Checked Out') : 'Not checked in')}
-            </span>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 sm:mb-8">
+        {/* Today's Status */}
+        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm flex flex-col justify-between transition-colors">
+          <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Today's Status</p>
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${isPunchedIn ? 'bg-emerald-500' : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32400 ? 'bg-orange-500' : 'bg-emerald-500') : 'bg-slate-300 dark:bg-slate-600')}`}></span>
+                <span className={`text-base font-bold ${isPunchedIn ? 'text-emerald-600 dark:text-emerald-400' : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32400 ? 'text-orange-600 dark:text-orange-400' : 'text-emerald-600 dark:text-emerald-400') : 'text-slate-600 dark:text-slate-400')}`}>
+                  {isPunchedIn ? 'Present' : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32400 ? 'Early Checkout' : 'Checked Out') : 'Not checked in')}
+                </span>
+              </div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-500 mt-1">
+                {isPunchedIn && checkInTimeDisplay
+                  ? `Checked in ${checkInTimeDisplay}`
+                  : (todayQuery.data?.offset && todayQuery.data.offset > 0
+                    ? (todayQuery.data.offset < 32400 ? 'Shift ended early today' : 'Shift completed today')
+                    : 'No punch recorded today')}
+              </p>
+            </div>
           </div>
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-500 mt-1">
-            {isPunchedIn && checkInTimeDisplay
-              ? `Checked in ${checkInTimeDisplay}`
-              : (todayQuery.data?.offset && todayQuery.data.offset > 0
-                ? (todayQuery.data.offset < 32400 ? 'Shift ended early today' : 'Shift completed today')
-                : 'No punch recorded today')}
-          </p>
+        </div>
+
+        {/* Leave Balance */}
+        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm flex flex-col justify-between transition-colors">
+          <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Leave Balance</p>
+          <div className="flex items-baseline gap-1.5">
+            {leaveKpiQuery.isLoading ? (
+              <div className="h-9 w-16 bg-slate-200 dark:bg-slate-800 animate-pulse rounded-md mb-1"></div>
+            ) : (
+              <h3 className="text-3xl font-black text-slate-900 dark:text-white">{leaveBalance}</h3>
+            )}
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">days available</span>
+          </div>
+        </div>
+
+        {/* Assets Assigned */}
+        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm flex flex-col justify-between transition-colors">
+          <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Assets Assigned</p>
+          <div className="flex items-baseline gap-1.5">
+            {assetsQuery.isLoading ? (
+              <div className="h-9 w-12 bg-slate-200 dark:bg-slate-800 animate-pulse rounded-md mb-1"></div>
+            ) : (
+              <h3 className="text-3xl font-black text-slate-900 dark:text-white">{assetsAssigned}</h3>
+            )}
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">active items</span>
+          </div>
+        </div>
+
+        {/* Goals This Quarter */}
+        <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/50 p-5 rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden transition-colors">
+          <div className="flex justify-between items-start mb-3">
+            <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Goals This Quarter</p>
+            {!PHASE_2_ENABLED && <Lock className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600" />}
+          </div>
+          <div>
+            {!PHASE_2_ENABLED ? (
+              <p className="text-xs font-medium text-slate-400 dark:text-slate-500 italic">Available in Phase 2</p>
+            ) : (
+              <div className="flex items-baseline gap-1.5">
+                <h3 className="text-3xl font-black text-slate-900 dark:text-white">0</h3>
+                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">active goals</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-      
-      <button
-        onClick={handlePunch}
-        disabled={punchMutation.isPending || todayQuery.isLoading}
-        className={`px-6 py-2.5 rounded-lg font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${isPunchedIn
-            ? "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700"
-            : "bg-slate-900 dark:bg-slate-800 text-white hover:bg-slate-800 dark:hover:bg-slate-700"
-          }`}
-      >
-        {punchMutation.isPending ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : isPunchedIn ? (
-          <><LogOut className="w-4 h-4" /> Check out</>
-        ) : (
-          <><Clock className="w-4 h-4" /> Check in</>
-        )}
-      </button>
-    </div>
     </>
   );
 }

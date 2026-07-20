@@ -102,11 +102,10 @@ export class WfhService {
       });
     });
 
-    // TODO: Replace 'SYSTEM' with authenticated userId once JWT is implemented
     this.auditService.logCreate({
       moduleName: 'WFH',
       entityId: wfhRequest.id,
-      actorId: 'SYSTEM',
+      actorId: employeeId,
       metadata: { date, reason }
     });
 
@@ -194,11 +193,10 @@ export class WfhService {
             }
         });
       });
-      // TODO: Replace 'SYSTEM' with authenticated userId once JWT is implemented
       this.auditService.logApprove({
         moduleName: 'WFH',
         entityId: wfhId,
-        actorId: 'SYSTEM',
+        actorId: approverId,
         metadata: { approverId, override: true }
       });
 
@@ -247,11 +245,10 @@ export class WfhService {
       }
     });
 
-    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
     this.auditService.logApprove({
       moduleName: 'WFH',
       entityId: wfhId,
-      actorId: 'unknown',
+      actorId: approverId,
       metadata: { approverId }
     });
 
@@ -291,11 +288,10 @@ export class WfhService {
           ...({ approvalQueue: queue as unknown as object, currentStep: queue.length })
         }
       });
-      // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
       this.auditService.logReject({
         moduleName: 'WFH',
         entityId: wfhId,
-        actorId: 'unknown',
+        actorId: approverId,
         metadata: { approverId, reason, override: true }
       });
 
@@ -320,11 +316,10 @@ export class WfhService {
       }
     });
 
-    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
     this.auditService.logReject({
       moduleName: 'WFH',
       entityId: wfhId,
-      actorId: 'unknown',
+      actorId: approverId,
       metadata: { approverId, reason }
     });
 

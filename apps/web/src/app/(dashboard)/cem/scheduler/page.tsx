@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { 
   Calendar as CalendarIcon, ChevronLeft, ChevronRight, 
-  PlusCircle, X, Loader2
+  PlusCircle, X, Loader2, CheckCircle, XCircle, Clock
 } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfMonth, isSameMonth, isSameDay, isBefore, startOfDay, parse } from 'date-fns';
 import Image from "next/image";
@@ -40,6 +40,22 @@ export default function CamSchedulerPage() {
     },
     onError: () => {
       toast.error("Failed to schedule meeting");
+    }
+  });
+
+  const acceptMeetMutation = useMutation({
+    mutationFn: (id: string) => connectApi.acceptMeet(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meetings'] });
+      toast.success("Meeting accepted");
+    }
+  });
+
+  const rejectMeetMutation = useMutation({
+    mutationFn: (id: string) => connectApi.rejectMeet(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meetings'] });
+      toast.success("Meeting rejected");
     }
   });
   
@@ -247,14 +263,39 @@ export default function CamSchedulerPage() {
                           {meetingTimeStr}
                         </div>
                       )}
-                      <div className="flex justify-between items-center relative pl-3">
-                        <div className="absolute left-0 top-0.5 bottom-0.5 w-1 bg-blue-500 rounded-full"></div>
-                        <div>
-                          <h4 className="text-[15px] font-semibold text-slate-900">{meeting.title}</h4>
+                      <div className="flex justify-between items-center relative pl-3 group">
+                        <div className={`absolute left-0 top-0.5 bottom-0.5 w-1 rounded-full ${meeting.status === 'PENDING' ? 'bg-amber-400' : meeting.status === 'REJECTED' ? 'bg-rose-500' : 'bg-blue-500'}`}></div>
+                        <div className="flex-1 pr-4">
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-[15px] font-semibold text-slate-900">{meeting.title}</h4>
+                            {meeting.status === 'PENDING' && <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">PENDING</span>}
+                            {meeting.status === 'ACCEPTED' && <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">ACCEPTED</span>}
+                            {meeting.status === 'REJECTED' && <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">REJECTED</span>}
+                          </div>
                           <p className="text-[13px] text-slate-500 mt-0.5">{meeting.description || 'No description'}</p>
                         </div>
-                        <div className="w-[60px] h-[36px] bg-slate-100 rounded relative overflow-hidden flex-shrink-0 ml-4 flex items-center justify-center">
-                          <div className="w-full h-full bg-blue-100 text-blue-500 flex items-center justify-center text-[10px] font-bold">MEET</div>
+                        
+                        <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity gap-1 mr-2">
+                          {meeting.status === 'PENDING' && (
+                            <>
+                              <button 
+                                onClick={() => acceptMeetMutation.mutate(meeting.id)}
+                                disabled={acceptMeetMutation.isPending}
+                                className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded" title="Accept">
+                                <CheckCircle className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={() => rejectMeetMutation.mutate(meeting.id)}
+                                disabled={rejectMeetMutation.isPending}
+                                className="p-1.5 text-rose-600 hover:bg-rose-50 rounded" title="Reject">
+                                <XCircle className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+
+                        <div className={`w-[60px] h-[36px] rounded relative overflow-hidden flex-shrink-0 flex items-center justify-center ${meeting.status === 'PENDING' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-500'}`}>
+                          <div className="w-full h-full flex items-center justify-center text-[10px] font-bold">MEET</div>
                         </div>
                       </div>
                     </React.Fragment>

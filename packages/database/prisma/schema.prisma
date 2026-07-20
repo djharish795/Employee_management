@@ -143,6 +143,7 @@ model Employee {
   fieldWorkRequests          FieldWorkRequest[]         @relation("FieldWorkRequester")
   fieldWorkApprovals         FieldWorkRequest[]         @relation("FieldWorkApprover")
   compliancePoliciesUpdated  CompliancePolicy[]         @relation("PolicyUpdater")
+  cemLeads                   CemLead[]                  @relation("CemLeadOwner")
   @@map("employees")
 }
 
@@ -2066,6 +2067,10 @@ model Meeting {
   handoffCompleted   Boolean  @default(false)
   clientPhone        String?
   interactionCount   Int?     @default(1)
+  
+  cemLeadId          String?
+  cemLead            CemLead? @relation(fields: [cemLeadId], references: [id], onDelete: Cascade)
+  
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -2090,8 +2095,46 @@ model FollowUp {
   assignedCem    String
   notesHistory   String[]
   
+  cemLeadId      String?
+  cemLead        CemLead? @relation(fields: [cemLeadId], references: [id], onDelete: Cascade)
+  
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   @@map("follow_ups")
 }
+
+model CemLead {
+  id                 String   @id @default(cuid())
+  company            String
+  prospectName       String
+  industry           String
+  phone              String
+  email              String
+  priority           String   @default("MEDIUM")
+  stage              Int      @default(1)
+  assignedCemId      String
+  leadSource         String
+  qualificationScore Int      @default(0)
+  
+  budgetConfirmed      Boolean @default(false)
+  authorityIdentified  Boolean @default(false)
+  needValidated        Boolean @default(false)
+  timelineEstablished  Boolean @default(false)
+  
+  qualificationStatus  String  @default("ACTIVE")
+  assignedCrm          String?
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  followUps  FollowUp[]
+  meetings   Meeting[]
+  
+  assignedCem Employee @relation("CemLeadOwner", fields: [assignedCemId], references: [id])
+  
+  @@map("cem_leads")
+}
+
+
+

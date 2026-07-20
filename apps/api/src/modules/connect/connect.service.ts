@@ -263,7 +263,7 @@ export class ConnectService {
           item.taskId = task.id; // Save reference back to the JSON
         } else {
           // Update existing task status
-          await this.tasksService.updateTask(item.taskId, { id: 'SYSTEM', role: RbacRoles.SUPER_ADMIN }, { status: item.completed ? TaskStatus.DONE : TaskStatus.TODO });
+          await this.tasksService.updateTask(item.taskId, { id: employeeId, role: user.role }, { status: item.completed ? TaskStatus.DONE : TaskStatus.TODO });
         }
       }
     }

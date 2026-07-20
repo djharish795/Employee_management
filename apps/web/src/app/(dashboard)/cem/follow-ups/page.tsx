@@ -1,14 +1,15 @@
 "use client";
 
 import React, { useState } from 'react';
-import { 
-  Phone, 
-  Mail, 
-  Calendar, 
-  CheckCircle, 
-  FileText, 
-  MessageSquare, 
-  Plus, 
+import {
+  Phone,
+  Mail,
+  Calendar,
+  CheckCircle,
+  CheckCircle2,
+  FileText,
+  MessageSquare,
+  Plus,
   SlidersHorizontal,
   X,
   TrendingUp,
@@ -39,7 +40,7 @@ interface FollowUp {
   lastNote: string;
   status: 'Pending' | 'Completed' | 'Missed' | 'Qualified';
   outcome?: 'Interested' | 'Needs Follow Up' | 'Meeting Required' | 'Qualified' | 'Rejected' | 'No Response' | 'None';
-  
+
   // Detail Drawer fields
   email: string;
   phone: string;
@@ -53,7 +54,7 @@ interface FollowUp {
 
 export default function FollowUpHubPage() {
   const [followUps, setFollowUps] = useState<FollowUp[]>([]);
-  const [metrics, setMetrics] = useState({ todayCount: 0, missedCount: 0, qualifiedCount: 0 });
+  const [metrics, setMetrics] = useState({ todayCount: 0, missedCount: 0, completedCount: 0 });
   const [isLoading, setIsLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState<'Today' | 'Upcoming' | 'Missed' | 'Completed'>('Today');
@@ -138,11 +139,11 @@ export default function FollowUpHubPage() {
       toast.error('Invalid time format. Use HH:MM');
       return;
     }
-    
+
     let hoursNum = parseInt(hours, 10);
     if (newAmPm === 'PM' && hoursNum < 12) hoursNum += 12;
     if (newAmPm === 'AM' && hoursNum === 12) hoursNum = 0;
-    
+
     const time24 = `${hoursNum.toString().padStart(2, '0')}:${minutes}`;
     const formattedDueDate = `${newDate}T${time24}:00`;
 
@@ -197,7 +198,7 @@ export default function FollowUpHubPage() {
 
     try {
       await apiClient.put(`/cem/follow-ups/${selectedFollowUp.id}/outcome`, {
-        outcome: outcomeSelect,
+        outcome: 'Completed',
         outcomeNote: outcomeNote
       });
 
@@ -215,18 +216,18 @@ export default function FollowUpHubPage() {
   };
 
   // Summary Metrics calculations
-  const { todayCount, missedCount, qualifiedCount } = metrics;
+  const { todayCount, missedCount, completedCount } = metrics;
 
   // Filter list by Active Tab & Filters
   const filteredFollowUps = followUps.filter(f => {
     // 1. Tab Filtering (Date based)
     const dueDate = new Date(f.dueDate);
     const now = new Date();
-    
+
     // Set both to midnight to compare just the date
     const dateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
     const todayOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
+
     const isToday = dateOnly.getTime() === todayOnly.getTime();
     const isPast = dateOnly.getTime() < todayOnly.getTime();
     const isFuture = dateOnly.getTime() > todayOnly.getTime();
@@ -244,11 +245,6 @@ export default function FollowUpHubPage() {
 
     if (!tabMatch) return false;
 
-    // 2. Dropdown Filtering
-    if (filterStage !== 'All' && f.currentStage !== filterStage) return false;
-    if (filterType !== 'All' && f.type !== filterType) return false;
-    if (filterPriority !== 'All' && f.priority !== filterPriority) return false;
-
     return true;
   });
 
@@ -264,20 +260,6 @@ export default function FollowUpHubPage() {
             Manage client interactions and engagement pipelines.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider border rounded-lg transition-colors shadow-sm ${showFilters ? 'bg-slate-100 border-slate-300 text-slate-900' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}
-          >
-            <SlidersHorizontal className="w-4 h-4" /> Filter
-          </button>
-          <button 
-            onClick={() => setIsNewModalOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-slate-950 rounded-lg hover:bg-slate-800 transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4" /> New Follow-up
-          </button>
-        </div>
       </div>
 
       {/* Tabs */}
@@ -286,62 +268,17 @@ export default function FollowUpHubPage() {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`pb-4 border-b-2 transition-all ${
-              activeTab === tab 
-                ? 'border-slate-950 text-slate-950 font-black' 
+            className={`pb-4 border-b-2 transition-all ${activeTab === tab
+                ? 'border-slate-950 text-slate-950 font-black'
                 : 'border-transparent text-slate-400 hover:text-slate-600'
-            }`}
+              }`}
           >
             {tab === 'Today' ? "Today's Follow Ups" : tab}
           </button>
         ))}
       </div>
 
-      {/* Filters Bar */}
-      {showFilters && (
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4 animate-in slide-in-from-top-2">
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Stage</label>
-            <select
-              value={filterStage}
-              onChange={(e) => setFilterStage(e.target.value)}
-              className="w-full h-10 px-3 py-2 border border-slate-200 rounded-lg bg-white text-slate-700 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-bold"
-            >
-              <option value="All">All Stages</option>
-              <option value="Contacted">Contacted</option>
-              <option value="Meeting Done">Meeting Done</option>
-              <option value="Follow Up">Follow Up</option>
-              <option value="Qualified">Qualified</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Type</label>
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="w-full h-10 px-3 py-2 border border-slate-200 rounded-lg bg-white text-slate-700 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-bold"
-            >
-              <option value="All">All Types</option>
-              <option value="Phone Call">Phone Call</option>
-              <option value="Email">Email</option>
-              <option value="Meeting">Meeting</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Priority</label>
-            <select
-              value={filterPriority}
-              onChange={(e) => setFilterPriority(e.target.value)}
-              className="w-full h-10 px-3 py-2 border border-slate-200 rounded-lg bg-white text-slate-700 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-bold"
-            >
-              <option value="All">All Priorities</option>
-              <option value="High">High</option>
-              <option value="Medium">Medium</option>
-              <option value="Low">Low</option>
-            </select>
-          </div>
-        </div>
-      )}
+
 
       {/* 3 Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -365,10 +302,10 @@ export default function FollowUpHubPage() {
 
         {/* Card 3 */}
         <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-2 flex flex-col justify-center">
-          <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Qualified Leads</div>
-          <h2 className="text-3xl font-black text-emerald-600">{qualifiedCount}</h2>
+          <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Completed Follow Ups</div>
+          <h2 className="text-3xl font-black text-emerald-600">{completedCount}</h2>
           <div className="text-[11px] font-bold text-emerald-600 flex items-center gap-1">
-            <Award className="w-3.5 h-3.5" /> Ready for CRM Handoff
+            <CheckCircle2 className="w-3.5 h-3.5" /> Successfully resolved
           </div>
         </div>
       </div>
@@ -402,7 +339,7 @@ export default function FollowUpHubPage() {
                           {getInitials(fu.leadName)}
                         </div>
                         <div>
-                          <button 
+                          <button
                             onClick={() => openDetailDrawer(fu)}
                             className="font-bold text-slate-950 hover:text-blue-600 hover:underline text-left"
                           >
@@ -420,12 +357,11 @@ export default function FollowUpHubPage() {
 
                     {/* Current Stage */}
                     <td className="py-5 px-3 text-center">
-                      <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
-                        fu.currentStage === 'Qualified' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
-                        fu.currentStage === 'Meeting Done' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' :
-                        fu.currentStage === 'Follow Up' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
-                        'bg-slate-100 text-slate-600 border border-slate-200'
-                      }`}>
+                      <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${fu.currentStage === 'Qualified' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                          fu.currentStage === 'Meeting Done' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' :
+                            fu.currentStage === 'Follow Up' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                              'bg-slate-100 text-slate-600 border border-slate-200'
+                        }`}>
                         {fu.currentStage}
                       </span>
                     </td>
@@ -452,11 +388,10 @@ export default function FollowUpHubPage() {
 
                     {/* Priority */}
                     <td className="py-5 px-3 text-center">
-                      <span className={`inline-block px-2.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider border ${
-                        fu.priority === 'High' ? 'bg-rose-50 text-rose-600 border-rose-100' :
-                        fu.priority === 'Medium' ? 'bg-blue-50 text-blue-600 border-blue-100' :
-                        'bg-slate-50 text-slate-500 border-slate-200'
-                      }`}>
+                      <span className={`inline-block px-2.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider border ${fu.priority === 'High' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                          fu.priority === 'Medium' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                            'bg-slate-50 text-slate-500 border-slate-200'
+                        }`}>
                         {fu.priority}
                       </span>
                     </td>
@@ -469,17 +404,16 @@ export default function FollowUpHubPage() {
                     {/* Status */}
                     <td className="py-5 px-3 text-center">
                       <span className="flex items-center justify-center gap-1.5 font-bold">
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          fu.status === 'Qualified' ? 'bg-emerald-500 animate-pulse' :
-                          fu.status === 'Pending' ? 'bg-slate-400' :
-                          fu.status === 'Missed' ? 'bg-rose-500' :
-                          'bg-indigo-500'
-                        }`}></span>
+                        <span className={`w-1.5 h-1.5 rounded-full ${fu.status === 'Qualified' ? 'bg-emerald-500 animate-pulse' :
+                            fu.status === 'Pending' ? 'bg-slate-400' :
+                              fu.status === 'Missed' ? 'bg-rose-500' :
+                                'bg-indigo-500'
+                          }`}></span>
                         <span className={
                           fu.status === 'Qualified' ? 'text-emerald-700' :
-                          fu.status === 'Pending' ? 'text-slate-600' :
-                          fu.status === 'Missed' ? 'text-rose-600' :
-                          'text-indigo-600'
+                            fu.status === 'Pending' ? 'text-slate-600' :
+                              fu.status === 'Missed' ? 'text-rose-600' :
+                                'text-indigo-600'
                         }>
                           {fu.status}
                         </span>
@@ -489,17 +423,17 @@ export default function FollowUpHubPage() {
                     {/* Actions Row */}
                     <td className="py-5 px-6 text-right">
                       <div className="flex items-center justify-end gap-2 text-slate-400">
-                        <button 
+                        <button
                           onClick={() => openOutcomeModal(fu)}
-                          className="p-1 bg-slate-50 border border-slate-200 text-slate-700 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors" 
+                          className="p-1 bg-slate-50 border border-slate-200 text-slate-700 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors"
                           title="Complete Follow Up & Log Outcome"
                         >
                           <CheckCircle className="w-4 h-4" />
                         </button>
-                        
-                        <button 
+
+                        <button
                           onClick={() => openDetailDrawer(fu)}
-                          className="p-1 hover:text-slate-800 transition-colors" 
+                          className="p-1 hover:text-slate-800 transition-colors"
                           title="View Details"
                         >
                           <FileText className="w-4 h-4" />
@@ -543,9 +477,9 @@ export default function FollowUpHubPage() {
               <h3 className="font-black text-slate-950 flex items-center gap-2 text-base">
                 <Sparkles className="w-5 h-5 text-blue-600" /> New Follow-up Schedule
               </h3>
-              <button 
+              <button
                 type="button"
-                onClick={() => setIsNewModalOpen(false)} 
+                onClick={() => setIsNewModalOpen(false)}
                 className="text-slate-400 hover:text-slate-600 transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -554,34 +488,34 @@ export default function FollowUpHubPage() {
             <div className="p-4 space-y-4 max-h-[65vh] overflow-y-auto">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">Lead Name</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={newLead}
                   onChange={(e) => setNewLead(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-transparent text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-semibold" 
-                  placeholder="e.g. Alex Linderman" 
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-transparent text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-semibold"
+                  placeholder="e.g. Alex Linderman"
                   required
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">Role / Designation</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={newRole}
                     onChange={(e) => setNewRole(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-transparent text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-semibold" 
-                    placeholder="e.g. Director of Sales" 
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-transparent text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-semibold"
+                    placeholder="e.g. Director of Sales"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">Company</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={newCompany}
                     onChange={(e) => setNewCompany(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-transparent text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-semibold" 
-                    placeholder="e.g. Nexus Corp" 
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-transparent text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-semibold"
+                    placeholder="e.g. Nexus Corp"
                     required
                   />
                 </div>
@@ -589,23 +523,23 @@ export default function FollowUpHubPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">Email Address</label>
-                  <input 
-                    type="email" 
+                  <input
+                    type="email"
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-transparent text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-semibold" 
-                    placeholder="e.g. contact@domain.com" 
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-transparent text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-semibold"
+                    placeholder="e.g. contact@domain.com"
                     required
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">Phone Number</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={newPhone}
                     onChange={(e) => setNewPhone(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-transparent text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-semibold" 
-                    placeholder="+1 (555) 012-3456" 
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-transparent text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-semibold"
+                    placeholder="+1 (555) 012-3456"
                     required
                   />
                 </div>
@@ -613,7 +547,7 @@ export default function FollowUpHubPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">Current Stage</label>
-                  <select 
+                  <select
                     value={newStage}
                     onChange={(e) => setNewStage(e.target.value as any)}
                     className="w-full h-10 px-3 py-2 border border-slate-200 rounded-lg bg-white text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-semibold"
@@ -626,7 +560,7 @@ export default function FollowUpHubPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">Priority</label>
-                  <select 
+                  <select
                     value={newPriority}
                     onChange={(e) => setNewPriority(e.target.value as any)}
                     className="w-full h-10 px-3 py-2 border border-slate-200 rounded-lg bg-white text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-semibold"
@@ -640,7 +574,7 @@ export default function FollowUpHubPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">Engagement Type</label>
-                  <select 
+                  <select
                     value={newType}
                     onChange={(e) => setNewType(e.target.value as any)}
                     className="w-full h-10 px-3 py-2 border border-slate-200 rounded-lg bg-white text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-semibold"
@@ -652,7 +586,7 @@ export default function FollowUpHubPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">Next Planned Action</label>
-                  <select 
+                  <select
                     value={newAction}
                     onChange={(e) => setNewAction(e.target.value as any)}
                     className="w-full h-10 px-3 py-2 border border-slate-200 rounded-lg bg-white text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-semibold"
@@ -668,22 +602,22 @@ export default function FollowUpHubPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">Date</label>
-                  <input 
-                    type="date" 
+                  <input
+                    type="date"
                     value={newDate}
                     onChange={(e) => setNewDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-transparent text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-semibold" 
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-transparent text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-semibold"
                     required
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">Time (HH:MM)</label>
                   <div className="flex items-center gap-2">
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={newTime}
                       onChange={(e) => setNewTime(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-transparent text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-semibold" 
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-transparent text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-semibold"
                       placeholder="05:30"
                       required
                     />
@@ -708,24 +642,24 @@ export default function FollowUpHubPage() {
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">Follow-Up Note Preview</label>
-                <textarea 
+                <textarea
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-transparent text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950" 
-                  placeholder="Record initial contextual note to display on table list..." 
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-transparent text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950"
+                  placeholder="Record initial contextual note to display on table list..."
                   rows={2.5}
                 />
               </div>
             </div>
             <div className="p-4 bg-slate-50 flex justify-end gap-3 border-t border-slate-100">
-              <button 
+              <button
                 type="button"
-                onClick={() => setIsNewModalOpen(false)} 
+                onClick={() => setIsNewModalOpen(false)}
                 className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 type="submit"
                 className="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-950 hover:bg-slate-800 text-white shadow-sm transition-colors"
               >
@@ -756,28 +690,12 @@ export default function FollowUpHubPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Follow-Up Outcome</label>
-                <select 
-                  value={outcomeSelect}
-                  onChange={(e) => setOutcomeSelect(e.target.value as any)}
-                  className="w-full h-10 px-3 py-2 border border-slate-200 rounded-lg bg-white text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-semibold"
-                >
-                  <option value="Interested">Interested</option>
-                  <option value="Needs Follow Up">Needs Follow Up</option>
-                  <option value="Meeting Required">Meeting Required</option>
-                  <option value="Qualified">Qualified (Ready for Handoff)</option>
-                  <option value="Rejected">Rejected</option>
-                  <option value="No Response">No Response</option>
-                </select>
-              </div>
-
-              <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">Outcome Notes</label>
-                <textarea 
+                <textarea
                   value={outcomeNote}
                   onChange={(e) => setOutcomeNote(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-transparent text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950" 
-                  placeholder="Summarize customer feedback, details of budget discussed, or technical blockers..." 
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-transparent text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950"
+                  placeholder="Summarize customer feedback, details of budget discussed, or technical blockers..."
                   rows={4}
                   required
                 />
@@ -800,10 +718,10 @@ export default function FollowUpHubPage() {
         <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-xs animate-in fade-in">
           {/* Backdrop Click Dismiss */}
           <div className="absolute inset-0" onClick={() => setIsDetailDrawerOpen(false)} />
-          
+
           {/* Sliding Panel */}
           <div className="relative w-full max-w-xl bg-white h-full shadow-2xl flex flex-col z-10 animate-in slide-in-from-right duration-300">
-            
+
             {/* Drawer Header */}
             <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-start">
               <div>
@@ -813,7 +731,7 @@ export default function FollowUpHubPage() {
                 <h3 className="text-xl font-black text-slate-950 mt-2">{selectedFollowUp.leadName}</h3>
                 <p className="text-xs font-bold text-slate-500 mt-0.5">{selectedFollowUp.role} · <span className="text-slate-800">{selectedFollowUp.company}</span></p>
               </div>
-              <button 
+              <button
                 onClick={() => setIsDetailDrawerOpen(false)}
                 className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors"
               >
@@ -823,7 +741,7 @@ export default function FollowUpHubPage() {
 
             {/* Drawer Scrollable Content */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              
+
               {/* Lead Info Box */}
               <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest pb-2 border-b border-slate-100 flex items-center gap-1">
@@ -931,13 +849,13 @@ export default function FollowUpHubPage() {
 
             {/* Drawer Footer */}
             <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 flex-shrink-0">
-              <button 
+              <button
                 onClick={() => setIsDetailDrawerOpen(false)}
                 className="px-4 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors shadow-sm"
               >
                 Close Drawer
               </button>
-              <button 
+              <button
                 onClick={() => {
                   setIsDetailDrawerOpen(false);
                   openOutcomeModal(selectedFollowUp);

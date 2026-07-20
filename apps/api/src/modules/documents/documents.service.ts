@@ -65,7 +65,7 @@ export class DocumentsService {
       this.auditService.logCreate({
         moduleName: 'Documents',
         entityId: objectKey,
-        actorId: user?.employeeId || 'unknown',
+        actorId: user.employeeId,
         metadata: { action: 'GENERATE_UPLOAD_URL', fileName, contentType }
       });
 
@@ -111,7 +111,7 @@ export class DocumentsService {
       this.auditService.logExport({
         moduleName: 'Documents',
         entityId: objectKey,
-        actorId: user?.employeeId || 'unknown',
+        actorId: user.employeeId,
         metadata: { action: 'GENERATE_DOWNLOAD_URL' }
       });
 
@@ -160,7 +160,7 @@ export class DocumentsService {
       this.auditService.logCreate({
         moduleName: 'Documents',
         entityId: objectKey,
-        actorId: user?.employeeId || 'unknown',
+        actorId: user.employeeId,
         metadata: { action: 'UPLOAD_DOCUMENT', fileName: file.originalname, contentType: file.mimetype }
       });
 

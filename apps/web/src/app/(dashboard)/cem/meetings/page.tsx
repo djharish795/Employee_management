@@ -271,12 +271,6 @@ export default function MeetingManagementPage() {
           <button className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
             <Download className="w-4 h-4 text-slate-500" /> Export Report
           </button>
-          <button 
-            onClick={() => setIsNewModalOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-slate-950 rounded-lg hover:bg-slate-800 transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4" /> New Meeting
-          </button>
         </div>
       </div>
 
@@ -347,7 +341,6 @@ export default function MeetingManagementPage() {
                 <th className="py-4 px-3">Meeting Date</th>
                 <th className="py-4 px-3">Meeting Type</th>
                 <th className="py-4 px-3">Outcome</th>
-                <th className="py-4 px-3">Next Action</th>
                 <th className="py-4 px-3">Assigned Employee</th>
                 <th className="py-4 px-3 text-center">Status</th>
                 <th className="py-4 px-6 text-right">Actions</th>
@@ -412,20 +405,6 @@ export default function MeetingManagementPage() {
                       )}
                     </td>
 
-                    {/* Next Action */}
-                    <td className="py-5 px-3">
-                      {meeting.nextAction && meeting.nextAction !== 'None' ? (
-                        <div>
-                          <div className="font-bold text-slate-900">{meeting.nextAction}</div>
-                          {meeting.nextFollowUpDate && (
-                            <div className="text-[9px] text-slate-400 mt-0.5">Due: {new Date(meeting.nextFollowUpDate).toLocaleDateString()}</div>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-slate-400 font-medium">—</span>
-                      )}
-                    </td>
-                    
                     {/* Assigned Employee */}
                     <td className="py-5 px-3">
                       <div className="flex items-center gap-2">
@@ -504,15 +483,7 @@ export default function MeetingManagementPage() {
                           </button>
                         )}
 
-                        {['SCHEDULED', 'ACTIVE', 'FOLLOW_UP_REQUIRED'].includes(meeting.status) && (
-                          <button 
-                            onClick={() => openRescheduleModal(meeting)}
-                            className="p-1 text-slate-400 hover:text-slate-700 transition-colors" 
-                            title="Reschedule"
-                          >
-                            <CalendarDays className="w-4 h-4" />
-                          </button>
-                        )}
+
                         
                         <div className="relative">
                           <button 
@@ -802,44 +773,7 @@ export default function MeetingManagementPage() {
                 </div>
               </div>
 
-              {/* Next Action Tracks */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50/50 p-4 border border-slate-100 rounded-xl">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Next Action</label>
-                  <select 
-                    value={editNextAction}
-                    onChange={(e) => setEditNextAction(e.target.value as any)}
-                    className="w-full h-10 px-3 py-2 border border-slate-200 rounded-lg bg-white text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-semibold"
-                  >
-                    <option value="None">No Next Action</option>
-                    <option value="Send Proposal">Send Proposal</option>
-                    <option value="Schedule Demo">Schedule Demo</option>
-                    <option value="Technical Discussion">Technical Discussion</option>
-                    <option value="Waiting Client Response">Waiting Client Response</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Next Follow-Up Date</label>
-                  <input 
-                    type="date" 
-                    value={editNextFollowUpDate}
-                    onChange={(e) => setEditNextFollowUpDate(e.target.value)}
-                    className="w-full px-3 py-2 h-10 border border-slate-200 rounded-lg bg-transparent text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-semibold" 
-                  />
-                </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Next Action Owner</label>
-                  <input 
-                    type="text" 
-                    value={editNextActionOwner}
-                    onChange={(e) => setEditNextActionOwner(e.target.value)}
-                    className="w-full px-3 py-2 h-10 border border-slate-200 rounded-lg bg-transparent text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-semibold" 
-                    placeholder="Lisa Miller" 
-                  />
-                </div>
-              </div>
 
               {/* Text Fields */}
               <div className="space-y-4">

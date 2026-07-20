@@ -14,7 +14,7 @@ export class FollowUpService {
 
     return this.prisma.followUp.findMany({
       where,
-      orderBy: { dueDate: 'asc' }
+      orderBy: { createdAt: 'desc' }
     });
   }
 
@@ -24,7 +24,7 @@ export class FollowUpService {
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    const [todayCount, missedCount, qualifiedCount] = await Promise.all([
+    const [todayCount, missedCount, completedCount] = await Promise.all([
       this.prisma.followUp.count({
         where: {
           dueDate: { gte: todayStart, lte: todayEnd },
@@ -35,19 +35,14 @@ export class FollowUpService {
         where: { status: 'Missed' }
       }),
       this.prisma.followUp.count({
-        where: {
-          OR: [
-            { currentStage: 'Qualified' },
-            { status: 'Qualified' }
-          ]
-        }
+        where: { status: 'Completed' }
       })
     ]);
 
     return {
       todayCount,
       missedCount,
-      qualifiedCount
+      completedCount
     };
   }
 
