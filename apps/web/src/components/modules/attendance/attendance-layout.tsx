@@ -16,7 +16,7 @@ interface AttendanceLayoutProps {
 export default function AttendanceLayout({ children }: AttendanceLayoutProps) {
   const { role } = usePermissions();
   const activeRole = role as any;
-  const isEmployeeView = ["EMPLOYEE", "CRM", "CEM", "OE", "OM"].includes(activeRole);
+  const isEmployeeView = true; // Individual workspace is always employee view
   const pathname = usePathname();
 
   const navItems = React.useMemo(() => {

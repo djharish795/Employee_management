@@ -76,6 +76,8 @@ import { CemModule } from "./modules/cem/cem.module";
             port,
             password,
             tls: tlsEnabled ? {} : undefined,
+            maxRetriesPerRequest: null,
+            enableOfflineQueue: false,
           },
         };
       },

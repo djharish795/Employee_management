@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, CalendarCheck, Calendar,
   MonitorSmartphone, BookOpen, Network, Settings, LogOut, Menu, X, ChevronLeft,
-  MessageSquare, CheckSquare, Users, Star
+  MessageSquare, CheckSquare, Users, Star, Lock
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { useRbac } from '@/hooks/use-rbac';
@@ -30,7 +30,7 @@ const TEAM_NAV_ITEMS = [
   { title: 'Team Attendance',   icon: CalendarCheck,   href: '/team-lead/attendance' },
   { title: 'Team Leave',        icon: Calendar,        href: '/team-lead/leaves' },
   { title: 'Task Board',        icon: CheckSquare,     href: '/team-lead/task-board' },
-  { title: 'Performance Input', icon: Star,            href: '/team-lead/performance' },
+  { title: 'Performance Input', icon: Star,            locked: true },
 ];
 
 export function TeamLeadSidebar() {
@@ -130,9 +130,20 @@ export function TeamLeadSidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
+        {navItems.map((item: any) => {
           if (item.title === 'Tasks' && !showTasks) return null;
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+          if (item.locked) {
+            return (
+              <div key={item.title} title={collapsed ? item.title : undefined} className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 cursor-not-allowed ${collapsed ? 'justify-center' : ''}`}>
+                <div className="flex items-center gap-3">
+                  <item.icon className="w-4 h-4 flex-shrink-0 text-slate-300" />
+                  {!collapsed && item.title}
+                </div>
+                {!collapsed && <Lock className="w-3.5 h-3.5 text-slate-300" />}
+              </div>
+            );
+          }
+          const isActive = item.href && (pathname === item.href || pathname.startsWith(item.href + '/'));
           return (
             <Link
               key={item.title}

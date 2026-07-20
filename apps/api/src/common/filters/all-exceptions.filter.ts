@@ -29,8 +29,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
       message = responseData.message || exception.message;
       errorCode = responseData.error || exception.name;
     } else if (exception instanceof Error) {
-      message = exception.message;
       this.logger.error(exception.message, exception.stack);
+      
+      // Security & UX: Do not expose raw database errors or internal stack traces to the frontend
+      if (exception.message.includes('Can\'t reach database server')) {
+        message = 'Unable to connect to the database. Please ensure your VPN is connected.';
+      } else {
+        message = 'An unexpected internal server error occurred.';
+      }
     } else {
       this.logger.error('Unhandled exception', exception);
     }

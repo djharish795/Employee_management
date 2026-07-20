@@ -31,6 +31,13 @@ export class ProfileService {
     if (employee.user) {
       (employee.user as any).isTeamLead = isTeamLead;
       (employee.user as any).hasProjectAssignment = activeAssignments.length > 0;
+      
+      // Force dynamic TEAM_LEAD role based on actual project assignments
+      if (isTeamLead) {
+        employee.user.role = 'TEAM_LEAD' as any;
+      } else if (employee.user.role === 'TEAM_LEAD') {
+        employee.user.role = 'EMPLOYEE' as any;
+      }
     }
 
     // Decrypt sensitive fields for viewing (since only the owner can read their own profile in this endpoint)

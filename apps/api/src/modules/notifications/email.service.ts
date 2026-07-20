@@ -15,7 +15,10 @@ export class EmailService implements OnModuleInit {
     if (process.env.NODE_ENV === "development") {
       this.logger.log("Initializing Ethereal Email for development...");
       try {
-        const testAccount = await nodemailer.createTestAccount();
+        const testAccount = await Promise.race([
+          nodemailer.createTestAccount(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Ethereal email network timeout')), 5000))
+        ]) as nodemailer.TestAccount;
         this.transporter = nodemailer.createTransport({
           host: "smtp.ethereal.email",
           port: 587,

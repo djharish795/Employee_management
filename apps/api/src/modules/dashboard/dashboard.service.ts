@@ -384,7 +384,9 @@ export class DashboardService {
     const avgTenure = headcount > 0 ? Number((companyTotalTenure / headcount).toFixed(1)) : 0;
     const headcountGrowth = headcount > 0 ? Math.round((newJoinsThisMonth / headcount) * 100) : 0;
 
-    const assetsAllocated = await this.prisma.assetAssignment.count();
+    const assetsAllocated = await this.prisma.assetAssignment.count({
+      where: { returnedAt: null }
+    });
 
     const openJobs = await this.prisma.job.findMany({
       where: { status: 'OPEN' }
@@ -404,6 +406,7 @@ export class DashboardService {
     })).sort((a, b) => b.count - a.count);
 
     const recentAssetsRaw = await this.prisma.assetAssignment.findMany({
+      where: { returnedAt: null },
       orderBy: { assignedAt: 'desc' },
       take: 5,
       include: { employee: true, asset: true }

@@ -198,9 +198,10 @@ export class AssetRequestsController {
   @Permissions(Permission.READ_OWN_PROFILE)
   async findRequests(
     @CurrentUser() user: any,
-    @Query("status") status?: string
+    @Query("status") status?: string,
+    @Query("scope") scope?: string
   ) {
-    return this.assetsService.findRequests(user.role as UserRole, user.employeeId, status);
+    return this.assetsService.findRequests(user.role as UserRole, user.employeeId, status, scope);
   }
 
   @Post()

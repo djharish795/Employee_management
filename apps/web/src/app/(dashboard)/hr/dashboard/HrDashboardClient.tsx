@@ -108,12 +108,21 @@ export default function HrDashboardPage() {
   };
 
   const attendanceTotal = data?.headcount?.total || 1;
-  const vacantCount = data?.recruitment?.openPositions || 0;
-  const presentPct = data ? Math.round((data.attendance.present / attendanceTotal) * 100) || 0 : 0;
-  const wfhPct = data ? Math.round((data.attendance.wfh / attendanceTotal) * 100) || 0 : 0;
-  const onLeavePct = data ? Math.round((data.attendance.onLeave / attendanceTotal) * 100) || 0 : 0;
-  const notPunchedInPct = data ? Math.round((data.attendance.notPunchedIn / attendanceTotal) * 100) || 0 : 0;
-  const vacantPct = data ? Math.round((vacantCount / attendanceTotal) * 100) || 0 : 0;
+  const vacantCount = data ? ((data.headcount.total || 0) - (data.headcount.active || 0)) : 0;
+  
+  // Exact float values for rendering to avoid SVG gaps due to rounding
+  const presentFloat = data ? (data.attendance.present / attendanceTotal) * 100 : 0;
+  const wfhFloat = data ? (data.attendance.wfh / attendanceTotal) * 100 : 0;
+  const onLeaveFloat = data ? (data.attendance.onLeave / attendanceTotal) * 100 : 0;
+  const notPunchedInFloat = data ? (data.attendance.notPunchedIn / attendanceTotal) * 100 : 0;
+  const vacantFloat = data ? (vacantCount / attendanceTotal) * 100 : 0;
+
+  // Rounded values for display text
+  const presentPct = Math.round(presentFloat);
+  const wfhPct = Math.round(wfhFloat);
+  const onLeavePct = Math.round(onLeaveFloat);
+  const notPunchedInPct = Math.round(notPunchedInFloat);
+  const vacantPct = Math.round(vacantFloat);
 
   const [animPresent, setAnimPresent] = useState(0);
   const [animWfh, setAnimWfh] = useState(0);
@@ -133,14 +142,14 @@ export default function HrDashboardPage() {
 
     const timer = setTimeout(() => {
       setIsResetting(false);
-      setAnimPresent(presentPct);
-      setAnimWfh(wfhPct);
-      setAnimOnLeave(onLeavePct);
-      setAnimNotPunchedIn(notPunchedInPct);
-      setAnimVacant(vacantPct);
+      setAnimPresent(presentFloat);
+      setAnimWfh(wfhFloat);
+      setAnimOnLeave(onLeaveFloat);
+      setAnimNotPunchedIn(notPunchedInFloat);
+      setAnimVacant(vacantFloat);
     }, 50);
     return () => clearTimeout(timer);
-  }, [refreshKey, data, presentPct, wfhPct, onLeavePct, notPunchedInPct, vacantPct]);
+  }, [refreshKey, data, presentFloat, wfhFloat, onLeaveFloat, notPunchedInFloat, vacantFloat]);
 
   if (isLoading || !data) {
     return (

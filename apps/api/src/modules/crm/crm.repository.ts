@@ -75,7 +75,7 @@ export interface Requirement {
 
 @Injectable()
 export class CrmRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async findAllClients(): Promise<ClientLead[]> {
     return this.prisma.clientLead.findMany() as unknown as ClientLead[];
@@ -205,11 +205,11 @@ export class CrmRepository {
   async addClientRequirement(id: string, item: any): Promise<ClientLead | null> {
     const client = await this.prisma.clientLead.findUnique({ where: { id } });
     if (!client) return null;
-    
+
     let reqs = client.requirementsList as any[];
     if (!Array.isArray(reqs)) reqs = [];
     reqs.push(item);
-    
+
     return this.prisma.clientLead.update({
       where: { id },
       data: { requirementsList: reqs }

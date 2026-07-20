@@ -56,7 +56,7 @@ export class AuthService {
     let isTeamLead = false;
     if (user.employeeId) {
       const tlAssignment = await this.prisma.projectAssignment.findFirst({
-        where: { employeeId: user.employeeId, projectRole: 'TL' },
+        where: { employeeId: user.employeeId, projectRole: 'TL', releasedAt: null },
       });
       if (tlAssignment) isTeamLead = true;
     }
@@ -78,7 +78,7 @@ export class AuthService {
     const issued = await this.tokens.issueTokens({
       userId: user.id,
       email: user.email,
-      role: isTeamLead && user.role === 'EMPLOYEE' ? 'TEAM_LEAD' : (user.role as any),
+      role: isTeamLead ? 'TEAM_LEAD' : (user.role === 'TEAM_LEAD' ? 'EMPLOYEE' : (user.role as any)),
       employeeId: user.employeeId ?? undefined,
       ipAddress,
       userAgent,
@@ -181,7 +181,7 @@ export class AuthService {
     let isTeamLead = false;
     if (user.employeeId) {
       const tlAssignment = await this.prisma.projectAssignment.findFirst({
-        where: { employeeId: user.employeeId, projectRole: 'TL' },
+        where: { employeeId: user.employeeId, projectRole: 'TL', releasedAt: null },
       });
       if (tlAssignment) isTeamLead = true;
     }
@@ -189,7 +189,7 @@ export class AuthService {
     const issued = await this.tokens.issueTokens({
       userId: user.id,
       email: user.email,
-      role: isTeamLead && user.role === 'EMPLOYEE' ? 'TEAM_LEAD' : (user.role as any),
+      role: isTeamLead ? 'TEAM_LEAD' : (user.role === 'TEAM_LEAD' ? 'EMPLOYEE' : (user.role as any)),
       employeeId: user.employeeId ?? undefined,
     });
 

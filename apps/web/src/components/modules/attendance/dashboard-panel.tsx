@@ -32,7 +32,7 @@ const formatDecimalHoursToHMS = (hoursDecimal: number): string => {
 export default function DashboardPanel() {
   const { role } = usePermissions();
   const activeRole = role as any;
-  const isEmployeeView = ["EMPLOYEE", "CRM", "CEM", "OE", "OM"].includes(activeRole);
+  const isEmployeeView = true; // Always employee view for individual workspace
   const employeeId = useAuthStore((state) => state.employeeId);
   const queryClient = useQueryClient();
 

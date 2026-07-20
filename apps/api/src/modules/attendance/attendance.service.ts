@@ -666,22 +666,9 @@ export class AttendanceService {
       include: { department: true }
     });
 
-    // If user is CTO, filter to only direct and indirect reports
-    if (user && user.role === 'CTO' && user.employeeId) {
-      const orgEmployees = await this.prisma.employee.findMany({
-        where: { status: { notIn: ["EXITED", "CANCELLED", "ONBOARDING"] } },
-        select: { id: true, reportingManagerId: true }
-      });
-      
-      const getDescendants = (managerId: string): string[] => {
-        const direct = orgEmployees.filter(e => e.reportingManagerId === managerId).map(e => e.id);
-        const indirect = direct.flatMap(id => getDescendants(id));
-        return [...direct, ...indirect];
-      };
-      
-      const descendantIds = new Set(getDescendants(user.employeeId));
-      allEmployees = allEmployees.filter(e => descendantIds.has(e.id) || e.id === user.employeeId);
-    }
+    // If user is CTO, we allow them to see the full organization's attendance 
+    // to match the CTO dashboard's global overview.
+    // Filter was previously restricting them to direct reports only.
     
     // Only count ACTIVE employees for daily attendance metrics
     const employees = allEmployees.filter(e => e.status === 'ACTIVE');

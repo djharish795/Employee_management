@@ -11,14 +11,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   private readonly logger = new Logger(PrismaService.name);
 
   async onModuleInit() {
-    try {
-      await this.$connect();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.logger.warn(
-        `Database unreachable at startup (VPN or local Postgres required): ${message}`,
-      );
-    }
+    // We intentionally DO NOT call this.$connect() here.
+    // By relying on Prisma's lazy connection, we ensure that if the VPN is down during startup,
+    // Prisma won't enter a permanently failed state. It will simply try to connect when the first query is made.
+    this.logger.log('PrismaService initialized (lazy connection enabled).');
   }
 
   async onModuleDestroy() {

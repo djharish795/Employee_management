@@ -74,6 +74,24 @@ export default function EngineeringTeamPage() {
   const [isCompletingProject, setIsCompletingProject] = useState(false);
   const [signatureName, setSignatureName] = useState('');
 
+  // Custom Dropdown State
+  const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsProjectDropdownOpen(false);
+      }
+    }
+    if (isProjectDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isProjectDropdownOpen]);
+
   const fetchProjects = async () => {
     try {
       const res = await apiClient.get('/projects');
@@ -466,17 +484,45 @@ export default function EngineeringTeamPage() {
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">CTO Project Command Center</span>
                   <div className="flex items-center gap-2">
                     {projects.length > 0 ? (
-                      <select 
-                        className="bg-transparent text-xl font-bold text-slate-900 border-none focus:ring-0 p-0 cursor-pointer hover:text-slate-700 transition-colors max-w-[300px] truncate"
-                        value={selectedProjectId || ''}
-                        onChange={(e) => setSelectedProjectId(e.target.value)}
-                      >
-                        {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                      </select>
+                      <div className="relative" ref={dropdownRef}>
+                        <button 
+                          onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
+                          className="flex items-center gap-2 bg-transparent text-xl font-bold text-slate-900 hover:text-slate-700 transition-colors focus:outline-none"
+                        >
+                          <span className="max-w-[300px] truncate">
+                            {projects.find(p => p.id === selectedProjectId)?.name || 'Select Project'}
+                          </span>
+                          <ChevronRightIcon className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${isProjectDropdownOpen ? 'rotate-90' : ''}`} />
+                        </button>
+                        
+                        {isProjectDropdownOpen && (
+                          <div className="absolute top-[calc(100%+8px)] left-0 min-w-[280px] bg-white rounded-xl shadow-[0_12px_40px_-12px_rgba(0,0,0,0.2)] border border-slate-200/60 py-1.5 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                            {projects.map(p => (
+                              <button
+                                key={p.id}
+                                onClick={() => {
+                                  setSelectedProjectId(p.id);
+                                  setIsProjectDropdownOpen(false);
+                                }}
+                                className={`w-full text-left px-4 py-2.5 text-sm font-bold transition-all duration-200 flex items-center justify-between group ${
+                                  selectedProjectId === p.id 
+                                    ? 'bg-indigo-50 text-indigo-700' 
+                                    : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
+                                }`}
+                              >
+                                <span className="truncate group-hover:translate-x-1 transition-transform duration-200">{p.name}</span>
+                                {selectedProjectId === p.id && (
+                                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 shrink-0 shadow-[0_0_8px_rgba(79,70,229,0.5)]"></div>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       <span className="text-xl font-bold text-slate-400">No Projects Found</span>
                     )}
-                    <ChevronRightIcon className="w-5 h-5 text-slate-400" />
+                    {!projects.length && <ChevronRightIcon className="w-5 h-5 text-slate-400" />}
                     <Button variant="ghost" size="sm" onClick={() => setIsCreatingProject(true)} className="ml-2 text-slate-500 hover:text-slate-900">
                       <Plus className="w-4 h-4 mr-1" /> New Project
                     </Button>

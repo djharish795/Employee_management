@@ -32,7 +32,9 @@ export function Topbar() {
   const pathname = usePathname();
   const clearSession = useAuthStore((state) => state.clearSession);
   const accessToken = useAuthStore((state) => state.accessToken);
+  const setAuthSession = useAuthStore((state) => state.setAuthSession);
   const role = useAuthStore((state) => state.role);
+  const employeeId = useAuthStore((state) => state.employeeId);
   const photoUrl = useAuthStore((state) => state.photoUrl);
   const isTeamLead = useAuthStore((state) => state.isTeamLead);
 
@@ -41,26 +43,40 @@ export function Topbar() {
   const { data: profile } = useQuery({
     queryKey: ["myProfile"],
     queryFn: fetchMyProfile,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000, // 60s — short enough to pick up role changes (e.g. CTO removes TL assignment)
   });
 
   const lastKnownRef = useRef({ name: "User", role: "Employee", photoUrl: null as string | null });
 
+  const userProfile = profile?.data || profile;
+
+  // Sync live profile data back to auth store to fix stale isTeamLead/role values.
+  // This runs every time the profile is freshly fetched (e.g. after a CTO removes a TL assignment).
+  React.useEffect(() => {
+    if (!userProfile?.user) return;
+    const liveIsTeamLead: boolean = userProfile.user.isTeamLead ?? false;
+    const liveRole: string = userProfile.user.role ?? role ?? 'EMPLOYEE';
+    // Only update if something actually changed to avoid unnecessary re-renders
+    if (liveIsTeamLead !== isTeamLead || (liveRole !== role && liveRole !== 'TEAM_LEAD')) {
+      setAuthSession({ role: liveRole, employeeId: employeeId ?? null, isTeamLead: liveIsTeamLead });
+    }
+  }, [userProfile]);
+
   let userName = "User";
-  if (profile?.firstName) {
-    userName = `${profile.firstName} ${profile.lastName || ""}`.trim();
+  if (userProfile?.firstName) {
+    userName = `${userProfile.firstName} ${userProfile.lastName || ""}`.trim();
     lastKnownRef.current.name = userName;
   } else {
     userName = lastKnownRef.current.name;
   }
 
-  let displayRole = profile?.role || role || lastKnownRef.current.role;
+  let displayRole = userProfile?.user?.role || role || lastKnownRef.current.role;
   lastKnownRef.current.role = displayRole;
   if (displayRole === 'OM') displayRole = 'Operations Manager';
   else if (displayRole === 'OE') displayRole = 'Operations Executive';
   else if (displayRole === 'CRM') displayRole = 'CRM Executive';
   
-  const displayPhotoUrl = profile?.profilePicture || photoUrl || lastKnownRef.current.photoUrl;
+  const displayPhotoUrl = userProfile?.profilePicture || photoUrl || lastKnownRef.current.photoUrl;
   lastKnownRef.current.photoUrl = displayPhotoUrl;
 
   const handleLogout = () => {
@@ -368,6 +384,7 @@ export function Topbar() {
             {/* Hide text name on mobile, show only avatar */}
             <div className="hidden sm:flex text-right flex-col justify-center">
               <span className="text-sm font-bold text-slate-900 dark:text-white leading-tight">{isMounted ? userName : "User"}</span>
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 leading-none uppercase tracking-wide">{isMounted ? displayRole : "Employee"}</span>
             </div>
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-700 dark:text-slate-300 font-bold text-sm uppercase transition-colors">
               {displayPhotoUrl && isMounted ? (

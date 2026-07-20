@@ -77,6 +77,7 @@ export default function RequestsPanel() {
   const { isAdmin } = usePermissions();
   const canApprove = (isAdmin || activeRole === "CEO" || activeRole === "OM") && !isEmployee;
 
+  const [viewScope, setViewScope] = useState<"MY" | "ALL">(isEmployee ? "MY" : "ALL");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     description: "",
@@ -90,8 +91,8 @@ export default function RequestsPanel() {
   const [requestToFulfill, setRequestToFulfill] = useState<AssetRequest | null>(null);
 
   const { data: rawRequests = [], isLoading } = useQuery({
-    queryKey: ["assetRequests", isEmployee],
-    queryFn: () => assetsApi.listRequests(undefined, isEmployee ? 'my' : undefined),
+    queryKey: ["assetRequests", viewScope],
+    queryFn: () => assetsApi.listRequests(undefined, viewScope === 'MY' ? 'my' : undefined),
     staleTime: 30_000,
   });
 
@@ -175,10 +176,10 @@ export default function RequestsPanel() {
   return (
     <div className="space-y-5">
       {/* Header Bar */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-sm font-bold text-slate-900">
-            {isEmployee ? "My Requests" : "Asset Requests"}
+            {viewScope === "MY" ? "My Requests" : "Employee Requests"}
           </h2>
           {pendingCount > 0 && (
             <p className="text-xs font-semibold text-slate-500 mt-0.5">
@@ -186,15 +187,41 @@ export default function RequestsPanel() {
             </p>
           )}
         </div>
-        {(isEmployee || isHRUser) && (
-          <button
-            onClick={() => setShowForm((v) => !v)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            New Request
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-3">
+          {!isEmployeeLevelRole && (
+            <div className="flex bg-slate-100 p-1 rounded-lg">
+              <button
+                onClick={() => setViewScope("MY")}
+                className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${
+                  viewScope === "MY"
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+                }`}
+              >
+                My Requests
+              </button>
+              <button
+                onClick={() => setViewScope("ALL")}
+                className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${
+                  viewScope === "ALL"
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+                }`}
+              >
+                Employee Requests
+              </button>
+            </div>
+          )}
+          {(isEmployee || isHRUser || viewScope === "MY") && (
+            <button
+              onClick={() => setShowForm((v) => !v)}
+              className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              New Request
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Request Form */}

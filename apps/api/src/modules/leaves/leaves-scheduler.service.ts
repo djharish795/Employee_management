@@ -14,21 +14,20 @@ export class LeavesSchedulerService implements OnModuleInit {
   }
   async onModuleInit() {
     this.logger.log('Registering monthly leave accrual cron job in BullMQ');
-    try {
-      await this.leavesQueue.add('accrue-monthly', {}, {
-        repeat: {
-          pattern: '0 0 1 * *', // Every 1st of the month at midnight
-        },
-        jobId: 'accrue-monthly-job',
-      });
+    this.leavesQueue.add('accrue-monthly', {}, {
+      repeat: {
+        pattern: '0 0 1 * *', // Every 1st of the month at midnight
+      },
+      jobId: 'accrue-monthly-job',
+    }).then(() => {
       this.logger.log('Monthly leave accrual cron job registered successfully');
-    } catch (error: any) {
+    }).catch((error: any) => {
       // Log the error but do NOT crash the process — Redis may be temporarily
       // unavailable during startup. The job will be re-registered on next restart.
       this.logger.error(
         `Failed to register monthly leave accrual cron job: ${error.message}`,
         error.stack,
       );
-    }
+    });
   }
 }
