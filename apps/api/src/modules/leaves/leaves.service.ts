@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ApplyLeaveDto } from './dto/apply-leave.dto';
 import { WorkflowEngineService } from '../workflows/workflow-engine.service';
