@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -34,7 +35,7 @@ export function DashboardClient() {
     queryFn: async () => {
       const url = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${url}/dashboard/metrics`, {
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+        credentials: 'include',
       });
       if (!res.ok) throw new Error('Failed to fetch metrics');
       return res.json();
@@ -72,7 +73,7 @@ export function DashboardClient() {
     try {
       const url = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${url}/dashboard/export-report`, {
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+        credentials: 'include',
       });
       if (!res.ok) throw new Error("Failed to export report");
       
@@ -88,7 +89,7 @@ export function DashboardClient() {
       document.body.removeChild(a);
     } catch (e) {
       console.error("Export failed:", e);
-      alert("Failed to export report. Please try again later.");
+      toast.error("Failed to export report. Please try again later.");
     }
   };
 

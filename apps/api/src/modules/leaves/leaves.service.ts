@@ -92,18 +92,16 @@ export class LeavesService {
 
     const requests = await this.prisma.leaveRequest.findMany({
       where: {
-        status: { in: ['PENDING', 'APPROVED', 'REJECTED'] },
+        status: { in: ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'] },
         OR: [
           {
             approvalQueue: {
-              path: ['$[*].approverId'],
-              array_contains: approverId
+              array_contains: [{ approverId }]
             }
           },
           {
             approvalQueue: {
-              path: ['$[*].role'],
-              array_contains: role
+              array_contains: [{ role }]
             }
           }
         ]
@@ -116,27 +114,7 @@ export class LeavesService {
       if (!reqData.approvalQueue) return false;
       const queue = reqData.approvalQueue as unknown as any[];
 
-      const currentStep = queue[reqData.currentStep];
-      let isCurrentPending = false;
-      if (currentStep && currentStep.status === 'PENDING') {
-        if (currentStep.approverId) {
-          isCurrentPending = currentStep.approverId === approverId;
-        } else {
-          isCurrentPending = currentStep.role === role;
-        }
-      }
-
-      const hasActed = queue.some(step => {
-        if (step.status === 'APPROVED' || step.status === 'REJECTED') {
-          if (step.approverId) {
-            return step.approverId === approverId;
-          }
-          return step.role === role;
-        }
-        return false;
-      });
-
-      return isCurrentPending || hasActed;
+      return true;
     }).map(req => {
       const reqData = req as typeof req & { approvalQueue?: unknown, currentStep: number };
       const queue = reqData.approvalQueue as unknown as any[];
@@ -175,13 +153,19 @@ export class LeavesService {
         return employee.user.role;
       }
     }
-    const designTitle = employee.designation?.title || '';
-    if (['TR', 'TS', 'TL', 'QA', 'QE', 'HRE', 'CTO', 'CEO'].includes(designTitle)) return designTitle;
+    const designTitle = (employee.designation?.title || '').toUpperCase();
+    if (designTitle.includes('TRAINEE RESEARCHER') || designTitle === 'TR') return 'TR';
+    if (designTitle.includes('TEAM LEAD') || designTitle === 'TL') return 'TL';
+    if (designTitle.includes('OPERATIONS EXECUTIVE') || designTitle === 'OE') return 'OE';
+    if (designTitle.includes('CLIENT ACQUISITION MANAGER') || designTitle === 'CAM') return 'CAM';
+    if (designTitle.includes('CLIENT RELATIONSHIP MANAGER') || designTitle === 'CRM') return 'CRM';
+    if (designTitle.includes('HR EXECUTIVE') || designTitle === 'HRE') return 'HRE';
+    if (['QA', 'QE', 'TS'].some(t => designTitle.includes(t))) return designTitle;
 
     const deptCode = employee.department?.code || '';
     if (deptCode === 'HR') return 'HRE';
 
-    return 'EMPLOYEE';
+    return employee.user?.role || 'EMPLOYEE';
   }
 
   /**
@@ -238,12 +222,12 @@ export class LeavesService {
       // Fallback
       if (role === 'CTO') {
         queue.push({ role: 'CEO', status: 'PENDING' });
-      } else if (role !== 'CEO') {
+      } else if (role === 'TR') {
         const projectAssignment = await this.prisma.projectAssignment.findFirst({
           where: { employeeId: employee.id, releasedAt: null },
           include: { project: { include: { assignments: { where: { projectRole: 'TL', releasedAt: null } } } } }
         });
-
+        
         let teamLeadId = undefined;
         if (projectAssignment && projectAssignment.project.assignments.length > 0) {
           teamLeadId = projectAssignment.project.assignments[0].employeeId;
@@ -254,7 +238,38 @@ export class LeavesService {
         } else if (employee.reportingManagerId) {
           queue.push({ role: 'MANAGER', status: 'PENDING', approverId: employee.reportingManagerId });
         }
+        queue.push({ role: 'HRE', status: 'PENDING', approverId: employee.assignedHrId || undefined });
+      } else if (role === 'TL') {
+        if (employee.reportingManagerId) {
+          queue.push({ role: 'MANAGER', status: 'PENDING', approverId: employee.reportingManagerId });
+        }
+        queue.push({ role: 'HRE', status: 'PENDING', approverId: employee.assignedHrId || undefined });
+      } else if (role === 'CAM' || role === 'CRM') {
+        queue.push({ role: 'HRE', status: 'PENDING', approverId: employee.assignedHrId || undefined });
+        if (employee.reportingManagerId) {
+          queue.push({ role: 'MANAGER', status: 'PENDING', approverId: employee.reportingManagerId });
+        }
+      } else if (role === 'HRE') {
+        if (employee.reportingManagerId) {
+          queue.push({ role: 'MANAGER', status: 'PENDING', approverId: employee.reportingManagerId });
+        }
+      } else if (role !== 'CEO') {
+        // Includes OE and generic employees (Frontend/Backend devs, QA, etc.)
+        const projectAssignment = await this.prisma.projectAssignment.findFirst({
+          where: { employeeId: employee.id, releasedAt: null },
+          include: { project: { include: { assignments: { where: { projectRole: 'TL', releasedAt: null } } } } }
+        });
+        
+        let teamLeadId = undefined;
+        if (projectAssignment && projectAssignment.project.assignments.length > 0) {
+          teamLeadId = projectAssignment.project.assignments[0].employeeId;
+        }
 
+        if (teamLeadId && teamLeadId !== employee.id) {
+          queue.push({ role: 'TL', status: 'PENDING', approverId: teamLeadId });
+        } else if (employee.reportingManagerId) {
+          queue.push({ role: 'MANAGER', status: 'PENDING', approverId: employee.reportingManagerId });
+        }
         queue.push({ role: 'HRE', status: 'PENDING', approverId: employee.assignedHrId || undefined });
       }
 
@@ -710,6 +725,11 @@ export class LeavesService {
       if (!approver) throw new NotFoundException('Approver not found');
 
       const approverRole = this.getRoleForEmployee(approver);
+      
+      if (leave.employeeId === approverId && approverRole !== 'CEO') {
+        throw new ForbiddenException('Self-approval is strictly prohibited. Your manager must approve this request.');
+      }
+
       const leaveData = leave as typeof leave & { approvalQueue?: unknown, currentStep: number };
       const queue = leaveData.approvalQueue as unknown as ApprovalQueueItem[];
 
@@ -899,6 +919,11 @@ export class LeavesService {
     if (!approver) throw new NotFoundException('Approver not found');
 
     const approverRole = this.getRoleForEmployee(approver);
+
+    if (leave.employeeId === approverId && approverRole !== 'CEO') {
+      throw new ForbiddenException('Self-rejection is strictly prohibited. Your manager must review this request.');
+    }
+
     const leaveData = leave as typeof leave & { approvalQueue?: unknown, currentStep: number };
     const queue = leaveData.approvalQueue as unknown as ApprovalQueueItem[];
 
@@ -1024,7 +1049,12 @@ export class LeavesService {
     await this.prisma.$transaction(async (tx) => {
       await tx.leaveRequest.update({
         where: { id: leaveId },
-        data: { status: 'CANCELLED' }
+        data: { 
+          status: 'CANCELLED',
+          approvalQueue: Array.isArray(leave.approvalQueue) 
+            ? (leave.approvalQueue as any[]).map((q: any) => q.status === 'PENDING' ? { ...q, status: 'CANCELLED' } : q)
+            : leave.approvalQueue || []
+        }
       });
 
       const balance = await this.getLeaveBalance(tx, leave);
@@ -1212,19 +1242,19 @@ export class LeavesService {
       });
 
       const ids = new Set<string>();
+      ids.add(employeeId); // ALWAYS include the employee themselves
       hrSubordinates.forEach((emp: any) => ids.add(emp.id));
       projectMembers.forEach((pm: any) => ids.add(pm.employeeId));
 
       teamIds = Array.from(ids);
 
-      if (teamIds.length === 0) {
-        return [];
-      }
+      // We removed the 'if teamIds.length === 0 return []' check 
+      // because teamIds will at least have the employeeId.
     }
 
     return this.prisma.leaveRequest.findMany({
       where: {
-        status: 'APPROVED',
+        status: { in: ['APPROVED', 'PENDING'] },
         ...(teamIds ? { employeeId: { in: teamIds } } : {})
       },
       include: {

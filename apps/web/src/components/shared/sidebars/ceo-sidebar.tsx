@@ -29,6 +29,7 @@ const getNavGroups = (role: string, unreadCount: number, hasSettingsAccess: bool
           { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
           { title: 'Connect', icon: MessageSquare, href: '/connect' },
           { title: 'Org Chart', icon: Network, href: '/org-chart' },
+          { title: 'Reports', icon: BarChart3, href: '/ceo/reports' },
         ]
       },
       {

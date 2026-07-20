@@ -3,6 +3,7 @@
 import { usePermissions } from "@/hooks/use-permissions";
 import React, { useEffect, useState } from "react";
 import { Bell, Mail, Smartphone, Edit3, MessageSquare, Save, Loader2, X, Code, Eye } from "lucide-react";
+import DOMPurify from 'dompurify';
 import { SettingsRole } from "@/types/settings";
 import { apiClient } from "@/lib/api/client";
 import toast from "react-hot-toast";
@@ -224,7 +225,7 @@ export default function NotificationsPanel() {
                   <div className="w-full h-full p-8 overflow-y-auto bg-slate-100 flex items-start justify-center">
                     <div 
                       className="bg-white shadow-sm rounded border border-slate-200 w-full max-w-2xl min-h-[300px] p-6 text-sm"
-                      dangerouslySetInnerHTML={{__html: editingTemplate.bodyHtml}} 
+                      dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(editingTemplate.bodyHtml)}} 
                     />
                   </div>
                 )}

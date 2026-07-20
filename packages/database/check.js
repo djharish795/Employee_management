@@ -1,18 +1,11 @@
-const { Client } = require('pg');
-const client = new Client({ 
-  connectionString: 'postgresql://naprocs_admin:naprocsems.3689@naprocs-ems.cjga40iiqk8m.ap-south-1.rds.amazonaws.com:5432/naprocs-ems?sslmode=require',
-  ssl: { rejectUnauthorized: false }
-});
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
-async function run() {
-  try {
-    await client.connect();
-    const res = await client.query(`SELECT column_name FROM information_schema.columns WHERE table_name='attendance_records'`);
-    console.log("Cols:", res.rows.map(r => r.column_name).join(', '));
-  } catch (e) {
-    console.error(e);
-  } finally {
-    await client.end();
-  }
+async function main() {
+  const req = { user: { id: "cmr1mlmkt000p3y1wlqbz4zc6", employeeId: "cmresambe0000kk40dusenbvj", role: 'CEM' } }; // Mock req
+  
+  // Actually, we can just instantiate the controller/service to test, or we can use Axios to call the live API if it's running
+  // But wait, it's easier to use curl or axios to test the API directly!
 }
-run();
+
+main().catch(console.error).finally(() => prisma.$disconnect());

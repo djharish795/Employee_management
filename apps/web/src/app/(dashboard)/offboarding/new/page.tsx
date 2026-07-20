@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -114,7 +115,61 @@ export default function NewOffboardingPage() {
     }
   };
 
-  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, 5));
+  const validateStep = (stepToValidate: number): boolean => {
+    if (stepToValidate === 1) {
+      if (!formData.employeeId || !formData.resignationDate || !formData.lastWorkingDay || !formData.exitType) {
+        toast.error('Please fill all required (*) fields in Step 1 to proceed.');
+        return false;
+      }
+      if (new Date(formData.resignationDate) > new Date(formData.lastWorkingDay)) {
+        toast.error('Resignation Date cannot be after Last Working Day.');
+        return false;
+      }
+    } else if (stepToValidate === 2) {
+      if (!formData.accessRevocationDate) {
+        toast.error('Please fill all required (*) fields in Step 2 to proceed.');
+        return false;
+      }
+    } else if (stepToValidate === 3) {
+      if (!formData.ktAssignee || !formData.ktTargetDate || !formData.ktSignoffDate) {
+        toast.error('Please fill all required (*) fields in Step 3 to proceed.');
+        return false;
+      }
+      if (new Date(formData.ktTargetDate) > new Date(formData.ktSignoffDate)) {
+        toast.error('Target KT Completion Date cannot be after Target Manager Sign-off Date.');
+        return false;
+      }
+    } else if (stepToValidate === 4) {
+      if (!formData.ffExpectedDate) {
+        toast.error('Please fill all required (*) fields in Step 4 to proceed.');
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const nextStep = () => {
+    if (!validateStep(currentStep)) return;
+    setCurrentStep(prev => Math.min(prev + 1, 5));
+  };
+
+  const handleStepClick = (targetStep: number) => {
+    // If going backwards, always allow it
+    if (targetStep < currentStep) {
+      setCurrentStep(targetStep);
+      return;
+    }
+    
+    // If going forwards, validate all steps in between
+    for (let i = currentStep; i < targetStep; i++) {
+      if (!validateStep(i)) {
+        setCurrentStep(i); // Stop at the first invalid step
+        return;
+      }
+    }
+    
+    setCurrentStep(targetStep);
+  };
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
   const submitForm = async () => {
     setIsLoading(true);
@@ -134,11 +189,11 @@ export default function NewOffboardingPage() {
       };
 
       await apiClient.post("/lifecycle/offboarding", payload);
-      alert('Offboarding successfully initiated!');
+      toast.success('Offboarding successfully initiated!');
       router.push('/offboarding');
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.message || 'Failed to initiate offboarding. Please try again.');
+      toast.error(err.response?.data?.message || 'Failed to initiate offboarding. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -184,7 +239,7 @@ export default function NewOffboardingPage() {
                   {step.id !== 5 && (
                     <div className={`absolute left-[15px] top-[30px] bottom-[-24px] w-0.5 ${isCompleted ? 'bg-rose-500' : 'bg-slate-200'}`}></div>
                   )}
-                  <div className="flex items-center gap-3 relative z-10 bg-slate-50/50 group cursor-pointer" onClick={() => setCurrentStep(step.id)}>
+                  <div className={`flex items-center gap-3 relative z-10 bg-slate-50/50 group ${isCompleted || isActive ? 'cursor-pointer' : 'cursor-pointer hover:opacity-80'}`} onClick={() => handleStepClick(step.id)}>
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shadow-sm transition-colors ${circleClass}`}>
                       {isCompleted ? <CheckCircle2 className="w-4 h-4" /> : step.id}
                     </div>
@@ -314,7 +369,7 @@ export default function NewOffboardingPage() {
                   <hr className="border-slate-100" />
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Target Date for IT Access Revocation</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Target Date for IT Access Revocation *</label>
                     <input type="date" name="accessRevocationDate" value={formData.accessRevocationDate} onChange={handleInputChange} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-rose-700 focus:bg-white transition-colors text-slate-700" />
                   </div>
 
@@ -332,7 +387,7 @@ export default function NewOffboardingPage() {
                 <div className="p-6 space-y-6">
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Assign KT To (Colleague / Manager)</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Assign KT To (Colleague / Manager) *</label>
                     <select name="ktAssignee" value={formData.ktAssignee} onChange={handleInputChange} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-rose-700 focus:bg-white transition-colors text-slate-700">
                       <option value="">Search employee...</option>
                       {employees.map((emp) => {
@@ -348,11 +403,11 @@ export default function NewOffboardingPage() {
 
                   <div className="grid grid-cols-2 gap-5">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5">Target KT Completion Date</label>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">Target KT Completion Date *</label>
                       <input type="date" name="ktTargetDate" value={formData.ktTargetDate} onChange={handleInputChange} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-rose-700 focus:bg-white transition-colors text-slate-700" />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5">Target Manager Sign-off Date</label>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">Target Manager Sign-off Date *</label>
                       <input type="date" name="ktSignoffDate" value={formData.ktSignoffDate} onChange={handleInputChange} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-rose-700 focus:bg-white transition-colors text-slate-700" />
                     </div>
                   </div>
@@ -372,7 +427,7 @@ export default function NewOffboardingPage() {
 
                   <div className="grid grid-cols-2 gap-5">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5">Expected F&F Settlement Date</label>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">Expected F&F Settlement Date *</label>
                       <input type="date" name="ffExpectedDate" value={formData.ffExpectedDate} onChange={handleInputChange} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-rose-700 focus:bg-white transition-colors text-slate-700" />
                     </div>
                     <div>

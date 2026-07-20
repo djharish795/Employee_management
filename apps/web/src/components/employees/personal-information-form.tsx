@@ -1,3 +1,4 @@
+import toast from "react-hot-toast";
 import Image from "next/image";
 import React, { useState } from 'react';
 import { Camera, Loader2 } from 'lucide-react';
@@ -30,7 +31,7 @@ export function PersonalInformationForm({ onSave, initialData: incomingData, for
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`
+          /* credentials: 'include' handled */
         },
         body: JSON.stringify({ fileName: file.name, contentType: file.type })
       });
@@ -74,10 +75,10 @@ export function PersonalInformationForm({ onSave, initialData: incomingData, for
       await new Promise(resolve => setTimeout(resolve, 2000));
       setIsScanning(false);
       
-      alert("Photo scanned and uploaded successfully!");
+      toast.success("Photo scanned and uploaded successfully!");
     } catch (error: any) {
       console.error("[PhotoUpload] Error:", error?.message || error);
-      alert(`Photo upload failed: ${error?.message || "Unknown error"}`);
+      toast.error(`Photo upload failed: ${error?.message || "Unknown error"}`);
     } finally {
       setIsUploading(false);
     }

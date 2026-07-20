@@ -56,6 +56,7 @@ model Employee {
   bankIfsc                   String?
   bankName                   String?
   documents                  Json?
+  preferences                Json?
   paymentFrequency           String?
   paymentMode                String?
   aiChats                    AIChat[]
@@ -664,6 +665,8 @@ model AuditLog {
   resource    String
   resourceId  String
   userAgent   String?
+  hash        String?   @unique
+  previousHash String?
   actor       Employee? @relation(fields: [actorId], references: [id])
 
   @@index([resource, resourceId])
@@ -1803,6 +1806,7 @@ enum ReportType {
 enum ReportFormat {
   PDF
   XLSX
+  VDR_LINK
 }
 
 model ReportHistory {
@@ -1810,15 +1814,36 @@ model ReportHistory {
   name          String
   type          ReportType
   format        ReportFormat
-  s3Key         String
-  sizeBytes     Int
+  s3Key         String?
+  sizeBytes     Int?
   generatedById String?
   generatedAt   DateTime     @default(now())
 
+  // VDR Specific fields
+  secureToken   String?      @unique
+  expiresAt     DateTime?
+  isRevoked     Boolean      @default(false)
+  payloadUrl    String?      // Optional S3 key where the JSON payload for VDR is stored
+  
   generator Employee? @relation("ReportGenerator", fields: [generatedById], references: [id])
+  accessLogs ReportAccessLog[]
 
   @@index([generatedById])
   @@map("report_history")
+}
+
+model ReportAccessLog {
+  id            String       @id @default(cuid())
+  reportId      String
+  accessedByIp  String
+  userAgent     String
+  action        String       // e.g., VIEWED, PRINT_ATTEMPTED, COPY_ATTEMPTED
+  timestamp     DateTime     @default(now())
+
+  report        ReportHistory @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@map("report_access_log")
 }
 
 enum OnboardingStage {

@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, Settings2, Play, AlertCircle, Clock, Save, MoreHorizontal, History, Plus } from 'lucide-react';
@@ -52,7 +53,7 @@ export default function WorkflowsPage() {
       }
     } catch (err) {
       console.error("Failed to fetch workflow config", err);
-      alert("Failed to load workflow configuration.");
+      toast.error("Failed to load workflow configuration.");
     } finally {
       setIsLoading(false);
     }
@@ -66,10 +67,10 @@ export default function WorkflowsPage() {
         type: selectedType,
         steps: steps
       });
-      alert('Workflow configuration deployed successfully!');
+      toast.success('Workflow configuration deployed successfully!');
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.message || 'Failed to deploy workflow.');
+      toast.error(err.response?.data?.message || 'Failed to deploy workflow.');
     } finally {
       setIsSaving(false);
     }

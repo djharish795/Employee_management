@@ -16,7 +16,7 @@ export function ProjectTeamTab({ projectId }: ProjectTeamTabProps) {
   const fetchMembers = async () => {
     try {
       const res = await fetch(`/api/v1/projects/${projectId}`, {
-        headers: { "Authorization": `Bearer ${localStorage.getItem("token") || ""}` }
+        credentials: 'include'
       });
       if (res.ok) {
         const data = await res.json();
@@ -39,7 +39,7 @@ export function ProjectTeamTab({ projectId }: ProjectTeamTabProps) {
         method: 'POST',
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token") || ""}`
+          /* credentials: 'include' handled */
         },
         body: JSON.stringify({ employeeId })
       });
@@ -165,7 +165,7 @@ function AddProjectMemberModal({ projectId, onClose, onSuccess }: { projectId: s
     const fetchEmps = async () => {
       try {
         const res = await fetch("/api/v1/employees", {
-          headers: { "Authorization": `Bearer ${localStorage.getItem("token") || ""}` }
+          credentials: 'include'
         });
         if (res.ok) {
           const data = await res.json();
@@ -193,7 +193,7 @@ function AddProjectMemberModal({ projectId, onClose, onSuccess }: { projectId: s
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token") || ""}`
+          /* credentials: 'include' handled */
         },
         body: JSON.stringify({ employeeId: selectedEmployeeId, projectRole: role }),
       });

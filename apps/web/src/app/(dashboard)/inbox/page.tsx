@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Clock, ChevronRight, Inbox as InboxIcon } from 'lucide-react';
@@ -27,10 +28,10 @@ export default function InboxPage() {
     const notes = prompt(`Please enter notes for this ${action} (optional):`);
     try {
       await apiClient.post(`/hr/workflows/${id}/${action}`, { notes });
-      alert(`Workflow ${action}d successfully`);
+      toast.success(`Workflow ${action}d successfully`);
       fetchApprovals();
     } catch (e: any) {
-      alert(e.response?.data?.message || `Failed to ${action}`);
+      toast.error(e.response?.data?.message || `Failed to ${action}`);
     }
   };
 

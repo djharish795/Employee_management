@@ -27,7 +27,7 @@ export function EmploymentForm({ onSave, initialData = {}, formId }: EmploymentP
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
         const query = managerSearch ? `&search=${encodeURIComponent(managerSearch)}` : '';
-        const empRes = await fetch(`${apiUrl}/employees?page=1&limit=20&status=ACTIVE${query}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+        const empRes = await fetch(`${apiUrl}/employees?page=1&limit=20&status=ACTIVE${query}`, { credentials: 'include' });
         if (empRes.ok) {
           const empJson = await empRes.json();
           setManagers(empJson.data || []);
@@ -46,14 +46,14 @@ export function EmploymentForm({ onSave, initialData = {}, formId }: EmploymentP
         const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
         
         // Fetch departments
-        const deptRes = await fetch(`${apiUrl}/departments?page=1&limit=100`, { headers: { Authorization: `Bearer ${accessToken}` } });
+        const deptRes = await fetch(`${apiUrl}/departments?page=1&limit=100`, { credentials: 'include' });
         if (deptRes.ok) {
           const json = await deptRes.json();
           setDepartments(json.data || []);
         }
 
         // Fetch designations
-        const desigRes = await fetch(`${apiUrl}/departments/all-designations`, { headers: { Authorization: `Bearer ${accessToken}` } });
+        const desigRes = await fetch(`${apiUrl}/departments/all-designations`, { credentials: 'include' });
         if (desigRes.ok) {
           const desigJson = await desigRes.json();
           setDesignations(desigJson.data || []);

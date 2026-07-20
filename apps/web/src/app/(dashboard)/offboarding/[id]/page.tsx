@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -161,10 +162,10 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
           description: `Offboarding Asset Retrieval for ${data.name}` 
         }
       });
-      alert('Asset retrieval requested successfully!');
+      toast.success('Asset retrieval requested successfully!');
       refetchAssetRequests();
     } catch (err) {
-      alert('Failed to request asset retrieval.');
+      toast.error('Failed to request asset retrieval.');
     } finally {
       setIsRetrievalLoading(false);
     }
@@ -178,10 +179,10 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
     setIsCancelling(true);
     try {
       await apiClient.post(`/lifecycle/offboarding/${params.id}/cancel`, { reason });
-      alert('Offboarding successfully cancelled.');
+      toast.success('Offboarding successfully cancelled.');
       router.push('/offboarding');
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to cancel offboarding');
+      toast.error(err.response?.data?.message || 'Failed to cancel offboarding');
     } finally {
       setIsCancelling(false);
     }
@@ -226,9 +227,9 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
             if (confirmFinalize) {
               try {
                 await apiClient.post(`/lifecycle/offboarding/${params.id}/finalize`);
-                alert("Offboarding finalized successfully!");
+                toast.success("Offboarding finalized successfully!");
               } catch (err) {
-                alert("Failed to finalize offboarding.");
+                toast.error("Failed to finalize offboarding.");
               }
               fetchOffboardingDetail();
             }
@@ -239,7 +240,7 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
       fetchOffboardingDetail();
     } catch (err) {
       console.error(err);
-      alert('Failed to update checklist item');
+      toast.error('Failed to update checklist item');
     }
   };
 
@@ -254,7 +255,7 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
         await apiClient.patch(`/lifecycle/offboarding/${params.id}`, { exitInterviewDate: new Date(dateStr).toISOString() });
         fetchOffboardingDetail();
       } catch (err) {
-        alert("Failed to schedule interview. Please ensure valid date format.");
+        toast.error("Failed to schedule interview. Please ensure valid date format.");
       }
     } else {
       const feedback = prompt("Enter exit interview notes / feedback:");
@@ -262,10 +263,10 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
       
       try {
         await apiClient.post(`/lifecycle/offboarding/${params.id}/interview`, { feedback });
-        alert("Interview feedback recorded successfully!");
+        toast.success("Interview feedback recorded successfully!");
         fetchOffboardingDetail();
       } catch (err) {
-        alert("Failed to record interview feedback.");
+        toast.error("Failed to record interview feedback.");
       }
     }
   };
@@ -463,10 +464,10 @@ export default function OffboardingDetailPage({ params }: { params: { id: string
                     if (confirmFinalize) {
                       try {
                         await apiClient.post(`/lifecycle/offboarding/${params.id}/finalize`);
-                        alert("Offboarding finalized successfully!");
+                        toast.success("Offboarding finalized successfully!");
                         fetchOffboardingDetail();
                       } catch (err) {
-                        alert("Failed to finalize offboarding.");
+                        toast.error("Failed to finalize offboarding.");
                       }
                     }
                   }}

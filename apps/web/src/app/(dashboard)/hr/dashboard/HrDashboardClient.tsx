@@ -10,6 +10,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api/client";
 import { Loader2 } from "lucide-react";
@@ -60,52 +68,35 @@ export default function HrDashboardPage() {
     }
   };
 
-  const handleDownloadPDF = () => {
+  const [isVdrModalOpen, setIsVdrModalOpen] = useState(false);
+  const [vdrExpiry, setVdrExpiry] = useState<number>(24);
+  const [generatedVdrLink, setGeneratedVdrLink] = useState<string | null>(null);
+  const [isGeneratingVdr, setIsGeneratingVdr] = useState(false);
+
+  const handleGenerateVdr = async () => {
     if (!data) return;
-    const doc = new jsPDF();
-
-    // Add Title
-    doc.setFontSize(20);
-    doc.text("HR Overview Report", 14, 22);
-
-    // Add Date
-    doc.setFontSize(11);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
-
-    // Headcount Info
-    autoTable(doc, {
-      startY: 40,
-      head: [["Metric", "Value"]],
-      body: [
-        ["Total Headcount", data.headcount.total?.toString()],
-        ["New Joins (This Month)", data.headcount.newJoins?.toString()],
-        ["Present Today", data.attendance.present?.toString()],
-        ["On Leave (Planned)", data.attendance.onLeave?.toString()],
-        ["Absent", data.attendance.absent?.toString()],
-        ["Open Positions", data.recruitment?.openPositions?.toString() || "0"]
-      ],
-      theme: 'grid',
-      headStyles: { fillColor: [63, 131, 248] },
-    });
-
-    doc.save("HR_Overview_Report.pdf");
+    setIsGeneratingVdr(true);
+    setGeneratedVdrLink(null);
+    try {
+      const res = await apiClient.post('/reports/vdr/generate', {
+        payload: data,
+        expiresInHours: vdrExpiry
+      });
+      const token = res.data.token;
+      setGeneratedVdrLink(`${window.location.origin}/vdr/${token}`);
+      toast.success('Secure link generated successfully');
+    } catch (err: any) {
+      toast.error('Failed to generate secure link');
+    } finally {
+      setIsGeneratingVdr(false);
+    }
   };
 
-  const handleDownloadExcel = () => {
-    if (!data) return;
-    const reportData = [
-      { Metric: "Total Headcount", Value: data.headcount.total },
-      { Metric: "New Joins (This Month)", Value: data.headcount.newJoins },
-      { Metric: "Present Today", Value: data.attendance.present },
-      { Metric: "On Leave (Planned)", Value: data.attendance.onLeave },
-      { Metric: "Absent", Value: data.attendance.absent },
-      { Metric: "Open Positions", Value: data.recruitment?.openPositions || 0 }
-    ];
-
-    const worksheet = XLSX.utils.json_to_sheet(reportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "HR Overview");
-    XLSX.writeFile(workbook, "HR_Overview_Report.xlsx");
+  const handleCopyLink = () => {
+    if (generatedVdrLink) {
+      navigator.clipboard.writeText(generatedVdrLink);
+      toast.success('Link copied to clipboard');
+    }
   };
 
   const attendanceTotal = data?.headcount?.total || 1;
@@ -172,27 +163,65 @@ export default function HrDashboardPage() {
         </div>
         <div className="flex items-center gap-3">
           <CheckInButton />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-semibold rounded-md shadow-sm transition-colors focus:outline-none">
-                <Download className="w-4 h-4" />
-                Export Report
-                <ChevronDown className="w-3 h-3 ml-1" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 bg-white border-slate-200">
-              <DropdownMenuItem onClick={handleDownloadPDF} className="cursor-pointer py-2.5">
-                <FileText className="w-4 h-4 mr-2 text-red-500" />
-                <span className="font-medium">Download as PDF</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleDownloadExcel} className="cursor-pointer py-2.5">
-                <FileSpreadsheet className="w-4 h-4 mr-2 text-emerald-600" />
-                <span className="font-medium">Download as Excel</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <button 
+            onClick={() => {
+              setGeneratedVdrLink(null);
+              setIsVdrModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-md shadow-sm transition-colors focus:outline-none">
+            <Lock className="w-4 h-4" />
+            Generate Secure Link
+          </button>
         </div>
       </div>
+
+      <Dialog open={isVdrModalOpen} onOpenChange={setIsVdrModalOpen}>
+        <DialogContent className="sm:max-w-md bg-white">
+          <DialogHeader>
+            <DialogTitle>Generate Secure Report Link</DialogTitle>
+            <DialogDescription>
+              Create a heavily monitored Virtual Data Room (VDR) link. Standard downloads are disabled for data loss prevention (DLP).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {generatedVdrLink ? (
+              <div className="space-y-4">
+                <div className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-sm font-medium">
+                  Link successfully generated! It is protected with anti-copy, anti-print, and dynamic forensic watermarks.
+                </div>
+                <div className="flex gap-2">
+                  <input type="text" readOnly value={generatedVdrLink} className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 focus:outline-none" />
+                  <button onClick={handleCopyLink} className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded-lg shadow-sm">
+                    Copy Link
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Link Self-Destruct Timer</label>
+                  <select 
+                    value={vdrExpiry} 
+                    onChange={(e) => setVdrExpiry(Number(e.target.value))}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:bg-white transition-colors text-slate-700"
+                  >
+                    <option value={1}>1 Hour</option>
+                    <option value={24}>24 Hours</option>
+                    <option value={168}>7 Days</option>
+                  </select>
+                </div>
+                <button 
+                  onClick={handleGenerateVdr} 
+                  disabled={isGeneratingVdr}
+                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-lg shadow-sm transition-colors disabled:opacity-50"
+                >
+                  {isGeneratingVdr ? 'Generating...' : 'Generate Secure Link'}
+                </button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <PersonalAttendanceWidget />
 

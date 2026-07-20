@@ -682,10 +682,15 @@ export class AttendanceService {
     });
 
     // Get today's leave requests
+    const startOfToday = new Date(today);
+    startOfToday.setUTCHours(0, 0, 0, 0);
+    const endOfToday = new Date(today);
+    endOfToday.setUTCHours(23, 59, 59, 999);
+
     const todayLeaves = await this.prisma.leaveRequest.findMany({
       where: {
-        startDate: { lte: today },
-        endDate: { gte: today },
+        startDate: { lte: endOfToday },
+        endDate: { gte: startOfToday },
         status: "APPROVED"
       }
     });
@@ -789,7 +794,11 @@ export class AttendanceService {
     });
 
     const presentPercentage = totalEmployees > 0 ? Math.round((present / totalEmployees) * 100) : 0;
-    const notPunchedIn = Math.max(0, totalEmployees - present - onLeave);
+    
+    // Check if today is a weekend
+    const dayOfWeek = today.getDay(); // 0 is Sunday, 6 is Saturday
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    const notPunchedIn = isWeekend ? 0 : Math.max(0, totalEmployees - present - onLeave);
 
     // Trend Data (Last 6 months percentage) - we won't filter this by department for simplicity, 
     // or maybe we should. Let's filter if department is selected.
@@ -1208,11 +1217,16 @@ export class AttendanceService {
     const recordMap = new Map(todayRecords.map(r => [r.employeeId, r]));
 
     // 3. Get today's leaves for the team
+    const startOfToday = new Date(today);
+    startOfToday.setUTCHours(0, 0, 0, 0);
+    const endOfToday = new Date(today);
+    endOfToday.setUTCHours(23, 59, 59, 999);
+
     const todayLeaves = await this.prisma.leaveRequest.findMany({
       where: {
         employeeId: { in: teamIds },
-        startDate: { lte: today },
-        endDate: { gte: today },
+        startDate: { lte: endOfToday },
+        endDate: { gte: startOfToday },
         status: "APPROVED"
       }
     });

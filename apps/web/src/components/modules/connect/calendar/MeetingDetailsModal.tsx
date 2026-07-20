@@ -1,3 +1,4 @@
+import toast from "react-hot-toast";
 import React, { useState } from "react";
 import { X, Video, Clock, Users, Calendar as CalendarIcon, AlignLeft } from "lucide-react";
 import { MeetingWorkspace } from "../workspace/MeetingWorkspace";
@@ -107,7 +108,7 @@ export function MeetingDetailsModal({ isOpen, onClose, meeting }: MeetingDetails
           <div className="flex items-center gap-3">
             <button 
               onClick={() => {
-                alert("Reschedule logic will open booking wizard for " + meeting.title);
+                toast.error("Reschedule logic will open booking wizard for " + meeting.title);
                 onClose();
               }}
               className="flex-1 py-3 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-sm font-bold transition-all"
@@ -116,7 +117,7 @@ export function MeetingDetailsModal({ isOpen, onClose, meeting }: MeetingDetails
             </button>
             <button 
               onClick={() => {
-                alert("Cancel logic will trigger /api/v1/connect/" + meeting.id + "/reject");
+                toast.error("Cancel logic will trigger /api/v1/connect/" + meeting.id + "/reject");
                 onClose();
               }}
               className="flex-1 py-3 bg-white border border-red-100 text-red-600 hover:bg-red-50 rounded-xl text-sm font-bold transition-all"

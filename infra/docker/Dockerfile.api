@@ -1,0 +1,45 @@
+FROM node:20-alpine AS builder
+# Set working directory
+WORKDIR /app
+RUN apk add --no-cache libc6-compat openssl
+RUN npm install -g pnpm turbo
+
+COPY . .
+RUN turbo prune --scope=api --docker
+
+FROM node:20-alpine AS installer
+WORKDIR /app
+RUN apk add --no-cache libc6-compat openssl
+RUN npm install -g pnpm
+
+# First install dependencies
+COPY .gitignore .gitignore
+COPY --from=builder /app/out/json/ .
+COPY --from=builder /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
+RUN pnpm install --frozen-lockfile
+
+# Build the project and its dependencies
+COPY --from=builder /app/out/full/ .
+COPY turbo.json turbo.json
+RUN pnpm turbo run build --filter=api...
+
+# Generate Prisma Client (critical for NestJS)
+RUN cd packages/database && npx prisma generate
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+RUN apk add --no-cache openssl curl
+
+# Don't run production as root
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nestjs
+USER nestjs
+
+COPY --from=installer /app .
+
+EXPOSE 3001
+ENV PORT=3001
+ENV NODE_ENV=production
+
+# Start the NestJS API
+CMD ["node", "apps/api/dist/main"]

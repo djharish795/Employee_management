@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -266,7 +267,7 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
       if (filterMonth) result = result.filter(log => log.displayDate.includes(filterMonth));
 
       if (result.length === 0) {
-        alert("No records found to export");
+        toast.error("No records found to export");
         return;
       }
 
@@ -296,7 +297,7 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
       URL.revokeObjectURL(url);
     } catch (e) {
       console.error("Export failed", e);
-      alert("Failed to export logs");
+      toast.error("Failed to export logs");
     }
   };
 

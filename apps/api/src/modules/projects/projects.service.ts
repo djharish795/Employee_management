@@ -169,7 +169,6 @@ export class ProjectsService {
       }
     });
 
-    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
     await this.auditService.logUpdate({
       moduleName: 'Projects',
       entityId: projectId,
@@ -206,7 +205,6 @@ export class ProjectsService {
       }
     });
 
-    // TODO: Replace 'unknown' with authenticated userId once JWT is implemented
     await this.auditService.logUpdate({
       moduleName: 'Projects',
       entityId: projectId,

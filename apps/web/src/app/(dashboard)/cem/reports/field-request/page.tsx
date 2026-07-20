@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -125,7 +126,7 @@ export default function FieldWorkRequestPage() {
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
       if (file.size > 5 * 1024 * 1024) {
-        alert("File size exceeds 5MB limit.");
+        toast.error("File size exceeds 5MB limit.");
         return;
       }
       setFileName(file.name);
@@ -137,7 +138,7 @@ export default function FieldWorkRequestPage() {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (file.size > 5 * 1024 * 1024) {
-        alert("File size exceeds 5MB limit.");
+        toast.error("File size exceeds 5MB limit.");
         return;
       }
       setFileName(file.name);
@@ -152,7 +153,7 @@ export default function FieldWorkRequestPage() {
   const saveRequest = async (status: 'Submitted' | 'Draft') => {
     if (status === 'Submitted') {
       if (!formData.date || !formData.startTime || !formData.endTime || !formData.destination || !formData.purpose || !formData.description || !formData.transportation || !formData.returnTime || !formData.contact) {
-        alert("Please fill in all required fields marked with *");
+        toast.error("Please fill in all required fields marked with *");
         return null;
       }
     }
@@ -194,7 +195,7 @@ export default function FieldWorkRequestPage() {
       return responseId;
     } catch (error: any) {
       console.error("Failed to save field work request:", error);
-      alert(error?.response?.data?.message || "An error occurred while saving the request.");
+      toast.error(error?.response?.data?.message || "An error occurred while saving the request.");
       return null;
     } finally {
       setIsSubmitting(false);

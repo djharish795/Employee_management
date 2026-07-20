@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
@@ -67,7 +68,7 @@ export default function AddEmployeePage() {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`
+          /* credentials: 'include' handled */
         },
         body: JSON.stringify(payload)
       });
@@ -90,7 +91,7 @@ export default function AddEmployeePage() {
       }
     } catch (error: any) {
       console.error(error);
-      alert(`Error: ${error?.message || 'Validation failed or server error.'}`);
+      toast.error(`Error: ${error?.message || 'Validation failed or server error.'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -103,18 +104,18 @@ export default function AddEmployeePage() {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`
+          /* credentials: 'include' handled */
         },
         body: JSON.stringify({ draftId: id })
       });
 
       if (!res.ok) throw new Error("Failed to finalize employee");
       
-      alert('Employee Created Successfully!');
+      toast.success('Employee Created Successfully!');
       window.location.href = "/employees";
     } catch (error) {
       console.error(error);
-      alert("Failed to complete onboarding.");
+      toast.error("Failed to complete onboarding.");
     }
   };
 
@@ -174,7 +175,7 @@ export default function AddEmployeePage() {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`
+          /* credentials: 'include' handled */
         },
         body: JSON.stringify(payload)
       });
@@ -184,10 +185,10 @@ export default function AddEmployeePage() {
       const data = await res.json();
       if (data.draftId && !draftId) setDraftId(data.draftId);
       
-      alert("Draft saved successfully!");
+      toast.success("Draft saved successfully!");
     } catch (error) {
       console.error(error);
-      alert("Failed to save draft.");
+      toast.error("Failed to save draft.");
     } finally {
       setIsSubmitting(false);
     }

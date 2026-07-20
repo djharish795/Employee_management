@@ -1,8 +1,11 @@
 import { Module } from "@nestjs/common";
 import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from "@nestjs/core";
 import { PhaseGuard } from "./common/guards/phase.guard";
+import { HoneyTokenGuard } from "./common/guards/honey-token.guard";
+import { IpWhitelistGuard } from "./common/guards/ip-whitelist.guard";
+import { PiiMaskingInterceptor } from "./common/interceptors/pii-masking.interceptor";
 import { ConfigModule, ConfigService } from "@nestjs/config";
-import { ThrottlerModule } from "@nestjs/throttler";
+import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { ScheduleModule } from "@nestjs/schedule";
 import { BullModule } from "@nestjs/bullmq";
 import { RedisService } from "./redis/redis.service";
@@ -55,7 +58,7 @@ import { CemModule } from "./modules/cem/cem.module";
         throttlers: [
           {
             ttl: 60,
-            limit: 10,
+            limit: 100,
           },
         ],
       }),
@@ -123,7 +126,23 @@ import { CemModule } from "./modules/cem/cem.module";
     },
     {
       provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: IpWhitelistGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: HoneyTokenGuard,
+    },
+    {
+      provide: APP_GUARD,
       useClass: PhaseGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: PiiMaskingInterceptor,
     },
   ],
 })

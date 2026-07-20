@@ -24,7 +24,7 @@ export function CreateSpaceModal({ onClose, onProjectCreated }: CreateSpaceModal
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token") || ""}`
+          /* credentials: 'include' handled */
         },
         body: JSON.stringify({ name, description }),
       });

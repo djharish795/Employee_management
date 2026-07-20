@@ -1,6 +1,6 @@
 import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { PutObjectCommand, GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { createS3Client, generatePresignedDownloadUrl } from '../../common/utils/s3.util';
 import { v4 as uuidv4 } from 'uuid';
 import * as ExcelJS from 'exceljs';
@@ -104,9 +104,76 @@ export class ReportsService {
     });
 
     if (!report) throw new NotFoundException('Report not found');
+    if (!report.s3Key) throw new NotFoundException('Report does not have an S3 key');
 
     const url = await generatePresignedDownloadUrl(this.s3, this.bucketName, report.s3Key);
     return { url };
+  }
+
+  async generateVdr(payload: any, expiresInHours: number = 24, generatedById: string) {
+    const secureToken = uuidv4();
+    const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
+    const objectKey = `vdr-payloads/${secureToken}.json`;
+
+    const buffer = Buffer.from(JSON.stringify(payload));
+    await this.uploadBufferToS3(buffer, objectKey, 'application/json');
+
+    const report = await this.prisma.reportHistory.create({
+      data: {
+        name: 'HR Overview VDR',
+        type: 'HEADCOUNT',
+        format: 'VDR_LINK',
+        generatedById,
+        secureToken,
+        expiresAt,
+        payloadUrl: objectKey
+      },
+    });
+
+    return { token: secureToken, expiresAt };
+  }
+
+  async getVdr(token: string, ip: string, userAgent: string) {
+    const report = await this.prisma.reportHistory.findUnique({
+      where: { secureToken: token },
+    });
+
+    if (!report || report.isRevoked) {
+      throw new NotFoundException('Secure link is invalid, revoked, or expired.');
+    }
+
+    if (report.expiresAt && new Date() > report.expiresAt) {
+      throw new NotFoundException('Secure link has expired.');
+    }
+
+    // Log the access
+    await this.prisma.reportAccessLog.create({
+      data: {
+        reportId: report.id,
+        accessedByIp: ip,
+        userAgent: userAgent,
+        action: 'VIEWED',
+      }
+    });
+
+    if (!report.payloadUrl) {
+      throw new NotFoundException('Payload URL not found.');
+    }
+
+    // Fetch the JSON payload directly from S3
+    const command = new GetObjectCommand({
+      Bucket: this.bucketName,
+      Key: report.payloadUrl,
+    });
+    
+    try {
+      const response = await this.s3.send(command);
+      const strData = await response.Body?.transformToString();
+      const payload = JSON.parse(strData || '{}');
+      return { payload, reportInfo: { id: report.id, generatedAt: report.generatedAt } };
+    } catch (e) {
+      throw new InternalServerErrorException('Failed to retrieve VDR payload');
+    }
   }
 
   private async uploadBufferToS3(buffer: Buffer, key: string, contentType: string) {
@@ -217,6 +284,66 @@ export class ReportsService {
       revenueReports: { mrr: "$45,000", arr: "$540,000" },
       forecastReports: { totalFieldWork, pendingFieldWork },
     };
+  }
+
+  async getVdrAudits() {
+    const reports = await this.prisma.reportHistory.findMany({
+      where: { secureToken: { not: null } },
+      orderBy: { generatedAt: 'desc' },
+      include: {
+        generator: {
+          select: { firstName: true, lastName: true, employeeId: true }
+        },
+        _count: {
+          select: { accessLogs: true }
+        }
+      }
+    });
+
+    return reports.map(r => ({
+      id: r.id,
+      documentName: r.type,
+      generatedBy: r.generator ? `${r.generator.firstName} ${r.generator.lastName} (${r.generator.employeeId})` : 'System',
+      generatedAt: r.generatedAt,
+      status: r.expiresAt && new Date() > r.expiresAt ? 'EXPIRED' : 'ACTIVE',
+      accessCount: r._count.accessLogs,
+      token: r.secureToken,
+    }));
+  }
+
+  async getVdrAuditDetails(token: string) {
+    const report = await this.prisma.reportHistory.findUnique({
+      where: { secureToken: token },
+      include: {
+        accessLogs: {
+          orderBy: { timestamp: 'desc' },
+        }
+      }
+    });
+
+    if (!report) throw new NotFoundException('VDR not found');
+
+    return report.accessLogs.map(log => ({
+      id: log.id,
+      accessedAt: log.timestamp,
+      viewerName: 'Anonymous Network Client', // VDR links are public
+      viewerId: 'N/A',
+      ipAddress: log.accessedByIp,
+      userAgent: log.userAgent,
+      action: log.action,
+    }));
+  }
+
+  async revokeVdr(token: string) {
+    const report = await this.prisma.reportHistory.findUnique({ where: { secureToken: token } });
+    if (!report) throw new NotFoundException('VDR not found');
+
+    await this.prisma.reportHistory.update({
+      where: { secureToken: token },
+      data: { expiresAt: new Date() }
+    });
+
+    return { success: true };
   }
 }
 

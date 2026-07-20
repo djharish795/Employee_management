@@ -158,11 +158,23 @@ export class AuthService {
     }
 
     const refreshKey = `auth:refresh:${refreshToken}`;
-    const sessionData = await this.redis.getJson<{ userId: string; email: string; role: string }>(refreshKey);
+    
+    // B-05: Atomic fetch and delete to prevent token cloning via race conditions
+    const redisClient = this.redis.getClient();
+    const luaScript = `
+      local data = redis.call('GET', KEYS[1])
+      if data then
+        redis.call('DEL', KEYS[1])
+      end
+      return data
+    `;
+    const rawSession = await redisClient.eval(luaScript, 1, refreshKey);
 
-    if (!sessionData) {
+    if (!rawSession) {
       throw new UnauthorizedException("Invalid or expired refresh token.");
     }
+
+    const sessionData = JSON.parse(rawSession as string) as { userId: string; email: string; role: string };
 
     const user = await this.prisma.user.findUnique({
       where: { id: sessionData.userId },
@@ -175,7 +187,6 @@ export class AuthService {
     }
 
     // Revoke old token family (basic rotation)
-    await this.redis.del(refreshKey);
     await this.redis.del(`auth:session:${user.id}:${refreshToken}`);
 
     let isTeamLead = false;

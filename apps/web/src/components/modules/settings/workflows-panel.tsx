@@ -1,181 +1,107 @@
 "use client";
 
-import { usePermissions } from "@/hooks/use-permissions";
-import React, { useState, useEffect } from "react";
-import { Workflow, ArrowRight, FileCheck, Save, Plus, Trash2 } from "lucide-react";
-import { apiClient } from "@/lib/api/client";
-import toast from "react-hot-toast";
-
-interface Step {
-  approverRoleId: string;
-}
+import React from "react";
+import { Workflow, ArrowRight, UserCircle, Briefcase, Users, LayoutDashboard, ShieldCheck } from "lucide-react";
 
 export default function WorkflowsPanel() {
-  const { canManageSettings: canManage } = usePermissions();
-  
-  const [standardSteps, setStandardSteps] = useState<Step[]>([]);
-  const [emergencySteps, setEmergencySteps] = useState<Step[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    const fetchMatrix = async () => {
-      try {
-        const res = await apiClient.get("/settings/matrix");
-        const data = res.data || [];
-        
-        const standard = data
-          .filter((m: any) => m.requesterRoleId === "EMPLOYEE" && !m.isEmergency)
-          .sort((a: any, b: any) => a.stepOrder - b.stepOrder)
-          .map((m: any) => ({ approverRoleId: m.approverRoleId }));
-          
-        const emergency = data
-          .filter((m: any) => m.requesterRoleId === "EMPLOYEE" && m.isEmergency)
-          .sort((a: any, b: any) => a.stepOrder - b.stepOrder)
-          .map((m: any) => ({ approverRoleId: m.approverRoleId }));
-
-        setStandardSteps(standard.length > 0 ? standard : [{ approverRoleId: "TL" }, { approverRoleId: "MANAGER" }, { approverRoleId: "HRE" }]);
-        setEmergencySteps(emergency.length > 0 ? emergency : [{ approverRoleId: "CTO" }, { approverRoleId: "CEO" }]);
-      } catch (err) {
-        toast.error("Failed to load workflows.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchMatrix();
-  }, []);
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const matrixData = [
-        ...standardSteps.map((s, i) => ({ requesterRoleId: "EMPLOYEE", stepOrder: i + 1, approverRoleId: s.approverRoleId, isEmergency: false })),
-        ...emergencySteps.map((s, i) => ({ requesterRoleId: "EMPLOYEE", stepOrder: i + 1, approverRoleId: s.approverRoleId, isEmergency: true }))
-      ];
-      
-      await apiClient.put("/settings/matrix", matrixData);
-      toast.success("Workflows saved successfully!");
-    } catch (err) {
-      toast.error("Failed to save workflows.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const roleOptions = [
-    { value: "TL", label: "Team Lead" },
-    { value: "MANAGER", label: "Direct Manager" },
-    { value: "HRE", label: "HR" },
-    { value: "CTO", label: "CTO" },
-    { value: "CEO", label: "CEO" }
-  ];
-
-  const getRoleLabel = (value: string) => roleOptions.find(o => o.value === value)?.label || value;
-
-  const renderSteps = (steps: Step[], setSteps: React.Dispatch<React.SetStateAction<Step[]>>) => {
-    return (
-      <div className="flex flex-col md:flex-row items-center gap-4 bg-slate-50 p-6 rounded-xl border border-slate-100 flex-wrap">
-        <div className="flex flex-col items-center">
-          <div className="w-12 h-12 bg-white border border-slate-300 rounded-full flex items-center justify-center text-slate-600 shadow-sm z-10">
-            <FileCheck className="w-5 h-5" />
-          </div>
-          <div className="mt-2 text-xs font-bold text-slate-900">Employee</div>
-        </div>
-
-        {steps.map((step, idx) => (
-          <React.Fragment key={idx}>
-            <ArrowRight className="w-6 h-6 text-slate-300 hidden md:block" />
-            <div className="w-0.5 h-6 bg-slate-300 md:hidden"></div>
-            
-            <div className="flex flex-col items-center relative group">
-              <div className="w-12 h-12 bg-teal-50 border-2 border-teal-500 text-teal-600 rounded-full flex items-center justify-center shadow-sm z-10">
-                {idx + 1}
-              </div>
-              <div className="mt-2 text-xs font-bold text-slate-900">
-                {canManage ? (
-                  <select 
-                    value={step.approverRoleId}
-                    onChange={(e) => {
-                      const newSteps = [...steps];
-                      newSteps[idx].approverRoleId = e.target.value;
-                      setSteps(newSteps);
-                    }}
-                    className="bg-white border border-slate-200 rounded px-1 text-xs"
-                  >
-                    {roleOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                ) : (
-                  getRoleLabel(step.approverRoleId)
-                )}
-              </div>
-              {canManage && (
-                <button 
-                  onClick={() => setSteps(steps.filter((_, i) => i !== idx))}
-                  className="absolute -top-2 -right-2 bg-rose-100 text-rose-600 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-          </React.Fragment>
-        ))}
-
-        {canManage && (
-          <React.Fragment>
-            <ArrowRight className="w-6 h-6 text-slate-300 hidden md:block" />
-            <div className="w-0.5 h-6 bg-slate-300 md:hidden"></div>
-            <button 
-              onClick={() => setSteps([...steps, { approverRoleId: "HRE" }])}
-              className="w-10 h-10 bg-white border border-dashed border-slate-300 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 hover:border-slate-400 shadow-sm z-10"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
-          </React.Fragment>
-        )}
-      </div>
-    );
-  };
-
-  if (loading) return <div>Loading workflows...</div>;
-
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-        <div>
-          <h2 className="text-sm font-bold text-slate-900">Workflow Configurations</h2>
-          <p className="text-xs font-semibold text-slate-500">Design dynamic approval chains (Workflow Engine).</p>
-        </div>
-        {canManage && (
-          <button 
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors disabled:opacity-50"
-          >
-            <Save className="w-4 h-4" /> {saving ? "Saving..." : "Save Workflows"}
-          </button>
-        )}
+      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <h2 className="text-lg font-bold text-slate-900 mb-1">Dynamic Leave Routing Matrix</h2>
+        <p className="text-sm font-medium text-slate-500 max-w-2xl">
+          The system automatically routes leave requests based on the employee's designation and active project assignments. These complex rules are natively enforced by the workflow engine.
+        </p>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
-          <Workflow className="w-4 h-4 text-teal-600" />
-          <h3 className="text-sm font-bold text-slate-900">Standard Leave Routing</h3>
+      <div className="grid grid-cols-1 gap-4">
+        {/* TR Route */}
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 flex flex-col md:flex-row items-center gap-6">
+          <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
+            <UserCircle className="w-6 h-6" />
+          </div>
+          <div className="flex-1 w-full text-center md:text-left">
+            <h3 className="text-[15px] font-bold text-slate-900 mb-1">TR (Trainee Researcher)</h3>
+            <p className="text-xs font-medium text-slate-500 mb-4 md:mb-0">Routes depending on project assignment.</p>
+          </div>
+          <div className="flex flex-col gap-3 w-full md:w-auto">
+            <div className="flex items-center gap-3 bg-slate-50 p-2.5 rounded-lg border border-slate-100 w-full justify-center">
+              <span className="text-xs font-semibold text-slate-500 w-20 text-right">If Assigned:</span>
+              <span className="text-xs font-bold text-slate-900 bg-white px-3 py-1 rounded shadow-sm border border-slate-200">TL</span>
+              <ArrowRight className="w-3 h-3 text-slate-400" />
+              <span className="text-xs font-bold text-slate-900 bg-white px-3 py-1 rounded shadow-sm border border-slate-200">HRE</span>
+            </div>
+            <div className="flex items-center gap-3 bg-slate-50 p-2.5 rounded-lg border border-slate-100 w-full justify-center">
+              <span className="text-xs font-semibold text-slate-500 w-20 text-right">Unassigned:</span>
+              <span className="text-xs font-bold text-slate-900 bg-white px-3 py-1 rounded shadow-sm border border-slate-200">Manager (OM)</span>
+              <ArrowRight className="w-3 h-3 text-slate-400" />
+              <span className="text-xs font-bold text-slate-900 bg-white px-3 py-1 rounded shadow-sm border border-slate-200">HRE</span>
+            </div>
+          </div>
         </div>
-        <div className="p-6">
-          {renderSteps(standardSteps, setStandardSteps)}
-        </div>
-      </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mt-6">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
-          <Workflow className="w-4 h-4 text-rose-600" />
-          <h3 className="text-sm font-bold text-slate-900">Emergency Leave Routing</h3>
+        {/* TL Route */}
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 flex flex-col md:flex-row items-center gap-6">
+          <div className="w-12 h-12 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center shrink-0">
+            <Users className="w-6 h-6" />
+          </div>
+          <div className="flex-1 w-full text-center md:text-left">
+            <h3 className="text-[15px] font-bold text-slate-900 mb-1">TL (Team Lead)</h3>
+            <p className="text-xs font-medium text-slate-500">Standard team lead escalation.</p>
+          </div>
+          <div className="flex items-center justify-center gap-3 bg-slate-50 p-3 rounded-lg border border-slate-100 w-full md:w-auto">
+            <span className="text-xs font-bold text-slate-900 bg-white px-4 py-1.5 rounded shadow-sm border border-slate-200">Manager (OM)</span>
+            <ArrowRight className="w-4 h-4 text-slate-400" />
+            <span className="text-xs font-bold text-slate-900 bg-white px-4 py-1.5 rounded shadow-sm border border-slate-200">HRE</span>
+          </div>
         </div>
-        <div className="p-6">
-          {renderSteps(emergencySteps, setEmergencySteps)}
+
+        {/* OE Route */}
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 flex flex-col md:flex-row items-center gap-6">
+          <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center shrink-0">
+            <Briefcase className="w-6 h-6" />
+          </div>
+          <div className="flex-1 w-full text-center md:text-left">
+            <h3 className="text-[15px] font-bold text-slate-900 mb-1">OE (Operations Executive)</h3>
+            <p className="text-xs font-medium text-slate-500">Routes to CRM or CAM based on manager assignment.</p>
+          </div>
+          <div className="flex items-center justify-center gap-3 bg-slate-50 p-3 rounded-lg border border-slate-100 w-full md:w-auto">
+            <span className="text-xs font-bold text-slate-900 bg-white px-4 py-1.5 rounded shadow-sm border border-slate-200 flex flex-col items-center"><span>Direct Manager</span><span className="text-[10px] text-slate-400">(CRM / CAM)</span></span>
+            <ArrowRight className="w-4 h-4 text-slate-400" />
+            <span className="text-xs font-bold text-slate-900 bg-white px-4 py-1.5 rounded shadow-sm border border-slate-200">HRE</span>
+          </div>
         </div>
+
+        {/* CRM / CAM Route */}
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 flex flex-col md:flex-row items-center gap-6">
+          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
+            <LayoutDashboard className="w-6 h-6" />
+          </div>
+          <div className="flex-1 w-full text-center md:text-left">
+            <h3 className="text-[15px] font-bold text-slate-900 mb-1">CRM & CAM</h3>
+            <p className="text-xs font-medium text-slate-500">Client relationship and acquisition managers.</p>
+          </div>
+          <div className="flex items-center justify-center gap-3 bg-slate-50 p-3 rounded-lg border border-slate-100 w-full md:w-auto">
+            <span className="text-xs font-bold text-slate-900 bg-white px-4 py-1.5 rounded shadow-sm border border-slate-200">HRE</span>
+            <ArrowRight className="w-4 h-4 text-slate-400" />
+            <span className="text-xs font-bold text-slate-900 bg-white px-4 py-1.5 rounded shadow-sm border border-slate-200">Manager (OM)</span>
+          </div>
+        </div>
+
+        {/* HRE Route */}
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 flex flex-col md:flex-row items-center gap-6">
+          <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-6 h-6" />
+          </div>
+          <div className="flex-1 w-full text-center md:text-left">
+            <h3 className="text-[15px] font-bold text-slate-900 mb-1">HRE (HR Executive)</h3>
+            <p className="text-xs font-medium text-slate-500">HR team escalation.</p>
+          </div>
+          <div className="flex items-center justify-center gap-3 bg-slate-50 p-3 rounded-lg border border-slate-100 w-full md:w-auto">
+            <span className="text-xs font-bold text-slate-900 bg-white px-4 py-1.5 rounded shadow-sm border border-slate-200">Manager (OM)</span>
+          </div>
+        </div>
+        
       </div>
-      
     </div>
   );
 }

@@ -354,7 +354,9 @@ export function Topbar() {
                             {notif.message || notif.title}
                           </p>
                           <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1.5">
-                            {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
+                            {notif.createdAt && !isNaN(new Date(notif.createdAt).getTime()) 
+                              ? formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true }) 
+                              : "Just now"}
                             {!notif.isRead && (
                               <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
                             )}

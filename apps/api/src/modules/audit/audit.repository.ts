@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
+import * as crypto from "crypto";
 
 export interface CreateAuditLogData {
   action: string;
@@ -20,6 +21,23 @@ export class AuditRepository {
 
   async create(data: CreateAuditLogData) {
     const actorId = data.actorId === "SYSTEM" || data.actorId === "unknown" ? undefined : data.actorId;
+    
+    const lastLog = await this.prisma.auditLog.findFirst({
+      orderBy: { performedAt: 'desc' }
+    });
+    const previousHash = (lastLog as any)?.hash || "GENESIS_HASH";
+    
+    const payloadString = JSON.stringify({
+      action: data.action,
+      actorId,
+      resource: data.resource,
+      resourceId: data.resourceId || "N/A",
+      newValue: data.newValue,
+      oldValue: data.oldValue
+    });
+    
+    const hash = crypto.createHash('sha256').update(previousHash + payloadString).digest('hex');
+
     return this.prisma.auditLog.create({
       data: {
         action: data.action,
@@ -32,7 +50,9 @@ export class AuditRepository {
         resource: data.resource,
         resourceId: data.resourceId || "N/A",
         userAgent: data.userAgent,
-      },
+        hash,
+        previousHash,
+      } as any,
     });
   }
 

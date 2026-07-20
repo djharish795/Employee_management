@@ -79,8 +79,8 @@ export class EmployeesController {
 
   @Get()
   @Permissions(Permission.READ_EMPLOYEES, Permission.READ_TEAM_PROFILES)
-  getEmployees(@Query() params: EmployeeFilterDto): Promise<PaginatedResult<EmployeeResponseDto>> {
-    return this.employeesService.getEmployees(params);
+  getEmployees(@Query() params: EmployeeFilterDto, @CurrentUser() user: any): Promise<PaginatedResult<EmployeeResponseDto>> {
+    return this.employeesService.getEmployees(params, user);
   }
 
   @Get("cto-team")

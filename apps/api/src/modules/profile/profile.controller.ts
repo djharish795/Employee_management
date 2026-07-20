@@ -33,6 +33,6 @@ export class ProfileController {
   @Post('change-password')
   @Permissions(Permission.WRITE_OWN_PROFILE)
   changePassword(@CurrentUser() user: any, @Body() dto: ChangePasswordDto) {
-    return this.profileService.changePassword(user.employeeId, dto);
+    return this.profileService.changePassword(user.userId, dto);
   }
 }

@@ -260,10 +260,20 @@ export class EmployeesService {
     return employee;
   }
 
-  async getEmployees(params: EmployeeFilterDto): Promise<PaginatedResult<Employee>> {
+  async getEmployees(params: EmployeeFilterDto, currentUser?: any): Promise<PaginatedResult<Employee>> {
     const { skip, take, page, limit } = getPaginationOptions(params);
 
     const whereClause: any = {};
+
+    // IDOR protection (B-03): If currentUser doesn't have global read, scope to their team
+    if (currentUser && currentUser.role) {
+      const hasGlobal = this.rbacService.hasPermission(currentUser.role, [Permission.READ_EMPLOYEES]);
+      const hasTeam = this.rbacService.hasPermission(currentUser.role, [Permission.READ_TEAM_PROFILES]);
+      
+      if (!hasGlobal && hasTeam) {
+        whereClause.reportingManagerId = currentUser.employeeId;
+      }
+    }
 
     if (params.search) {
       whereClause.OR = [
@@ -375,12 +385,17 @@ export class EmployeesService {
       if (!hasGlobal) {
         if (hasOwn && currentUser.employeeId === id) {
           // OK
-        } else if (hasTeam) {
-          // OK - Manager can view any profile from the directory
+        } else if (hasTeam && employee.reportingManagerId === currentUser.employeeId) {
+          // OK - Manager can view their direct subordinate
         } else {
           throw new ForbiddenException("You do not have permission to view this employee profile.");
         }
       }
+    }
+
+    // F-03: Strip sensitive data if requestor is only a Manager (not owner or HR)
+    if (currentUser && currentUser.employeeId !== id && !['HR', 'SUPER_ADMIN', 'CHRO', 'CEO'].includes(currentUser.role)) {
+      delete (employee as any).identityDocuments;
     }
 
     if (employee.photoUrl && !employee.photoUrl.startsWith("http")) {
@@ -577,6 +592,16 @@ export class EmployeesService {
   }
 
   async updateEmployee(id: string, dto: UpdateEmployeeDto, currentUser?: any): Promise<Employee> {
+    // Prevent mass assignment for self-updates (B-02)
+    if (currentUser && currentUser.employeeId === id && !['HR', 'SUPER_ADMIN', 'CHRO', 'CEO'].includes(currentUser.role)) {
+      delete (dto as any).departmentId;
+      delete (dto as any).reportingManagerId;
+      delete (dto as any).status;
+      delete (dto as any).designationId;
+      delete (dto as any).dateOfJoining;
+      delete (dto as any).officialEmail;
+    }
+
     // Verify the employee exists (also validates read access if we pass currentUser)
     const employee = await this.getEmployeeById(id, currentUser);
 

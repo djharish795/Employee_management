@@ -4,72 +4,53 @@ import React, { useState } from 'react';
 import { Search, ChevronRight, ShieldCheck, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth';
+import { apiClient } from '@/lib/api/client';
 import { AddConsentModal } from '@/components/modules/compliance/add-consent-modal';
 import { Trash2 } from 'lucide-react';
 import Image from "next/image";
 
 export default function ComplianceDashboardPage() {
   const [isAddConsentOpen, setIsAddConsentOpen] = useState(false);
-  const accessToken = useAuthStore((state) => state.accessToken);
   const queryClient = useQueryClient();
-
-  const getHeaders = () => ({
-    Authorization: `Bearer ${accessToken}`,
-    "Content-Type": "application/json"
-  });
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
 
   // Queries
   const { data: dashboardStats } = useQuery({
-    queryKey: ['compliance-dashboard', accessToken],
+    queryKey: ['compliance-dashboard'],
     queryFn: async () => {
-      const res = await fetch(`${apiUrl}/compliance/dashboard`, { headers: getHeaders() });
-      if (!res.ok) throw new Error("Failed to fetch");
-      return res.json();
+      const res = await apiClient.get('/compliance/dashboard');
+      return res.data;
     },
-    enabled: !!accessToken
   });
 
   const { data: consentLogs = [] } = useQuery({
-    queryKey: ['compliance-consents', accessToken],
+    queryKey: ['compliance-consents'],
     queryFn: async () => {
-      const res = await fetch(`${apiUrl}/compliance/consents`, { headers: getHeaders() });
-      if (!res.ok) throw new Error("Failed to fetch");
-      return res.json();
+      const res = await apiClient.get('/compliance/consents');
+      return res.data;
     },
-    enabled: !!accessToken
   });
 
   const { data: erasureRequests = [] } = useQuery({
-    queryKey: ['compliance-erasures', accessToken],
+    queryKey: ['compliance-erasures'],
     queryFn: async () => {
-      const res = await fetch(`${apiUrl}/compliance/erasures`, { headers: getHeaders() });
-      if (!res.ok) throw new Error("Failed to fetch");
-      return res.json();
+      const res = await apiClient.get('/compliance/erasures');
+      return res.data;
     },
-    enabled: !!accessToken
   });
 
   const { data: grievanceCases = [] } = useQuery({
-    queryKey: ['compliance-grievances', accessToken],
+    queryKey: ['compliance-grievances'],
     queryFn: async () => {
-      const res = await fetch(`${apiUrl}/compliance/grievances`, { headers: getHeaders() });
-      if (!res.ok) throw new Error("Failed to fetch");
-      return res.json();
+      const res = await apiClient.get('/compliance/grievances');
+      return res.data;
     },
-    enabled: !!accessToken
   });
 
   // Mutations
   const processErasureMutation = useMutation({
     mutationFn: async ({ id, action }: { id: string, action: "APPROVE" | "REJECT" }) => {
-      const res = await fetch(`${apiUrl}/compliance/erasures/${id}/process`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify({ action })
-      });
-      if (!res.ok) throw new Error("Failed to process request");
-      return res.json();
+      const res = await apiClient.post(`/compliance/erasures/${id}/process`, { action });
+      return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['compliance-erasures'] });
@@ -88,12 +69,8 @@ export default function ComplianceDashboardPage() {
 
   const revokeConsentMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`${apiUrl}/compliance/consents/${id}/revoke`, {
-        method: 'PATCH',
-        headers: getHeaders()
-      });
-      if (!res.ok) throw new Error("Failed to revoke consent");
-      return res.json();
+      const res = await apiClient.patch(`/compliance/consents/${id}/revoke`);
+      return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['compliance-consents'] });

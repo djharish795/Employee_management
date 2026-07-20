@@ -23,7 +23,6 @@ export default function EmployeeProfilePage() {
     queryFn: async () => {
       try {
         const { data: empData } = await apiClient.get(`/employees/${id}`);
-        console.log("Fetched Employee Data:", empData);
 
         const emp: Employee = {
           id: empData.id,

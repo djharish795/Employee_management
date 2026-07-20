@@ -93,14 +93,21 @@ export class DocumentsService {
     if (user) {
       const isGlobalReader = RbacGroups.HR_OR_SUPER_ADMIN.includes(user.role as any) || user.role === 'CRM' || user.role === 'CEM';
       if (!isGlobalReader) {
-        // Enforce IDOR check: Verify the objectKey exists somewhere in this user's profile
-        const employee = await this.prisma.employee.findUnique({ where: { id: user.employeeId } });
-        if (!employee) throw new ForbiddenException("Employee not found");
-        
-        const profileStr = JSON.stringify(employee);
-        if (!profileStr.includes(objectKey)) {
-          // It might be in their assignments or requests
-          throw new ForbiddenException("You are not authorized to view this document");
+        // Check if the document belongs to a published knowledge base article
+        const isKnowledgeDoc = await this.prisma.knowledgeDoc.findFirst({
+          where: { content: objectKey, isPublished: true }
+        });
+
+        if (!isKnowledgeDoc) {
+          // Enforce IDOR check: Verify the objectKey exists somewhere in this user's profile
+          const employee = await this.prisma.employee.findUnique({ where: { id: user.employeeId } });
+          if (!employee) throw new ForbiddenException("Employee not found");
+          
+          const profileStr = JSON.stringify(employee);
+          if (!profileStr.includes(objectKey)) {
+            // It might be in their assignments or requests
+            throw new ForbiddenException("You are not authorized to view this document");
+          }
         }
       }
     }

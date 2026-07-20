@@ -5,10 +5,12 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
 import { RbacPermissions } from '../../common/rbac/rbac.config';
 
+import { RbacGuard } from '../../common/guards/rbac.guard';
+
 @Controller('search')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RbacGuard)
 export class SearchController {
-  constructor(private readonly searchService: SearchService) {}
+  constructor(private readonly searchService: SearchService) { }
 
   @RequirePermissions(RbacPermissions.DASHBOARD_VIEW)
   @Get()

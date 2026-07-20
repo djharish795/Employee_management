@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, BookOpen, MoreHorizontal, Edit, AlertCircle, FileText } from 'lucide-react';
@@ -167,7 +168,7 @@ export default function KnowledgeBasePage() {
       await knowledgeApi.delete(id);
       fetchDocs(); // Refresh the list
     } catch (e: any) {
-      alert(e?.response?.data?.message || e.message || "Failed to delete document");
+      toast.error(e?.response?.data?.message || e.message || "Failed to delete document");
     }
   };
 
@@ -286,7 +287,7 @@ export default function KnowledgeBasePage() {
                     <tr key={doc.id} className="hover:bg-slate-50/50 transition-colors group">
                       <td className="px-6 py-4 font-bold text-slate-900">{doc.title}</td>
                       <td className="px-6 py-4">
-                        <span className="px-2.5 py-1 text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-100 rounded-md">
+                        <span className="px-2.5 py-1 text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-100 rounded-md whitespace-nowrap">
                           {doc.category}
                         </span>
                       </td>
@@ -368,7 +369,7 @@ export default function KnowledgeBasePage() {
                                     });
                                     window.open(res.data.data.url, "_blank");
                                   } catch (err) {
-                                    alert("Failed to generate download URL");
+                                    toast.error("Failed to generate download URL");
                                   }
                                 }}
                                 className="text-xs font-medium text-slate-700 cursor-pointer"
@@ -390,7 +391,7 @@ export default function KnowledgeBasePage() {
                                     });
                                     fetchDocs();
                                   } catch (err) {
-                                    alert("Failed to duplicate document");
+                                    toast.error("Failed to duplicate document");
                                   }
                                 }}
                                 className="text-xs font-medium text-slate-700 cursor-pointer"

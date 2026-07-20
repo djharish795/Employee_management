@@ -23,7 +23,7 @@ export function AddConsentModal({ isOpen, onClose, onSuccess }: AddConsentModalP
     queryFn: async () => {
       const url = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${url}/employees?page=1&limit=500`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
+        credentials: 'include'
       });
       if (!res.ok) return [];
       const json = await res.json();
@@ -43,9 +43,9 @@ export function AddConsentModal({ isOpen, onClose, onSuccess }: AddConsentModalP
       const url = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${url}/compliance/consents`, {
         method: "POST",
+        credentials: 'include',
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ employeeId, purpose }),
       });

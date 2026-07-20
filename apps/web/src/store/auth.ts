@@ -70,6 +70,9 @@ export const useAuthStore = create<AuthState>()(
     {
       name: "auth-storage",
       storage: createJSONStorage(() => localStorage),
+      partialize: (state) => Object.fromEntries(
+        Object.entries(state).filter(([key]) => !['accessToken', 'refreshToken'].includes(key))
+      ),
     }
   )
 );

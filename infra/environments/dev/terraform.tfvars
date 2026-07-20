@@ -1,0 +1,5 @@
+aws_region   = "ap-south-1"
+environment  = "dev"
+vpc_cidr     = "10.1.0.0/16"
+domain_name  = "dev.naprocs.in"
+app_subdomain = "crewbase-dev"

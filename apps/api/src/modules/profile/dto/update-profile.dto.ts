@@ -34,6 +34,10 @@ export class UpdateProfileDto {
   permanentAddress?: any;
 
   @IsOptional()
+  @IsObject()
+  preferences?: any;
+
+  @IsOptional()
   @IsString()
   photoUrl?: string;
 

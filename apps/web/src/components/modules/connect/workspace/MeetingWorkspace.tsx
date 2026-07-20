@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useState, useEffect } from "react";
 import { X, Save, CheckSquare, AlignLeft, Users, Calendar, Plus, Trash2, Target } from "lucide-react";
@@ -31,9 +32,9 @@ export function MeetingWorkspace({ isOpen, onClose, meeting }: MeetingWorkspaceP
         agenda: { text: agenda },
         actionItems,
       });
-      window.alert("Workspace saved successfully");
+      toast.success("Workspace saved successfully");
     } catch (err: any) {
-      window.alert(err.response?.data?.message || "Failed to save workspace");
+      toast.error(err.response?.data?.message || "Failed to save workspace");
     } finally {
       setSaving(false);
     }

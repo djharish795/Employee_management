@@ -39,9 +39,9 @@ export class LeavesController {
   }
 
   @RequirePermissions(RbacPermissions.LEAVE_READ)
-  @Get('approvals/:approverId')
-  getApprovals(@Param('approverId') approverId: string): Promise<unknown> {
-    return this.leaveService.getApprovals(approverId);
+  @Get('approvals')
+  getApprovals(@CurrentUser() user: any): Promise<unknown> {
+    return this.leaveService.getApprovals(user.employeeId);
   }
 
   @RequirePermissions(RbacPermissions.LEAVE_READ)
@@ -83,7 +83,10 @@ export class LeavesController {
   @RequirePermissions(RbacPermissions.LEAVE_CREATE)
   @Post(':id/cancel')
   cancelLeave(@Param('id') id: string, @Req() req: any): Promise<unknown> {
-    const employeeId = req.user?.employeeId || req.query.employeeId;
+    const employeeId = req.user?.employeeId;
+    if (!employeeId) {
+      throw new ForbiddenException('You can only cancel your own leaves.');
+    }
     return this.leaveService.cancelLeave(id, employeeId);
   }
 

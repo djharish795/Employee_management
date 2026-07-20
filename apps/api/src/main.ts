@@ -7,6 +7,7 @@ import { AppModule } from "./app.module";
 // Prevent node process from crashing due to Redis / VPN drops
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
+  process.exit(1);
 });
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
@@ -22,8 +23,11 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // EMS-SECURITY: Prevent browser cache stealing
-  app.use(helmet());
+  // EMS-SECURITY: Prevent browser cache stealing and framework profiling
+  app.use(helmet({
+    hidePoweredBy: true,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  }));
   app.use((req: any, res: any, next: any) => {
     res.setHeader('Cache-Control', 'no-store, max-age=0');
     next();
@@ -60,20 +64,20 @@ async function bootstrap() {
           }
         }
         for (const pid of pids) {
-          try { 
-            execSync(`taskkill /PID ${pid} /F`, { stdio: 'ignore' }); 
+          try {
+            execSync(`taskkill /PID ${pid} /F`, { stdio: 'ignore' });
             killed = true;
-          } catch (e) {}
+          } catch (e) { }
         }
       } else {
         const output = execSync(`lsof -ti tcp:${port}`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
         const pids = output.split('\n').filter(Boolean);
         for (const pid of pids) {
           if (pid !== String(process.pid)) {
-            try { 
-              execSync(`kill -9 ${pid}`, { stdio: 'ignore' }); 
+            try {
+              execSync(`kill -9 ${pid}`, { stdio: 'ignore' });
               killed = true;
-            } catch (e) {}
+            } catch (e) { }
           }
         }
       }

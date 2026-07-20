@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -13,7 +14,6 @@ import { fetchMyFieldWork, fetchFieldWorkApprovals } from '@/lib/api/field-work'
 import { useAuthStore } from '@/store/auth';
 import { apiClient } from '@/lib/api/client';
 import { reportsApi } from '@/lib/api/reports';
-import toast from 'react-hot-toast';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -92,7 +92,7 @@ export default function CamReportsPage() {
     if (confirm("Are you sure you want to permanently delete this request? This action cannot be undone.")) {
       try {
         await apiClient.delete(`/field-work-requests/${id}`);
-        alert("Request deleted successfully.");
+        toast.success("Request deleted successfully.");
         // Re-fetch requests
         const own = await fetchMyFieldWork();
         setLocalRequests(own);
@@ -102,7 +102,7 @@ export default function CamReportsPage() {
         }
       } catch (error: any) {
         console.error("Failed to delete request", error);
-        alert(error?.response?.data?.message || "Failed to delete request.");
+        toast.error(error?.response?.data?.message || "Failed to delete request.");
       }
     }
   };

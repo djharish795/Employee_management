@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 import { usePermissions } from "@/hooks/use-permissions";
 
 
@@ -41,15 +42,19 @@ export default function ApprovalsPanel({ activeRole }: ApprovalsPanelProps) {
 
   const approveMutation = useMutation({
     mutationFn: ({ leaveId }: { leaveId: string }) => approveLeave(leaveId, approverId!),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["leave-approvals"] }),
+    onSuccess: () => {
+      return queryClient.invalidateQueries({ queryKey: ["leave-approvals", approverId] });
+    },
+    onError: (err: any) => toast.error(`Approval failed: ${err?.response?.data?.message || err.message}`),
   });
 
   const rejectMutation = useMutation({
     mutationFn: ({ leaveId }: { leaveId: string }) => rejectLeave(leaveId, approverId!, "Rejected by HR"),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["leave-approvals"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["leave-approvals", approverId] });
       setRejectId(null);
     },
+    onError: (err: any) => toast.error(`Rejection failed: ${err?.response?.data?.message || err.message}`),
   });
 
   const tabs = [
@@ -126,8 +131,14 @@ export default function ApprovalsPanel({ activeRole }: ApprovalsPanelProps) {
                     </div>
                   </div>
                 </div>
-                <div className="px-3 py-1 bg-orange-100 text-orange-800 text-[10px] font-bold rounded-full uppercase tracking-wide">
-                  PENDING MY APPROVAL
+                <div className={`px-3 py-1 text-[10px] font-bold rounded-full uppercase tracking-wide ${
+                  (req as any).isPendingForMe ? 'bg-orange-100 text-orange-800'
+                  : req.status === 'APPROVED' ? 'bg-green-100 text-green-800'
+                  : req.status === 'REJECTED' ? 'bg-red-100 text-red-800'
+                  : req.status === 'CANCELLED' ? 'bg-slate-100 text-slate-800'
+                  : 'bg-blue-100 text-blue-800'
+                }`}>
+                  {(req as any).isPendingForMe ? 'PENDING MY APPROVAL' : req.status}
                 </div>
               </div>
 
@@ -160,11 +171,14 @@ export default function ApprovalsPanel({ activeRole }: ApprovalsPanelProps) {
                             ? "bg-green-100 text-green-800"
                             : step.status === "REJECTED"
                               ? "bg-red-100 text-red-800"
-                              : "bg-orange-100 text-orange-800"
+                              : step.status === "CANCELLED"
+                                ? "bg-slate-100 text-slate-800"
+                                : "bg-orange-100 text-orange-800"
                           }`}
                       >
                         {step.status === "APPROVED" && <Check className="w-3 h-3" />}
                         {step.status === "REJECTED" && <X className="w-3 h-3" />}
+                        {step.status === "CANCELLED" && <X className="w-3 h-3" />}
                         {step.role}
                       </span>
                     </React.Fragment>
@@ -193,9 +207,9 @@ export default function ApprovalsPanel({ activeRole }: ApprovalsPanelProps) {
                     <button
                       onClick={() => approveMutation.mutate({ leaveId: req.id })}
                       disabled={approveMutation.isPending}
-                      className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-sm transition-colors disabled:opacity-50"
+                      className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-sm transition-colors disabled:opacity-50 flex items-center justify-center min-w-[90px]"
                     >
-                      Approve
+                      {approveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Approve"}
                     </button>
                   </div>
                 )}

@@ -26,7 +26,7 @@ export default function CEOOrganisationPage() {
     queryFn: async () => {
       const url = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${url}/departments/dashboard`, {
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+        credentials: 'include',
       });
       if (!res.ok) throw new Error('Failed to fetch organisation stats');
       return res.json();

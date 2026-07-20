@@ -10,7 +10,7 @@ export interface ApiLeaveRequest {
   endDate: string;
   totalDays: number;
   reason: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
+  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
   approvalQueue?: Array<{ role: string; status: string; approverId?: string; actedAt?: string }>;
   currentStep?: number;
   rejectionReason?: string | null;
@@ -57,8 +57,8 @@ export const fetchMyLeaveKpi = async (employeeId: string): Promise<ApiLeaveKpi> 
 };
 
 // ─── Fetch approvals queue for an approver ────────────────────────────────────
-export const fetchApprovals = async (approverId: string): Promise<ApiLeaveRequest[]> => {
-  const { data } = await apiClient.get(`/leaves/approvals/${approverId}`);
+export const fetchApprovals = async (approverId?: string): Promise<ApiLeaveRequest[]> => {
+  const { data } = await apiClient.get(`/leaves/approvals`);
   return data;
 };
 

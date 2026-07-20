@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useAuthStore } from "@/store/auth";
 
@@ -150,7 +151,7 @@ export default function DashboardPanel() {
     },
     onError: (error: any) => {
       const errMsg = error.response?.data?.message || error.message || "Unknown error";
-      alert(`Check In Failed: ${errMsg}`);
+      toast.error(`Check In Failed: ${errMsg}`);
       console.error("Punch Mutation Failed:", error);
     }
   });

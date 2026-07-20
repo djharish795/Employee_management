@@ -79,7 +79,7 @@ export function KnowledgeListClient() {
 
                     <div className="mt-4 flex items-center justify-between text-xs text-slate-500 font-medium">
                       <span>v{doc.version}</span>
-                      <span>{doc.publishedAt ? format(new Date(doc.publishedAt), 'MMM d, yyyy') : 'Draft'}</span>
+                      <span>{doc.publishedAt && !isNaN(new Date(doc.publishedAt).getTime()) ? format(new Date(doc.publishedAt), 'MMM d, yyyy') : 'Draft'}</span>
                     </div>
                   </div>
                 </Link>

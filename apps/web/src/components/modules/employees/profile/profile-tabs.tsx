@@ -277,7 +277,7 @@ function EmploymentTab({ profile }: { profile: FullEmployeeProfile }) {
           {profile.manager && (
             <>
               <div className="flex items-center gap-3 bg-white p-2.5 rounded-lg border border-slate-200/80 shadow-sm w-full max-w-sm">
-                <Image src={profile.manager.photoUrl} alt={profile.manager.name} className="w-8 h-8 rounded-full" fill style={{ objectFit: "cover" }} />
+                <Image src={profile.manager.photoUrl} alt={profile.manager.name} width={32} height={32} className="w-8 h-8 rounded-full object-cover" />
                 <div>
                   <div className="text-xs font-bold text-slate-900">{profile.manager.name}</div>
                   <div className="text-[9px] font-semibold text-slate-400 mt-0.5">Manager • {profile.manager.id}</div>
@@ -287,7 +287,7 @@ function EmploymentTab({ profile }: { profile: FullEmployeeProfile }) {
             </>
           )}
           <div className="flex items-center gap-3 bg-slate-100/50 border border-slate-300/60 p-2.5 rounded-lg w-full max-w-sm shadow-sm ring-1 ring-slate-900/10">
-            <Image src={profile.photoUrl} alt={profile.name} className="w-8 h-8 rounded-full border border-blue-300" fill style={{ objectFit: "cover" }} />
+            <Image src={profile.photoUrl} alt={profile.name} width={32} height={32} className="w-8 h-8 rounded-full border border-blue-300 object-cover" />
             <div>
               <div className="text-xs font-bold text-slate-950">{profile.name}</div>
               <div className="text-[9px] font-bold text-slate-700 uppercase tracking-wide mt-0.5">

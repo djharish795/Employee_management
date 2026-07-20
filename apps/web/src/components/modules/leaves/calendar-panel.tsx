@@ -176,12 +176,12 @@ export default function CalendarPanel() {
             const holidaysOnThisDay = holidays.filter(h => h.date.startsWith(currentCellDateStr));
 
             // 2. Find Leave Requests spanning this day
-            const cellDateVal = new Date(year, month, day).getTime();
             const leavesOnThisDay = filteredRequests.filter((r) => {
               if (r.status !== "APPROVED" && r.status !== "PENDING") return false; // Hide rejected
-              const start = new Date(r.startDate).getTime();
-              const end = new Date(r.endDate).getTime();
-              return cellDateVal >= start && cellDateVal <= end;
+              // Use YYYY-MM-DD string comparison to avoid timezone shift issues
+              const startStr = r.startDate.split("T")[0];
+              const endStr = r.endDate.split("T")[0];
+              return currentCellDateStr >= startStr && currentCellDateStr <= endStr;
             });
 
             const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();

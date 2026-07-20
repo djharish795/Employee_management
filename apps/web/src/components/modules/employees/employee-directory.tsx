@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
@@ -66,7 +67,7 @@ export default function EmployeeDirectory() {
       setFilters(prev => ({ ...prev, department: dept }));
     }
   }, [searchParams]);
-  const accessToken = useAuthStore((state) => state.accessToken);
+  // Removed accessToken as it is not persisted in Zustand and breaks react-query
   const { role } = usePermissions();
 
   const [debouncedSearch, setDebouncedSearch] = useState(filters.search);
@@ -128,9 +129,8 @@ export default function EmployeeDirectory() {
   };
 
   const { data: rawEmployeesData = { data: [], meta: { total: 0 } }, isLoading, isError, error } = useQuery({
-    queryKey: ["employees", accessToken, currentPage, debouncedSearch, filters.department, filters.status],
+    queryKey: ["employees", currentPage, debouncedSearch, filters.department, filters.status],
     queryFn: fetchEmployees,
-    enabled: !!accessToken,
   });
   
   const rawEmployees = rawEmployeesData.data;
@@ -138,31 +138,29 @@ export default function EmployeeDirectory() {
   const fetchDepartments = async () => {
     const url = process.env.NEXT_PUBLIC_API_URL!;
     const res = await fetch(`${url}/departments`, {
-      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
+      credentials: 'include'
     });
     if (!res.ok) return { data: [] };
     return res.json();
   };
 
   const { data: departmentsData } = useQuery({
-    queryKey: ["departments", accessToken],
+    queryKey: ["departments"],
     queryFn: fetchDepartments,
-    enabled: !!accessToken,
   });
 
   const fetchDesignations = async () => {
     const url = process.env.NEXT_PUBLIC_API_URL!;
     const res = await fetch(`${url}/departments/all-designations`, {
-      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
+      credentials: 'include'
     });
     if (!res.ok) return { data: [] };
     return res.json();
   };
 
   const { data: designationsData } = useQuery({
-    queryKey: ["designations", accessToken],
+    queryKey: ["designations"],
     queryFn: fetchDesignations,
-    enabled: !!accessToken,
   });
 
   if (isError) {
@@ -181,7 +179,7 @@ export default function EmployeeDirectory() {
   const updateEmployeesMutation = useMutation({
     mutationFn: async (updatedList: Employee[]) => updatedList,
     onSuccess: (data) => {
-      queryClient.setQueryData(["employees", accessToken], data);
+      queryClient.setQueryData(["employees"], data);
     },
   });
 
@@ -201,7 +199,7 @@ export default function EmployeeDirectory() {
     const url = process.env.NEXT_PUBLIC_API_URL!;
     const headers = {
       "Content-Type": "application/json",
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
+      /* removed manual token */
     };
 
     try {
@@ -249,7 +247,7 @@ export default function EmployeeDirectory() {
           const lastName = lastNameParts.join(" ") || "";
           res = await fetch(`${url}/employees/${employeeId}`, {
             method: "PATCH",
-            headers,
+            headers, credentials: 'include',
             body: JSON.stringify({
               firstName,
               lastName,
@@ -262,21 +260,21 @@ export default function EmployeeDirectory() {
         case "assign-manager":
           res = await fetch(`${url}/employees/org-chart/reassign`, {
             method: "POST",
-            headers,
+            headers, credentials: 'include',
             body: JSON.stringify({ employeeId, newManagerId: payload.manager }),
           });
           break;
         case "transfer-dept":
           res = await fetch(`${url}/employees/${employeeId}`, {
             method: "PATCH",
-            headers,
+            headers, credentials: 'include',
             body: JSON.stringify({ departmentId: payload.department }),
           });
           break;
         case "change-designation":
           res = await fetch(`${url}/employees/${employeeId}`, {
             method: "PATCH",
-            headers,
+            headers, credentials: 'include',
             body: JSON.stringify({ designationId: payload.designation }),
           });
           break;
@@ -285,21 +283,21 @@ export default function EmployeeDirectory() {
           const newStatus = currentEmp?.status === "DEACTIVATED" ? "ACTIVE" : "DEACTIVATED";
           res = await fetch(`${url}/employees/${employeeId}`, {
             method: "PATCH",
-            headers,
+            headers, credentials: 'include',
             body: JSON.stringify({ status: newStatus }),
           });
           break;
         case "reset-password":
           res = await fetch(`${url}/employees/${employeeId}`, {
             method: "PATCH",
-            headers,
+            headers, credentials: 'include',
             body: JSON.stringify({ password: payload.password, oldPassword: payload.oldPassword }),
           });
           break;
         case "delete":
           res = await fetch(`${url}/employees/${employeeId}`, {
             method: "DELETE",
-            headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+            credentials: 'include',
           });
           break;
       }
@@ -310,15 +308,15 @@ export default function EmployeeDirectory() {
           const errObj = JSON.parse(errText);
           if (errObj.message) errText = Array.isArray(errObj.message) ? errObj.message.join(", ") : errObj.message;
         } catch (e) { }
-        alert(`Failed to complete action: \n${errText}`);
+        toast.error(`Failed to complete action: \n${errText}`);
         return;
       }
 
       // Refresh list
-      queryClient.invalidateQueries({ queryKey: ["employees", accessToken] });
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
     } catch (err) {
       console.error("Action error:", err);
-      alert("A network error occurred while performing this action.");
+      toast.error("A network error occurred while performing this action.");
     }
   };
 

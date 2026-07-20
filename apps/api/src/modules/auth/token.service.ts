@@ -63,30 +63,30 @@ export class TokenService {
       refreshTtlSeconds,
     );
 
-    // Enforce concurrent sessions limit
+    // B-06: Enforce concurrent sessions limit using atomic ZSET
     const limitStr = this.config.get<string>("SESSION_MAX_CONCURRENT");
     const limit = limitStr ? parseInt(limitStr, 10) : 3;
     
-    const pattern = `${SESSION_PREFIX}${params.userId}:*`;
-    const keys = await this.redis.keys(pattern);
+    const zsetKey = `auth:user_sessions:${params.userId}`;
+    const redisClient = this.redis.getClient();
     
-    if (keys.length > limit) {
-      const sessions = [];
-      for (const key of keys) {
-        const data = await this.redis.getJson<any>(key);
-        if (data && data.createdAt) {
-          sessions.push({ key, createdAt: new Date(data.createdAt).getTime() });
-        }
-      }
-      // Sort by oldest first
-      sessions.sort((a, b) => a.createdAt - b.createdAt);
+    await redisClient.zadd(zsetKey, Date.now(), refreshToken);
+    await redisClient.expire(zsetKey, refreshTtlSeconds);
+    
+    const count = await redisClient.zcard(zsetKey);
+    if (count > limit) {
+      const toRemoveCount = count - limit;
+      const oldestTokens = await redisClient.zrange(zsetKey, 0, toRemoveCount - 1);
       
-      const toRemove = sessions.length - limit;
-      for (let i = 0; i < toRemove; i++) {
-        const keyToRemove = sessions[i].key;
-        const oldToken = keyToRemove.split(':').pop();
-        await this.redis.del(keyToRemove);
-        await this.redis.del(`${REFRESH_PREFIX}${oldToken}`);
+      if (oldestTokens.length > 0) {
+        await redisClient.zremrangebyrank(zsetKey, 0, toRemoveCount - 1);
+        const keysToDelete = oldestTokens.flatMap(t => [
+          `${REFRESH_PREFIX}${t}`,
+          `${SESSION_PREFIX}${params.userId}:${t}`
+        ]);
+        if (keysToDelete.length > 0) {
+          await redisClient.del(...keysToDelete);
+        }
       }
     }
 

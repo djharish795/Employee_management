@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -23,19 +24,6 @@ export default function OnboardingDetailsPage() {
   const queryClient = useQueryClient();
   const role = useAuthStore((state) => state.role);
 
-  const [toast, setToast] = React.useState<{show: boolean, message: string}>({show: false, message: ''});
-  
-  React.useEffect(() => {
-    if (toast.show) {
-      const timer = setTimeout(() => setToast({show: false, message: ''}), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [toast.show]);
-
-  const showToast = (message: string) => {
-    setToast({ show: true, message });
-  };
-
   const { data: session, isLoading, error } = useQuery({
     queryKey: ['onboarding-session', id],
     queryFn: async () => {
@@ -58,7 +46,7 @@ export default function OnboardingDetailsPage() {
       await apiClient.post(`/onboarding/${id}/remind`);
     },
     onSuccess: () => {
-      showToast("Reminders sent successfully");
+      toast.success("Reminders sent successfully");
     }
   });
 
@@ -67,7 +55,7 @@ export default function OnboardingDetailsPage() {
       await apiClient.post(`/onboarding/${id}/welcome-call`, { startTime, endTime });
     },
     onSuccess: () => {
-      showToast("Welcome call scheduled successfully");
+      toast.success("Welcome call scheduled successfully");
       setIsScheduleModalOpen(false);
     }
   });
@@ -118,7 +106,7 @@ export default function OnboardingDetailsPage() {
       });
     },
     onSuccess: () => {
-      showToast("Asset Request Initiated!");
+      toast.success("Asset request submitted successfully");
       setIsAssetRequestModalOpen(false);
       setAssetItems([]);
       setOtherAsset('');
@@ -126,7 +114,7 @@ export default function OnboardingDetailsPage() {
       refetchAssetRequests();
     },
     onError: (err: any) => {
-      showToast(err?.response?.data?.message || err.message || "Failed to send request");
+      toast.error(err?.response?.data?.message || err.message || "Failed to send request");
     }
   });
 
@@ -404,7 +392,7 @@ export default function OnboardingDetailsPage() {
               </button>
               <button 
                 onClick={() => {
-                  if (!callDate || !callTime) return alert("Please select date and time");
+                  if (!callDate || !callTime) return toast.error("Please select date and time");
                   const start = new Date(`${callDate}T${callTime}`);
                   const end = new Date(start.getTime() + 30 * 60000); // 30 mins later
                   scheduleCall.mutate({ startTime: start.toISOString(), endTime: end.toISOString() });
@@ -505,7 +493,7 @@ export default function OnboardingDetailsPage() {
                   const finalItems = [...assetItems];
                   if (otherAsset.trim()) finalItems.push(otherAsset.trim());
                   
-                  if (finalItems.length === 0) return showToast("Please select or type at least one asset item");
+                  if (finalItems.length === 0) return toast.error("Please select or type at least one asset item");
                   requestAsset.mutate(finalItems);
                 }}
                 disabled={requestAsset.isPending}
@@ -514,13 +502,6 @@ export default function OnboardingDetailsPage() {
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {toast.show && (
-        <div className="fixed bottom-4 right-4 bg-slate-900 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 z-50 animate-in slide-in-from-bottom-5">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-          <span className="text-sm font-medium">{toast.message}</span>
         </div>
       )}
     </div>

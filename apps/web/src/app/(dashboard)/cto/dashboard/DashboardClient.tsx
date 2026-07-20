@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useState } from 'react';
 import { Search, Bell, Download, Lock, MoreHorizontal, Loader2, X, FileText, Network, Clock, LogOut } from 'lucide-react';
@@ -145,7 +146,7 @@ export default function CtoDashboardPage() {
       const url = process.env.NEXT_PUBLIC_API_URL!;
       const token = useAuthStore.getState().accessToken;
       const res = await fetch(`${url}/dashboard/cto-export`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: 'include',
       });
       if (!res.ok) throw new Error("Failed to export report");
       
@@ -162,7 +163,7 @@ export default function CtoDashboardPage() {
       setShowOrgMenu(false);
     } catch (e) {
       console.error("Export failed:", e);
-      alert("Failed to export report. Please try again later.");
+      toast.error("Failed to export report. Please try again later.");
     }
   };
 

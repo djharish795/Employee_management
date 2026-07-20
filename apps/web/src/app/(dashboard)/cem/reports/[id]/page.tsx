@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -67,18 +68,18 @@ export default function FieldWorkRequestDetailsPage() {
     if (confirm("Are you sure you want to cancel this request? Canceled requests cannot be reinstated.")) {
       try {
         await updateFieldWork(requestId, { status: 'CANCELLED' });
-        alert("Request canceled successfully.");
+        toast.success("Request canceled successfully.");
         router.push('/cem/reports');
       } catch (error: any) {
         console.error("Failed to cancel request", error);
-        alert(error?.response?.data?.message || "Failed to cancel request.");
+        toast.error(error?.response?.data?.message || "Failed to cancel request.");
       }
     }
   };
 
   const handleCopyCoordinates = () => {
     navigator.clipboard.writeText("1.290270, 103.851959");
-    alert("Coordinates copied to clipboard: 1.290270, 103.851959");
+    toast.error("Coordinates copied to clipboard: 1.290270, 103.851959");
   };
 
   const handleDownloadPdf = async () => {
@@ -97,7 +98,7 @@ export default function FieldWorkRequestDetailsPage() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Failed to download PDF", error);
-      alert("Failed to download request PDF.");
+      toast.error("Failed to download request PDF.");
     }
   };
 
@@ -109,11 +110,11 @@ export default function FieldWorkRequestDetailsPage() {
         const reason = prompt("Please enter the reason for rejection:") || "Rejected by manager";
         await rejectFieldWork(requestId, reason);
       }
-      alert(`Request ${newStatus.toLowerCase()} successfully.`);
+      toast.error(`Request ${newStatus.toLowerCase()} successfully.`);
       router.push('/cem/reports');
     } catch (error: any) {
       console.error(`Failed to ${newStatus.toLowerCase()} request`, error);
-      alert(error?.response?.data?.message || `Failed to ${newStatus.toLowerCase()} request.`);
+      toast.error(error?.response?.data?.message || `Failed to ${newStatus.toLowerCase()} request.`);
     }
   };
 

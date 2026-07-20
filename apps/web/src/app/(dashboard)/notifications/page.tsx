@@ -113,7 +113,7 @@ export default function NotificationsPage() {
                           {n.title}
                         </h4>
                         <span className="text-xs font-bold text-slate-400 whitespace-nowrap flex-shrink-0">
-                          {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                          {n.createdAt && !isNaN(new Date(n.createdAt).getTime()) ? formatDistanceToNow(new Date(n.createdAt), { addSuffix: true }) : "Just now"}
                         </span>
                       </div>
                       <p className={`text-sm mt-1 ${n.isRead ? 'text-slate-500' : 'text-slate-600 font-medium'}`}>

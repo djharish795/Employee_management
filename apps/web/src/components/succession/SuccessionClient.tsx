@@ -30,7 +30,7 @@ export function SuccessionClient() {
     queryFn: async () => {
       const url = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${url}/employees?limit=100`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
+        credentials: 'include',
       });
       if (!res.ok) {
         console.error("Failed to fetch employees. Status:", res.status);
@@ -53,7 +53,7 @@ export function SuccessionClient() {
     queryFn: async () => {
       const url = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${url}/succession`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
+        credentials: 'include',
       });
       if (!res.ok) throw new Error('Failed to fetch succession plans');
       return res.json();
@@ -88,7 +88,7 @@ export function SuccessionClient() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`
+          /* credentials: 'include' handled */
         },
         body: JSON.stringify({
           roleTitle: newRoleTitle.trim(),
@@ -123,7 +123,7 @@ export function SuccessionClient() {
       for (const p of realPlans) {
         await fetch(`${url}/succession/${p.id}`, {
           method: "DELETE",
-          headers: { Authorization: `Bearer ${accessToken}` }
+          credentials: 'include'
         });
       }
       queryClient.invalidateQueries({ queryKey: ['succession-plans'] });
@@ -142,7 +142,7 @@ export function SuccessionClient() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`
+          /* credentials: 'include' handled */
         },
         body: JSON.stringify({
           roleTitle: targetRoleTitle,

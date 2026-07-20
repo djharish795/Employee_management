@@ -81,7 +81,7 @@ export class WfhService {
 
       // Check if WFH or Leave already exists for this date
       const existingWfh = await tx.workFromHomeRequest.findFirst({
-          where: { employeeId: employee.id, date: targetDate, status: { not: 'REJECTED' } }
+        where: { employeeId: employee.id, date: targetDate, status: { not: 'REJECTED' } }
       });
       if (existingWfh) throw new BadRequestException('A WFH request already exists for this date.');
 
@@ -102,6 +102,7 @@ export class WfhService {
       });
     });
 
+    // Use authenticated employeeId
     this.auditService.logCreate({
       moduleName: 'WFH',
       entityId: wfhRequest.id,
@@ -117,9 +118,9 @@ export class WfhService {
       where: { id: approverId },
       include: { department: true, designation: true }
     });
-    
+
     if (!approver) throw new NotFoundException('Approver not found');
-    
+
     // Resolve the approver's workflow role from centralized mappings
     const role = resolveWorkflowRole(approver);
 
@@ -152,9 +153,14 @@ export class WfhService {
     // Resolve the approver's workflow role from centralized mappings
     const approverRole = resolveWorkflowRole(approver);
 
+    if (wfh.employeeId === approverId && approverRole !== 'CEO') {
+      throw new ForbiddenException('Self-approval is strictly prohibited. Your manager must approve this request.');
+    }
+
+
     const wfhData = wfh as typeof wfh & { approvalQueue?: unknown, currentStep: number };
     const queue = wfhData.approvalQueue as unknown as ApprovalQueueItem[];
-    
+
     // OR override logic
     // TODO: Replace with permission-based check once RBAC guards are active
     if ((RbacGroups.APPROVAL_OVERRIDERS as readonly string[]).includes(approverRole)) {
@@ -165,7 +171,7 @@ export class WfhService {
           q.actedAt = new Date();
         }
       });
-      
+
       await this.prisma.$transaction(async (tx) => {
         await tx.workFromHomeRequest.update({
           where: { id: wfhId },
@@ -179,18 +185,18 @@ export class WfhService {
 
         // Insert WFH into attendance record
         await tx.attendanceRecord.upsert({
-            where: {
-                employeeId_date: {
-                    employeeId: wfh.employeeId,
-                    date: wfh.date
-                }
-            },
-            update: { status: 'WFH' },
-            create: {
-                employeeId: wfh.employeeId,
-                date: wfh.date,
-                status: 'WFH'
+          where: {
+            employeeId_date: {
+              employeeId: wfh.employeeId,
+              date: wfh.date
             }
+          },
+          update: { status: 'WFH' },
+          create: {
+            employeeId: wfh.employeeId,
+            date: wfh.date,
+            status: 'WFH'
+          }
         });
       });
       this.auditService.logApprove({
@@ -229,18 +235,18 @@ export class WfhService {
 
       if (isFinished) {
         await tx.attendanceRecord.upsert({
-            where: {
-                employeeId_date: {
-                    employeeId: wfh.employeeId,
-                    date: wfh.date
-                }
-            },
-            update: { status: 'WFH' },
-            create: {
-                employeeId: wfh.employeeId,
-                date: wfh.date,
-                status: 'WFH'
+          where: {
+            employeeId_date: {
+              employeeId: wfh.employeeId,
+              date: wfh.date
             }
+          },
+          update: { status: 'WFH' },
+          create: {
+            employeeId: wfh.employeeId,
+            date: wfh.date,
+            status: 'WFH'
+          }
         });
       }
     });
@@ -269,9 +275,19 @@ export class WfhService {
     // Resolve the approver's workflow role from centralized mappings
     const approverRole = resolveWorkflowRole(approver);
 
+    if (wfh.employeeId === approverId && approverRole !== 'CEO') {
+      throw new ForbiddenException('Self-rejection is strictly prohibited. Your manager must review this request.');
+    }
+
+
+    if (wfh.employeeId === approverId && approverRole !== 'CEO') {
+      throw new ForbiddenException('Self-rejection is strictly prohibited. Your manager must review this request.');
+    }
+
+
     const wfhData = wfh as typeof wfh & { approvalQueue?: unknown, currentStep: number };
     const queue = wfhData.approvalQueue as unknown as ApprovalQueueItem[];
-    
+
     // TODO: Replace with permission-based check once RBAC guards are active
     if ((RbacGroups.APPROVAL_OVERRIDERS as readonly string[]).includes(approverRole)) {
       queue.forEach(q => {

@@ -48,5 +48,47 @@ export class ReportsController {
   async getDownloadUrl(@Param('id') id: string) {
     return this.reportsService.getDownloadUrl(id);
   }
+
+  @Post('vdr/generate')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions(Permission.READ_EMPLOYEES)
+  async generateVdr(
+    @Body('payload') payload: any,
+    @Body('expiresInHours') expiresInHours: number,
+    @Req() req: any
+  ) {
+    const employeeId = req.user?.employeeId;
+    return this.reportsService.generateVdr(payload, expiresInHours, employeeId);
+  }
+
+  @Get('vdr/:token')
+  async getVdr(
+    @Param('token') token: string,
+    @Req() req: any
+  ) {
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    return this.reportsService.getVdr(token, ip as string, userAgent);
+  }
+  @Get('vdr-audit')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions(Permission.READ_AUDIT)
+  async getVdrAudits() {
+    return this.reportsService.getVdrAudits();
+  }
+
+  @Get('vdr-audit/:token')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions(Permission.READ_AUDIT)
+  async getVdrAuditDetails(@Param('token') token: string) {
+    return this.reportsService.getVdrAuditDetails(token);
+  }
+
+  @Post('vdr-audit/:token/revoke')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions(Permission.READ_AUDIT)
+  async revokeVdr(@Param('token') token: string) {
+    return this.reportsService.revokeVdr(token);
+  }
 }
 

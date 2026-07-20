@@ -1,9 +1,11 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useState } from 'react';
-import { Search, Lock, Users, Calendar, Network, FileText, Download, Banknote, UserMinus, BarChart3, Loader2 } from 'lucide-react';
+import { Search, Lock, Users, Calendar, Network, FileText, Download, Banknote, UserMinus, BarChart3, Loader2, ShieldAlert } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { VdrTracking } from '@/components/modules/ceo/vdr-tracking';
 
 interface ReportHistory {
   id: string;
@@ -23,6 +25,7 @@ export default function CEOReportsPage() {
     ATTENDANCE: 'XLSX',
     ORG_STRUCTURE: 'PDF',
   });
+  const [activeTab, setActiveTab] = useState<'REPORTS' | 'VDR'>('REPORTS');
 
   const handleFormatChange = (type: string, format: string) => {
     setFormats(prev => ({ ...prev, [type]: format }));
@@ -33,7 +36,7 @@ export default function CEOReportsPage() {
     queryFn: async () => {
       const url = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${url}/reports`, {
-        headers: { Authorization: `Bearer ${accessToken}` }
+        credentials: 'include'
       });
       if (!res.ok) throw new Error('Failed to fetch reports');
       return res.json();
@@ -47,7 +50,7 @@ export default function CEOReportsPage() {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`
+          /* credentials: 'include' handled */
         },
         body: JSON.stringify({ type, format })
       });
@@ -63,7 +66,7 @@ export default function CEOReportsPage() {
     try {
       const url = process.env.NEXT_PUBLIC_API_URL!;
       const res = await fetch(`${url}/reports/${id}/download`, {
-        headers: { Authorization: `Bearer ${accessToken}` }
+        credentials: 'include'
       });
       if (!res.ok) throw new Error('Failed to get download URL');
       const data = await res.json();
@@ -76,7 +79,7 @@ export default function CEOReportsPage() {
       document.body.removeChild(a);
     } catch (error) {
       console.error(error);
-      alert('Failed to download report.');
+      toast.error('Failed to download report.');
     }
   };
 
@@ -105,14 +108,45 @@ export default function CEOReportsPage() {
       <div className="p-8 max-w-[1200px] mx-auto w-full space-y-8">
         
         {/* Page Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Executive Reporting</h1>
-          <p className="text-sm text-slate-500 font-medium mt-2 max-w-3xl">
-            Generate executive reports for board meetings and strategic reviews. Access real-time organizational data tailored for high-level decision making.
-          </p>
+        <div className="mb-6 flex flex-col md:flex-row md:items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Executive Reporting</h1>
+            <p className="text-sm text-slate-500 font-medium mt-2 max-w-3xl">
+              Generate executive reports for board meetings and strategic reviews. Access real-time organizational data tailored for high-level decision making.
+            </p>
+          </div>
+          
+          {/* Tab Switcher */}
+          <div className="flex bg-slate-200/50 p-1 rounded-xl border border-slate-200">
+            <button
+              onClick={() => setActiveTab('REPORTS')}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                activeTab === 'REPORTS' 
+                  ? 'bg-white text-slate-900 shadow-sm' 
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              General Reports
+            </button>
+            <button
+              onClick={() => setActiveTab('VDR')}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
+                activeTab === 'VDR' 
+                  ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/20' 
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <ShieldAlert className="w-4 h-4" />
+              VDR Vaults
+            </button>
+          </div>
         </div>
 
-        {/* Reports Grid */}
+        {activeTab === 'VDR' ? (
+          <VdrTracking />
+        ) : (
+          <>
+            {/* Reports Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
           {/* Active Card 1: Headcount */}
@@ -307,7 +341,8 @@ export default function CEOReportsPage() {
             </table>
           </div>
         </div>
-
+        </>
+        )}
       </div>
     </div>
   );

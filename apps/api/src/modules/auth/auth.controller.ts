@@ -1,6 +1,6 @@
 import { Body, Controller, Post, UseGuards, Res, Req, UnauthorizedException, Get } from "@nestjs/common";
 import { Response, Request, CookieOptions } from "express";
-import { ThrottlerGuard } from "@nestjs/throttler";
+import { ThrottlerGuard, Throttle } from "@nestjs/throttler";
 import { AuthService } from "./auth.service";
 import { LoginDto } from "./dto/login.dto";
 import { MfaVerifyDto } from "./dto/mfa-verify.dto";
@@ -11,7 +11,7 @@ import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 const cookieOptions = (maxAge: number): CookieOptions => ({
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
-  sameSite: "lax" as const,
+  sameSite: "strict" as const,
   maxAge,
 });
 
@@ -20,6 +20,7 @@ const cookieOptions = (maxAge: number): CookieOptions => ({
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Throttle({ default: { limit: 5, ttl: 300000 } })
   @Post("login")
   async login(@Req() req: Request, @Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const ip = req.ip;
@@ -34,6 +35,7 @@ export class AuthController {
     return result;
   }
 
+  @Throttle({ default: { limit: 5, ttl: 300000 } })
   @Post("mfa")
   async verifyMfa(@Req() req: Request, @Body() dto: MfaVerifyDto, @Res({ passthrough: true }) res: Response) {
     const ip = req.ip;

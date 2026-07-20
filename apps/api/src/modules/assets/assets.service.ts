@@ -141,7 +141,6 @@ export class AssetsService {
     await this.assetsRepository.closeActiveAssignments(assetId);
 
     const result = await this.assetsRepository.assign(assetId, dto.employeeId, dto.assignedById, dto.notes);
-    // TODO: Replace dto.assignedById with authenticated userId once JWT is implemented
     await this.auditService.logUpdate({
       moduleName: "Asset",
       entityId: assetId,

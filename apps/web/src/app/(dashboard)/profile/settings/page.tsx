@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 import Image from "next/image";
 
 import React, { useEffect, useState } from 'react';
@@ -34,8 +35,20 @@ export default function ProfileSettingsPage() {
       if (!data.permanentAddress) data.permanentAddress = { street: '', city: '', state: '', zip: '' };
       if (!data.emergencyContact) data.emergencyContact = { name: '', relationship: '', phone: '' };
 
-      data.emailNotifications = data.emailNotifications ?? (localStorage.getItem('pref_email') !== 'false');
-      data.pushNotifications = data.pushNotifications ?? (localStorage.getItem('pref_push') !== 'false');
+      if (!data.preferences) {
+        data.preferences = {
+          language: 'en',
+          timezone: 'Asia/Kolkata',
+          dateFormat: 'DD/MM/YYYY',
+          timeFormat: '12h',
+          emailNotifications: true,
+          projectUpdates: true,
+          leaveApprovalNotifications: true,
+          attendanceReminders: true,
+          taskAssignmentAlerts: true,
+          announcementNotifications: true
+        };
+      }
 
       setProfile(data);
       if (data.photoUrl !== undefined) {
@@ -52,11 +65,6 @@ export default function ProfileSettingsPage() {
     try {
       setSaving(true);
       
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('pref_email', profile?.emailNotifications);
-        localStorage.setItem('pref_push', profile?.pushNotifications);
-      }
-
       await updateMyProfile({
         phone: profile?.phone,
         personalEmail: profile?.personalEmail,
@@ -68,16 +76,17 @@ export default function ProfileSettingsPage() {
         gender: profile?.gender,
         dateOfBirth: profile?.dateOfBirth,
         maritalStatus: profile?.maritalStatus,
-        photoUrl: profile?.photoUrl
+        photoUrl: profile?.photoUrl,
+        preferences: profile?.preferences
       });
       if (profile?.photoUrl !== undefined) {
         setPhotoUrl(profile?.photoUrl);
       }
-      alert('Profile updated successfully!');
+      toast.success('Profile updated successfully!');
       await loadProfile();
     } catch (e) {
       console.error(e);
-      alert('Failed to update profile');
+      toast.error('Failed to update profile');
     } finally {
       setSaving(false);
     }
@@ -417,27 +426,32 @@ export default function ProfileSettingsPage() {
                 <div className="space-y-8">
                   <div className="max-w-md">
                     <label className="block text-sm font-bold text-slate-800 dark:text-slate-200 mb-3">Language</label>
-                    <select className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all">
+                    <select 
+                      value={profile?.preferences?.language || 'en'}
+                      onChange={(e) => setProfile({ ...profile, preferences: { ...profile.preferences, language: e.target.value } })}
+                      className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all">
                       <option value="en">English (United States)</option>
                       <option value="uk">English (United Kingdom)</option>
-                      <option value="hi">Hindi (India)</option>
                     </select>
                   </div>
 
-                  <div className="max-w-md">
+                  <div className="max-w-md opacity-70">
                     <label className="block text-sm font-bold text-slate-800 dark:text-slate-200 mb-3">Time Zone</label>
-                    <select className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all">
+                    <select 
+                      disabled
+                      value="Asia/Kolkata"
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2.5 text-slate-500 dark:text-slate-400 font-medium cursor-not-allowed">
                       <option value="Asia/Kolkata">Asia/Kolkata (IST)</option>
-                      <option value="UTC">UTC</option>
-                      <option value="America/New_York">America/New_York (EST)</option>
-                      <option value="Europe/London">Europe/London (GMT)</option>
                     </select>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 max-w-md">
                     <div>
                       <label className="block text-sm font-bold text-slate-800 dark:text-slate-200 mb-3">Date Format</label>
-                      <select className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all">
+                      <select 
+                        value={profile?.preferences?.dateFormat || 'DD/MM/YYYY'}
+                        onChange={(e) => setProfile({ ...profile, preferences: { ...profile.preferences, dateFormat: e.target.value } })}
+                        className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all">
                         <option value="DD/MM/YYYY">DD/MM/YYYY</option>
                         <option value="MM/DD/YYYY">MM/DD/YYYY</option>
                         <option value="YYYY-MM-DD">YYYY-MM-DD</option>
@@ -445,7 +459,10 @@ export default function ProfileSettingsPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-slate-800 dark:text-slate-200 mb-3">Time Format</label>
-                      <select className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all">
+                      <select 
+                        value={profile?.preferences?.timeFormat || '12h'}
+                        onChange={(e) => setProfile({ ...profile, preferences: { ...profile.preferences, timeFormat: e.target.value } })}
+                        className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all">
                         <option value="12h">12-hour (AM/PM)</option>
                         <option value="24h">24-hour</option>
                       </select>
@@ -459,7 +476,6 @@ export default function ProfileSettingsPage() {
                     <div className="space-y-6">
                       {[
                         { key: 'emailNotifications', label: 'Email Notifications' },
-                        { key: 'smsNotifications', label: 'SMS Notifications' },
                         { key: 'projectUpdates', label: 'Project Updates' },
                         { key: 'leaveApprovalNotifications', label: 'Leave Approval Notifications' },
                         { key: 'attendanceReminders', label: 'Attendance Reminders' },
@@ -472,8 +488,8 @@ export default function ProfileSettingsPage() {
                             <input 
                               type="checkbox" 
                               className="sr-only peer" 
-                              checked={profile?.[item.key] ?? false} 
-                              onChange={(e) => setProfile({ ...profile, [item.key]: e.target.checked })} 
+                              checked={profile?.preferences?.[item.key] ?? false} 
+                              onChange={(e) => setProfile({ ...profile, preferences: { ...profile.preferences, [item.key]: e.target.checked } })} 
                             />
                             <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-indigo-600"></div>
                           </div>

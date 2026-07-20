@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, CheckCircle, Save } from 'lucide-react';
@@ -49,7 +50,7 @@ export default function EditEmployeePage() {
         // Parallel fetch employee and policy
         const [empRes, policyRes] = await Promise.all([
           fetch(`${url}/employees/${id}`, {
-            headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+            credentials: 'include',
           }),
           apiClient.get("/settings/policy")
         ]);
@@ -68,7 +69,7 @@ export default function EditEmployeePage() {
             // Check if they are trying to edit someone else
             const myEmployeeId = useAuthStore.getState().employeeId;
             if (data.id !== myEmployeeId) {
-              alert("You do not have permission to edit this profile.");
+              toast.error("You do not have permission to edit this profile.");
               router.push(`/employees/${id}`);
               return;
             }
@@ -95,12 +96,12 @@ export default function EditEmployeePage() {
       // Simulate API call to update employee section
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      alert('Changes saved successfully!');
+      toast.success('Changes saved successfully!');
       // We don't advance the step automatically in edit mode. 
       // They can navigate away or click another tab.
     } catch (error) {
       console.error(error);
-      alert("Validation failed or server error.");
+      toast.error("Validation failed or server error.");
     } finally {
       setIsSubmitting(false);
     }

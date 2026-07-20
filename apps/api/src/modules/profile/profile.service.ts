@@ -61,6 +61,7 @@ export class ProfileService {
     if (dto.emergencyContact !== undefined) updateData.emergencyContact = dto.emergencyContact;
     if (dto.currentAddress !== undefined) updateData.currentAddress = dto.currentAddress;
     if (dto.permanentAddress !== undefined) updateData.permanentAddress = dto.permanentAddress;
+    if (dto.preferences !== undefined) updateData.preferences = dto.preferences;
 
     // Encrypt sensitive fields
     if (dto.phone !== undefined) updateData.phone = dto.phone ? encryptData(dto.phone) : null;
@@ -74,9 +75,9 @@ export class ProfileService {
     return employee;
   }
 
-  async changePassword(employeeId: string, dto: ChangePasswordDto) {
+  async changePassword(userId: string, dto: ChangePasswordDto) {
     const user = await this.prisma.user.findUnique({
-      where: { employeeId },
+      where: { id: userId },
     });
 
     if (!user) throw new NotFoundException('User account not found');

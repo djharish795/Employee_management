@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useState } from 'react';
 import { Search, Info, ChevronLeft, ChevronRight, Plus, Lock, Loader2 } from 'lucide-react';
@@ -36,7 +37,7 @@ export default function CTOLeavesPage() {
       setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'APPROVED' } : r));
     } catch (err) {
       console.error(err);
-      alert("Failed to approve leave");
+      toast.error("Failed to approve leave");
     } finally {
       setProcessingId(null);
     }
@@ -52,7 +53,7 @@ export default function CTOLeavesPage() {
       setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'REJECTED' } : r));
     } catch (err) {
       console.error(err);
-      alert("Failed to reject leave");
+      toast.error("Failed to reject leave");
     } finally {
       setProcessingId(null);
     }
