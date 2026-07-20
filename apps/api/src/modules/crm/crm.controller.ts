@@ -36,6 +36,19 @@ export class CrmController {
     return this.service.getRecentActivity();
   }
 
+  @Get("reports/pipeline-summary")
+  @Permissions(Permission.READ_EMPLOYEES)
+  async getPipelineSummary() {
+    return this.service.getPipelineSummary();
+  }
+
+  @Get("reports/lead-activity")
+  @Permissions(Permission.READ_EMPLOYEES)
+  async getLeadActivityReport() {
+    return this.service.getLeadActivityReport();
+  }
+
+
   @Get("clients/incoming")
   @Permissions(Permission.READ_EMPLOYEES)
   async getIncomingClients() {

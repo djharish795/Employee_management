@@ -46,6 +46,23 @@ export class FieldWorkRequestsController {
     return this.service.getTeamApprovals(employeeId);
   }
 
+  @Get("export")
+  @Permissions(Permission.READ_OWN_PROFILE)
+  async exportCsv(@Req() req: any, @Res() res: any) {
+    const employeeId = req.user?.employeeId;
+    const role = req.user?.role;
+    if (!employeeId) {
+      throw new BadRequestException("Employee details not found in session");
+    }
+    const csvData = await this.service.exportCsv(employeeId, role);
+    res.set({
+      "Content-Type": "text/csv",
+      "Content-Disposition": `attachment; filename=Field_Work_Requests_${new Date().toISOString().split("T")[0]}.csv`,
+    });
+    res.end(csvData);
+  }
+
+
   @Get(":id")
   @Permissions(Permission.READ_OWN_PROFILE)
   async getRequestDetails(

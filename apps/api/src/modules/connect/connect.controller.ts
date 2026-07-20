@@ -1,10 +1,13 @@
-import { Controller, Post, Get, Patch, Body, Param, Req, UseGuards } from "@nestjs/common";
+import { Controller, Post, Get, Patch, Delete, Body, Param, Req, UseGuards } from "@nestjs/common";
 import { ConnectService } from "./connect.service";
 import { CreateMeetRequestDto } from "./dto/create-meet-request.dto";
 import { RescheduleMeetDto } from "./dto/reschedule-meet.dto";
 import { UpdateConnectSettingsDto } from "./dto/update-connect-settings.dto";
 import { CreateMeetNoteDto } from "./dto/create-meet-note.dto";
 import { CreateMeetNoteCommentDto } from "./dto/create-meet-note-comment.dto";
+import { UpdateMeetDto } from "./dto/update-meet.dto";
+import { MeetStatus } from "@naprocs/database";
+
 import { Request } from "express";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RbacGuard } from "../../common/guards/rbac.guard";
@@ -60,6 +63,35 @@ export class ConnectController {
     const employeeId = (req.user as any).employeeId;
     return this.connectService.getMyMeetings(employeeId);
   }
+
+  @Get("team-meetings")
+  @Permissions(Permission.READ_OWN_PROFILE)
+  async getTeamMeetings(@Req() req: Request) {
+    const employeeId = (req.user as any).employeeId;
+    return this.connectService.getTeamMeetings(employeeId);
+  }
+
+  @Patch(":id/status")
+  @Permissions(Permission.WRITE_OWN_PROFILE)
+  async updateMeetingStatus(@Req() req: Request, @Param("id") id: string, @Body("status") status: MeetStatus) {
+    const employeeId = (req.user as any).employeeId;
+    return this.connectService.updateMeetingStatus(id, employeeId, status);
+  }
+
+  @Patch(":id")
+  @Permissions(Permission.WRITE_OWN_PROFILE)
+  async updateMeeting(@Req() req: Request, @Param("id") id: string, @Body() dto: UpdateMeetDto) {
+    const employeeId = (req.user as any).employeeId;
+    return this.connectService.updateMeeting(id, employeeId, dto);
+  }
+
+  @Delete(":id")
+  @Permissions(Permission.WRITE_OWN_PROFILE)
+  async deleteMeeting(@Req() req: Request, @Param("id") id: string) {
+    const employeeId = (req.user as any).employeeId;
+    return this.connectService.deleteMeeting(id, employeeId);
+  }
+
 
   @Get("quick-contacts")
   @Permissions(Permission.READ_OWN_PROFILE)

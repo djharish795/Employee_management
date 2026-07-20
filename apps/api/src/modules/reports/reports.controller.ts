@@ -9,12 +9,13 @@ import { RequiresPhase } from '../../common/decorators/requires-phase.decorator'
 import { RbacPermissions } from '../../common/rbac/rbac.config';
 
 @Controller('reports')
-@RequiresPhase(2)
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
+  @RequiresPhase(2)
   @RequirePermissions(RbacPermissions.REPORTS_GENERATE)
   @Post('generate')
+
   @UseGuards(JwtAuthGuard, RbacGuard)
   @Permissions(Permission.READ_EMPLOYEES)
   async generateReport(
@@ -34,6 +35,13 @@ export class ReportsController {
     return this.reportsService.getRecentReports(employeeId);
   }
 
+  @Get('oe-metrics')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Permissions(Permission.READ_EMPLOYEES)
+  async getOeMetrics() {
+    return this.reportsService.getOeMetrics();
+  }
+
   @Get(':id/download')
   @UseGuards(JwtAuthGuard, RbacGuard)
   @Permissions(Permission.READ_EMPLOYEES)
@@ -41,3 +49,4 @@ export class ReportsController {
     return this.reportsService.getDownloadUrl(id);
   }
 }
+

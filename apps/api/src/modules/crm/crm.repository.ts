@@ -77,16 +77,21 @@ export interface Requirement {
 export class CrmRepository {
   constructor(private readonly prisma: PrismaService) { }
 
+  private get db(): any {
+    return this.prisma;
+  }
+
   async findAllClients(): Promise<ClientLead[]> {
-    return this.prisma.clientLead.findMany() as unknown as ClientLead[];
+    return this.db.clientLead.findMany() as unknown as ClientLead[];
   }
 
   async findAllIncoming(): Promise<IncomingHandoff[]> {
-    return this.prisma.incomingHandoff.findMany() as unknown as IncomingHandoff[];
+    return this.db.incomingHandoff.findMany() as unknown as IncomingHandoff[];
   }
 
+
   async createClient(dto: CreateClientDto): Promise<ClientLead> {
-    return this.prisma.clientLead.create({
+    return this.db.clientLead.create({
       data: {
         company: dto.company,
         industry: dto.industry,
@@ -113,10 +118,11 @@ export class CrmRepository {
   }
 
   async acceptHandoff(incomingId: string): Promise<ClientLead | null> {
-    const handoff = await this.prisma.incomingHandoff.findUnique({ where: { id: incomingId } });
+    const handoff = await this.db.incomingHandoff.findUnique({ where: { id: incomingId } });
     if (!handoff) return null;
 
-    return this.prisma.$transaction(async (tx) => {
+    return this.db.$transaction(async (tx: any) => {
+
       await tx.incomingHandoff.delete({ where: { id: incomingId } });
 
       return tx.clientLead.create({
@@ -147,13 +153,13 @@ export class CrmRepository {
   }
 
   async clarifyHandoff(incomingId: string): Promise<boolean> {
-    const handoff = await this.prisma.incomingHandoff.findUnique({ where: { id: incomingId } });
+    const handoff = await this.db.incomingHandoff.findUnique({ where: { id: incomingId } });
     return !!handoff;
   }
 
   async rejectHandoff(incomingId: string): Promise<boolean> {
     try {
-      await this.prisma.incomingHandoff.delete({ where: { id: incomingId } });
+      await this.db.incomingHandoff.delete({ where: { id: incomingId } });
       return true;
     } catch {
       return false;
@@ -161,7 +167,7 @@ export class CrmRepository {
   }
 
   async updateClientStage(id: string, stage: number): Promise<ClientLead | null> {
-    return this.prisma.clientLead.update({
+    return this.db.clientLead.update({
       where: { id },
       data: {
         stage,
@@ -171,7 +177,7 @@ export class CrmRepository {
   }
 
   async updateClientHealth(id: string, health: string): Promise<ClientLead | null> {
-    return this.prisma.clientLead.update({
+    return this.db.clientLead.update({
       where: { id },
       data: {
         clientHealth: health,
@@ -181,47 +187,48 @@ export class CrmRepository {
   }
 
   async addClientNote(id: string, note: string): Promise<ClientLead | null> {
-    const client = await this.prisma.clientLead.findUnique({ where: { id } });
+    const client = await this.db.clientLead.findUnique({ where: { id } });
     if (!client) return null;
     const notes = (client.notes as string[]) || [];
     notes.push(note);
-    return this.prisma.clientLead.update({
+    return this.db.clientLead.update({
       where: { id },
       data: { notes }
     }) as unknown as ClientLead;
   }
 
   async addClientCall(id: string, call: string): Promise<ClientLead | null> {
-    const client = await this.prisma.clientLead.findUnique({ where: { id } });
+    const client = await this.db.clientLead.findUnique({ where: { id } });
     if (!client) return null;
     const calls = (client.calls as string[]) || [];
     calls.push(call);
-    return this.prisma.clientLead.update({
+    return this.db.clientLead.update({
       where: { id },
       data: { calls }
     }) as unknown as ClientLead;
   }
 
   async addClientRequirement(id: string, item: any): Promise<ClientLead | null> {
-    const client = await this.prisma.clientLead.findUnique({ where: { id } });
+    const client = await this.db.clientLead.findUnique({ where: { id } });
     if (!client) return null;
 
     let reqs = client.requirementsList as any[];
     if (!Array.isArray(reqs)) reqs = [];
     reqs.push(item);
 
-    return this.prisma.clientLead.update({
+    return this.db.clientLead.update({
       where: { id },
       data: { requirementsList: reqs }
     }) as unknown as ClientLead;
   }
 
+
   async findAllRequirements(): Promise<Requirement[]> {
-    return this.prisma.requirement.findMany() as unknown as Requirement[];
+    return this.db.requirement.findMany() as unknown as Requirement[];
   }
 
   async createRequirement(dto: CreateRequirementDto): Promise<Requirement> {
-    return this.prisma.requirement.create({
+    return this.db.requirement.create({
       data: {
         title: dto.title,
         clientName: dto.clientName,
@@ -248,14 +255,14 @@ export class CrmRepository {
   }
 
   async updateRequirement(id: string, dto: UpdateRequirementDto): Promise<Requirement | null> {
-    return this.prisma.requirement.update({
+    return this.db.requirement.update({
       where: { id },
       data: { ...dto }
     }) as unknown as Requirement;
   }
 
   async updateRequirementStatus(id: string, status: string): Promise<Requirement | null> {
-    return this.prisma.requirement.update({
+    return this.db.requirement.update({
       where: { id },
       data: { status }
     }) as unknown as Requirement;
@@ -263,7 +270,7 @@ export class CrmRepository {
 
   async deleteRequirement(id: string): Promise<boolean> {
     try {
-      await this.prisma.requirement.delete({ where: { id } });
+      await this.db.requirement.delete({ where: { id } });
       return true;
     } catch {
       return false;
@@ -271,7 +278,7 @@ export class CrmRepository {
   }
 
   async logActivity(clientId: string | null, clientName: string | null, action: string, description: string): Promise<CrmActivityLog> {
-    return this.prisma.crmActivityLog.create({
+    return this.db.crmActivityLog.create({
       data: {
         clientId,
         clientName,
@@ -282,17 +289,17 @@ export class CrmRepository {
   }
 
   async getRecentActivity(): Promise<CrmActivityLog[]> {
-    return this.prisma.crmActivityLog.findMany({
+    return this.db.crmActivityLog.findMany({
       orderBy: { createdAt: 'desc' },
       take: 20
     });
   }
 
   async transferToCrm(id: string): Promise<ClientLead | null> {
-    const client = await this.prisma.clientLead.findUnique({ where: { id } });
+    const client = await this.db.clientLead.findUnique({ where: { id } });
     if (!client) return null;
 
-    const updatedClient = await this.prisma.clientLead.update({
+    const updatedClient = await this.db.clientLead.update({
       where: { id },
       data: {
         stage: 6,
@@ -305,4 +312,41 @@ export class CrmRepository {
 
     return updatedClient as unknown as ClientLead;
   }
+
+  async getPipelineSummary(): Promise<any> {
+    const clients = await this.db.clientLead.findMany();
+    const stageCounts: Record<number, number> = {};
+    const healthCounts: Record<string, number> = {};
+
+    clients.forEach((c: any) => {
+      stageCounts[c.stage] = (stageCounts[c.stage] || 0) + 1;
+      healthCounts[c.clientHealth] = (healthCounts[c.clientHealth] || 0) + 1;
+    });
+
+    return {
+      totalClients: clients.length,
+      byStage: stageCounts,
+      byHealth: healthCounts,
+    };
+  }
+
+  async getLeadActivityReport(): Promise<any> {
+    const activities = await this.db.crmActivityLog.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    });
+
+    const actionCounts: Record<string, number> = {};
+    activities.forEach((a: any) => {
+      actionCounts[a.action] = (actionCounts[a.action] || 0) + 1;
+    });
+
+    return {
+      totalActivities: activities.length,
+      byAction: actionCounts,
+      recentLogs: activities,
+    };
+  }
 }
+
+

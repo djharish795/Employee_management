@@ -206,4 +206,15 @@ export class CrmService {
     const data = await this.repository.getRecentActivity();
     return { data };
   }
+
+  async getPipelineSummary() {
+    const data = await this.repository.getPipelineSummary();
+    return { data };
+  }
+
+  async getLeadActivityReport() {
+    const data = await this.repository.getLeadActivityReport();
+    return { data };
+  }
 }
+

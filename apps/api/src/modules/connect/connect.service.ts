@@ -384,4 +384,79 @@ export class ConnectService {
       }
     });
   }
+
+  async getTeamMeetings(employeeId: string): Promise<any[]> {
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: { departmentId: true }
+    });
+
+    if (!employee || !employee.departmentId) {
+      return this.getMyMeetings(employeeId);
+    }
+
+    return this.prisma.meetRequest.findMany({
+      where: {
+        OR: [
+          { departmentId: employee.departmentId },
+          { requesterId: employeeId },
+          { assigneeId: employeeId },
+          { participants: { some: { employeeId } } }
+        ]
+      },
+      include: {
+        requester: { select: { id: true, firstName: true, lastName: true, photoUrl: true } },
+        assignee: { select: { id: true, firstName: true, lastName: true, photoUrl: true } },
+        participants: { include: { employee: { select: { id: true, firstName: true, lastName: true, photoUrl: true } } } }
+      },
+      orderBy: { startTime: "asc" }
+    });
+  }
+
+  async updateMeetingStatus(id: string, employeeId: string, status: MeetStatus): Promise<any> {
+    const meet = await this.prisma.meetRequest.findUnique({ where: { id } });
+    if (!meet) throw new NotFoundException("Meeting not found");
+
+    const isAuthorized = meet.requesterId === employeeId || meet.assigneeId === employeeId;
+    if (!isAuthorized) throw new ForbiddenException("Not authorized to update meeting status");
+
+    return this.prisma.meetRequest.update({
+      where: { id },
+      data: { status },
+    });
+  }
+
+  async updateMeeting(id: string, employeeId: string, dto: any): Promise<any> {
+    const meet = await this.prisma.meetRequest.findUnique({ where: { id } });
+    if (!meet) throw new NotFoundException("Meeting not found");
+
+    const isAuthorized = meet.requesterId === employeeId || meet.assigneeId === employeeId;
+    if (!isAuthorized) throw new ForbiddenException("Not authorized to edit meeting");
+
+    const updateData: any = {};
+    if (dto.title !== undefined) updateData.title = dto.title;
+    if (dto.description !== undefined) updateData.description = dto.description;
+    if (dto.startTime !== undefined) updateData.startTime = new Date(dto.startTime);
+    if (dto.endTime !== undefined) updateData.endTime = new Date(dto.endTime);
+    if (dto.status !== undefined) updateData.status = dto.status;
+    if (dto.agenda !== undefined) updateData.agenda = dto.agenda;
+
+    return this.prisma.meetRequest.update({
+      where: { id },
+      data: updateData,
+    });
+  }
+
+  async deleteMeeting(id: string, employeeId: string): Promise<any> {
+    const meet = await this.prisma.meetRequest.findUnique({ where: { id } });
+    if (!meet) throw new NotFoundException("Meeting not found");
+
+    const isAuthorized = meet.requesterId === employeeId || meet.assigneeId === employeeId;
+    if (!isAuthorized) throw new ForbiddenException("Not authorized to delete meeting");
+
+    return this.prisma.meetRequest.delete({
+      where: { id },
+    });
+  }
 }
+

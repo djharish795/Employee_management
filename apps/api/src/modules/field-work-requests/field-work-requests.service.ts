@@ -545,4 +545,35 @@ export class FieldWorkRequestsService {
     });
     return fallbackUser?.employeeId || null;
   }
+
+  async exportCsv(employeeId: string, role?: string): Promise<string> {
+    const isApprover = role === UserRole.OM || role === UserRole.MANAGER || role === UserRole.OPERATIONS_HEAD || role === UserRole.SUPER_ADMIN || role === UserRole.CEM;
+
+    const requests = await this.prisma.fieldWorkRequest.findMany({
+      where: isApprover
+        ? { OR: [{ employeeId }, { approverId: employeeId }] }
+        : { employeeId },
+      include: {
+        employee: { select: { firstName: true, lastName: true, employeeId: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const headers = ["ID", "Employee Name", "Employee ID", "Date", "Destination", "Client", "Purpose", "Status", "Created At"];
+    const rows = requests.map((req) => [
+      req.id,
+      `"${req.employee?.firstName || ''} ${req.employee?.lastName || ''}"`.trim(),
+      req.employee?.employeeId || '',
+      req.date ? req.date.toISOString().split("T")[0] : '',
+      `"${(req.destination || '').replace(/"/g, '""')}"`,
+      `"${(req.client || '').replace(/"/g, '""')}"`,
+      `"${(req.purpose || '').replace(/"/g, '""')}"`,
+      req.status,
+      req.createdAt ? req.createdAt.toISOString() : '',
+    ]);
+
+    return [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+  }
+
 }
+
