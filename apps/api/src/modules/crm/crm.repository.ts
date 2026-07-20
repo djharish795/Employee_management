@@ -222,6 +222,83 @@ export class CrmRepository {
     }) as unknown as ClientLead;
   }
 
+  async updateClientRequirementStatus(clientId: string, reqId: string, status: string): Promise<ClientLead | null> {
+    const client = await this.db.clientLead.findUnique({ where: { id: clientId } });
+    if (!client) return null;
+
+    let reqs = client.requirementsList as any[];
+    if (!Array.isArray(reqs)) reqs = [];
+    
+    let updated = false;
+    reqs = reqs.map(r => {
+      if (r.id === reqId || r.name === reqId || r.title === reqId) {
+        updated = true;
+        return { ...r, status };
+      }
+      return r;
+    });
+
+    if (!updated) return null;
+
+    return this.db.clientLead.update({
+      where: { id: clientId },
+      data: { requirementsList: reqs }
+    }) as unknown as ClientLead;
+  }
+
+  async addClientChangeRequest(id: string, item: any): Promise<ClientLead | null> {
+    const client = await this.db.clientLead.findUnique({ where: { id } });
+    if (!client) return null;
+
+    let crs = client.changeRequests as any;
+    if (!crs || Array.isArray(crs)) crs = { open: 0, approved: 0, rejected: 0, logs: [] };
+    if (!crs.logs) crs.logs = [];
+    
+    crs.logs.push(item);
+
+    return this.db.clientLead.update({
+      where: { id },
+      data: { changeRequests: crs }
+    }) as unknown as ClientLead;
+  }
+
+  async updateClientChangeRequestStatus(clientId: string, crId: string, status: string): Promise<ClientLead | null> {
+    const client = await this.db.clientLead.findUnique({ where: { id: clientId } });
+    if (!client) return null;
+
+    let crs = client.changeRequests as any;
+    if (!crs || !crs.logs) return null;
+
+    let updated = false;
+    crs.logs = crs.logs.map((cr: any) => {
+      if (cr.id === crId) {
+        updated = true;
+        return { ...cr, status };
+      }
+      return cr;
+    });
+
+    if (!updated) return null;
+
+    return this.db.clientLead.update({
+      where: { id: clientId },
+      data: { changeRequests: crs }
+    }) as unknown as ClientLead;
+  }
+
+  async addClientAttachment(id: string, attachment: string): Promise<ClientLead | null> {
+    const client = await this.db.clientLead.findUnique({ where: { id } });
+    if (!client) return null;
+
+    const attachments = client.attachments || [];
+    attachments.push(attachment);
+
+    return this.db.clientLead.update({
+      where: { id },
+      data: { attachments }
+    }) as unknown as ClientLead;
+  }
+
 
   async findAllRequirements(): Promise<Requirement[]> {
     return this.db.requirement.findMany() as unknown as Requirement[];
@@ -314,17 +391,33 @@ export class CrmRepository {
   }
 
   async getPipelineSummary(): Promise<any> {
-    const clients = await this.db.clientLead.findMany();
+    const clients = await this.db.clientLead.findMany({
+      orderBy: { updatedDate: 'desc' },
+      take: 20
+    });
+    
+    const allClients = await this.db.clientLead.findMany();
+    const requirements = await this.db.requirement.findMany();
+    
     const stageCounts: Record<number, number> = {};
     const healthCounts: Record<string, number> = {};
 
-    clients.forEach((c: any) => {
+    let completedDeals = 0;
+    allClients.forEach((c: any) => {
       stageCounts[c.stage] = (stageCounts[c.stage] || 0) + 1;
       healthCounts[c.clientHealth] = (healthCounts[c.clientHealth] || 0) + 1;
+      if (c.stage >= 6) completedDeals++;
     });
 
+    const activeRequirements = requirements.length;
+    const pendingClarification = requirements.filter((r: any) => r.status === 'Validation Needed').length;
+
     return {
-      totalClients: clients.length,
+      totalClients: allClients.length,
+      activeRequirements,
+      pendingClarification,
+      completedDeals,
+      clients, // The frontend uses pipelineData.clients
       byStage: stageCounts,
       byHealth: healthCounts,
     };
@@ -346,6 +439,32 @@ export class CrmRepository {
       byAction: actionCounts,
       recentLogs: activities,
     };
+  }
+
+  // CRM Meetings
+  async getAllMeetings() {
+    return this.db.meeting.findMany({
+      orderBy: [
+        { date: 'asc' },
+        { time: 'asc' }
+      ]
+    });
+  }
+
+  async getClientMeetings(leadId: string) {
+    return this.db.meeting.findMany({
+      where: { leadId },
+      orderBy: [
+        { date: 'asc' },
+        { time: 'asc' }
+      ]
+    });
+  }
+
+  async createMeeting(data: any) {
+    return this.db.meeting.create({
+      data
+    });
   }
 }
 

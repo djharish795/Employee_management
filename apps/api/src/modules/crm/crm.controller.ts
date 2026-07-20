@@ -14,6 +14,7 @@ import { CreateClientDto } from "./dto/create-client.dto";
 import { UpdateClientDto } from "./dto/update-client.dto";
 import { CreateRequirementDto } from "./dto/create-requirement.dto";
 import { UpdateRequirementDto } from "./dto/update-requirement.dto";
+import { CreateMeetingDto } from "./dto/create-meeting.dto";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RbacGuard } from "../../common/guards/rbac.guard";
 import { Permissions } from "../../common/decorators/permissions.decorator";
@@ -112,6 +113,16 @@ export class CrmController {
     return this.service.updateClientHealth(id, health, actorId);
   }
 
+  @Post("clients/:id/close-deal")
+  @Permissions(Permission.READ_EMPLOYEES)
+  async closeDeal(
+    @Param("id") id: string,
+    @Req() req: any
+  ) {
+    const actorId = req.user?.employeeId || req.user?.id;
+    return this.service.closeDeal(id, actorId);
+  }
+
   @Post("clients/:id/notes")
   @Permissions(Permission.READ_EMPLOYEES)
   async addClientNote(
@@ -143,6 +154,52 @@ export class CrmController {
   ) {
     const actorId = req.user?.employeeId || req.user?.id;
     return this.service.addClientRequirement(id, item, actorId);
+  }
+
+  @Put("clients/:id/requirements/:reqId/status")
+  @Permissions(Permission.READ_EMPLOYEES)
+  async updateClientRequirementStatus(
+    @Param("id") id: string,
+    @Param("reqId") reqId: string,
+    @Body("status") status: string,
+    @Req() req: any
+  ) {
+    const actorId = req.user?.employeeId || req.user?.id;
+    return this.service.updateClientRequirementStatus(id, reqId, status, actorId);
+  }
+
+  @Post("clients/:id/change-requests")
+  @Permissions(Permission.READ_EMPLOYEES)
+  async addClientChangeRequest(
+    @Param("id") id: string,
+    @Body() item: any,
+    @Req() req: any
+  ) {
+    const actorId = req.user?.employeeId || req.user?.id;
+    return this.service.addClientChangeRequest(id, item, actorId);
+  }
+
+  @Put("clients/:id/change-requests/:crId/status")
+  @Permissions(Permission.READ_EMPLOYEES)
+  async updateClientChangeRequestStatus(
+    @Param("id") id: string,
+    @Param("crId") crId: string,
+    @Body("status") status: string,
+    @Req() req: any
+  ) {
+    const actorId = req.user?.employeeId || req.user?.id;
+    return this.service.updateClientChangeRequestStatus(id, crId, status, actorId);
+  }
+
+  @Post("clients/:id/attachments")
+  @Permissions(Permission.READ_EMPLOYEES)
+  async addClientAttachment(
+    @Param("id") id: string,
+    @Body("attachment") attachment: string,
+    @Req() req: any
+  ) {
+    const actorId = req.user?.employeeId || req.user?.id;
+    return this.service.addClientAttachment(id, attachment, actorId);
   }
 
   @Get("requirements")
@@ -185,5 +242,25 @@ export class CrmController {
   async deleteRequirement(@Param("id") id: string, @Req() req: any) {
     const actorId = req.user?.employeeId || req.user?.id;
     return this.service.deleteRequirement(id, actorId);
+  }
+
+  // CRM Meetings
+  @Get("meetings")
+  @Permissions(Permission.READ_EMPLOYEES)
+  async getMeetings() {
+    return this.service.getAllMeetings();
+  }
+
+  @Get("clients/:id/meetings")
+  @Permissions(Permission.READ_EMPLOYEES)
+  async getClientMeetings(@Param("id") id: string) {
+    return this.service.getClientMeetings(id);
+  }
+
+  @Post("meetings")
+  @Permissions(Permission.READ_EMPLOYEES)
+  async createMeeting(@Body() dto: CreateMeetingDto, @Req() req: any) {
+    const actorId = req.user?.employeeId || req.user?.id;
+    return this.service.createMeeting(dto, actorId);
   }
 }

@@ -1,0 +1,1 @@
+﻿const { PrismaClient } = require('@naprocs/database'); const p = new PrismaClient({ datasources: { db: { url: 'postgresql://naprocs_admin:naprocsems.3689@172.31.7.237:5432/naprocs-ems?sslmode=require&connect_timeout=30' } } }); p.user.findFirst().then(console.log).catch(e => console.log('Err:', e));

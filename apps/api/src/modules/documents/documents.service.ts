@@ -91,7 +91,7 @@ export class DocumentsService {
     if (!objectKey) return "";
 
     if (user) {
-      const isGlobalReader = RbacGroups.HR_OR_SUPER_ADMIN.includes(user.role as any);
+      const isGlobalReader = RbacGroups.HR_OR_SUPER_ADMIN.includes(user.role as any) || user.role === 'CRM' || user.role === 'CEM';
       if (!isGlobalReader) {
         // Enforce IDOR check: Verify the objectKey exists somewhere in this user's profile
         const employee = await this.prisma.employee.findUnique({ where: { id: user.employeeId } });

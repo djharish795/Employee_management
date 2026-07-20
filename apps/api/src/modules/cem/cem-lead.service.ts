@@ -167,6 +167,33 @@ export class CemLeadService {
   async confirmHandoff(id: string, crmOwner: string) {
     const lead = await this.prisma.cemLead.findUnique({ where: { id } });
     if (!lead) throw new NotFoundException('Lead not found');
+
+    // Create the ClientLead in the CRM module upon handoff confirmation
+    await this.prisma.clientLead.create({
+      data: {
+        company: lead.company,
+        industry: lead.industry,
+        phone: lead.phone || '',
+        email: lead.email || '',
+        priority: lead.priority || 'Medium',
+        stage: 1,
+        assignedCem: lead.assignedCemId || 'CEM Team',
+        leadOwner: crmOwner,
+        createdDate: new Date().toISOString().replace("T", " ").slice(0, 16),
+        updatedDate: new Date().toISOString().replace("T", " ").slice(0, 16),
+        sourceQuality: 3,
+        leadSource: lead.leadSource || 'CEM Handoff',
+        clientHealth: 'ON TRACK',
+        changeRequests: { open: 0, approved: 0, rejected: 0 },
+        attachments: [],
+        stakeholders: [{ name: lead.prospectName, role: 'Primary Contact', email: lead.email, phone: lead.phone }],
+        requirementsList: [],
+        meetingsHistory: [],
+        notes: ['Lead handed off from CEM module.'],
+        calls: []
+      }
+    });
+
     return this.prisma.cemLead.update({
       where: { id },
       data: {

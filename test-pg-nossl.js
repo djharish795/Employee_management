@@ -1,0 +1,1 @@
+﻿const { Client } = require('pg'); const c = new Client({ connectionString: 'postgresql://naprocs_admin:naprocsems.3689@naprocs-ems.cjga40iiqk8m.ap-south-1.rds.amazonaws.com:5432/naprocs-ems' }); c.connect().then(() => c.query('SELECT 1').then(r => { console.log(r.rows); c.end(); })).catch(e => console.log('Err:', e));

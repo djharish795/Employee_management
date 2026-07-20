@@ -1,2 +1,6 @@
-"use client";
-export { default } from '../../cem/meetings/page';
+import React from 'react';
+import CrmMeetingsView from '@/components/modules/crm/crm-meetings-view';
+
+export default function CrmMeetingsPage() {
+  return <CrmMeetingsView />;
+}

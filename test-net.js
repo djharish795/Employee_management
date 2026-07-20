@@ -1,0 +1,1 @@
+﻿const net = require('net'); const client = new net.Socket(); client.connect(5432, 'naprocs-ems.cjga40iiqk8m.ap-south-1.rds.amazonaws.com', () => { console.log('Connected!'); client.destroy(); }); client.on('error', (err) => console.log('Error:', err.message));

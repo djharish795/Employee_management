@@ -3,8 +3,8 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RbacGuard } from "../../common/guards/rbac.guard";
 import { DocumentsService } from "./documents.service";
-import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
-import { RbacPermissions } from '../../common/rbac/rbac.config';
+import { Permissions } from "../../common/decorators/permissions.decorator";
+import { Permission } from "@naprocs/types";
 
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 
@@ -13,7 +13,7 @@ import { CurrentUser } from "../../common/decorators/current-user.decorator";
 export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
-  @RequirePermissions(RbacPermissions.DOCUMENTS_UPLOAD)
+  @Permissions(Permission.READ_EMPLOYEES)
   @Post("upload-url")
   async getUploadUrl(@Body() body: { fileName: string; contentType: string }, @CurrentUser() user: any) {
     if (!body.fileName || !body.contentType) {
@@ -26,7 +26,7 @@ export class DocumentsController {
     };
   }
 
-  @RequirePermissions(RbacPermissions.DOCUMENTS_READ)
+  @Permissions(Permission.READ_EMPLOYEES)
   @Get("view-url")
   async getDownloadUrl(@Query("objectKey") objectKey: string, @CurrentUser() user: any) {
     if (!objectKey) {
@@ -39,7 +39,7 @@ export class DocumentsController {
     };
   }
 
-  @RequirePermissions(RbacPermissions.DOCUMENTS_UPLOAD)
+  @Permissions(Permission.READ_EMPLOYEES)
   @Post("upload")
   @UseInterceptors(FileInterceptor('file'))
   async uploadFile(@UploadedFile() file: Express.Multer.File, @CurrentUser() user: any) {

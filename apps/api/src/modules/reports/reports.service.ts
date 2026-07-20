@@ -46,6 +46,27 @@ export class ReportsService {
       } else {
         buffer = await this.generateBasicXLSX('Org Structure Report');
       }
+    } else if (type === 'FIELD_WORK') {
+      name = 'Field Work Report';
+      if (format === 'PDF') {
+        buffer = await this.generateBasicPDF('Field Work Report', 'Field work requests and approvals will be populated here.');
+      } else {
+        buffer = await this.generateBasicXLSX('Field Work Report');
+      }
+    } else if (type === 'LEAD') {
+      name = 'Lead Report';
+      if (format === 'PDF') {
+        buffer = await this.generateBasicPDF('Lead Report', 'Lead analytics, sources, and conversion rates will be populated here.');
+      } else {
+        buffer = await this.generateBasicXLSX('Lead Report');
+      }
+    } else if (type === 'SALES') {
+      name = 'Sales Report';
+      if (format === 'PDF') {
+        buffer = await this.generateBasicPDF('Sales Report', 'Sales pipeline, quotas, and cycle times will be populated here.');
+      } else {
+        buffer = await this.generateBasicXLSX('Sales Report');
+      }
     } else {
       throw new InternalServerErrorException('Invalid report type');
     }

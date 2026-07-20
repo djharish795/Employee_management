@@ -137,7 +137,7 @@ export function Topbar() {
       }
       setLoading(true);
       try {
-        const globalRoles = ['SUPER_ADMIN', 'CEO', 'CTO', 'COO', 'OPERATIONS_HEAD', 'CFO', 'CHRO', 'HR', 'FINANCE', 'IT', 'CEM', 'OM', 'OE'];
+        const globalRoles = ['SUPER_ADMIN', 'CEO', 'CTO', 'COO', 'OPERATIONS_HEAD', 'CFO', 'CHRO', 'HR', 'FINANCE', 'IT', 'CEM', 'CRM', 'OM', 'OE'];
         let scope = 'individual';
         if (role && globalRoles.includes(role)) {
           scope = 'global';
