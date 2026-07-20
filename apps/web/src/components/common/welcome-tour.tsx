@@ -1,12 +1,48 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Joyride, EventData, STATUS, Step, TooltipRenderProps } from "react-joyride";
 import { useAuthStore } from "@/store/auth";
-import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Map, UserCircle, BarChart3, Zap, X, ChevronRight, ChevronLeft } from "lucide-react";
+import { 
+  motion, AnimatePresence, Variants, 
+  useMotionValue, useSpring, useTransform, useMotionTemplate 
+} from "framer-motion";
+import { 
+  Sparkles, Map, UserCircle, BarChart3, Zap, X, 
+  ChevronRight, ChevronLeft, CalendarClock, Briefcase, HandCoins, ArrowRight 
+} from "lucide-react";
 
-// Custom Tooltip Component for Joyride
+// --- Minimal Framer Motion Variants for Modals ---
+const overlayVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { duration: 0.5 } }
+};
+
+const exitVariants: Variants = {
+  hidden: { opacity: 0, scale: 0.9, y: -20 },
+  visible: { 
+    opacity: 1, 
+    scale: 1, 
+    y: 0,
+    transition: { type: "spring", stiffness: 300, damping: 25 } 
+  },
+  exit: { opacity: 0, scale: 0.95, z: -100, transition: { duration: 0.3 } }
+};
+
+const listContainerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1, delayChildren: 0.3 }
+  }
+};
+
+const listItemVariants: Variants = {
+  hidden: { opacity: 0, x: -10, z: -20 },
+  visible: { opacity: 1, x: 0, z: 0, transition: { type: "spring", stiffness: 300, damping: 25 } }
+};
+
+// Custom Tooltip Component for Joyride (Clean Light UI)
 const CustomTooltip = ({
   index,
   step,
@@ -18,29 +54,25 @@ const CustomTooltip = ({
 }: TooltipRenderProps) => {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+      initial={{ opacity: 0, y: 10, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-      transition={{ type: "spring", stiffness: 300, damping: 25 }}
-      className="bg-white/95 backdrop-blur-xl border border-slate-200/60 shadow-2xl rounded-2xl p-5 max-w-[340px] w-full font-sans relative overflow-hidden"
+      exit={{ opacity: 0, y: -10, scale: 0.98 }}
+      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+      className="bg-white border border-slate-200 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] rounded-2xl p-6 max-w-[340px] w-full font-sans relative overflow-hidden"
       {...tooltipProps}
     >
-      {/* Decorative gradient blur */}
-      <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
-
       {step.title && (
-        <h3 className="font-bold text-lg text-slate-900 mb-2 relative z-10">{step.title}</h3>
+        <h3 className="font-bold text-[17px] text-slate-900 mb-2 relative z-10">{step.title}</h3>
       )}
       
-      <div className="text-sm font-medium text-slate-600 leading-relaxed mb-6 relative z-10">
+      <div className="text-[14px] font-medium text-slate-500 leading-relaxed mb-6 relative z-10">
         {step.content}
       </div>
 
       <div className="flex items-center justify-between mt-4 relative z-10">
         <button
           {...skipProps}
-          className="text-[13px] font-bold text-slate-400 hover:text-slate-600 transition-colors px-2 py-1"
+          className="text-[13px] font-bold text-slate-400 hover:text-slate-700 transition-colors px-2 py-1"
         >
           Skip Tour
         </button>
@@ -49,7 +81,7 @@ const CustomTooltip = ({
           {index > 0 && (
             <button
               {...backProps}
-              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-50 border border-transparent hover:border-slate-200 rounded-lg transition-all"
               title="Previous"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -58,7 +90,7 @@ const CustomTooltip = ({
           
           <button
             {...primaryProps}
-            className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-[13px] font-bold rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+            className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-[13px] font-bold rounded-lg shadow-sm transition-all"
           >
             {isLastStep ? "Finish" : "Next"}
             {!isLastStep && <ChevronRight className="w-3 h-3" />}
@@ -75,14 +107,41 @@ export default function WelcomeTour() {
   const [runTour, setRunTour] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
+  // --- 3D Spatial Physics Logic ---
+  const mouseX = useMotionValue(0.5);
+  const mouseY = useMotionValue(0.5);
+
+  const springConfig = { damping: 40, stiffness: 200, mass: 1.5 };
+  const springX = useSpring(mouseX, springConfig);
+  const springY = useSpring(mouseY, springConfig);
+
+  const rotateX = useTransform(springY, [0, 1], [8, -8]);
+  const rotateY = useTransform(springX, [0, 1], [-8, 8]);
+
+  const glareX = useTransform(springX, [0, 1], ["0%", "100%"]);
+  const glareY = useTransform(springY, [0, 1], ["0%", "100%"]);
+  
+  const glareBackground = useMotionTemplate`radial-gradient(circle at ${glareX} ${glareY}, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 50%)`;
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    mouseX.set(x);
+    mouseY.set(y);
+  };
+
+  const handleMouseLeave = () => {
+    mouseX.set(0.5);
+    mouseY.set(0.5);
+  };
+
   useEffect(() => {
     setIsClient(true);
-    // If not their first login ever, don't show
-    if (!employeeId || !isFirstLogin) return;
+    if (!isFirstLogin) return;
     
-    // Also check local storage in case they skipped/completed it during this first login session
-    const tourKey = `naprocs_tour_v2_completed_${employeeId}`;
-    const hasSeenTour = localStorage.getItem(tourKey);
+    // Always show if isFirstLogin is true for testing
+    const hasSeenTour = false;
     
     if (!hasSeenTour) {
       const timer = setTimeout(() => {
@@ -93,8 +152,9 @@ export default function WelcomeTour() {
   }, [employeeId, isFirstLogin]);
 
   const handleSkip = () => {
-    if (!employeeId) return;
-    localStorage.setItem(`naprocs_tour_v2_completed_${employeeId}`, "true");
+    if (employeeId) {
+      localStorage.setItem(`naprocs_tour_v2_completed_${employeeId}`, "true");
+    }
     setShowWelcome(false);
   };
 
@@ -102,7 +162,7 @@ export default function WelcomeTour() {
     setShowWelcome(false);
     setTimeout(() => {
       setRunTour(true);
-    }, 400); // wait for modal exit animation
+    }, 400); // wait for modal exit animation completely
   };
 
   const handleJoyrideCallback = (data: EventData) => {
@@ -121,11 +181,11 @@ export default function WelcomeTour() {
       target: "body",
       content: (
         <div className="space-y-3">
-          <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mb-3">
+          <div className="w-10 h-10 bg-slate-100 text-slate-900 rounded-xl flex items-center justify-center mb-3 border border-slate-200 shadow-sm">
             <Sparkles className="w-5 h-5" />
           </div>
-          <h3 className="font-black text-xl text-slate-900 tracking-tight">Let's look around!</h3>
-          <p className="text-sm text-slate-500 font-medium leading-relaxed">We've built this dashboard to be fast, beautiful, and easy to use. Here's a quick 4-step overview.</p>
+          <h3 className="font-bold text-[18px] text-slate-900 tracking-tight">Let's look around!</h3>
+          <p className="text-[14px] text-slate-500 font-medium leading-relaxed">We've built this dashboard to be fast, beautiful, and easy to use. Here's a quick 4-step overview.</p>
         </div>
       ),
       placement: "center",
@@ -135,8 +195,8 @@ export default function WelcomeTour() {
       target: "#tour-sidebar",
       content: (
         <div>
-          <div className="flex items-center gap-2 mb-2 text-sky-600 font-bold">
-            <Map className="w-4 h-4" /> Navigation Hub
+          <div className="flex items-center gap-2 mb-2 text-slate-900 font-bold">
+            <Map className="w-4 h-4 text-slate-500" /> Navigation Hub
           </div>
           <p>Access all your modules—Attendance, Leaves, and Assets—right from this sidebar.</p>
         </div>
@@ -147,8 +207,8 @@ export default function WelcomeTour() {
       target: "#tour-profile-menu",
       content: (
         <div>
-          <div className="flex items-center gap-2 mb-2 text-indigo-600 font-bold">
-            <UserCircle className="w-4 h-4" /> Profile & Settings
+          <div className="flex items-center gap-2 mb-2 text-slate-900 font-bold">
+            <UserCircle className="w-4 h-4 text-slate-500" /> Profile & Settings
           </div>
           <p>Manage your account settings, view your profile, or securely log out here.</p>
         </div>
@@ -159,8 +219,8 @@ export default function WelcomeTour() {
       target: "#tour-dashboard-stats",
       content: (
         <div>
-          <div className="flex items-center gap-2 mb-2 text-emerald-600 font-bold">
-            <BarChart3 className="w-4 h-4" /> Live Metrics
+          <div className="flex items-center gap-2 mb-2 text-slate-900 font-bold">
+            <BarChart3 className="w-4 h-4 text-slate-500" /> Live Metrics
           </div>
           <p>Your key statistics and daily status update in real-time right at the top.</p>
         </div>
@@ -171,8 +231,8 @@ export default function WelcomeTour() {
       target: "#tour-quick-actions",
       content: (
         <div>
-          <div className="flex items-center gap-2 mb-2 text-amber-600 font-bold">
-            <Zap className="w-4 h-4" /> Quick Actions
+          <div className="flex items-center gap-2 mb-2 text-slate-900 font-bold">
+            <Zap className="w-4 h-4 text-slate-500" /> Quick Actions
           </div>
           <p>Need to apply for a leave or check pending tasks? These quick action cards have you covered.</p>
         </div>
@@ -185,88 +245,143 @@ export default function WelcomeTour() {
 
   return (
     <>
-      {/* ── Welcome Full-Screen Overlay ── */}
+      {/* ── Welcome Full-Screen Overlay (Spatial 3D Marvel) ── */}
       <AnimatePresence>
         {showWelcome && (
           <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-md"
+            variants={overlayVariants}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/30 backdrop-blur-[6px]"
+            style={{ perspective: 1200 }}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
           >
             <motion.div 
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: -20 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative bg-white/90 backdrop-blur-2xl border border-white/60 shadow-[0_0_100px_rgba(0,0,0,0.1)] rounded-[2rem] p-10 max-w-lg w-[90%] text-center overflow-hidden"
+              variants={exitVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              style={{
+                rotateX,
+                rotateY,
+                transformStyle: "preserve-3d",
+              }}
+              className="relative bg-white/70 backdrop-blur-3xl border border-white/60 shadow-[0_40px_100px_-20px_rgba(15,23,42,0.25),inset_0_1px_0_rgba(255,255,255,1)] rounded-3xl p-8 sm:p-12 max-w-[850px] w-[95%] flex flex-col md:flex-row gap-10 items-stretch"
             >
-              {/* Premium Glow Effects */}
-              <div className="absolute -top-32 -left-32 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
-              <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-sky-500/20 rounded-full blur-3xl pointer-events-none" />
-
-              <motion.button
+              {/* Dynamic Glare Effect */}
+              <motion.div 
+                className="absolute inset-0 z-0 pointer-events-none rounded-3xl mix-blend-overlay opacity-60"
+                style={{
+                  background: glareBackground
+                }}
+              />
+              
+              <button
                 onClick={handleSkip}
-                className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors z-10"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100/50 rounded-full transition-all z-20 backdrop-blur-sm"
+                aria-label="Close"
+                style={{ transform: "translateZ(30px)" }}
               >
                 <X className="w-5 h-5" />
-              </motion.button>
+              </button>
               
-              <motion.div 
-                initial={{ rotate: -10, scale: 0.5 }}
-                animate={{ rotate: 3, scale: 1 }}
-                transition={{ type: "spring", delay: 0.1 }}
-                className="relative z-10 w-20 h-20 bg-gradient-to-tr from-sky-400 via-indigo-500 to-purple-600 rounded-[1.25rem] mx-auto flex items-center justify-center shadow-lg shadow-indigo-500/30 mb-8"
+              {/* Left Side: Typography & Intro (Floating in 3D) */}
+              <div 
+                className="flex-1 flex flex-col items-start justify-center text-left z-10 w-full pr-0 md:pr-4"
+                style={{ transform: "translateZ(40px)", transformStyle: "preserve-3d" }}
               >
-                <span className="text-4xl text-white font-black drop-shadow-md">N</span>
-              </motion.div>
-              
-              <motion.h2 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="relative z-10 text-[32px] font-black text-slate-900 tracking-tight mb-4"
-              >
-                Welcome aboard!
-              </motion.h2>
-              
-              <motion.p 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="relative z-10 text-[15px] font-medium text-slate-500 mb-10 leading-relaxed max-w-[90%] mx-auto"
-              >
-                We're thrilled to have you here at Naprocs. Your new Employee Management Portal is designed to make everything from tracking attendance to applying for leaves beautifully simple. 
-              </motion.p>
+                {/* 3D Company Logo Placeholder */}
+                <div 
+                  className="w-16 h-16 bg-gradient-to-tr from-slate-800 to-slate-900 rounded-2xl flex items-center justify-center shadow-[0_10px_20px_rgba(15,23,42,0.3),inset_0_2px_0_rgba(255,255,255,0.2)] mb-8 border border-slate-700 relative overflow-hidden"
+                  style={{ transform: "translateZ(20px)" }}
+                >
+                  <div className="absolute inset-0 bg-white/10" style={{ clipPath: "polygon(0 0, 100% 0, 100% 50%, 0 50%)" }} />
+                  <span className="text-3xl text-white font-black tracking-tighter relative z-10 drop-shadow-md">N</span>
+                </div>
+                
+                <h2 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight mb-4 drop-shadow-sm">
+                  Welcome to <br />Naprocs
+                </h2>
+                
+                <p className="text-[16px] font-medium text-slate-600 mb-10 leading-relaxed max-w-sm drop-shadow-sm">
+                  Experience your new Employee Portal. Meticulously crafted for speed, elegance, and beautiful simplicity.
+                </p>
 
+                <div 
+                  className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto mt-auto"
+                  style={{ transform: "translateZ(20px)" }}
+                >
+                  <button 
+                    onClick={handleStartTour}
+                    className="group relative w-full sm:w-auto px-7 py-3 text-[14px] font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-xl shadow-[0_10px_20px_rgba(15,23,42,0.2)] hover:shadow-[0_15px_30px_rgba(15,23,42,0.3)] hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out" />
+                    <span className="relative z-10 flex items-center gap-2">Start Quick Tour <ArrowRight className="w-4 h-4" /></span>
+                  </button>
+                  <button 
+                    onClick={handleSkip}
+                    className="w-full sm:w-auto px-6 py-3 text-[14px] font-bold text-slate-500 hover:text-slate-900 bg-white/50 hover:bg-white border border-slate-200/50 hover:border-slate-300 rounded-xl transition-all shadow-sm"
+                  >
+                    Skip for now
+                  </button>
+                </div>
+              </div>
+
+              {/* Right Side: Clean Structured List (Floating in 3D) */}
               <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="relative z-10 flex flex-col sm:flex-row items-center gap-4 justify-center"
+                variants={listContainerVariants}
+                initial="hidden"
+                animate="visible"
+                className="flex-1 w-full flex flex-col justify-center gap-5 z-10 pt-6 md:pt-0 relative"
+                style={{ transform: "translateZ(30px)", transformStyle: "preserve-3d" }}
               >
-                <button 
-                  onClick={handleSkip}
-                  className="w-full sm:w-auto px-6 py-3.5 text-[14px] font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-100/80 rounded-2xl transition-all"
-                >
-                  Skip for now
-                </button>
-                <button 
-                  onClick={handleStartTour}
-                  className="group relative w-full sm:w-auto px-8 py-3.5 text-[14px] font-bold text-white bg-slate-900 rounded-2xl shadow-xl shadow-slate-900/20 hover:shadow-2xl hover:shadow-slate-900/30 hover:-translate-y-0.5 transition-all overflow-hidden"
-                >
-                  <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out" />
-                  <span className="relative z-10">Start Quick Tour ✨</span>
-                </button>
+                {/* Subtle divider in 3D */}
+                <div className="hidden md:block absolute left-[-20px] top-10 bottom-10 w-px bg-gradient-to-b from-transparent via-slate-300 to-transparent opacity-50" />
+                
+                <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2 ml-2" style={{ transform: "translateZ(10px)" }}>Platform Highlights</h4>
+                
+                {/* List Item 1 */}
+                <motion.div variants={listItemVariants} className="flex items-start gap-4 p-3 rounded-2xl hover:bg-white/40 transition-colors cursor-default border border-transparent hover:border-white/50 shadow-[0_0_0_rgba(0,0,0,0)] hover:shadow-xl">
+                  <div className="w-12 h-12 shrink-0 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-lg shadow-slate-900/20">
+                    <CalendarClock className="w-5 h-5" />
+                  </div>
+                  <div className="pt-0.5">
+                    <h4 className="text-slate-900 font-bold text-[15px] mb-1">Track Attendance</h4>
+                    <p className="text-[13.5px] text-slate-500 font-medium leading-snug">Real-time biometrics, smooth check-ins, and perfect history tracking.</p>
+                  </div>
+                </motion.div>
+
+                {/* List Item 2 */}
+                <motion.div variants={listItemVariants} className="flex items-start gap-4 p-3 rounded-2xl hover:bg-white/40 transition-colors cursor-default border border-transparent hover:border-white/50 shadow-[0_0_0_rgba(0,0,0,0)] hover:shadow-xl">
+                  <div className="w-12 h-12 shrink-0 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-lg shadow-slate-900/20">
+                    <Briefcase className="w-5 h-5" />
+                  </div>
+                  <div className="pt-0.5">
+                    <h4 className="text-slate-900 font-bold text-[15px] mb-1">Manage Leaves</h4>
+                    <p className="text-[13.5px] text-slate-500 font-medium leading-snug">Instant requests, smart balances, and transparent approval workflows.</p>
+                  </div>
+                </motion.div>
+
+                {/* List Item 3 */}
+                <motion.div variants={listItemVariants} className="flex items-start gap-4 p-3 rounded-2xl hover:bg-white/40 transition-colors cursor-default border border-transparent hover:border-white/50 shadow-[0_0_0_rgba(0,0,0,0)] hover:shadow-xl">
+                  <div className="w-12 h-12 shrink-0 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-lg shadow-slate-900/20">
+                    <HandCoins className="w-5 h-5" />
+                  </div>
+                  <div className="pt-0.5">
+                    <h4 className="text-slate-900 font-bold text-[15px] mb-1">Payroll & Assets</h4>
+                    <p className="text-[13.5px] text-slate-500 font-medium leading-snug">Secure access to encrypted payslips and company asset records.</p>
+                  </div>
+                </motion.div>
               </motion.div>
+
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── Joyride Tutorial ── */}
+      {/* ── Joyride Tutorial (Clean Professional Mode) ── */}
       {runTour && (
         <Joyride
           steps={steps}
@@ -282,11 +397,11 @@ export default function WelcomeTour() {
           }}
           styles={{
             beaconInner: {
-              backgroundColor: '#6366f1',
+              backgroundColor: '#334155',
             },
             beaconOuter: {
-              backgroundColor: 'rgba(99, 102, 241, 0.4)',
-              borderColor: 'rgba(99, 102, 241, 0.8)',
+              backgroundColor: 'rgba(51, 65, 85, 0.4)',
+              borderColor: 'rgba(51, 65, 85, 0.8)',
             }
           }}
         />
