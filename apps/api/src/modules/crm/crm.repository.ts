@@ -167,23 +167,35 @@ export class CrmRepository {
   }
 
   async updateClientStage(id: string, stage: number): Promise<ClientLead | null> {
-    return this.db.clientLead.update({
+    const client = await this.db.clientLead.findUnique({ where: { id } });
+    const result = await this.db.clientLead.update({
       where: { id },
       data: {
         stage,
         updatedDate: new Date().toISOString().replace("T", " ").slice(0, 16)
       }
     }) as unknown as ClientLead;
+    if (client) {
+      await this.logActivity(id, client.company, 'Stage Updated',
+        `${client.company} moved to Stage ${stage}`);
+    }
+    return result;
   }
 
   async updateClientHealth(id: string, health: string): Promise<ClientLead | null> {
-    return this.db.clientLead.update({
+    const client = await this.db.clientLead.findUnique({ where: { id } });
+    const result = await this.db.clientLead.update({
       where: { id },
       data: {
         clientHealth: health,
         updatedDate: new Date().toISOString().replace("T", " ").slice(0, 16)
       }
     }) as unknown as ClientLead;
+    if (client) {
+      await this.logActivity(id, client.company, 'Health Status Updated',
+        `${client.company} health status changed to "${health}"`);
+    }
+    return result;
   }
 
   async addClientNote(id: string, note: string): Promise<ClientLead | null> {
@@ -191,10 +203,13 @@ export class CrmRepository {
     if (!client) return null;
     const notes = (client.notes as string[]) || [];
     notes.push(note);
-    return this.db.clientLead.update({
+    const result = await this.db.clientLead.update({
       where: { id },
       data: { notes }
     }) as unknown as ClientLead;
+    await this.logActivity(id, client.company, 'Note Added',
+      `New note added to ${client.company}: "${note.substring(0, 80)}${note.length > 80 ? '…' : ''}"`);
+    return result;
   }
 
   async addClientCall(id: string, call: string): Promise<ClientLead | null> {
@@ -202,10 +217,13 @@ export class CrmRepository {
     if (!client) return null;
     const calls = (client.calls as string[]) || [];
     calls.push(call);
-    return this.db.clientLead.update({
+    const result = await this.db.clientLead.update({
       where: { id },
       data: { calls }
     }) as unknown as ClientLead;
+    await this.logActivity(id, client.company, 'Call Logged',
+      `Call log added to ${client.company}: "${call.substring(0, 80)}${call.length > 80 ? '…' : ''}"`);
+    return result;
   }
 
   async addClientRequirement(id: string, item: any): Promise<ClientLead | null> {

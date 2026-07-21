@@ -6,12 +6,16 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, Calendar, ShieldCheck, History,
   Network, BarChart3, Settings, LogOut, Menu, X, ChevronLeft, ChevronDown, ChevronUp, Plus, FolderPlus,
-  MessageSquare, CalendarCheck, UserPlus, UserMinus, BookOpen, Monitor, Lock, Bell, CheckSquare
+  MessageSquare, CalendarCheck, UserPlus, UserMinus, BookOpen, Monitor, Lock, Bell, CheckSquare, Target, ClipboardList
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { useNotifications } from '@/hooks/use-notifications';
 import { getDashboardPathForRole, Permission } from '@naprocs/types';
 import { useRbac } from '@/hooks/use-rbac';
+import useSWR from 'swr';
+import { apiClient } from '@/lib/api/client';
+
+const fetcher = (url: string) => apiClient.get(url).then(res => res.data);
 
 interface SidebarProps {
   activeModule?: string;
@@ -219,6 +223,12 @@ export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
   const storeRole = useAuthStore((state) => state.role);
   const [role, setRole] = useState(storeRole || 'EMPLOYEE');
 
+  const { data: teamWorkReports } = useSWR('/work-reports/team', fetcher, { refreshInterval: 60000 });
+  const { data: teamFieldReports } = useSWR('/field-work-requests/team', fetcher, { refreshInterval: 60000 });
+
+  const pendingWorkReports = (teamWorkReports || []).filter((r: any) => r.status === 'PENDING').length;
+  const pendingFieldReports = (teamFieldReports || []).filter((r: any) => r.status === 'PENDING').length;
+
   React.useEffect(() => {
     if (storeRole) setRole(storeRole);
   }, [storeRole]);
@@ -267,13 +277,77 @@ export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
 
       {/* Navigation */}
       <nav className={`flex-1 space-y-6 overflow-y-auto ${collapsed ? 'px-2 py-4' : 'px-3 py-2'}`}>
-        {getNavGroups(role, unreadCount, hasSettingsAccess).map((group, gIndex) => (
-          <div key={group.label || gIndex} className="space-y-1.5">
-            {!collapsed && group.label && (
-              <div className="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 mt-2">
-                {group.label}
-              </div>
-            )}
+        {getNavGroups(role, unreadCount, hasSettingsAccess).map((group, gIndex) => {
+          // Check if this is the original CEO OTHER section (by inspecting the next item or just injecting)
+          const isOtherSection = group.label === 'OTHER';
+          const isCEO = role === 'CEO';
+          
+          return (
+            <React.Fragment key={group.label || gIndex}>
+              {isCEO && isOtherSection && (
+                <div className="space-y-1.5 mt-6 mb-4">
+                  {!collapsed && (
+                    <div className="px-3 text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-2 border-l-2 border-amber-500 ml-1 pl-2">
+                      OPERATIONS REVIEW
+                    </div>
+                  )}
+                  
+                  {/* Team Work Reports */}
+                  <Link
+                    href="/ceo/work-reports"
+                    onClick={onNavigate}
+                    title={collapsed ? "Team Work Reports" : undefined}
+                    className={`group flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 active:scale-95 ${
+                      collapsed ? 'justify-center' : ''
+                    } ${
+                      (pathname === '/ceo/work-reports' || pathname.startsWith('/ceo/work-reports/'))
+                        ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-900 dark:text-white font-semibold'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <ClipboardList className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${pathname.startsWith('/ceo/work-reports') ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`} />
+                      {!collapsed && 'Team Work Reports'}
+                    </div>
+                    {!collapsed && pendingWorkReports > 0 && (
+                      <span className="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center text-[10px] font-bold">
+                        {pendingWorkReports}
+                      </span>
+                    )}
+                  </Link>
+
+                  {/* Field Reports */}
+                  <Link
+                    href="/ceo/field-reports"
+                    onClick={onNavigate}
+                    title={collapsed ? "Field Reports" : undefined}
+                    className={`group flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 active:scale-95 ${
+                      collapsed ? 'justify-center' : ''
+                    } ${
+                      (pathname === '/ceo/field-reports' || pathname.startsWith('/ceo/field-reports/'))
+                        ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-900 dark:text-white font-semibold'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Target className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${pathname.startsWith('/ceo/field-reports') ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`} />
+                      {!collapsed && 'Field Reports'}
+                    </div>
+                    {!collapsed && pendingFieldReports > 0 && (
+                      <span className="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center text-[10px] font-bold">
+                        {pendingFieldReports}
+                      </span>
+                    )}
+                  </Link>
+                </div>
+              )}
+              <div className="space-y-1.5">
+                {!collapsed && group.label && (
+                  <div className="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 mt-2">
+                    {group.label}
+                  </div>
+                )}
+
             {group.items.map((item: any) => {
               if (item.locked) {
                 return (
@@ -354,8 +428,10 @@ export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
                 </div>
               );
             })}
-          </div>
-        ))}
+              </div>
+            </React.Fragment>
+          );
+        })}
       </nav>
 
       {/* Logout Footer */}

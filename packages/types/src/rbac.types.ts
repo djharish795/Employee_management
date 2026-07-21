@@ -218,6 +218,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.MANAGE_PROJECTS,
     Permission.ACCESS_SETTINGS,
     Permission.WRITE_OWN_PROFILE,
+    Permission.ACCESS_CEM,
+    Permission.APPROVE_FIELD_REQUESTS,
   ],
   [UserRole.CTO]: [
     Permission.READ_EMPLOYEES,

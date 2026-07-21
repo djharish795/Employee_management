@@ -18,11 +18,11 @@ export default function TeamDashboardPage() {
     }
   });
 
-  const currentDate = new Intl.DateTimeFormat('en-GB', { 
-    weekday: 'long', 
-    day: 'numeric', 
-    month: 'long', 
-    year: 'numeric' 
+  const currentDate = new Intl.DateTimeFormat('en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
   }).format(new Date());
 
   if (isLoading) {
@@ -50,7 +50,7 @@ export default function TeamDashboardPage() {
 
   return (
     <PremiumDashboardLayout className="flex flex-col">
-      
+
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
         <div>
@@ -64,13 +64,13 @@ export default function TeamDashboardPage() {
 
       {/* KPI Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-        <KpiCard 
-          title="DIRECT REPORTS" 
-          value={kpis.directReportsCount} 
-          subtitle="Backend sub-team" 
+        <KpiCard
+          title="DIRECT REPORTS"
+          value={kpis.directReportsCount}
+          subtitle="Backend sub-team"
         />
-        <KpiCard 
-          title="PRESENT TODAY" 
+        <KpiCard
+          title="PRESENT TODAY"
           value={
             <div className="flex items-center gap-2">
               <span className="text-emerald-600">{kpis.presentTodayCount}</span>
@@ -79,23 +79,23 @@ export default function TeamDashboardPage() {
               <span className="ml-2 text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full uppercase tracking-wider">{kpis.presentTodayPercentage}% present</span>
             </div>
           }
-          subtitle="Attendance active" 
+          subtitle="Attendance active"
         />
-        <KpiCard 
-          title="PENDING APPROVALS" 
-          value={<span className="text-orange-500">{kpis.pendingApprovalsCount}</span>} 
-          subtitle="Leave requests" 
+        <KpiCard
+          title="PENDING APPROVALS"
+          value={<span className="text-orange-500">{kpis.pendingApprovalsCount}</span>}
+          subtitle="Leave requests"
         />
-        <KpiCard 
-          title="TASKS IN PROGRESS" 
-          value={kpis.tasksInProgressCount} 
-          subtitle="Across the team" 
+        <KpiCard
+          title="TASKS IN PROGRESS"
+          value={kpis.tasksInProgressCount}
+          subtitle="Across the team"
         />
       </div>
 
       {/* Middle Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        
+
         {/* My Team Today (Left, spans 2 cols) */}
         <PremiumCard className="lg:col-span-2 overflow-hidden flex flex-col p-0">
           <div className="p-6 pb-4 border-b border-slate-100/50 flex items-center justify-between">
@@ -104,7 +104,7 @@ export default function TeamDashboardPage() {
               View full team <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
-          
+
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead className="bg-slate-50/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -121,14 +121,14 @@ export default function TeamDashboardPage() {
                     <td colSpan={4} className="px-6 py-8 text-center text-slate-500 text-sm font-medium">No team members found.</td>
                   </tr>
                 ) : teamToday.map((member: any) => (
-                  <TeamRow 
+                  <TeamRow
                     key={member.id}
-                    initials={member.initials} 
-                    name={member.name} 
-                    bgClass={member.bgClass} 
-                    status={member.status} 
+                    initials={member.initials}
+                    name={member.name}
+                    bgClass={member.bgClass}
+                    status={member.status}
                     statusClass={member.statusClass}
-                    time={member.time} 
+                    time={member.time}
                     task={member.task}
                     isDimmed={member.isDimmed}
                   />
@@ -147,11 +147,11 @@ export default function TeamDashboardPage() {
             {approvals.length === 0 ? (
               <div className="text-center text-slate-500 text-sm font-medium py-8">No pending approvals.</div>
             ) : approvals.map((approval: any) => (
-              <ApprovalCard 
+              <ApprovalCard
                 key={approval.id}
-                name={approval.name} 
-                type={approval.type} 
-                status={approval.status} 
+                name={approval.name}
+                type={approval.type}
+                status={approval.status}
               />
             ))}
           </div>
@@ -172,7 +172,7 @@ export default function TeamDashboardPage() {
             Open full board <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
-        
+
         <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* TO DO */}
           <div className="flex flex-col gap-4">
@@ -181,17 +181,17 @@ export default function TeamDashboardPage() {
               <SnapshotTaskCard key={task.id} title={task.title} tag={task.tag} />
             ))}
           </div>
-          
+
           {/* IN PROGRESS */}
           <div className="flex flex-col gap-4">
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">IN PROGRESS ({tasksInProgress.length})</h3>
             {tasksInProgress.map((task: any) => (
-              <SnapshotTaskCard 
-                key={task.id} 
-                title={task.title} 
-                tag={task.tag} 
-                assignee={task.assignee} 
-                tagColor={task.tagColor} 
+              <SnapshotTaskCard
+                key={task.id}
+                title={task.title}
+                tag={task.tag}
+                assignee={task.assignee}
+                tagColor={task.tagColor}
               />
             ))}
           </div>
@@ -199,7 +199,7 @@ export default function TeamDashboardPage() {
           {/* BLOCKED */}
           <div className="flex flex-col gap-4">
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">BLOCKED ({tasksBlocked.length})</h3>
-            
+
             {tasksBlocked.map((task: any) => (
               <div key={task.id} className="bg-white p-4 rounded-xl border border-dashed border-red-400 shadow-sm flex flex-col gap-3">
                 <div className="flex items-start justify-between">
@@ -212,7 +212,7 @@ export default function TeamDashboardPage() {
                 </div>
               </div>
             ))}
-            
+
           </div>
         </div>
       </PremiumCard>

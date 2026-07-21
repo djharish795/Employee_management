@@ -112,21 +112,18 @@ export function CemSidebar() {
     if (storeRole === 'OM') {
       return [
         {
-          label: 'OM PORTAL',
+          label: 'OPERATIONS HUB',
           items: [
             { title: 'Dashboard', icon: LayoutDashboard, href: '/om/dashboard' },
             { title: 'Work Reports', icon: ClipboardList, href: '/om/work-reports' },
-            { title: 'Field Operations', icon: Wrench, href: '/cem/meetings' },
+            { title: 'Field Reports', icon: Target, href: '/om/field-reports' },
             { title: 'Team Overview', icon: Users, href: '/org-chart' },
           ]
         },
         {
-          label: 'OPERATIONS',
-          items: sharedOpsItems,
-        },
-          {
           label: 'MY WORKPLACE',
           items: [
+            { title: 'My Submissions', icon: FileBarChart, href: '/om/reports' },
             { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
             { title: 'Connect', icon: MessageSquare, href: '/connect' },
             { title: 'Attendance', icon: CalendarCheck, href: '/attendance' },

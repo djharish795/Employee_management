@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { 
   Download, FileSpreadsheet, BarChart2, ShoppingCart, 
   DollarSign, TrendingUp, Filter, MoreVertical, 
-  Clock, Calendar, PenSquare, Trash2, CheckCircle2, Users
+  Clock, Calendar, PenSquare, Trash2, CheckCircle2, Users,
+  FileText, Plus, MapPin
 } from 'lucide-react';
 import { useRbac } from '@/hooks/use-rbac';
 import { Permission } from '@naprocs/types';
@@ -27,12 +28,12 @@ export default function CamReportsPage() {
   const router = useRouter();
   const { hasPermission } = useRbac();
   const canApprove = hasPermission(Permission.APPROVE_FIELD_REQUESTS);
-  const accessToken = useAuthStore((state) => state.accessToken);
 
   const [activeTab, setActiveTab] = useState<'my-requests' | 'approvals'>('my-requests');
   const [localRequests, setLocalRequests] = useState<any[]>([]);
   const [teamRequests, setTeamRequests] = useState<any[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
@@ -67,26 +68,39 @@ export default function CamReportsPage() {
     }
   };
 
-  useEffect(() => {
-    async function loadData() {
-      if (!accessToken) return;
-      setIsDataLoading(true);
-      try {
-        const own = await fetchMyFieldWork();
-        setLocalRequests(own);
+  const loadData = async () => {
+    setIsDataLoading(true);
+    setErrorMessage(null);
+    try {
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), 10000));
+      const dataPromise = Promise.all([
+        fetchMyFieldWork().catch(err => { console.error('fetchMyFieldWork error:', err); return []; }),
+        apiClient.get('/work-reports/me').then(r => r?.data?.data || r?.data || []).catch(err => { console.error('work-reports/me error:', err); return []; })
+      ]);
 
-        if (canApprove) {
-          const team = await fetchFieldWorkApprovals();
-          setTeamRequests(team);
-        }
-      } catch (err) {
-        console.error("Failed to load reports data", err);
-      } finally {
-        setIsDataLoading(false);
-      }
+      const [fieldWork, myWorkReports] = await Promise.race([dataPromise, timeoutPromise]) as [any[], any[]];
+
+      const mappedWorkReports = (Array.isArray(myWorkReports) ? myWorkReports : []).map((wr: any) => ({
+        ...wr,
+        type: 'WORK_REPORT',
+        destination: wr.title,
+        date: wr.submittedAt,
+      }));
+
+      setLocalRequests([...(Array.isArray(fieldWork) ? fieldWork : []), ...mappedWorkReports].sort((a: any, b: any) => 
+        new Date(b.date || b.createdAt).getTime() - new Date(a.date || a.createdAt).getTime()
+      ));
+    } catch (err: any) {
+      console.error("Failed to load reports data", err);
+      setErrorMessage(err.message || "Failed to load requests");
+    } finally {
+      setIsDataLoading(false);
     }
+  };
+
+  useEffect(() => {
     loadData();
-  }, [canApprove, accessToken]);
+  }, [canApprove]);
 
   const handleDeleteRequest = async (id: string) => {
     if (confirm("Are you sure you want to permanently delete this request? This action cannot be undone.")) {
@@ -110,11 +124,12 @@ export default function CamReportsPage() {
   const getStatusDisplay = (status: string) => {
     switch (status) {
       case 'DRAFT': return 'Draft';
-      case 'PENDING': return 'Under Review';
+      case 'PENDING': return 'Pending';
+      case 'NEEDS_REVISION': return 'Needs Revision';
       case 'APPROVED': return 'Approved';
       case 'REJECTED': return 'Rejected';
       case 'CANCELLED': return 'Cancelled';
-      default: return status || 'Pending';
+      default: return status ? status.charAt(0).toUpperCase() + status.slice(1).toLowerCase().replace('_', ' ') : 'Pending';
     }
   };
 
@@ -129,11 +144,18 @@ export default function CamReportsPage() {
       case 'REJECTED':
       case 'Rejected':
         return 'bg-rose-500';
+      case 'NEEDS_REVISION':
+      case 'Needs Revision':
+      case 'Needs revision':
+        return 'bg-amber-500';
+      case 'PENDING':
+      case 'Pending':
+        return 'bg-purple-500';
       case 'CANCELLED':
       case 'Cancelled':
         return 'bg-slate-300';
       default:
-        return 'bg-slate-950 dark:bg-white animate-pulse';
+        return 'bg-slate-500';
     }
   };
 
@@ -144,74 +166,70 @@ export default function CamReportsPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Reporting Suite</h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Analyze performance, lead distribution, and revenue forecasts.</p>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => router.push('/cem/reports/field-request')}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:bg-slate-800 dark:hover:bg-slate-100 rounded-lg text-sm font-semibold transition-colors shadow-sm"
-            >
-              Field Work Request
-            </button>
-            <button 
-              onClick={() => handleGenerateReport('FIELD_WORK', 'PDF')}
-              disabled={isGenerating}
-              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm disabled:opacity-50">
-              <Download className="w-4 h-4" />
-              Export PDF
-            </button>
-            <button 
-              onClick={() => handleGenerateReport('FIELD_WORK', 'XLSX')}
-              disabled={isGenerating}
-              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm disabled:opacity-50">
-              <FileSpreadsheet className="w-4 h-4" />
-              CSV / Excel
-            </button>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">My Submissions</h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Track and manage your personal reports and requests.</p>
           </div>
         </div>
 
-        {/* Reports Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        {/* Quick Action Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           
-          {/* Lead Reports */}
+          {/* Submit Work Report */}
           <div 
-            onClick={() => handleGenerateReport('LEAD', 'PDF')}
+            onClick={() => {
+              const basePath = window.location.pathname.split('/')[1];
+              router.push(`/${basePath}/work-reports/new`);
+            }}
+            className="bg-white dark:bg-slate-900 rounded-xl border border-blue-200 dark:border-blue-900/50 p-6 shadow-sm relative group overflow-hidden cursor-pointer hover:border-blue-400 dark:hover:border-blue-700 transition-colors"
+          >
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-600 rounded-l-xl"></div>
+            <div className="flex justify-between items-start mb-4">
+              <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center">
+                <FileText className="w-6 h-6" />
+              </div>
+              <button className="text-blue-400 group-hover:text-blue-600 transition-colors bg-blue-50 dark:bg-blue-900/30 w-8 h-8 rounded-full flex items-center justify-center">
+                <Plus className="w-5 h-5" />
+              </button>
+            </div>
+            <h3 className="font-bold text-slate-900 dark:text-white mb-2">Submit Work Report</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Draft and submit your daily or weekly progress update to your manager.
+            </p>
+          </div>
+
+          {/* Request Field Work */}          
+          <div 
+            onClick={() => {
+              const basePath = window.location.pathname.split('/')[1];
+              router.push(`/${basePath}/reports/field-request`);
+            }}
             className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm relative group overflow-hidden cursor-pointer hover:border-slate-400 dark:hover:border-slate-600 transition-colors"
           >
             <div className="absolute top-0 left-0 w-1.5 h-full bg-slate-950 dark:bg-white rounded-l-xl"></div>
             <div className="flex justify-between items-start mb-4">
               <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg flex items-center justify-center">
-                <BarChart2 className="w-6 h-6" />
+                <MapPin className="w-6 h-6" />
               </div>
-              <button className="text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">
-                <span className="text-xl leading-none">→</span>
+              <button className="text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors bg-slate-50 dark:bg-slate-800 w-8 h-8 rounded-full flex items-center justify-center">
+                <Plus className="w-5 h-5" />
               </button>
             </div>
-            <h3 className="font-bold text-slate-900 dark:text-white mb-2">Lead Reports</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white mb-2">Request Field Work</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              Source tracking, conversion rates, and churn metrics.
+              Submit a formal request for upcoming on-site field visits or travel.
             </p>
           </div>
 
-          {/* Sales Reports */}          <div 
-            onClick={() => handleGenerateReport('SALES', 'PDF')}
-            className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm relative group overflow-hidden cursor-pointer hover:border-slate-400 dark:hover:border-slate-600 transition-colors"
-          >
-            <div className="absolute top-0 left-0 w-1.5 h-full bg-slate-700 rounded-l-xl"></div>
-            <div className="flex justify-between items-start mb-4">
-              <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 text-slate-850 dark:text-slate-200 rounded-lg flex items-center justify-center">
-                <ShoppingCart className="w-6 h-6" />
-              </div>
-              <button className="text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">
-                <span className="text-xl leading-none">→</span>
-              </button>
+          {/* Stats Summary */}
+          <div className="bg-slate-950 dark:bg-slate-900 rounded-xl p-6 shadow-sm relative overflow-hidden flex flex-col justify-center">
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <BarChart2 className="w-24 h-24 text-white" />
             </div>
-            <h3 className="font-bold text-slate-900 dark:text-white mb-2">Sales Reports</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              Individual quotas, team performance, and cycle time.
-            </p>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 z-10">Pending Approvals</p>
+            <h3 className="text-4xl font-black text-white mb-1 z-10">
+              {localRequests.filter(r => r.status === 'PENDING' || r.status === 'Pending').length}
+            </h3>
+            <p className="text-xs text-slate-400 z-10">Requests currently waiting on review.</p>
           </div>
         </div>
 
@@ -221,32 +239,7 @@ export default function CamReportsPage() {
           {/* Recently Generated Table */}
           <div className="w-full bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-[550px]">
             <div className="p-5 flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
-              {canApprove ? (
-                <div className="flex gap-4">
-                  <button 
-                    onClick={() => setActiveTab('my-requests')}
-                    className={`pb-1 text-sm font-bold border-b-2 transition-all ${
-                      activeTab === 'my-requests' 
-                        ? 'border-slate-950 text-slate-950 dark:border-white dark:text-white' 
-                        : 'border-transparent text-slate-400 hover:text-slate-650'
-                    }`}
-                  >
-                    My Requests
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('approvals')}
-                    className={`pb-1 text-sm font-bold border-b-2 transition-all ${
-                      activeTab === 'approvals' 
-                        ? 'border-slate-950 text-slate-950 dark:border-white dark:text-white' 
-                        : 'border-transparent text-slate-400 hover:text-slate-650'
-                    }`}
-                  >
-                    Team Approvals
-                  </button>
-                </div>
-              ) : (
-                <h3 className="font-bold text-slate-900 dark:text-white">My Requests</h3>
-              )}
+              <h3 className="font-bold text-slate-900 dark:text-white">My Requests</h3>
               <div className="flex items-center gap-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -288,19 +281,7 @@ export default function CamReportsPage() {
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-40 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800">
-                    <DropdownMenuItem onClick={async () => {
-                      setIsDataLoading(true);
-                      try {
-                        const own = await fetchMyFieldWork();
-                        setLocalRequests(own);
-                        if (canApprove) {
-                          const team = await fetchFieldWorkApprovals();
-                          setTeamRequests(team);
-                        }
-                      } finally {
-                        setIsDataLoading(false);
-                      }
-                    }} className="cursor-pointer">
+                    <DropdownMenuItem onClick={loadData} className="cursor-pointer">
                       Refresh Data
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -331,8 +312,18 @@ export default function CamReportsPage() {
                         </tr>
                       );
                     }
+
+                    if (errorMessage) {
+                      return (
+                        <tr>
+                          <td colSpan={5} className="px-5 py-8 text-center text-sm font-semibold text-rose-500">
+                            Error: {errorMessage}
+                          </td>
+                        </tr>
+                      );
+                    }
                     
-                    const currentList = activeTab === 'my-requests' ? localRequests : teamRequests;
+                    const currentList = localRequests;
                     const filteredList = statusFilter === 'ALL' ? currentList : currentList.filter(req => req.status === statusFilter);
 
                     if (filteredList.length === 0) {
@@ -355,15 +346,17 @@ export default function CamReportsPage() {
                           <div className="flex items-center gap-3">
                             <FileSpreadsheet className="w-4 h-4 text-slate-400" />
                             <span className="font-medium text-slate-900 dark:text-white text-sm">
-                              {activeTab === 'my-requests' ? 'Field Work' : `Field Work (${req.employeeName})`}: {req.destination || "Unspecified"}
+                              {req.type === 'WORK_REPORT' ? 'Work Report' : 'Field Work'}: {req.destination || "Unspecified"}
                             </span>
                           </div>
                         </td>
                         <td className="px-5 py-4">
-                          <span className="px-2 py-1 text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded uppercase">FIELD</span>
+                          <span className={`px-2 py-1 text-[10px] font-bold rounded uppercase ${req.type === 'WORK_REPORT' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200'}`}>
+                            {req.type === 'WORK_REPORT' ? 'REPORT' : 'FIELD'}
+                          </span>
                         </td>
                         <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-400">
-                          {req.date ? new Date(req.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'N/A'}
+                          {req.date && !isNaN(new Date(req.date).getTime()) ? new Date(req.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'N/A'}
                         </td>
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-1.5 text-slate-650 dark:text-slate-350 text-xs font-semibold">
@@ -373,37 +366,48 @@ export default function CamReportsPage() {
                         </td>
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
-                            {req.status === 'DRAFT' || req.status === 'Draft' ? (
-                              <>
-                                <button 
-                                  onClick={() => router.push(`/cem/reports/field-request?id=${req.id}`)}
-                                  className="text-sm font-bold text-slate-900 dark:text-white hover:underline"
-                                >
-                                  Edit
-                                </button>
-                                <button 
-                                  onClick={() => handleDeleteRequest(req.id)}
-                                  className="text-sm font-bold text-rose-600 hover:text-rose-700 hover:underline"
-                                >
-                                  Delete
-                                </button>
-                              </>
+                            {req.type === 'WORK_REPORT' ? (
+                              <button 
+                                onClick={() => router.push(`/cem/work-reports/${req.id}`)}
+                                className="text-sm font-bold text-slate-900 dark:text-white hover:underline"
+                              >
+                                View Report
+                              </button>
                             ) : (
                               <>
-                                <button 
-                                  onClick={() => router.push(`/cem/reports/${req.id}`)}
-                                  className="text-sm font-bold text-slate-900 dark:text-white hover:underline"
-                                >
-                                  View
-                                </button>
-                                {(req.status === 'CANCELLED' || req.status === 'Cancelled') && (
-                                  <button 
-                                    onClick={() => handleDeleteRequest(req.id)}
-                                    className="text-sm font-bold text-rose-600 hover:text-rose-700 hover:underline"
-                                    title="Delete from list"
-                                  >
-                                    Delete
-                                  </button>
+                                {req.status === 'DRAFT' || req.status === 'Draft' ? (
+                                  <>
+                                    <button 
+                                      onClick={() => router.push(`/cem/reports/field-request?id=${req.id}`)}
+                                      className="text-sm font-bold text-slate-900 dark:text-white hover:underline"
+                                    >
+                                      Edit
+                                    </button>
+                                    <button 
+                                      onClick={() => handleDeleteRequest(req.id)}
+                                      className="text-sm font-bold text-rose-600 hover:text-rose-700 hover:underline"
+                                    >
+                                      Delete
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button 
+                                      onClick={() => router.push(`/cem/reports/${req.id}`)}
+                                      className="text-sm font-bold text-slate-900 dark:text-white hover:underline"
+                                    >
+                                      View
+                                    </button>
+                                    {(req.status === 'CANCELLED' || req.status === 'Cancelled') && (
+                                      <button 
+                                        onClick={() => handleDeleteRequest(req.id)}
+                                        className="text-sm font-bold text-rose-600 hover:text-rose-700 hover:underline"
+                                        title="Delete from list"
+                                      >
+                                        Delete
+                                      </button>
+                                    )}
+                                  </>
                                 )}
                               </>
                             )}

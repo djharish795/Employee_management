@@ -90,9 +90,9 @@ async function bootstrap() {
     }
   }
 
+  // Start application (Forced restart for DB pool clear)
   await app.listen(port, "0.0.0.0");
   console.log(`API listening on http://localhost:${port}/api/${apiVersion}`);
 }
 
 bootstrap();
-

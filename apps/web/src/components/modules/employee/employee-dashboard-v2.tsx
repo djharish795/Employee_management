@@ -22,6 +22,8 @@ import { fetchMyProfile } from "@/lib/api/profile";
 import { assetsApi } from "@/lib/api/assets";
 import { workflowsApi } from "@/lib/api/workflows";
 import { fetchNotifications } from "@/lib/api/notifications";
+import { fetchFieldWorkApprovals } from "@/lib/api/field-work";
+import { apiClient } from "@/lib/api/client";
 import EarlyCheckoutModal from "@/components/shared/early-checkout-modal";
 import { PremiumDashboardLayout, PremiumCard } from '@/components/shared/premium-dashboard';
 
@@ -99,6 +101,34 @@ export default function EmployeeDashboardV2() {
     queryFn: fetchNotifications,
     staleTime: 60_000,
   });
+
+  const teamReportsQuery = useQuery({
+    queryKey: ["teamReports"],
+    queryFn: () => apiClient.get('/work-reports/team').then(res => res.data),
+    staleTime: 60_000,
+  });
+
+  const fieldWorkQuery = useQuery({
+    queryKey: ["fieldWorkApprovals"],
+    queryFn: fetchFieldWorkApprovals,
+    staleTime: 60_000,
+  });
+
+  const pendingWorkflows = Array.isArray(tasksQuery.data) 
+    ? tasksQuery.data.filter((t: any) => t.status === 'PENDING') 
+    : [];
+  const pendingReports = Array.isArray(teamReportsQuery.data) 
+    ? teamReportsQuery.data.filter((r: any) => r.status === 'PENDING' || r.status === 'Pending')
+    : [];
+  const pendingFieldWork = Array.isArray(fieldWorkQuery.data)
+    ? fieldWorkQuery.data.filter((f: any) => f.status === 'PENDING' || f.status === 'Pending')
+    : [];
+  
+  const activeFieldOperations = Array.isArray(fieldWorkQuery.data)
+    ? fieldWorkQuery.data.filter((f: any) => f.status === 'IN_PROGRESS' || f.status === 'APPROVED').length
+    : 0;
+
+  const totalPendingAction = pendingWorkflows.length + pendingReports.length + pendingFieldWork.length;
 
   const todayState = todayQuery.data?.state ?? "OUT";
   const isPunchedIn = todayState === "IN" || todayState === "BREAK";
@@ -311,8 +341,47 @@ export default function EmployeeDashboardV2() {
         </PremiumCard>
       </div>
 
+      {/* Managerial Action Cards (Card 1 & Card 3) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        {/* Card 1: Action Required (Pending Approvals) */}
+        <PremiumCard hoverLift decorativeGradient className="p-5 flex flex-col justify-between border-blue-200 dark:border-blue-900/50">
+          <div className="flex justify-between items-start mb-3">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Action Required</p>
+            <ShieldAlert className="w-4 h-4 text-amber-500" />
+          </div>
+          <div className="flex items-baseline gap-2">
+            {tasksQuery.isLoading ? (
+              <div className="h-9 w-12 bg-slate-200 animate-pulse rounded-md mb-1"></div>
+            ) : (
+              <h3 className="text-3xl font-black text-amber-500">
+                {totalPendingAction}
+              </h3>
+            )}
+            <span className="text-xs font-medium text-slate-500">pending approvals</span>
+          </div>
+          <p className="text-xs text-slate-400 mt-3 font-medium">Work reports and field requests waiting on you.</p>
+        </PremiumCard>
+
+        {/* Card 3: Active Field Operations */}
+        <PremiumCard hoverLift decorativeGradient className="p-5 flex flex-col justify-between border-emerald-200 dark:border-emerald-900/50">
+          <div className="flex justify-between items-start mb-3">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Field Operations</p>
+            <Target className="w-4 h-4 text-emerald-500" />
+          </div>
+          <div className="flex items-baseline gap-2">
+            {(fieldWorkQuery.isLoading) ? (
+              <div className="h-9 w-12 bg-slate-200 animate-pulse rounded-md mb-1"></div>
+            ) : (
+              <h3 className="text-3xl font-black text-emerald-500">{activeFieldOperations}</h3>
+            )}
+            <span className="text-xs font-medium text-slate-500">team members in the field</span>
+          </div>
+          <p className="text-xs text-slate-400 mt-3 font-medium">Live field tracking and updates.</p>
+        </PremiumCard>
+      </div>
+
       {/* Main Content Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {/* Attendance Calendar */}
         <PremiumCard className="p-6 lg:col-span-2">
           <div className="flex items-center justify-between mb-6">
@@ -440,46 +509,81 @@ export default function EmployeeDashboardV2() {
           </div>
         </PremiumCard>
 
-        {/* Pending For You */}
-        <PremiumCard id="tour-quick-actions" className="p-6 flex flex-col">
-          <h3 className="text-base font-bold text-slate-900 mb-4">Pending for you</h3>
-          <div className="space-y-3">
-            {tasksQuery.isLoading ? (
+        {/* Right Column (Stacked) */}
+        <div className="flex flex-col gap-6 lg:col-span-1 h-full">
+          {/* Pending For You */}
+          <PremiumCard id="tour-quick-actions" className="p-6 flex flex-col flex-1 max-h-[400px]">
+            <h3 className="text-base font-bold text-slate-900 mb-4 shrink-0">Pending for you</h3>
+            <div className="space-y-3 overflow-y-auto overflow-x-hidden pr-2 scrollbar-thin scrollbar-thumb-slate-200">
+            {(tasksQuery.isLoading || teamReportsQuery.isLoading || fieldWorkQuery.isLoading) ? (
               <div className="flex justify-center p-4"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
-            ) : tasksQuery.data && tasksQuery.data.length > 0 ? (
-              tasksQuery.data.slice(0, 3).map((task: any) => (
-                <div key={task.id} className="border border-slate-200 rounded-xl p-4 flex items-center justify-between hover:border-slate-300 transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0">
-                      <FileText className="w-5 h-5" />
+            ) : totalPendingAction > 0 ? (
+              <>
+                {pendingWorkflows.slice(0, 2).map((task: any) => (
+                  <div key={`wf-${task.id}`} className="border border-slate-200 rounded-xl p-4 flex items-center justify-between hover:border-slate-300 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0">
+                        <CheckCircle2 className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-900">{task.workflow?.name || "Workflow Task"}</p>
+                        <p className="text-[11px] font-medium text-slate-500">From {task.initiatedBy?.firstName} {task.initiatedBy?.lastName}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-bold text-slate-900">{task.workflow?.name || "Workflow Task"}</p>
-                      <p className="text-[11px] font-medium text-slate-500">From {task.initiatedBy?.firstName} {task.initiatedBy?.lastName}</p>
-                    </div>
+                    <Link href={`/workflows/${task.id}`} className="px-3 py-1.5 border border-slate-300 rounded-md text-[11px] font-bold text-slate-700 hover:bg-slate-50 transition-colors">
+                      Review
+                    </Link>
                   </div>
-                  <Link href={`/workflows/${task.id}`} className="px-3 py-1.5 border border-slate-300 rounded-md text-[11px] font-bold text-slate-700 hover:bg-slate-50 transition-colors">
-                    Review
-                  </Link>
-                </div>
-              ))
+                ))}
+                {pendingReports.slice(0, 3).map((report: any) => (
+                  <div key={`rep-${report.id}`} className="border border-slate-200 rounded-xl p-4 flex items-center justify-between hover:border-slate-300 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-900">{report.title}</p>
+                        <p className="text-[11px] font-medium text-slate-500">From {report.employee?.firstName} {report.employee?.lastName} • {report.reportType}</p>
+                      </div>
+                    </div>
+                    <Link href={`/om/work-reports`} className="px-3 py-1.5 border border-slate-300 rounded-md text-[11px] font-bold text-slate-700 hover:bg-slate-50 transition-colors">
+                      Review
+                    </Link>
+                  </div>
+                ))}
+                {pendingFieldWork.slice(0, 2).map((fw: any) => (
+                  <div key={`fw-${fw.id}`} className="border border-slate-200 rounded-xl p-4 flex items-center justify-between hover:border-slate-300 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                        <Target className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-900">Field Work Request</p>
+                        <p className="text-[11px] font-medium text-slate-500">From {fw.employeeName} • {fw.client}</p>
+                      </div>
+                    </div>
+                    <Link href={`/om/field-reports`} className="px-3 py-1.5 border border-slate-300 rounded-md text-[11px] font-bold text-slate-700 hover:bg-slate-50 transition-colors">
+                      Review
+                    </Link>
+                  </div>
+                ))}
+              </>
             ) : (
               <div className="text-center p-6 border border-dashed border-slate-200 rounded-xl">
                 <CheckCircle2 className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                 <p className="text-sm font-medium text-slate-500">You're all caught up!</p>
               </div>
             )}
-          </div>
-        </PremiumCard>
-      </div>
+            </div>
+          </PremiumCard>
 
-      {/* Recent Notifications */}
-      <PremiumCard className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-bold text-slate-900">Recent notifications</h3>
-          <Link href="/notifications" className="text-xs font-bold text-blue-600 hover:text-blue-700">View all</Link>
-        </div>
-        <div className="space-y-4">
+          {/* Recent Notifications */}
+          <PremiumCard className="p-6 flex flex-col flex-1 max-h-[400px]">
+            <div className="flex items-center justify-between mb-4 shrink-0">
+              <h3 className="text-base font-bold text-slate-900">Recent notifications</h3>
+              <Link href="/notifications" className="text-xs font-bold text-blue-600 hover:text-blue-700">View all</Link>
+            </div>
+            <div className="space-y-4 overflow-y-auto overflow-x-hidden pr-2 scrollbar-thin scrollbar-thumb-slate-200">
           {notificationsQuery.isLoading ? (
             <div className="flex justify-center p-2"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
           ) : notificationsQuery.data && notificationsQuery.data.length > 0 ? (
@@ -504,10 +608,11 @@ export default function EmployeeDashboardV2() {
             ))
           ) : (
             <p className="text-sm font-medium text-slate-500 text-center py-4">No recent notifications</p>
-          )}
+            )}
+            </div>
+          </PremiumCard>
         </div>
-      </PremiumCard>
-
+      </div>
     </PremiumDashboardLayout>
   );
 }

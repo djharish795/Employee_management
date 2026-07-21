@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { CreateFieldWorkRequestDto } from "./dto/create-field-work-request.dto";
 import { UpdateFieldWorkRequestDto } from "./dto/update-field-work-request.dto";
 import { encryptData, decryptData } from "../../common/utils/encrypt.util";
@@ -12,6 +13,7 @@ export class FieldWorkRequestsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(employeeId: string, dto: CreateFieldWorkRequestDto, ipAddress: string): Promise<any> {
@@ -91,7 +93,6 @@ export class FieldWorkRequestsService {
     const requests = await this.prisma.fieldWorkRequest.findMany({
       where: {
         approverId,
-        status: "PENDING",
       },
       include: {
         employee: {
@@ -315,6 +316,14 @@ export class FieldWorkRequestsService {
       metadata: { action: "APPROVE_REQUEST" },
     });
 
+    // Notify the submitter that their request was approved
+    await this.notificationsService.createNotification(
+      request.employeeId,
+      'Field Work Request Approved ✅',
+      `Your field visit request to "${request.destination}" on ${new Date(request.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} has been approved.`,
+      'SYSTEM_ALERT' as any,
+    );
+
     return this.decryptRequest(updated);
   }
 
@@ -357,6 +366,14 @@ export class FieldWorkRequestsService {
       actorId: approverId,
       metadata: { action: "REJECT_REQUEST", reason },
     });
+
+    // Notify the submitter that their request was rejected
+    await this.notificationsService.createNotification(
+      request.employeeId,
+      'Field Work Request Rejected ❌',
+      `Your field visit request to "${request.destination}" has been rejected. Reason: ${reason || 'No reason provided'}.`,
+      'SYSTEM_ALERT' as any,
+    );
 
     return this.decryptRequest(updated);
   }

@@ -145,6 +145,8 @@ model Employee {
   fieldWorkApprovals         FieldWorkRequest[]         @relation("FieldWorkApprover")
   compliancePoliciesUpdated  CompliancePolicy[]         @relation("PolicyUpdater")
   cemLeads                   CemLead[]                  @relation("CemLeadOwner")
+  workReportsSubmitted       WorkReport[]               @relation("ReportSubmitter")
+  workReportsReviewed        WorkReport[]               @relation("ReportReviewer")
   @@map("employees")
 }
 
@@ -2161,5 +2163,37 @@ model CemLead {
   @@map("cem_leads")
 }
 
+enum ReportPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
 
+enum ReportStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  NEEDS_REVISION
+}
 
+model WorkReport {
+  id              String         @id @default(cuid())
+  employeeId      String
+  reviewerId      String?
+  department      String
+  reportType      String
+  title           String
+  content         Json?
+  priority        ReportPriority @default(MEDIUM)
+  status          ReportStatus   @default(PENDING)
+  submittedAt     DateTime       @default(now())
+  reviewedAt      DateTime?
+  rejectionReason String?
+
+  employee        Employee       @relation("ReportSubmitter", fields: [employeeId], references: [id])
+  reviewer        Employee?      @relation("ReportReviewer", fields: [reviewerId], references: [id])
+
+  @@index([reviewerId, status])
+  @@map("work_reports")
+}

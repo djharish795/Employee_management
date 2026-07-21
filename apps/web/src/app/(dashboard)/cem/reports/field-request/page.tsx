@@ -9,6 +9,74 @@ import {
 import { fetchMyProfile } from '@/lib/api/profile';
 import { createFieldWork, updateFieldWork, getS3UploadUrl, uploadFileToS3, fetchFieldWorkDetails } from '@/lib/api/field-work';
 
+const ManualTimePicker = ({ value, onChange, required }: { value: string, onChange: (val: string) => void, required?: boolean }) => {
+  const get12Hour = (v: string) => {
+    if (!v) return { time: '', period: 'AM' };
+    const [h, m] = v.split(':');
+    let hour = parseInt(h, 10);
+    const period = hour >= 12 ? 'PM' : 'AM';
+    hour = hour % 12;
+    if (hour === 0) hour = 12;
+    return { time: `${hour.toString().padStart(2, '0')}:${m}`, period };
+  };
+
+  const parsed = get12Hour(value);
+  const [time, setTime] = useState(parsed.time);
+  const [period, setPeriod] = useState(parsed.period);
+
+  useEffect(() => {
+    const p = get12Hour(value);
+    setTime(p.time);
+    setPeriod(p.period);
+  }, [value]);
+
+  const updateValue = (t: string, p: string) => {
+    setTime(t);
+    setPeriod(p);
+    // basic format check HH:MM before updating parent
+    if (t.match(/^(0?[1-9]|1[0-2]):[0-5][0-9]$/)) {
+      const [h, m] = t.split(':');
+      let hour = parseInt(h, 10);
+      if (p === 'PM' && hour !== 12) hour += 12;
+      if (p === 'AM' && hour === 12) hour = 0;
+      onChange(`${hour.toString().padStart(2, '0')}:${m}`);
+    } else if (t === '') {
+      onChange('');
+    }
+  };
+
+  return (
+    <div className="flex border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden h-10 focus-within:border-slate-900 dark:focus-within:border-white focus-within:ring-2 focus-within:ring-slate-900/10 dark:focus-within:ring-white/10 transition-all bg-white dark:bg-slate-950">
+      <input
+        type="text"
+        placeholder="12:00"
+        value={time}
+        onChange={(e) => {
+          let val = e.target.value.replace(/[^\d:]/g, ''); // only digits and colon
+          if (val.length === 2 && !val.includes(':') && time.length < 2) val += ':';
+          if (val.length > 5) val = val.slice(0, 5);
+          updateValue(val, period);
+        }}
+        onBlur={() => {
+          if (time.length === 4 && !time.includes(':')) {
+            updateValue(`${time.slice(0,2)}:${time.slice(2,4)}`, period);
+          }
+        }}
+        required={required}
+        className="w-full h-full px-3 bg-transparent outline-none text-sm font-medium text-slate-900 dark:text-white"
+      />
+      <select
+        value={period}
+        onChange={(e) => updateValue(time, e.target.value)}
+        className="h-full px-3 bg-slate-50 dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-400 outline-none cursor-pointer"
+      >
+        <option value="AM">AM</option>
+        <option value="PM">PM</option>
+      </select>
+    </div>
+  );
+};
+
 export default function FieldWorkRequestPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -323,22 +391,18 @@ export default function FieldWorkRequestPage() {
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-2">Start Time *</label>
-                <input 
-                  type="time" 
+                <ManualTimePicker 
                   required
                   value={formData.startTime}
-                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                  className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-sm font-medium focus:border-slate-900 dark:focus:border-white focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-white/10 outline-none transition-all [color-scheme:light] dark:[color-scheme:dark]" 
+                  onChange={(val) => setFormData({ ...formData, startTime: val })}
                 />
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-2">End Time *</label>
-                <input 
-                  type="time" 
+                <ManualTimePicker 
                   required
                   value={formData.endTime}
-                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                  className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-sm font-medium focus:border-slate-900 dark:focus:border-white focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-white/10 outline-none transition-all [color-scheme:light] dark:[color-scheme:dark]" 
+                  onChange={(val) => setFormData({ ...formData, endTime: val })}
                 />
               </div>
             </div>
@@ -419,12 +483,10 @@ export default function FieldWorkRequestPage() {
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-2">Expected Return Time *</label>
-                <input 
-                  type="time" 
+                <ManualTimePicker 
                   required
                   value={formData.returnTime}
-                  onChange={(e) => setFormData({ ...formData, returnTime: e.target.value })}
-                  className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-sm font-medium focus:border-slate-900 dark:focus:border-white focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-white/10 outline-none transition-all [color-scheme:light] dark:[color-scheme:dark]" 
+                  onChange={(val) => setFormData({ ...formData, returnTime: val })}
                 />
               </div>
               <div>

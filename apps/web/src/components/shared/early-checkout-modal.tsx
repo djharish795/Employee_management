@@ -1,4 +1,7 @@
-import React from 'react';
+"use client";
+
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { CheckCircle2, ShieldAlert, Square } from 'lucide-react';
 
 interface EarlyCheckoutModalProps {
@@ -17,10 +20,16 @@ export function formatTimerValue(totalSeconds: number) {
 }
 
 export default function EarlyCheckoutModal({ secondsElapsed, isOpen, onClose, onConfirm, isPending }: EarlyCheckoutModalProps) {
-  if (!isOpen) return null;
+  const [mounted, setMounted] = useState(false);
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
         <div className={`h-2 ${secondsElapsed >= 32400 ? 'bg-emerald-500' : 'bg-amber-500'}`} />
         <div className="p-6">
@@ -60,6 +69,7 @@ export default function EarlyCheckoutModal({ secondsElapsed, isOpen, onClose, on
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

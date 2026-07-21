@@ -26,11 +26,9 @@ export default function FieldWorkRequestDetailsPage() {
 
   const { hasPermission } = useRbac();
   const canApprove = hasPermission(Permission.APPROVE_FIELD_REQUESTS);
-  const accessToken = useAuthStore((state) => state.accessToken);
 
   useEffect(() => {
     async function loadRequest() {
-      if (!accessToken) return;
       try {
         const data = await fetchFieldWorkDetails(requestId);
         setRequest(data);
@@ -62,7 +60,7 @@ export default function FieldWorkRequestDetailsPage() {
       }
     }
     loadRequest();
-  }, [requestId, accessToken]);
+  }, [requestId]);
 
   const handleCancelRequest = async () => {
     if (confirm("Are you sure you want to cancel this request? Canceled requests cannot be reinstated.")) {
