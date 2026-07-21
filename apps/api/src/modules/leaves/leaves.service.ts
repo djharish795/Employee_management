@@ -49,9 +49,14 @@ export class LeavesService {
         actualAllocated = Number(b.used) + 0.5;
       }
 
+      let staticYearly = Number(b.allocated);
+      if (b.leaveType.code === 'CL_FULL') staticYearly = 12;
+      else if (b.leaveType.code === 'CL_HALF') staticYearly = 6;
+      else if (b.leaveType.code === 'OPTIONAL') staticYearly = 2;
+
       return {
         ...b,
-        yearlyAllocated: Number(b.allocated), // Pass the original yearly allocation limit down
+        yearlyAllocated: staticYearly, // Force exact policy limits for the yearly total (12 + 6 + 2 = 20)
         allocated: actualAllocated,
         carriedOver: Number(b.carriedOver),
         used: Number(b.used),
@@ -59,15 +64,34 @@ export class LeavesService {
       };
     });
 
+    const hasSickLeave = balances.some(b => b.leaveType.code === 'SL' || b.leaveType.code === 'SICK');
+    if (!hasSickLeave) {
+      const sickLeaveType = await this.prisma.leaveType.findFirst({
+        where: { code: { in: ['SL', 'SICK'] } }
+      });
+      if (sickLeaveType) {
+        adjustedBalances.push({
+          id: 'virtual-sl',
+          employeeId: employeeId,
+          leaveTypeId: sickLeaveType.id,
+          year: currentYear,
+          allocated: 10,
+          carriedOver: 0,
+          used: 0,
+          pending: 0,
+          yearlyAllocated: 10,
+          leaveType: sickLeaveType
+        } as any);
+      }
+    }
+
     adjustedBalances.forEach(b => {
       if (['CL_FULL', 'CL_HALF', 'OPTIONAL'].includes(b.leaveType.code)) {
         yearlyTotal += b.yearlyAllocated;
+        accruedTotal += b.allocated + b.carriedOver;
+        totalUsed += b.used;
+        totalPending += b.pending;
       }
-
-      // Accrued, used, and pending must aggregate all available leave types to hit 4.5
-      accruedTotal += b.allocated + b.carriedOver;
-      totalUsed += b.used;
-      totalPending += b.pending;
     });
 
     return {
@@ -400,6 +424,10 @@ export class LeavesService {
         throw new BadRequestException('Optional holidays require at least 7 days prior notice.');
       }
 
+      if ((leaveType.code === 'SL' || leaveType.code === 'SICK') && totalWorkingDays > 2 && !data.attachmentUrl) {
+        throw new BadRequestException(`Sick Leave requests exceeding 2 consecutive days require a medical report or document.`);
+      }
+
       if (leaveType.requiresDocumentAbove && totalWorkingDays > Number(leaveType.requiresDocumentAbove) && !data.attachmentUrl) {
         throw new BadRequestException(`${leaveType.name} requests exceeding ${leaveType.requiresDocumentAbove} consecutive days require a medical proof document.`);
       }
@@ -443,7 +471,7 @@ export class LeavesService {
               employeeId: employee.id,
               leaveTypeId: leaveType.id,
               year: currentYear,
-              allocated: 0,
+              allocated: (leaveType.code === 'SL' || leaveType.code === 'SICK') ? 10 : 0,
               carriedOver: 0,
               pending: 0,
               used: 0
@@ -673,6 +701,8 @@ export class LeavesService {
         } else {
           available = Math.max(0, Number(balance.allocated) + Number(balance.carriedOver) - Number(balance.used) - Number(balance.pending));
         }
+      } else if (leaveType.code === 'SL' || leaveType.code === 'SICK') {
+        available = 10; // Virtual initialization for the preview API
       }
 
       if (leaveType.code === 'CL_FULL' || leaveType.code === 'CL_HALF') {
@@ -986,14 +1016,16 @@ export class LeavesService {
       });
 
       await this.prisma.$transaction(async (tx) => {
-        await tx.leaveRequest.update({
-          where: { id: leaveId },
+        const updateResult = await tx.leaveRequest.updateMany({
+          where: { id: leaveId, status: 'PENDING' },
           data: {
             status: 'REJECTED',
             rejectionReason: reason,
             ...({ approvalQueue: queue as unknown as object, currentStep: queue.length })
           }
         });
+
+        if (updateResult.count === 0) throw new Error("ConcurrencyConflict");
 
         const balance = await this.getLeaveBalance(tx, leave);
 
@@ -1022,14 +1054,16 @@ export class LeavesService {
     currentStep.actedAt = new Date();
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.leaveRequest.update({
-        where: { id: leaveId },
+      const updateResult = await tx.leaveRequest.updateMany({
+        where: { id: leaveId, status: 'PENDING' },
         data: {
           status: 'REJECTED',
           rejectionReason: reason,
           ...({ approvalQueue: queue as unknown as object, currentStep: currentStepIndex + 1 })
         }
       });
+
+      if (updateResult.count === 0) throw new Error("ConcurrencyConflict");
 
       const balance = await this.getLeaveBalance(tx, leave);
 
@@ -1066,8 +1100,8 @@ export class LeavesService {
     if (leave.status !== 'PENDING') throw new BadRequestException('Only pending leaves can be cancelled.');
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.leaveRequest.update({
-        where: { id: leaveId },
+      const updateResult = await tx.leaveRequest.updateMany({
+        where: { id: leaveId, status: 'PENDING' },
         data: { 
           status: 'CANCELLED',
           approvalQueue: Array.isArray(leave.approvalQueue) 
@@ -1075,6 +1109,8 @@ export class LeavesService {
             : leave.approvalQueue || []
         }
       });
+
+      if (updateResult.count === 0) throw new Error("ConcurrencyConflict");
 
       const balance = await this.getLeaveBalance(tx, leave);
       if (balance) {

@@ -7,6 +7,8 @@ import LeavesLayout from "@/components/modules/leaves/leaves-layout";
 import { useAuthStore } from "@/store/auth";
 import { applyLeave, calculateLeave, fetchMyLeaveKpi } from "@/lib/api/leaves";
 import { useQuery } from "@tanstack/react-query";
+import { apiClient } from "@/lib/api/client";
+import { Loader2 } from "lucide-react";
 
 export default function ApplyLeavePage() {
   const role = useAuthStore((state) => state.role) ?? "EMPLOYEE";
@@ -24,6 +26,8 @@ export default function ApplyLeavePage() {
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
   const [halfDaySession, setHalfDaySession] = useState<string>("FIRST_DAY");
+  const [fileName, setFileName] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
 
   // Fetch real KPI data for balances
   const { data: kpiData, isLoading: isKpiLoading } = useQuery({
@@ -35,6 +39,26 @@ export default function ApplyLeavePage() {
   // Calculation State
   const [isCalculating, setIsCalculating] = useState(false);
   const [calcResult, setCalcResult] = useState<{ totalDays: number; paidDays: number; unpaidDays: number; deductionAmount: number } | null>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setErrorMsg("");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await apiClient.post("/documents/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      setFileName(res.data.objectKey || res.data.uploadUrl || "Uploaded Document");
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.message || "Failed to upload document");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleNext = async () => {
     setErrorMsg("");
@@ -51,7 +75,14 @@ export default function ApplyLeavePage() {
           halfDaySession: leaveTypes.includes("CL_HALF") ? halfDaySession : null,
           reason: ""
         });
-        setCalcResult(result);
+        
+        if (leaveTypes.some(t => t === 'SL' || t === 'SICK') && (result as any).totalDays > 2 && !fileName.trim()) {
+          setErrorMsg("A medical certificate (attachment) is required for sick leave exceeding 2 consecutive days.");
+          setIsCalculating(false);
+          return;
+        }
+        
+        setCalcResult(result as any);
         setStep(3);
       } catch (err: any) {
         setErrorMsg(err.response?.data?.message || "Failed to calculate leave.");
@@ -81,7 +112,8 @@ export default function ApplyLeavePage() {
         endDate,
         reason,
         isHalfDay: leaveTypes.includes("CL_HALF"),
-        halfDaySession: leaveTypes.includes("CL_HALF") ? halfDaySession : null
+        halfDaySession: leaveTypes.includes("CL_HALF") ? halfDaySession : null,
+        attachmentUrl: fileName || undefined
       });
       setIsSuccess(true);
     } catch (err: any) {
@@ -178,6 +210,17 @@ export default function ApplyLeavePage() {
                       desc: "Festival holidays of your choice.", 
                       bal: kpiData ? (() => {
                         const b = kpiData.details.find(d => d.leaveType.code === 'OPTIONAL');
+                        if (!b) return "0 Days Available";
+                        const avail = Number(b.allocated) + Number(b.carriedOver) - Number(b.used) - Number(b.pending);
+                        return `${avail} Days Available`;
+                      })() : "Loading..."
+                    },
+                    { 
+                      id: "SL", 
+                      title: "Sick Leave", 
+                      desc: "For medical emergencies and illnesses.", 
+                      bal: kpiData ? (() => {
+                        const b = kpiData.details.find(d => d.leaveType.code === 'SL' || d.leaveType.code === 'SICK');
                         if (!b) return "0 Days Available";
                         const avail = Number(b.allocated) + Number(b.carriedOver) - Number(b.used) - Number(b.pending);
                         return `${avail} Days Available`;
@@ -296,17 +339,24 @@ export default function ApplyLeavePage() {
                   />
                 </div>
 
-                {leaveTypes.includes("SICK_LEAVE") && (
+                {(leaveTypes.includes("SL") || leaveTypes.includes("SICK")) && (
                   <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg flex items-start gap-3">
                     <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                    <div>
+                    <div className="w-full">
                       <p className="text-xs font-bold text-amber-800">Medical Certificate Required</p>
                       <p className="text-[11px] text-amber-700/80 mt-1 mb-3">
                         Sick leaves exceeding 2 consecutive days require a valid medical certificate per company policy.
                       </p>
-                      <button className="flex items-center gap-2 text-xs font-bold text-amber-700 bg-white border border-amber-200 px-3 py-1.5 rounded-md hover:bg-amber-100 transition-colors">
-                        <FileUp className="w-3.5 h-3.5" /> Upload Document
-                      </button>
+                      
+                      <div className="flex items-center gap-2">
+                        <label className={`flex items-center justify-center gap-2 text-xs font-bold px-3 py-1.5 rounded-md border transition-colors cursor-pointer ${isUploading ? 'bg-amber-100/50 text-amber-600 border-amber-200 cursor-not-allowed' : 'text-amber-700 bg-white border-amber-200 hover:bg-amber-100'}`}>
+                          {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileUp className="w-3.5 h-3.5" />}
+                          {isUploading ? "Uploading..." : "Upload Document"}
+                          <input type="file" className="hidden" onChange={handleFileUpload} disabled={isUploading} accept=".pdf,.png,.jpg,.jpeg" />
+                        </label>
+                        <input type="text" placeholder="Or paste document URL here..." value={fileName} onChange={(e) => setFileName(e.target.value)}
+                          className="flex-1 h-8 px-2.5 border border-amber-200/50 bg-white/50 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-amber-500/30" />
+                      </div>
                     </div>
                   </div>
                 )}

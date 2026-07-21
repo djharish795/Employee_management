@@ -9,6 +9,7 @@ import { applyLeave, fetchMyLeaveKpi, ApiLeaveKpi } from "@/lib/api/leaves";
 import { applyWfh, fetchMyWfh, ApiWfhRequest } from "@/lib/api/wfh";
 import { useAuthStore } from "@/store/auth";
 import { useSearchParams } from "next/navigation";
+import { apiClient } from "@/lib/api/client";
 
 interface ApplyPanelProps {
   activeRole: "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
@@ -41,6 +42,7 @@ export default function ApplyPanel() {
   const [dateError, setDateError] = useState("");
   const [leaveSubmitError, setLeaveSubmitError] = useState("");
   const [halfDaySession, setHalfDaySession] = useState("FIRST_DAY");
+  const [isUploading, setIsUploading] = useState(false);
 
   // ── WFH Form State ──────────────────────────────────────────────────────
   const [wfhDate, setWfhDate] = useState("");
@@ -97,6 +99,26 @@ export default function ApplyPanel() {
 
   const leaveDays = calculateDays();
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setDateError("");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await apiClient.post("/documents/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      setFileName(res.data.objectKey || res.data.uploadUrl || "Uploaded Document");
+    } catch (err: any) {
+      setDateError(err.response?.data?.message || "Failed to upload document");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const validateLeaveStep1 = () => {
     setDateError("");
     if (!startDate || !endDate) { setDateError("Please enter both start and end dates."); return false; }
@@ -112,8 +134,8 @@ export default function ApplyPanel() {
 
   const validateLeaveStep2 = () => {
     setDateError("");
-    if (leaveTypeCode === 'SL' && leaveDays > 3 && !fileName.trim()) {
-      setDateError("A medical certificate (attachment) is required for sick leave exceeding 3 consecutive days.");
+    if ((leaveTypeCode === 'SL' || leaveTypeCode === 'SICK') && leaveDays > 2 && !fileName.trim()) {
+      setDateError("A medical certificate (attachment) is required for sick leave exceeding 2 consecutive days.");
       return false;
     }
     return true;
@@ -311,11 +333,20 @@ export default function ApplyPanel() {
                       className="w-full h-10 px-3.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Medical Certificate / Document URL</label>
-                    <input type="text" placeholder="https://s3.aws.com/..." value={fileName} onChange={(e) => setFileName(e.target.value)}
-                      className="w-full h-10 px-3.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
-                    {leaveTypeCode === 'SL' && leaveDays > 3 && (
-                      <p className="text-[10px] text-rose-500 font-bold">Required for Sick Leave exceeding 3 days.</p>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Medical Certificate / Document (Required for &gt;2 days Sick Leave)</label>
+                    
+                    <div className="flex items-center gap-2">
+                      <label className={`flex-shrink-0 h-10 px-4 flex items-center justify-center rounded-lg border border-slate-200 text-xs font-bold cursor-pointer transition-colors ${isUploading ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white hover:bg-slate-50 text-slate-700'}`}>
+                        {isUploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                        {isUploading ? "Uploading..." : "Upload File"}
+                        <input type="file" className="hidden" onChange={handleFileUpload} disabled={isUploading} accept=".pdf,.png,.jpg,.jpeg" />
+                      </label>
+                      <input type="text" placeholder="Or paste document URL here..." value={fileName} onChange={(e) => setFileName(e.target.value)}
+                        className="flex-1 h-10 px-3.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-slate-900/20" />
+                    </div>
+                    
+                    {(leaveTypeCode === 'SL' || leaveTypeCode === 'SICK') && leaveDays > 2 && (
+                      <p className="text-[10px] text-rose-500 font-bold">Required for Sick Leave exceeding 2 days.</p>
                     )}
                   </div>
                   
