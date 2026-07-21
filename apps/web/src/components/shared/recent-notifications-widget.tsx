@@ -77,7 +77,9 @@ export const RecentNotificationsWidget = ({ maxItems }: { maxItems?: number }) =
                   {notif.body || notif.title}
                 </p>
                 <p className="text-[11px] font-medium text-slate-400 mt-0.5">
-                  {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
+                  {notif.createdAt && !isNaN(new Date(notif.createdAt).getTime())
+                    ? formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })
+                    : 'Recently'}
                 </p>
               </div>
             </Link>
