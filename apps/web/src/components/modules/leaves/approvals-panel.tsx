@@ -5,7 +5,7 @@ import { usePermissions } from "@/hooks/use-permissions";
 
 import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Check, X, Info, Loader2, AlertCircle, User, ArrowRight } from "lucide-react";
+import { Check, X, Info, Loader2, AlertCircle, User, ArrowRight, FileText, ExternalLink } from "lucide-react";
 import { useAuthStore } from "@/store/auth";
 import { fetchApprovals, approveLeave, rejectLeave, ApiLeaveRequest } from "@/lib/api/leaves";
 import Image from "next/image";
@@ -156,6 +156,22 @@ export default function ApprovalsPanel({ activeRole }: ApprovalsPanelProps) {
               <div className="text-sm text-slate-600 italic">
                 "{req.reason}"
               </div>
+
+              {/* Attachment */}
+              {req.attachmentUrl && (
+                <div className="mt-3 mb-1">
+                  <a 
+                    href={req.attachmentUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 bg-blue-50/80 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors border border-blue-100 w-fit"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    View Medical Certificate
+                    <ExternalLink className="w-3 h-3 ml-0.5 opacity-70" />
+                  </a>
+                </div>
+              )}
 
               {/* Workflow Flow */}
               {req.approvalQueue && req.approvalQueue.length > 0 && (

@@ -17,6 +17,7 @@ interface EngineerData {
   designation: string;
   experience: number;
   status: string;
+  projects?: { id: string; name: string; role: string }[];
 }
 
 // Project Types
@@ -94,13 +95,13 @@ export default function EngineeringTeamPage() {
 
   const fetchProjects = async () => {
     try {
-      const res = await apiClient.get('/projects');
-      setProjects(res.data);
-      if (res.data.length > 0 && !selectedProjectId) {
+      const res = await apiClient.get('/projects?status=ACTIVE');
+      setProjects(res.data || []);
+      if (res.data?.length > 0 && !selectedProjectId) {
         setSelectedProjectId(res.data[0].id);
       }
     } catch (err) {
-      toast.error('Failed to load projects');
+      console.error("Failed to fetch projects", err);
     }
   };
 
@@ -247,11 +248,13 @@ export default function EngineeringTeamPage() {
     try {
       await apiClient.patch(`/projects/${activeProject.id}/complete`, { signatureName });
       toast.success('Project officially marked as COMPLETED');
-      await fetchProjectDetails(activeProject.id);
+      await fetchProjects();
+      setActiveProject(null);
+      setSelectedProjectId(null);
       setIsCompletingProject(false);
       setSignatureName('');
-    } catch (err) {
-      toast.error('Failed to complete project');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to complete project');
     }
   };
 
@@ -790,26 +793,44 @@ export default function EngineeringTeamPage() {
                                   {/* Employee Cards */}
                                   {isSubExpanded && (
                                     <div className="mt-2 space-y-2 pl-3 border-l-2 border-indigo-100 ml-3 py-1">
-                                      {emps.map(emp => (
+                                      {emps.map(emp => {
+                                        const isBench = !emp.projects || emp.projects.length === 0;
+                                        return (
                                         <div 
                                           key={emp.id}
                                           draggable
                                           onDragStart={(e) => handleDragStart(e, emp)}
                                           className="bg-white border border-slate-200 rounded-lg p-2.5 shadow-sm hover:shadow-md hover:border-slate-400 transition-all cursor-grab active:cursor-grabbing group relative overflow-hidden"
                                         >
-                                          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-slate-100 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-end pr-2">
+                                          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-slate-100 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-end pr-2 z-10">
                                             <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                                           </div>
-                                          <div className="flex gap-2.5 items-center">
-                                            <div className="w-7 h-7 rounded-full bg-slate-900 border border-slate-950 flex items-center justify-center font-bold text-white text-[10px] shadow-sm shrink-0">
+                                          <div className="flex gap-2.5 items-start">
+                                            <div className="w-7 h-7 rounded-full bg-slate-900 border border-slate-950 flex items-center justify-center font-bold text-white text-[10px] shadow-sm shrink-0 mt-0.5">
                                               {emp.initials}
                                             </div>
-                                            <div className="min-w-0 pr-6">
-                                              <h4 className="font-bold text-slate-800 text-xs truncate">{emp.name}</h4>
+                                            <div className="min-w-0 pr-6 flex-1">
+                                              <div className="flex items-center justify-between gap-2 mb-1">
+                                                <h4 className="font-bold text-slate-800 text-xs truncate">{emp.name}</h4>
+                                                {isBench ? (
+                                                  <span className="shrink-0 bg-emerald-100 text-emerald-700 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">Bench</span>
+                                                ) : (
+                                                  <span className="shrink-0 bg-indigo-100 text-indigo-700 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">{emp.projects!.length} Proj</span>
+                                                )}
+                                              </div>
+                                              {!isBench && (
+                                                <div className="text-[10px] text-slate-500 font-medium leading-tight">
+                                                  {emp.projects!.map(p => (
+                                                    <div key={p.id} className="truncate group-hover:text-slate-700 transition-colors">
+                                                      • {p.name} <span className="text-slate-400 text-[9px]">({p.role})</span>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              )}
                                             </div>
                                           </div>
                                         </div>
-                                      ))}
+                                      )})}
                                     </div>
                                   )}
                                 </div>

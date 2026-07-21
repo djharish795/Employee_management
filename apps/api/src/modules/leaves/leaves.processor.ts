@@ -15,6 +15,9 @@ export class LeavesProcessor extends WorkerHost {
     if (job.name === 'accrue-monthly') {
       this.logger.log('Running automated monthly leave accrual via BullMQ');
       return this.leavesService.accrueMonthlyLeaves();
+    } else if (job.name === 'carry-forward-yearly') {
+      this.logger.log('Running automated yearly leave rollover via BullMQ');
+      return this.leavesService.carryForwardYearlyLeaves();
     }
   }
 

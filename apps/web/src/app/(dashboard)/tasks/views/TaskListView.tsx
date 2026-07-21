@@ -106,7 +106,7 @@ export function TaskListView({ tasks, onTaskClick, isGlobal }: { tasks: Task[], 
                     {task.creator ? `${task.creator.firstName} ${task.creator.lastName}` : "Unknown"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {format(new Date(task.createdAt), "dd/MM/yyyy")}
+                    {task.createdAt && !isNaN(new Date(task.createdAt).getTime()) ? format(new Date(task.createdAt), "dd/MM/yyyy") : ""}
                   </td>
                 </tr>
               ))}

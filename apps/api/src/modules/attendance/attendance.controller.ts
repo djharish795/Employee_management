@@ -25,13 +25,7 @@ export class AttendanceController {
     return this.attendanceService.getTodayStatus(user.employeeId);
   }
 
-  // TEST ENDPOINT ONLY - REMOVE IN PRODUCTION
-  @Post("test-auto-checkout")
-  @Permissions(Permission.WRITE_EMPLOYEES)
-  async triggerAutoCheckout() {
-    await this.cronService.forceAutoCheckout();
-    return { success: true, message: "Auto-checkout triggered successfully" };
-  }
+
 
   @Post("punch")
   @Permissions(Permission.WRITE_OWN_PROFILE)

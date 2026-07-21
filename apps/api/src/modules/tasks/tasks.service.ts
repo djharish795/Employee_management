@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
 import { RbacGroups, RbacRoles } from '../../common/rbac/rbac.config';
 import { TasksRepository } from "./tasks.repository";
-import { TaskStatus, TaskPriority, NotificationType } from "@naprocs/database";
+import { TaskStatus, TaskPriority, NotificationType, TaskType } from "@naprocs/database";
 import { PrismaService } from "../../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { AuditService } from "../audit/audit.service";
@@ -184,6 +184,25 @@ export class TasksService {
     return task;
   }
 
+  private async checkManagerOverride(task: any, user: any): Promise<boolean> {
+    const isSuperAdminOrIT = ['SUPER_ADMIN', 'IT', 'CEO', 'CTO'].includes(user.role);
+    if (isSuperAdminOrIT) return true;
+
+    const isManagerOrHigher = RbacGroups.MANAGER_OR_HIGHER.includes(user.role as any);
+    if (isManagerOrHigher && task.projectId) {
+      const assignment = await this.prisma.projectAssignment.findFirst({
+        where: { 
+          projectId: task.projectId, 
+          employeeId: user.employeeId, 
+          releasedAt: null, 
+          projectRole: { in: ['TL', 'PM', 'SPM', 'DM'] } 
+        }
+      });
+      if (assignment) return true;
+    }
+    return false;
+  }
+
   async updateTask(taskId: string, user: any, dto: any): Promise<any> {
     const access = await this.validateTaskScreenAccess(user);
     const task = await this.getTask(taskId);
@@ -221,16 +240,14 @@ export class TasksService {
     // General update check
     const isCreator = user.employeeId === task.creatorId;
     const isAssignee = user.employeeId === task.assigneeId;
+    const hasOverride = await this.checkManagerOverride(task, user);
 
-    if (!isManagerOrHigher && !isCreator && !isAssignee) {
+    if (!hasOverride && !isCreator && !isAssignee) {
       throw new ForbiddenException("You do not have permission to edit this task.");
     }
 
-    // If changing status, we might want to restrict it further, but assignee/manager is already covered by the general check.
-    // We just keep the existing explicit check for status if needed, but since we already block non-assignee/creator, 
-    // let's ensure creators can't change status if they aren't the assignee (unless manager).
     if (dto.status && dto.status !== task.status) {
-      if (!isAssignee && !isManagerOrHigher) {
+      if (!isAssignee && !hasOverride) {
         throw new ForbiddenException("Only the assigned employee or a Manager can change the status of this task.");
       }
     }
@@ -251,11 +268,10 @@ export class TasksService {
   async updateTaskStatus(taskId: string, status: TaskStatus, previousStatus: TaskStatus, user: any): Promise<any> {
     const task = await this.getTask(taskId);
     
-    // Check permission (from updateTask general check logic)
-    const isManagerOrHigher = RbacGroups.MANAGER_OR_HIGHER.includes(user.role as any);
+    const hasOverride = await this.checkManagerOverride(task, user);
     const isAssignee = user.employeeId === task.assigneeId;
 
-    if (!isAssignee && !isManagerOrHigher) {
+    if (!isAssignee && !hasOverride) {
       throw new ForbiddenException("Only the assigned employee or a Manager can change the status of this task.");
     }
 
@@ -395,8 +411,7 @@ export class TasksService {
     const task = await this.tasksRepo.findById(taskId);
     if (!task) throw new NotFoundException("Task not found");
     
-    const isManagerOrHigher = RbacGroups.MANAGER_OR_HIGHER.includes(user.role as any);
-    const hasOverride = user.role === 'SUPER_ADMIN' || user.role === 'IT' || isManagerOrHigher;
+    const hasOverride = await this.checkManagerOverride(task, user);
     
     if (task.creatorId !== user.employeeId && task.assigneeId !== user.employeeId && !hasOverride) {
       throw new NotFoundException("Task not found"); // Masking forbidden as not found
@@ -411,5 +426,34 @@ export class TasksService {
     });
 
     return result;
+  }
+
+  async createTaskFromEvent(eventName: string, payload: any): Promise<any> {
+    this.logger.log(`Received system event: ${eventName}`);
+    
+    // Default system user for automated tasks
+    let title = 'System Auto-Task';
+    let description = `Automatically generated task from event: ${eventName}`;
+    
+    if (eventName === 'EMPLOYEE_ONBOARDED' && payload.employeeId) {
+      title = `IT Setup for New Hire`;
+      description = `Please provision laptop, email, and software access for new employee ${payload.employeeId}.`;
+    } else if (eventName === 'EMPLOYEE_OFFBOARDED' && payload.employeeId) {
+      title = `Asset Return & Offboarding`;
+      description = `Please collect all assets and revoke access for offboarded employee ${payload.employeeId}.`;
+    }
+
+    const task = await this.tasksRepo.createTask('SYSTEM', {
+      title,
+      description,
+      status: TaskStatus.TODO,
+      priority: TaskPriority.HIGH,
+      type: TaskType.TASK,
+      creatorId: 'SYSTEM',
+      assigneeId: payload.assigneeId || null,
+      projectId: payload.projectId || null,
+    });
+
+    return { success: true, taskId: task.id };
   }
 }

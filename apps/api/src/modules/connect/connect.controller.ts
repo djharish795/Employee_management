@@ -14,12 +14,15 @@ import { RbacGuard } from "../../common/guards/rbac.guard";
 import { Permissions } from "../../common/decorators/permissions.decorator";
 import { Permission } from "@naprocs/types";
 
+import { Throttle } from "@nestjs/throttler";
+
 @Controller("connect")
 @UseGuards(JwtAuthGuard, RbacGuard)
 export class ConnectController {
   constructor(private readonly connectService: ConnectService) {}
 
   @Post("request")
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Permissions(Permission.WRITE_OWN_PROFILE) // Any employee can create a meet
   async requestMeet(@Req() req: Request, @Body() dto: CreateMeetRequestDto) {
     const employeeId = (req.user as any).employeeId;

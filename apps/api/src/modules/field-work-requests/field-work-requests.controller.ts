@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Req, Ip, BadRequestException, Res } from "@nestjs/common";
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Req, Ip, BadRequestException, Res, Query } from "@nestjs/common";
 import { FieldWorkRequestsService } from "./field-work-requests.service";
 import { CreateFieldWorkRequestDto } from "./dto/create-field-work-request.dto";
 import { UpdateFieldWorkRequestDto } from "./dto/update-field-work-request.dto";
@@ -48,13 +48,18 @@ export class FieldWorkRequestsController {
 
   @Get("export")
   @Permissions(Permission.READ_OWN_PROFILE)
-  async exportCsv(@Req() req: any, @Res() res: any) {
+  async exportCsv(
+    @Req() req: any, 
+    @Res() res: any,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string
+  ) {
     const employeeId = req.user?.employeeId;
     const role = req.user?.role;
     if (!employeeId) {
       throw new BadRequestException("Employee details not found in session");
     }
-    const csvData = await this.service.exportCsv(employeeId, role);
+    const csvData = await this.service.exportCsv(employeeId, role, startDate, endDate);
     res.set({
       "Content-Type": "text/csv",
       "Content-Disposition": `attachment; filename=Field_Work_Requests_${new Date().toISOString().split("T")[0]}.csv`,

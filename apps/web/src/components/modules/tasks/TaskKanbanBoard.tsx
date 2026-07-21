@@ -156,7 +156,7 @@ export function TaskKanbanBoard({ initialTasks, projectId, onTaskUpdated }: { in
                     )}
                     <div className="flex items-center justify-between mt-4 text-xs text-gray-400">
                       <span>
-                        {task.createdAt
+                        {task.createdAt && !isNaN(new Date(task.createdAt).getTime())
                           ? format(new Date(task.createdAt), "MMM d, yyyy")
                           : ""}
                       </span>

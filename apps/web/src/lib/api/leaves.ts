@@ -14,6 +14,7 @@ export interface ApiLeaveRequest {
   approvalQueue?: Array<{ role: string; status: string; approverId?: string; actedAt?: string }>;
   currentStep?: number;
   rejectionReason?: string | null;
+  attachmentUrl?: string | null;
   approvedAt?: string | null;
   employee?: { id: string; firstName: string; lastName: string; employeeId: string; department?: { name: string } };
   leaveType?: { id: string; name: string; code: string };

@@ -40,16 +40,19 @@ export class ProjectsService {
     return project;
   }
 
-  async getAllProjects(user?: any) {
+  async getAllProjects(user?: any, status?: ProjectStatus) {
     const isAdmin = user && RbacGroups.GLOBAL_ADMINS.includes(user.role as any);
     
     return this.prisma.project.findMany({
-      where: isAdmin ? undefined : {
-        assignments: {
-          some: {
-            employeeId: user?.employeeId
+      where: {
+        ...(status ? { status } : {}),
+        ...(isAdmin ? {} : {
+          assignments: {
+            some: {
+              employeeId: user?.employeeId
+            }
           }
-        }
+        })
       },
       include: {
         _count: {
@@ -80,16 +83,26 @@ export class ProjectsService {
     return project;
   }
 
-  async completeProject(projectId: string, signatureName: string) {
-    // We could validate the signatureName matches the user if we had the context,
-    // but we will just trust the controller/frontend for now and rely on the AuditLog.
-    return this.prisma.project.update({
+  async completeProject(projectId: string, signatureName: string, requestingUser?: any) {
+    const project = await this.prisma.project.update({
       where: { id: projectId },
       data: {
         status: ProjectStatus.COMPLETED,
         endDate: new Date(),
       }
     });
+
+    if (requestingUser) {
+      await this.auditService.logUpdate({
+        moduleName: 'Projects',
+        entityId: projectId,
+        actorId: requestingUser.employeeId,
+        oldValue: { status: 'ACTIVE' },
+        newValue: { status: 'COMPLETED', signatureName }
+      });
+    }
+
+    return project;
   }
 
   async getProjectDetails(projectId: string, user?: any) {
