@@ -7,7 +7,7 @@ import { useAuthStore } from '@/store/auth';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
-
+import { PremiumDashboardLayout } from '@/components/shared/premium-dashboard';
 // Components
 import { KpiGrid } from '@/components/executive-dashboard/KpiGrid';
 import { HeadcountChart } from '@/components/executive-dashboard/HeadcountChart';
@@ -94,7 +94,8 @@ export function DashboardClient() {
   };
 
   return (
-    <div className="flex-1 w-full p-4 sm:p-6 md:p-8 bg-slate-50 min-h-screen font-sans">
+    <PremiumDashboardLayout>
+
       
       {error && (
         <div className="mb-6 text-red-600 bg-red-50 p-4 rounded-xl border border-red-100 text-sm font-semibold shadow-sm flex items-center gap-2">
@@ -154,7 +155,7 @@ export function DashboardClient() {
         </div>
 
       </div>
-    </div>
+      </PremiumDashboardLayout>
   );
 }
 

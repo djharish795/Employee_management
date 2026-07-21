@@ -23,6 +23,7 @@ import { apiClient } from '@/lib/api/client';
 import { PersonalAttendanceWidget } from '@/components/shared/personal-attendance-widget';
 import { CheckInButton } from '@/components/shared/check-in-button';
 import toast, { Toaster } from 'react-hot-toast';
+import { PremiumDashboardLayout, PremiumCard } from '@/components/shared/premium-dashboard';
 
 export default function CemDashboardPanel() {
   const router = useRouter();
@@ -79,7 +80,7 @@ export default function CemDashboardPanel() {
   const STAGE_NAMES = ['NEW LEAD', 'CONTACTED', 'MEETING SCHEDULED', 'FOLLOW UP', 'QUALIFIED LEAD', 'ASSIGNED TO CRM'];
 
   return (
-    <div className="space-y-6 max-w-[1400px] mx-auto w-full font-sans pb-10">
+    <PremiumDashboardLayout className="flex flex-col">
       <Toaster position="top-right" />
       
       {/* Top Header */}
@@ -102,45 +103,45 @@ export default function CemDashboardPanel() {
 
       {/* KPI Cards Row */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
+        <PremiumCard className="p-5 flex flex-col justify-between hover:border-slate-300 transition-all">
           <div className="flex justify-between items-start mb-4">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider leading-tight w-24">New Leads</span>
             <UserPlus className="w-5 h-5 text-slate-400" />
           </div>
           <h3 className="text-3xl font-black text-slate-900 tracking-tight">{kpis.newLeadsAssigned < 10 ? `0${kpis.newLeadsAssigned}` : kpis.newLeadsAssigned}</h3>
-        </div>
+        </PremiumCard>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
+        <PremiumCard className="p-5 flex flex-col justify-between hover:border-slate-300 transition-all">
           <div className="flex justify-between items-start mb-4">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider leading-tight w-24">Follow-ups Due</span>
             <Phone className="w-4.5 h-4.5 text-slate-400 transform -rotate-90" />
           </div>
           <h3 className="text-3xl font-black text-slate-900 tracking-tight">{kpis.followUpsDue < 10 ? `0${kpis.followUpsDue}` : kpis.followUpsDue}</h3>
-        </div>
+        </PremiumCard>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
+        <PremiumCard className="p-5 flex flex-col justify-between hover:border-slate-300 transition-all">
           <div className="flex justify-between items-start mb-4">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider leading-tight w-24">Meetings Today</span>
             <Calendar className="w-5 h-5 text-slate-400" />
           </div>
           <h3 className="text-3xl font-black text-slate-900 tracking-tight">{kpis.meetingsScheduled < 10 ? `0${kpis.meetingsScheduled}` : kpis.meetingsScheduled}</h3>
-        </div>
+        </PremiumCard>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
+        <PremiumCard className="p-5 flex flex-col justify-between hover:border-slate-300 transition-all">
           <div className="flex justify-between items-start mb-4">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider leading-tight w-24">Qualified</span>
             <ShieldCheck className="w-5 h-5 text-slate-400" />
           </div>
           <h3 className="text-3xl font-black text-slate-900 tracking-tight">{kpis.qualifiedForCrm < 10 ? `0${kpis.qualifiedForCrm}` : kpis.qualifiedForCrm}</h3>
-        </div>
+        </PremiumCard>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all col-span-2 lg:col-span-1">
+        <PremiumCard className="p-5 flex flex-col justify-between hover:border-slate-300 transition-all col-span-2 lg:col-span-1">
           <div className="flex justify-between items-start mb-4">
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider leading-tight w-24">Overdue Actions</span>
             <AlertCircle className="w-5 h-5 text-slate-500" />
           </div>
           <h3 className="text-3xl font-black text-rose-600 tracking-tight">{kpis.overdueActions < 10 ? `0${kpis.overdueActions}` : kpis.overdueActions}</h3>
-        </div>
+        </PremiumCard>
       </div>
 
       {/* Main Grid Section */}
@@ -150,7 +151,7 @@ export default function CemDashboardPanel() {
         <div className="lg:col-span-2 space-y-6">
           
           {/* Action Required Card */}
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+          <PremiumCard className="overflow-hidden p-0">
             <div className="px-6 py-5 flex items-center justify-between border-b border-slate-100">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 Action Required <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-xs">{activeLeads.length}</span>
@@ -209,11 +210,11 @@ export default function CemDashboardPanel() {
                 Go to Workspace <ChevronRight className="w-4 h-4" />
               </Link>
             </div>
-          </div>
+          </PremiumCard>
 
           {/* Today's Meetings */}
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-            <div className="px-6 py-5 flex items-center justify-between border-b border-slate-100 bg-white">
+          <PremiumCard className="overflow-hidden p-0">
+            <div className="px-6 py-5 flex items-center justify-between border-b border-slate-100">
               <h2 className="text-base font-bold text-slate-900">Today's Meetings</h2>
               <span className="text-xs font-semibold text-slate-500 capitalize">
                 {todaysMeetings.length} Session{todaysMeetings.length !== 1 ? 's' : ''} Scheduled
@@ -264,7 +265,7 @@ export default function CemDashboardPanel() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </PremiumCard>
 
           </div>
 
@@ -272,7 +273,7 @@ export default function CemDashboardPanel() {
         <div className="space-y-6 flex flex-col">
           
           {/* Ready For Handoff */}
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
+          <PremiumCard className="p-6 space-y-4">
             <h2 className="text-base font-bold text-slate-900 pb-2 border-b border-slate-100">
               Ready For Handoff
             </h2>
@@ -300,10 +301,10 @@ export default function CemDashboardPanel() {
                 <p className="text-xs text-slate-500 italic">No leads ready for handoff yet.</p>
               )}
             </div>
-          </div>
+          </PremiumCard>
 
           {/* Recent Activity */}
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
+          <PremiumCard className="p-6 space-y-4">
             <h2 className="text-base font-bold text-slate-900 pb-2 border-b border-slate-100 flex items-center justify-between">
               Recent Activity
               <button onClick={fetchDashboardData} className="text-slate-400 hover:text-slate-600">
@@ -334,10 +335,10 @@ export default function CemDashboardPanel() {
                 <p className="text-xs text-slate-400 italic">No recent activity.</p>
               )}
             </div>
-          </div>
+          </PremiumCard>
 
         </div>
       </div>
-    </div>
+    </PremiumDashboardLayout>
   );
 }

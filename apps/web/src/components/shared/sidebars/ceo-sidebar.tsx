@@ -294,7 +294,7 @@ export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
                       href={item.href}
                       onClick={onNavigate}
                       title={collapsed ? item.title : undefined}
-                      className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      className={`group flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 active:scale-95 ${
                         collapsed ? 'justify-center' : ''
                       } ${
                         isActive
@@ -303,7 +303,7 @@ export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <item.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`} />
+                        <item.icon className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`} />
                         {!collapsed && item.title}
                       </div>
                       {!collapsed && item.locked && (
@@ -318,10 +318,10 @@ export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
                   ) : (
                     <button 
                       onClick={() => item.subItems ? toggleExpand(item.title) : undefined}
-                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium ${collapsed ? 'justify-center' : ''} ${isActive ? 'text-slate-900 dark:text-white font-semibold bg-slate-100 dark:bg-slate-800/50' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white transition-colors'}`}
+                      className={`group w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 active:scale-95 ${collapsed ? 'justify-center' : ''} ${isActive ? 'text-slate-900 dark:text-white font-semibold bg-slate-100 dark:bg-slate-800/50' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'}`}
                     >
                       <div className="flex items-center gap-3">
-                        <item.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`} />
+                        <item.icon className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`} />
                         {!collapsed && item.title}
                       </div>
                       {!collapsed && item.subItems && (
@@ -363,9 +363,9 @@ export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
         <button
           onClick={handleLogout}
           title={collapsed ? 'Logout' : undefined}
-          className={`flex items-center gap-3 px-3 py-2.5 w-full text-left rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-600 dark:hover:text-red-400 transition-colors ${collapsed ? 'justify-center' : ''}`}
+          className={`group flex items-center gap-3 px-3 py-2.5 w-full text-left rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 active:scale-95 ${collapsed ? 'justify-center' : ''}`}
         >
-          <LogOut className="w-4 h-4 text-slate-400 dark:text-slate-500 flex-shrink-0" />
+          <LogOut className="w-4 h-4 text-slate-400 dark:text-slate-500 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 group-hover:text-red-500" />
           {!collapsed && 'Logout'}
         </button>
       </div>

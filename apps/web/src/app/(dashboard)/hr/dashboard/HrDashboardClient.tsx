@@ -28,6 +28,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { useAuthStore } from "@/store/auth";
+import { PremiumDashboardLayout, PremiumCard } from '@/components/shared/premium-dashboard';
 
 export default function HrDashboardPage() {
   const employeeId = useAuthStore(state => state.employeeId);
@@ -154,7 +155,7 @@ export default function HrDashboardPage() {
 
 
   return (
-    <div className="flex-1 w-full p-6 md:p-8 bg-slate-50 dark:bg-slate-900 min-h-screen font-sans transition-colors">
+    <PremiumDashboardLayout className="p-6 md:p-8 transition-colors">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-8">
         <div>
@@ -228,58 +229,58 @@ export default function HrDashboardPage() {
       {/* KPI Cards Row */}
       <div className="grid grid-cols-2 lg:grid-cols-7 gap-4 mb-6">
         {/* Total HeadCount */}
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-5 shadow-sm transition-colors">
+        <PremiumCard hoverLift decorativeGradient className="p-5">
           <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">TOTAL HEADCOUNT</p>
           <div className="flex items-center gap-2">
             <span className="text-3xl font-bold text-slate-900 dark:text-white">{data.headcount?.total || 0}</span>
           </div>
-        </div>
+        </PremiumCard>
 
         {/* Total Employees */}
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-5 shadow-sm transition-colors">
+        <PremiumCard hoverLift decorativeGradient className="p-5">
           <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">TOTAL EMPLOYEES</p>
           <div className="flex items-center gap-2">
             <span className="text-3xl font-bold text-slate-900 dark:text-white">{data.headcount?.active || 0}</span>
           </div>
-        </div>
+        </PremiumCard>
 
         {/* Vacant */}
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-5 shadow-sm transition-colors">
+        <PremiumCard hoverLift decorativeGradient className="p-5">
           <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">VACANT</p>
           <div className="flex items-center gap-2">
             <span className="text-3xl font-bold text-slate-500 dark:text-slate-400">{(data.headcount?.total || 0) - (data.headcount?.active || 0)}</span>
           </div>
-        </div>
+        </PremiumCard>
 
         {/* Present Today */}
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-5 shadow-sm transition-colors">
+        <PremiumCard hoverLift decorativeGradient className="p-5">
           <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">PRESENT TODAY</p>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{data.attendance.present}</span>
             <span className="text-emerald-500 text-xs font-bold">{presentPct}% Rate</span>
           </div>
-        </div>
+        </PremiumCard>
 
         {/* On Leave */}
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-5 shadow-sm transition-colors">
+        <PremiumCard hoverLift decorativeGradient className="p-5">
           <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">ON LEAVE</p>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-bold text-amber-500 dark:text-amber-400">{data.attendance.onLeave}</span>
             <span className="text-slate-400 dark:text-slate-500 text-xs font-semibold">Planned</span>
           </div>
-        </div>
+        </PremiumCard>
 
         {/* Open Positions (Phase 2 Feature) */}
         {process.env.NEXT_PUBLIC_PHASE_2_ENABLED === 'true' ? (
-          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-5 shadow-sm transition-colors">
+          <PremiumCard hoverLift decorativeGradient className="p-5">
             <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">OPEN POSITIONS</p>
             <div className="flex items-center gap-2">
               <span className="text-3xl font-bold text-slate-500 dark:text-slate-400">{data.recruitment.openPositions}</span>
               <Lock className="w-4 h-4 text-slate-300 dark:text-slate-600" />
             </div>
-          </div>
+          </PremiumCard>
         ) : (
-          <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-5 shadow-sm transition-colors opacity-70">
+          <PremiumCard className="p-5 bg-slate-50 dark:bg-slate-900 opacity-70">
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">RECRUITMENT</p>
               <Lock className="w-3.5 h-3.5 text-slate-400" />
@@ -287,24 +288,24 @@ export default function HrDashboardPage() {
             <div className="flex items-center gap-2 mt-3">
               <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">Locked in Phase 1</span>
             </div>
-          </div>
+          </PremiumCard>
         )}
 
         {/* New Joins */}
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-5 shadow-sm transition-colors">
+        <PremiumCard hoverLift decorativeGradient className="p-5">
           <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">NEW JOINS</p>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-bold text-blue-600 dark:text-blue-400">{data.headcount.newJoins}</span>
             <span className="text-slate-400 dark:text-slate-500 text-xs font-semibold">This Month</span>
           </div>
-        </div>
+        </PremiumCard>
       </div>
 
       {/* Middle Row Widgets */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
 
         {/* Attendance snapshot */}
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-6 shadow-sm flex flex-col transition-colors">
+        <PremiumCard className="p-6 flex flex-col">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-sm font-bold text-slate-800 dark:text-white">Attendance snapshot</h3>
             <DropdownMenu>
@@ -392,10 +393,10 @@ export default function HrDashboardPage() {
               </div>
             </div>
           </div>
-        </div>
+        </PremiumCard>
 
         {/* Leave requests pending */}
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-6 shadow-sm flex flex-col transition-colors">
+        <PremiumCard className="p-6 flex flex-col">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-sm font-bold text-slate-800 dark:text-white">Leave requests pending</h3>
             <Link href="/leaves" className="text-xs font-semibold text-slate-500 dark:text-slate-400 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300">View all</Link>
@@ -428,10 +429,10 @@ export default function HrDashboardPage() {
               ))
             )}
           </div>
-        </div>
+        </PremiumCard>
 
         {/* New joiner checklist */}
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-6 shadow-sm flex flex-col transition-colors">
+        <PremiumCard className="p-6 flex flex-col">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-sm font-bold text-slate-800 dark:text-white">New joiner checklist</h3>
           </div>
@@ -456,7 +457,7 @@ export default function HrDashboardPage() {
           <Link href="/onboarding" className="w-full py-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-md mt-6 shadow-sm transition-colors flex items-center justify-center">
             Manage Pipeline
           </Link>
-        </div>
+        </PremiumCard>
 
       </div>
 
@@ -464,7 +465,7 @@ export default function HrDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Recent activity */}
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-6 shadow-sm transition-colors">
+        <PremiumCard className="p-6">
           <h3 className="text-sm font-bold text-slate-800 dark:text-white mb-6">Recent activity</h3>
           <div className="relative border-l border-slate-200 dark:border-slate-800 ml-3 space-y-8 pb-4">
             {data.activity.length === 0 ? (
@@ -488,7 +489,7 @@ export default function HrDashboardPage() {
               })
             )}
           </div>
-        </div>
+        </PremiumCard>
 
         {/* Recent Notifications */}
         <div>
@@ -496,7 +497,7 @@ export default function HrDashboardPage() {
         </div>
 
         {/* Upcoming events */}
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-6 shadow-sm transition-colors">
+        <PremiumCard className="p-6">
           <h3 className="text-sm font-bold text-slate-800 dark:text-white mb-6">Upcoming events</h3>
           <div className="space-y-4">
             {data.events.length === 0 ? (
@@ -529,9 +530,9 @@ export default function HrDashboardPage() {
               })
             )}
           </div>
-        </div>
+        </PremiumCard>
 
       </div>
-    </div>
+    </PremiumDashboardLayout>
   );
 }

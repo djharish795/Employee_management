@@ -17,17 +17,17 @@ const colors = {
 
 export function HighlightsPanel({ highlights }: { highlights: Highlight[] }) {
   return (
-    <Card className="border-slate-200 shadow-sm h-full">
+    <Card className="border-slate-200/70 shadow-sm shadow-slate-200/50 h-full relative overflow-hidden bg-white/80 backdrop-blur-md">
       <CardHeader>
         <CardTitle className="text-lg font-bold text-slate-800">This month highlights</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-6">
+        <div className="space-y-4">
           {highlights.map((highlight) => {
             const Icon = icons[highlight.type];
             const colorClass = colors[highlight.type];
             return (
-              <div key={highlight.id} className="flex space-x-3">
+              <div key={highlight.id} className="flex space-x-3 p-3 -mx-3 rounded-xl hover:bg-slate-50 transition-colors cursor-default">
                 <div className={`mt-0.5 ${colorClass}`}>
                   <Icon className="w-5 h-5" />
                 </div>

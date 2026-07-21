@@ -9,6 +9,7 @@ import { fetchTodayStatus, submitPunch } from '@/lib/api/attendance';
 import EarlyCheckoutModal from "@/components/shared/early-checkout-modal";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
+import { PremiumDashboardLayout, PremiumCard } from '@/components/shared/premium-dashboard';
 
 // ─── Interfaces (No Hardcoded Mock Data) ─────────────────────────────────────────
 interface MetricData {
@@ -182,7 +183,7 @@ export default function CtoDashboardPage() {
   const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
-    <div className="flex flex-col h-full font-sans bg-slate-50 overflow-y-auto">
+    <PremiumDashboardLayout className="flex flex-col">
       <EarlyCheckoutModal
         isOpen={showCheckoutModal}
         secondsElapsed={getSecondsElapsed()}
@@ -194,7 +195,7 @@ export default function CtoDashboardPage() {
         }}
       />
       
-      <div className="p-8 max-w-[1400px] mx-auto w-full space-y-6">
+      <div className="max-w-[1400px] mx-auto w-full space-y-6">
         
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-2">
@@ -248,22 +249,22 @@ export default function CtoDashboardPage() {
 
         {/* Top Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <PremiumCard hoverLift decorativeGradient className="p-5 flex flex-col justify-between">
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Engineering Headcount</div>
             <div className="flex items-end justify-between">
               <span className="text-4xl font-extrabold text-slate-900">{metrics?.headcount || '--'}</span>
             </div>
-          </div>
+          </PremiumCard>
 
-          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <PremiumCard hoverLift decorativeGradient className="p-5 flex flex-col justify-between">
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Assets Allocated</div>
             <div className="flex items-baseline gap-2">
               <span className="text-4xl font-extrabold text-slate-900">{metrics?.assetsAllocated || '--'}</span>
               <span className="text-sm font-semibold text-slate-500">devices</span>
             </div>
-          </div>
+          </PremiumCard>
 
-          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <PremiumCard hoverLift decorativeGradient className="p-5 flex flex-col justify-between">
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Open Tech Positions</div>
             <div className="flex items-center gap-3">
               <span className="w-2.5 h-2.5 rounded-full bg-orange-400"></span>
@@ -272,9 +273,9 @@ export default function CtoDashboardPage() {
             <div className="mt-2 flex items-center gap-1.5 px-2 py-1 bg-slate-50 text-slate-500 text-[10px] font-bold rounded border border-slate-200 w-fit">
               <Lock className="w-3 h-3" /> Locked - Phase 2
             </div>
-          </div>
+          </PremiumCard>
 
-          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+          <PremiumCard hoverLift decorativeGradient className="p-5 flex flex-col justify-between">
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Avg Tenure</div>
             <div className="flex items-baseline gap-1">
               <span className="text-4xl font-extrabold text-slate-900">{metrics?.avgTenure || '--'}</span>
@@ -283,14 +284,13 @@ export default function CtoDashboardPage() {
             <div className="text-[10px] font-bold text-slate-400 mt-2">
               Industry avg: {metrics?.industryAvgTenure || '--'}
             </div>
-          </div>
+          </PremiumCard>
         </div>
 
         {/* Middle Layout (2 Columns) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          {/* Org Breakdown */}
-          <div className="lg:col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm p-6 relative">
+          <PremiumCard className="lg:col-span-2 p-6 relative">
             <div className="flex items-center justify-between mb-8">
               <h3 className="text-base font-bold text-slate-900">Org breakdown</h3>
               <div className="relative" ref={orgMenuRef}>
@@ -340,10 +340,9 @@ export default function CtoDashboardPage() {
                 })()
               )}
             </div>
-          </div>
+          </PremiumCard>
 
-          {/* Recent Asset Allocations */}
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 flex flex-col">
+          <PremiumCard className="p-6 flex flex-col">
             <h3 className="text-base font-bold text-slate-900 mb-6">Recent asset allocations</h3>
             
             <div className="flex-1 space-y-5 overflow-y-auto">
@@ -371,11 +370,10 @@ export default function CtoDashboardPage() {
             <Link href="/cto/assets" className="w-full mt-6 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-lg transition-colors border border-slate-200 text-center block">
               View All Assets
             </Link>
-          </div>
+          </PremiumCard>
         </div>
 
-        {/* Bottom Layout (All Teams) */}
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <PremiumCard className="overflow-hidden">
           <div className="p-5 border-b border-slate-100 flex items-center justify-between">
             <h3 className="text-base font-bold text-slate-900">All teams</h3>
             {showSearch ? (
@@ -456,9 +454,9 @@ export default function CtoDashboardPage() {
               </tbody>
             </table>
           </div>
-        </div>
+        </PremiumCard>
 
       </div>
-    </div>
+    </PremiumDashboardLayout>
   );
 }

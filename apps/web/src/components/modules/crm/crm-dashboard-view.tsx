@@ -16,6 +16,7 @@ import { crmApi } from '@/lib/api/crm';
 import { PersonalAttendanceWidget } from '@/components/shared/personal-attendance-widget';
 import { CheckInButton } from '@/components/shared/check-in-button';
 import toast, { Toaster } from 'react-hot-toast';
+import { PremiumDashboardLayout, PremiumCard } from '@/components/shared/premium-dashboard';
 
 export default function CrmDashboardView() {
   const [pipelineData, setPipelineData] = useState<any>(null);
@@ -89,7 +90,7 @@ export default function CrmDashboardView() {
   }
 
   return (
-    <div className="space-y-6 max-w-[1400px] mx-auto w-full font-sans pb-10">
+    <PremiumDashboardLayout className="flex flex-col">
       <Toaster position="top-right" />
 
       {/* Top Header */}
@@ -112,43 +113,43 @@ export default function CrmDashboardView() {
 
       {/* KPI Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
+        <PremiumCard className="p-5 flex flex-col justify-between hover:border-slate-300 transition-all">
           <div className="flex justify-between items-start mb-4">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider leading-tight w-24">Total Clients</span>
             <Users className="w-5 h-5 text-slate-400" />
           </div>
           <h3 className="text-3xl font-black text-slate-900 tracking-tight">{pipelineData.totalClients || 0}</h3>
-        </div>
+        </PremiumCard>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
+        <PremiumCard className="p-5 flex flex-col justify-between hover:border-slate-300 transition-all">
           <div className="flex justify-between items-start mb-4">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider leading-tight w-24">Active Requirements</span>
             <Briefcase className="w-5 h-5 text-slate-400" />
           </div>
           <h3 className="text-3xl font-black text-slate-900 tracking-tight">{pipelineData.activeRequirements || 0}</h3>
-        </div>
+        </PremiumCard>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
+        <PremiumCard className="p-5 flex flex-col justify-between hover:border-slate-300 transition-all">
           <div className="flex justify-between items-start mb-4">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider leading-tight w-24">Pending Clarification</span>
             <AlertCircle className="w-5 h-5 text-amber-500" />
           </div>
           <h3 className="text-3xl font-black text-slate-900 tracking-tight">{pipelineData.pendingClarification || 0}</h3>
-        </div>
+        </PremiumCard>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all">
+        <PremiumCard className="p-5 flex flex-col justify-between hover:border-slate-300 transition-all">
           <div className="flex justify-between items-start mb-4">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider leading-tight w-24">Completed Deals</span>
             <CheckCircle2 className="w-5 h-5 text-emerald-500" />
           </div>
           <h3 className="text-3xl font-black text-slate-900 tracking-tight">{pipelineData.completedDeals || 0}</h3>
-        </div>
+        </PremiumCard>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           {/* Active Client Pipeline */}
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+          <PremiumCard className="overflow-hidden p-0">
             <div className="px-6 py-5 flex items-center justify-between border-b border-slate-100">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 Active Client Pipeline
@@ -201,11 +202,11 @@ export default function CrmDashboardView() {
                 Go to Workspace <ChevronRight className="w-4 h-4" />
               </Link>
             </div>
-          </div>
+          </PremiumCard>
         </div>
 
         {/* Recent Activity */}
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col h-full overflow-hidden">
+        <PremiumCard className="flex flex-col h-full overflow-hidden p-0">
           <div className="px-6 py-5 flex items-center justify-between border-b border-slate-100">
             <h2 className="text-base font-bold text-slate-900">Recent CRM Activity</h2>
             <button onClick={fetchDashboardData} className="text-slate-400 hover:text-indigo-600 transition-colors">
@@ -243,8 +244,8 @@ export default function CrmDashboardView() {
               View Full History
             </Link>
           </div>
-        </div>
+        </PremiumCard>
       </div>
-    </div>
+    </PremiumDashboardLayout>
   );
 }

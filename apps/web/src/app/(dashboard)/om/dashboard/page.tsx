@@ -8,9 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function OmDashboardPage() {
-  return (
-    <div className="flex-1 w-full p-6 md:p-8 bg-slate-50 min-h-screen font-sans">
-      <EmployeeDashboardV2 />
-    </div>
-  );
+  return <EmployeeDashboardV2 />;
 }

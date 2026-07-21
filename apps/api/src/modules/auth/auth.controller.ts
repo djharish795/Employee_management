@@ -20,7 +20,7 @@ const cookieOptions = (maxAge: number): CookieOptions => ({
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Throttle({ default: { limit: 5, ttl: 300000 } })
+  @Throttle({ default: { limit: 50, ttl: 300000 } })
   @Post("login")
   async login(@Req() req: Request, @Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const ip = req.ip;

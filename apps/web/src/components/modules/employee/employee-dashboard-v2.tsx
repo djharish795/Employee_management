@@ -23,6 +23,7 @@ import { assetsApi } from "@/lib/api/assets";
 import { workflowsApi } from "@/lib/api/workflows";
 import { fetchNotifications } from "@/lib/api/notifications";
 import EarlyCheckoutModal from "@/components/shared/early-checkout-modal";
+import { PremiumDashboardLayout, PremiumCard } from '@/components/shared/premium-dashboard';
 
 import { formatDistanceToNow } from 'date-fns';
 
@@ -203,7 +204,7 @@ export default function EmployeeDashboardV2() {
   }
 
   return (
-    <div className="space-y-6">
+    <PremiumDashboardLayout className="p-0 bg-transparent min-h-0 space-y-6">
       <EarlyCheckoutModal
         isOpen={showCheckoutModal}
         secondsElapsed={getSecondsElapsed()}
@@ -246,7 +247,7 @@ export default function EmployeeDashboardV2() {
       {/* KPI Cards */}
       <div id="tour-dashboard-stats" className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Today's Status */}
-        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex flex-col justify-between">
+        <PremiumCard hoverLift decorativeGradient className="p-5 flex flex-col justify-between">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Today's Status</p>
           <div>
             <div className="flex items-center gap-2">
@@ -263,10 +264,10 @@ export default function EmployeeDashboardV2() {
                   : 'No punch recorded today')}
             </p>
           </div>
-        </div>
+        </PremiumCard>
 
         {/* Leave Balance */}
-        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex flex-col justify-between">
+        <PremiumCard hoverLift decorativeGradient className="p-5 flex flex-col justify-between">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Leave Balance</p>
           <div className="flex items-baseline gap-1.5">
             {leaveKpiQuery.isLoading ? (
@@ -276,10 +277,10 @@ export default function EmployeeDashboardV2() {
             )}
             <span className="text-xs font-medium text-slate-500">days available</span>
           </div>
-        </div>
+        </PremiumCard>
 
         {/* Assets Assigned */}
-        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex flex-col justify-between">
+        <PremiumCard hoverLift decorativeGradient className="p-5 flex flex-col justify-between">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Assets Assigned</p>
           <div className="flex items-baseline gap-1.5">
             {assetsQuery.isLoading ? (
@@ -289,10 +290,10 @@ export default function EmployeeDashboardV2() {
             )}
             <span className="text-xs font-medium text-slate-500">active items</span>
           </div>
-        </div>
+        </PremiumCard>
 
         {/* Goals This Quarter */}
-        <div className="bg-slate-50 border border-slate-100 p-5 rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden">
+        <PremiumCard className="p-5 flex flex-col justify-between bg-slate-50 opacity-70">
           <div className="flex justify-between items-start mb-3">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Goals This Quarter</p>
             {!PHASE_2_ENABLED && <Lock className="w-3.5 h-3.5 text-slate-300" />}
@@ -307,13 +308,13 @@ export default function EmployeeDashboardV2() {
               </div>
             )}
           </div>
-        </div>
+        </PremiumCard>
       </div>
 
       {/* Main Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Attendance Calendar */}
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 lg:col-span-2">
+        <PremiumCard className="p-6 lg:col-span-2">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-base font-bold text-slate-900">Attendance this month</h3>
             <div className="flex items-center gap-3">
@@ -437,10 +438,10 @@ export default function EmployeeDashboardV2() {
               </div>
             </div>
           </div>
-        </div>
+        </PremiumCard>
 
         {/* Pending For You */}
-        <div id="tour-quick-actions" className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 flex flex-col">
+        <PremiumCard id="tour-quick-actions" className="p-6 flex flex-col">
           <h3 className="text-base font-bold text-slate-900 mb-4">Pending for you</h3>
           <div className="space-y-3">
             {tasksQuery.isLoading ? (
@@ -469,11 +470,11 @@ export default function EmployeeDashboardV2() {
               </div>
             )}
           </div>
-        </div>
+        </PremiumCard>
       </div>
 
       {/* Recent Notifications */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
+      <PremiumCard className="p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-base font-bold text-slate-900">Recent notifications</h3>
           <Link href="/notifications" className="text-xs font-bold text-blue-600 hover:text-blue-700">View all</Link>
@@ -490,7 +491,11 @@ export default function EmployeeDashboardV2() {
                 <div className="flex-1 min-w-0">
                   <p className={`text-sm truncate ${!notification.isRead ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}`}>{notification.title}</p>
                   <p className="text-xs text-slate-500 truncate mt-0.5">{notification.message || "You have a new notification in your inbox."}</p>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-2">{formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-2">
+    {notification.createdAt && !isNaN(new Date(notification.createdAt).getTime()) 
+      ? formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true }) 
+      : 'Recently'}
+  </p>
                 </div>
                 {!notification.isRead && (
                   <span className="w-2 h-2 rounded-full bg-blue-500 mt-3 flex-shrink-0"></span>
@@ -501,8 +506,8 @@ export default function EmployeeDashboardV2() {
             <p className="text-sm font-medium text-slate-500 text-center py-4">No recent notifications</p>
           )}
         </div>
-      </div>
+      </PremiumCard>
 
-    </div>
+    </PremiumDashboardLayout>
   );
 }

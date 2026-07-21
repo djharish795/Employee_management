@@ -58,7 +58,7 @@ export function LeavesSummaryWidget() {
     new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden h-full flex flex-col">
+    <div className="bg-white/80 backdrop-blur-md border border-slate-200/70 rounded-xl shadow-sm shadow-slate-200/50 overflow-hidden h-full flex flex-col relative">
       {/* Header */}
       <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
         <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -77,7 +77,7 @@ export function LeavesSummaryWidget() {
           { label: "Starting This Week", value: isLoading ? "..." : stats.upcoming, color: "text-indigo-600", icon: Clock },
           { label: "Depts Affected", value: isLoading ? "..." : stats.departments.size, color: "text-slate-700", icon: CheckCircle2 },
         ].map(({ label, value, color, icon: Icon }, i) => (
-          <div key={i} className="p-3 text-center">
+          <div key={i} className="p-3 text-center bg-white/50">
             <Icon className={`w-4 h-4 mx-auto mb-1 ${color}`} />
             <p className={`text-lg font-extrabold ${color}`}>{value}</p>
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide mt-0.5">{label}</p>
@@ -102,7 +102,7 @@ export function LeavesSummaryWidget() {
         ) : (
           <div className="divide-y divide-slate-50">
             {recent.map((req: any) => (
-              <div key={req.id} className="px-4 py-3 flex items-center justify-between gap-2">
+              <div key={req.id} className="px-4 py-3 flex items-center justify-between gap-2 hover:bg-slate-50 transition-colors cursor-default">
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-slate-900 truncate">
                     {req.employee ? `${req.employee.firstName} ${req.employee.lastName}` : "—"}
@@ -111,7 +111,7 @@ export function LeavesSummaryWidget() {
                     {req.leaveType?.name ?? "Leave"} · {fmtDate(req.startDate)} – {fmtDate(req.endDate)}
                   </p>
                 </div>
-                <span className="flex-shrink-0 px-2 py-0.5 text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded uppercase">
+                <span className="flex-shrink-0 px-2 py-0.5 text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded uppercase shadow-sm">
                   {req.status}
                 </span>
               </div>

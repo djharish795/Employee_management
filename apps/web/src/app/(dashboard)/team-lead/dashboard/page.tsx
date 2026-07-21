@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
+import { PremiumDashboardLayout } from '@/components/shared/premium-dashboard/PremiumDashboardLayout';
+import { PremiumCard } from '@/components/shared/premium-dashboard/PremiumCard';
 
 export default function TeamDashboardPage() {
   const { data, isLoading } = useQuery({
@@ -47,7 +49,7 @@ export default function TeamDashboardPage() {
   const tasksBlocked = data?.taskBoardSnapshot?.blocked || [];
 
   return (
-    <div className="flex-1 w-full bg-slate-50 min-h-screen flex flex-col font-sans overflow-x-hidden p-6 md:p-8">
+    <PremiumDashboardLayout className="flex flex-col">
       
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
@@ -95,8 +97,8 @@ export default function TeamDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         
         {/* My Team Today (Left, spans 2 cols) */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-          <div className="p-6 pb-4 border-b border-slate-100 flex items-center justify-between">
+        <PremiumCard className="lg:col-span-2 overflow-hidden flex flex-col p-0">
+          <div className="p-6 pb-4 border-b border-slate-100/50 flex items-center justify-between">
             <h2 className="text-lg font-bold text-slate-900">My team today</h2>
             <Link href="/team-lead/team" className="text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors">
               View full team <ArrowRight className="w-4 h-4" />
@@ -134,10 +136,10 @@ export default function TeamDashboardPage() {
               </tbody>
             </table>
           </div>
-        </div>
+        </PremiumCard>
 
         {/* Pending Approvals (Right, spans 1 col) */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+        <PremiumCard className="flex flex-col p-0">
           <div className="p-6 pb-2">
             <h2 className="text-lg font-bold text-slate-900">Pending approvals</h2>
           </div>
@@ -158,13 +160,13 @@ export default function TeamDashboardPage() {
               View all approvals <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
-        </div>
+        </PremiumCard>
 
       </div>
 
       {/* Bottom Row - Task Board Snapshot */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+      <PremiumCard className="overflow-hidden flex flex-col p-0 mb-8">
+        <div className="p-6 border-b border-slate-100/50 flex items-center justify-between">
           <h2 className="text-lg font-bold text-slate-900">Task board snapshot</h2>
           <Link href="/team-lead/task-board" className="text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors">
             Open full board <ArrowRight className="w-4 h-4" />
@@ -213,9 +215,9 @@ export default function TeamDashboardPage() {
             
           </div>
         </div>
-      </div>
+      </PremiumCard>
 
-    </div>
+    </PremiumDashboardLayout>
   );
 }
 
@@ -223,13 +225,13 @@ export default function TeamDashboardPage() {
 
 function KpiCard({ title, value, subtitle }: any) {
   return (
-    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center">
+    <PremiumCard hoverLift className="p-6 flex flex-col justify-center">
       <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{title}</h3>
       <div className="text-4xl font-extrabold text-slate-900 tracking-tight mb-2 flex items-center">
         {value}
       </div>
       <p className="text-xs font-semibold text-slate-500">{subtitle}</p>
-    </div>
+    </PremiumCard>
   );
 }
 

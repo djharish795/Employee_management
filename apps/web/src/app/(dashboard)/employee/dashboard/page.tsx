@@ -12,9 +12,5 @@ export default async function EmployeeDashboardPage() {
   // Server-side role guard - EMPLOYEE, MANAGER, TEAM_LEAD only
   // Redirects to /access-restricted for executive roles, etc.
   await requireRole(['EMPLOYEE', 'MANAGER', 'TEAM_LEAD']);
-  return (
-    <div className="flex-1 w-full p-6 md:p-8 bg-slate-50 min-h-screen font-sans">
-      <EmployeeDashboardV2 />
-    </div>
-  );
+  return <EmployeeDashboardV2 />;
 }
