@@ -24,6 +24,7 @@
   "dependencies": {
     "@naprocs/database": "workspace:^",
     "@types/multer": "^2.2.0",
+    "exceljs": "^4.4.0",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.22.0",
     "sharp": "^0.35.3"

@@ -812,11 +812,11 @@ export class AttendanceService {
         date: { gte: sixMonthsAgo, lte: today },
         employeeId: { in: employees.map(e => e.id) }
       },
-      select: { date: true, status: true }
+      select: { date: true, status: true, employeeId: true }
     });
 
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const monthStats = new Map<string, { present: number, activeDays: Set<string>, label: string }>();
+    const monthStats = new Map<string, { present: number, activeDays: Set<string>, uniqueEmployees: Set<string>, label: string }>();
 
     pastRecords.forEach(r => {
       const m = r.date.getUTCMonth();
@@ -824,10 +824,11 @@ export class AttendanceService {
       const key = `${y}-${(m + 1).toString().padStart(2, '0')}`;
       
       if (!monthStats.has(key)) {
-        monthStats.set(key, { present: 0, activeDays: new Set(), label: monthNames[m] });
+        monthStats.set(key, { present: 0, activeDays: new Set(), uniqueEmployees: new Set(), label: monthNames[m] });
       }
       const stat = monthStats.get(key)!;
       stat.activeDays.add(r.date.toISOString().split('T')[0]);
+      stat.uniqueEmployees.add(r.employeeId);
       const statusStr = r.status as string;
       if ((PRESENT_STATUSES as readonly string[]).includes(statusStr)) {
         stat.present++;
@@ -842,8 +843,8 @@ export class AttendanceService {
       const key = `${y}-${(d.getUTCMonth() + 1).toString().padStart(2, '0')}`;
       const stat = monthStats.get(key);
       let perc = 0;
-      if (stat && stat.activeDays.size > 0 && totalEmployees > 0) {
-        const expectedRecords = stat.activeDays.size * totalEmployees;
+      if (stat && stat.activeDays.size > 0 && stat.uniqueEmployees.size > 0) {
+        const expectedRecords = stat.activeDays.size * stat.uniqueEmployees.size;
         perc = Math.round((stat.present / expectedRecords) * 100);
       }
       trendData.push({ month: mName, percentage: perc });
