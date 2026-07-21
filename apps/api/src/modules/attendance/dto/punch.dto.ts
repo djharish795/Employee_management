@@ -1,4 +1,4 @@
-import { IsIn, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsIn, IsNotEmpty, IsOptional, IsString, MaxLength } from "class-validator";
 
 export class PunchDto {
   @IsString()
@@ -8,5 +8,6 @@ export class PunchDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(128)
   idempotencyKey?: string;
 }

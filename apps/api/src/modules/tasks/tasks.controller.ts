@@ -10,6 +10,19 @@ import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
 import { RbacPermissions } from '../../common/rbac/rbac.config';
 
+import { WebhookSignatureGuard } from '../../common/guards/webhook-signature.guard';
+
+@Controller("tasks/webhook")
+export class TasksWebhookController {
+  constructor(private readonly tasksService: TasksService) { }
+
+  @Post('event-task')
+  @UseGuards(WebhookSignatureGuard)
+  async createTaskFromEvent(@Body() payload: { eventName: string, payload: any }): Promise<any> {
+    return this.tasksService.createTaskFromEvent(payload.eventName, payload.payload);
+  }
+}
+
 @Controller("tasks")
 @UseGuards(JwtAuthGuard, RbacGuard)
 export class TasksController {

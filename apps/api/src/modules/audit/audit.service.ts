@@ -95,7 +95,7 @@ export class AuditService {
    */
   async logExport(params: BaseAuditParams): Promise<void> {
     return this.createLog({
-      action: AuditAction.EXPORT,
+      action: "DATA_EXPORTED" as AuditAction,
       actorId: params.actorId, // Placeholder for future use
       resource: params.moduleName,
       resourceId: params.entityId,
@@ -131,6 +131,7 @@ export class AuditService {
       requestId: "SYS",
     });
   }
+
 
   async getRecentEvents(limit: number = 50, offset: number = 0) {
     const events = await this.auditRepository.getRecentEvents(limit, offset);

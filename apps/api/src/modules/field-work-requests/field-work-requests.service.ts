@@ -546,13 +546,45 @@ export class FieldWorkRequestsService {
     return fallbackUser?.employeeId || null;
   }
 
-  async exportCsv(employeeId: string, role?: string): Promise<string> {
+  private sanitizeCsvField(value: string | null | undefined): string {
+    let val = value || '';
+    if (/^[=\-+\@\t\r]/.test(val)) {
+      val = "'" + val;
+    }
+    return `"${val.replace(/"/g, '""')}"`;
+  }
+
+  async exportCsv(employeeId: string, role?: string, startDateStr?: string, endDateStr?: string): Promise<string> {
     const isApprover = role === UserRole.OM || role === UserRole.MANAGER || role === UserRole.OPERATIONS_HEAD || role === UserRole.SUPER_ADMIN || role === UserRole.CEM;
 
+    let startDate = new Date();
+    startDate.setDate(startDate.getDate() - 30); // default to last 30 days
+    let endDate = new Date();
+
+    if (startDateStr) startDate = new Date(startDateStr);
+    if (endDateStr) endDate = new Date(endDateStr);
+
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays > 90) {
+      throw new BadRequestException("Export date range cannot exceed 90 days to prevent resource exhaustion");
+    }
+
+    const whereClause: any = {
+      createdAt: {
+        gte: startDate,
+        lte: endDate,
+      }
+    };
+
+    if (isApprover) {
+      whereClause.OR = [{ employeeId }, { approverId: employeeId }];
+    } else {
+      whereClause.employeeId = employeeId;
+    }
+
     const requests = await this.prisma.fieldWorkRequest.findMany({
-      where: isApprover
-        ? { OR: [{ employeeId }, { approverId: employeeId }] }
-        : { employeeId },
+      where: whereClause,
       include: {
         employee: { select: { firstName: true, lastName: true, employeeId: true } },
       },
@@ -565,12 +597,19 @@ export class FieldWorkRequestsService {
       `"${req.employee?.firstName || ''} ${req.employee?.lastName || ''}"`.trim(),
       req.employee?.employeeId || '',
       req.date ? req.date.toISOString().split("T")[0] : '',
-      `"${(req.destination || '').replace(/"/g, '""')}"`,
-      `"${(req.client || '').replace(/"/g, '""')}"`,
-      `"${(req.purpose || '').replace(/"/g, '""')}"`,
+      this.sanitizeCsvField(req.destination),
+      this.sanitizeCsvField(req.client),
+      this.sanitizeCsvField(req.purpose),
       req.status,
       req.createdAt ? req.createdAt.toISOString() : '',
     ]);
+
+    await this.auditService.logExport({
+      moduleName: "FieldWorkRequest",
+      actorId: employeeId,
+      entityId: "BULK_EXPORT",
+      metadata: { action: "BULK_EXPORT", rowCount: requests.length, filters: { startDate, endDate } },
+    });
 
     return [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
   }

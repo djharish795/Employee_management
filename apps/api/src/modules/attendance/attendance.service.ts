@@ -216,14 +216,24 @@ export class AttendanceService {
           } as any,
         });
       } else {
-        const record = await this.prisma.attendanceRecord.findUnique({
-          where: { employeeId_date: { employeeId, date: shiftDate } }
-        });
-        const ph = (record as any)?.punchHistory ? ((record as any).punchHistory as any[]) : [];
-        ph.push({ action: "IN", time: new Date(now).toISOString() });
-        await this.prisma.attendanceRecord.update({
-          where: { employeeId_date: { employeeId, date: shiftDate } },
-          data: { punchHistory: ph as any } as any
+        await this.prisma.$transaction(async (tx) => {
+          const lockedRecords = await tx.$queryRaw<any[]>`
+            SELECT "punchHistory" 
+            FROM "AttendanceRecord" 
+            WHERE "employeeId" = ${employeeId} 
+              AND "date" = ${shiftDate}::date
+            FOR UPDATE
+          `;
+          
+          if (lockedRecords.length === 0) return;
+          
+          const ph = lockedRecords[0].punchHistory ? (lockedRecords[0].punchHistory as any[]) : [];
+          ph.push({ action: "IN", time: new Date(now).toISOString() });
+          
+          await tx.attendanceRecord.update({
+            where: { employeeId_date: { employeeId, date: shiftDate } },
+            data: { punchHistory: ph as any } as any
+          });
         });
       }
 
@@ -242,20 +252,27 @@ export class AttendanceService {
 
       const shiftDate = state.shiftDate ? new Date(state.shiftDate) : today;
 
-      const record = await this.prisma.attendanceRecord.findUnique({
-        where: { employeeId_date: { employeeId, date: shiftDate } }
-      });
+      await this.prisma.$transaction(async (tx) => {
+        const lockedRecords = await tx.$queryRaw<any[]>`
+          SELECT "breakHistory", "punchHistory" 
+          FROM "AttendanceRecord" 
+          WHERE "employeeId" = ${employeeId} 
+            AND "date" = ${shiftDate}::date
+          FOR UPDATE
+        `;
 
-      let breakHistory: any[] = parseBreakHistory(record ? (record as any).breakHistory : null);
+        if (lockedRecords.length === 0) return;
 
-      breakHistory.push({ start: new Date(now).toISOString(), end: null });
+        let breakHistory: any[] = parseBreakHistory(lockedRecords[0].breakHistory);
+        breakHistory.push({ start: new Date(now).toISOString(), end: null });
 
-      let punchHistory = (record as any)?.punchHistory ? ((record as any).punchHistory as any[]) : [];
-      punchHistory.push({ action: "BREAK", time: new Date(now).toISOString() });
+        let punchHistory = lockedRecords[0].punchHistory ? (lockedRecords[0].punchHistory as any[]) : [];
+        punchHistory.push({ action: "BREAK", time: new Date(now).toISOString() });
 
-      await this.prisma.attendanceRecord.updateMany({
-        where: { employeeId, date: shiftDate, currentBreakStartTime: null },
-        data: { currentBreakStartTime: new Date(now), breakHistory: breakHistory as any, punchHistory: punchHistory as any } as any
+        await tx.attendanceRecord.updateMany({
+          where: { employeeId, date: shiftDate, currentBreakStartTime: null },
+          data: { currentBreakStartTime: new Date(now), breakHistory: breakHistory as any, punchHistory: punchHistory as any } as any
+        });
       });
 
       this.inApp.broadcastEvent('attendance.punched', { employeeId, type: dto.action });
@@ -276,64 +293,73 @@ export class AttendanceService {
       state.startTime = now;
       await this.redis.setJson(key, state, 60 * 60 * 24);
 
-      const existingRecord = await this.prisma.attendanceRecord.findUnique({
-        where: { employeeId_date: { employeeId, date: shiftDate } }
-      });
-      const checkInTime = existingRecord?.checkInTime || new Date(state.startTime);
-      const isLate = isLateArrival(checkInTime);
+      await this.prisma.$transaction(async (tx) => {
+        const lockedRecords = await tx.$queryRaw<any[]>`
+          SELECT "punchHistory", "status", "checkInTime"
+          FROM "AttendanceRecord" 
+          WHERE "employeeId" = ${employeeId} 
+            AND "date" = ${shiftDate}::date
+          FOR UPDATE
+        `;
 
-      let workHoursDecimal = state.offset / 3600;
+        const existingRecord = lockedRecords.length > 0 ? lockedRecords[0] : null;
+        
+        const checkInTime = existingRecord?.checkInTime || new Date(state.startTime);
+        const isLate = isLateArrival(checkInTime);
 
-      const approvedHalfDay = await this.prisma.leaveRequest.findFirst({
-        where: {
-          employeeId,
-          startDate: { lte: shiftDate },
-          endDate: { gte: shiftDate },
-          status: 'APPROVED',
-          isHalfDay: true
+        let workHoursDecimal = state.offset / 3600;
+
+        const approvedHalfDay = await tx.leaveRequest.findFirst({
+          where: {
+            employeeId,
+            startDate: { lte: shiftDate },
+            endDate: { gte: shiftDate },
+            status: 'APPROVED',
+            isHalfDay: true
+          }
+        });
+
+        const thresholdSeconds = approvedHalfDay ? 16200 : 32400; // 4.5 hours or 9 hours
+
+        let finalStatus = existingRecord?.status === "WFH" ? "WFH" : "PRESENT";
+        
+        if (state.offset < thresholdSeconds && finalStatus !== "WFH") {
+          finalStatus = "EARLY_CHECKOUT";
+        } else if (isLate && !approvedHalfDay && finalStatus !== "WFH") {
+          finalStatus = "LATE";
         }
-      });
 
-      const thresholdSeconds = approvedHalfDay ? 16200 : 32400; // 4.5 hours or 9 hours
+        let overtimeDecimal = 0;
+        if (state.offset > 32400) {
+          overtimeDecimal = (state.offset - 32400) / 3600;
+        }
 
-      let finalStatus = existingRecord?.status === "WFH" ? "WFH" : "PRESENT";
-      
-      if (state.offset < thresholdSeconds && finalStatus !== "WFH") {
-        finalStatus = "EARLY_CHECKOUT";
-      } else if (isLate && !approvedHalfDay && finalStatus !== "WFH") {
-        finalStatus = "LATE";
-      }
+        let punchHistory = existingRecord?.punchHistory ? (existingRecord.punchHistory as any[]) : [];
+        punchHistory.push({ action: "OUT", time: new Date(now).toISOString() });
 
-      let overtimeDecimal = 0;
-      if (state.offset > 32400) {
-        overtimeDecimal = (state.offset - 32400) / 3600;
-      }
-
-      let punchHistory = (existingRecord as any)?.punchHistory ? ((existingRecord as any).punchHistory as any[]) : [];
-      punchHistory.push({ action: "OUT", time: new Date(now).toISOString() });
-
-      await this.prisma.attendanceRecord.upsert({
-        where: { employeeId_date: { employeeId, date: shiftDate } },
-        update: {
-          checkOutTime: new Date(now),
-          workHours: workHoursDecimal,
-          status: finalStatus as any,
-          overtime: overtimeDecimal,
-          punchHistory: punchHistory as any,
-        } as any,
-        create: {
-          employeeId,
-          date: shiftDate,
-          checkInTime: new Date(state.startTime),
-          checkOutTime: new Date(now),
-          status: finalStatus as any,
-          isRegularized: false,
-          workHours: workHoursDecimal,
-          overtime: overtimeDecimal,
-          punchHistory: punchHistory as any,
-        } as any
-      }).catch(err => {
-        this.logger.error(`Check-out upsert failed for employee ${employeeId}:`, err.stack || err);
+        await tx.attendanceRecord.upsert({
+          where: { employeeId_date: { employeeId, date: shiftDate } },
+          update: {
+            checkOutTime: new Date(now),
+            workHours: workHoursDecimal,
+            status: finalStatus as any,
+            overtime: overtimeDecimal,
+            punchHistory: punchHistory as any,
+          } as any,
+          create: {
+            employeeId,
+            date: shiftDate,
+            checkInTime: new Date(state.startTime),
+            checkOutTime: new Date(now),
+            status: finalStatus as any,
+            isRegularized: false,
+            workHours: workHoursDecimal,
+            overtime: overtimeDecimal,
+            punchHistory: punchHistory as any,
+          } as any
+        }).catch(err => {
+          this.logger.error(`Check-out upsert failed for employee ${employeeId}:`, err.stack || err);
+        });
       });
 
       return state;

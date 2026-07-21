@@ -34,33 +34,49 @@ export class ConnectService {
       participantIds = deptEmployees.map(e => e.id);
     } else {
       if (!dto.assigneeId) throw new BadRequestException("AssigneeId required for 1-on-1 meets");
-      
-      const existing = await this.prisma.meetRequest.findFirst({
-        where: {
-          requesterId,
-          assigneeId: dto.assigneeId,
-          status: { in: [MeetStatus.PENDING, MeetStatus.RESCHEDULED] },
-          startTime: new Date(dto.startTime),
-          endTime: new Date(dto.endTime)
-        }
-      });
-      if (existing) throw new BadRequestException('A pending meet request with this employee at this exact time already exists.');
-
       participantIds = [dto.assigneeId];
     }
 
-    const meet = await this.repository.createMeetRequest({
-      title: dto.title,
-      description: dto.description,
-      startTime: new Date(dto.startTime),
-      endTime: new Date(dto.endTime),
-      type: dto.type,
-      requesterId,
-      assigneeId: dto.assigneeId,
-      departmentId: dto.departmentId,
-      status: MeetStatus.PENDING,
-      linkedGoalId: dto.linkedGoalId,
-    }, participantIds);
+    const meet = await this.prisma.$transaction(async (tx) => {
+      // EMS-006: Row-level lock on the requester to serialize their requests and prevent TOCTOU duplicates
+      await tx.$queryRaw`SELECT 1 FROM "Employee" WHERE id = ${requesterId} FOR UPDATE`;
+
+      if (dto.type !== MeetType.DEPARTMENT) {
+        const existing = await tx.meetRequest.findFirst({
+          where: {
+            requesterId,
+            assigneeId: dto.assigneeId,
+            status: { in: [MeetStatus.PENDING, MeetStatus.RESCHEDULED] },
+            startTime: new Date(dto.startTime),
+            endTime: new Date(dto.endTime)
+          }
+        });
+        if (existing) throw new BadRequestException('A pending meet request with this employee at this exact time already exists.');
+      }
+
+      return tx.meetRequest.create({
+        data: {
+          title: dto.title,
+          description: dto.description,
+          startTime: new Date(dto.startTime),
+          endTime: new Date(dto.endTime),
+          type: dto.type,
+          requesterId,
+          assigneeId: dto.assigneeId,
+          departmentId: dto.departmentId,
+          status: MeetStatus.PENDING,
+          linkedGoalId: dto.linkedGoalId,
+          participants: {
+            create: participantIds.map(id => ({ employeeId: id }))
+          }
+        },
+        include: {
+          participants: { include: { employee: true } },
+          requester: true,
+          assignee: true,
+        }
+      });
+    });
 
     // Send emails and system notifications to participants/assignee
     for (const participant of meet.participants) {
@@ -181,6 +197,10 @@ export class ConnectService {
 
     if (meet.type === MeetType.DEPARTMENT && meet.requesterId !== employeeId) {
       throw new ForbiddenException("Only the requester can cancel a department meet");
+    } else if (meet.type === MeetType.ONE_ON_ONE) {
+      if (meet.assigneeId !== employeeId) {
+        throw new ForbiddenException("Only the assignee can reject this meet request");
+      }
     }
 
     const updatedMeet = await this.repository.updateMeetStatus(id, MeetStatus.REJECTED);

@@ -90,11 +90,6 @@ export class LeavesController {
     return this.leaveService.cancelLeave(id, employeeId);
   }
 
-  @RequirePermissions(RbacPermissions.LEAVE_APPROVE)
-  @Post('admin/accrue-monthly')
-  accrueMonthlyLeaves(): Promise<unknown> {
-    return this.leaveService.accrueMonthlyLeaves();
-  }
 
   @RequirePermissions(RbacPermissions.LEAVE_READ)
   @Get('calendar')

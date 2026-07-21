@@ -22,10 +22,23 @@ export class LeavesSchedulerService implements OnModuleInit {
     }).then(() => {
       this.logger.log('Monthly leave accrual cron job registered successfully');
     }).catch((error: any) => {
-      // Log the error but do NOT crash the process — Redis may be temporarily
-      // unavailable during startup. The job will be re-registered on next restart.
       this.logger.error(
         `Failed to register monthly leave accrual cron job: ${error.message}`,
+        error.stack,
+      );
+    });
+
+    this.logger.log('Registering yearly leave rollover cron job in BullMQ');
+    this.leavesQueue.add('carry-forward-yearly', {}, {
+      repeat: {
+        pattern: '0 0 1 6 *', // Every June 1st at midnight (Policy year is June to June)
+      },
+      jobId: 'carry-forward-yearly-job',
+    }).then(() => {
+      this.logger.log('Yearly leave rollover cron job registered successfully');
+    }).catch((error: any) => {
+      this.logger.error(
+        `Failed to register yearly leave rollover cron job: ${error.message}`,
         error.stack,
       );
     });

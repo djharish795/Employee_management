@@ -1,6 +1,6 @@
-import { Controller, Get, Post, Body, Param, Patch, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, UseGuards, Request, Query } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
-import { ProjectRole } from '@naprocs/database';
+import { ProjectRole, ProjectStatus } from '@naprocs/database';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
 import { Permissions } from '../../common/decorators/permissions.decorator';
@@ -54,8 +54,8 @@ export class ProjectsController {
 
   @Get()
   @Permissions(Permission.READ_OWN_PROFILE)
-  getAllProjects(@CurrentUser() user: any) {
-    return this.projectsService.getAllProjects(user);
+  getAllProjects(@CurrentUser() user: any, @Query('status') status?: ProjectStatus) {
+    return this.projectsService.getAllProjects(user, status);
   }
 
   @Get(':id')
@@ -66,8 +66,8 @@ export class ProjectsController {
 
   @Patch(':id/complete')
   @Permissions(Permission.MANAGE_PROJECTS)
-  completeProject(@Param('id') id: string, @Body() data: CompleteProjectDto) {
-    return this.projectsService.completeProject(id, data.signatureName);
+  completeProject(@Param('id') id: string, @Body() data: CompleteProjectDto, @CurrentUser() user: any) {
+    return this.projectsService.completeProject(id, data.signatureName, user);
   }
 
   @Post(':id/delete')

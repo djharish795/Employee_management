@@ -442,9 +442,22 @@ export class EmployeesService {
     return employee;
   }
 
-  async getOrgChart() {
+  async getOrgChart(asOf?: string) {
+    let whereClause: any = { status: "ACTIVE" };
+
+    if (asOf) {
+      const asOfDate = new Date(asOf);
+      whereClause = {
+        joiningDate: { lte: asOfDate },
+        OR: [
+          { exitDate: null },
+          { exitDate: { gt: asOfDate } }
+        ]
+      };
+    }
+
     const employees = await this.prisma.employee.findMany({
-      where: { status: "ACTIVE" },
+      where: whereClause,
       select: {
         id: true,
         employeeId: true,
@@ -780,7 +793,15 @@ export class EmployeesService {
       },
       include: {
         department: true,
-        designation: true
+        designation: true,
+        projectAssignments: {
+          where: {
+            project: { status: 'ACTIVE' }
+          },
+          include: {
+            project: true
+          }
+        }
       },
       orderBy: { firstName: 'asc' }
     });
@@ -815,7 +836,12 @@ export class EmployeesService {
         subTeam,
         designation: e.designation?.title || 'Software Engineer',
         experience,
-        status: 'Active'
+        status: 'Active',
+        projects: (e.projectAssignments || []).map(pa => ({
+          id: pa.project?.id,
+          name: pa.project?.name,
+          role: pa.projectRole
+        })).filter(p => p.id)
       };
     });
 

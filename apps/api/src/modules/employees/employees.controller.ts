@@ -54,8 +54,8 @@ export class EmployeesController {
   @Get("org-chart")
   // Using READ_OWN_PROFILE since all users should have access to the public directory
   @Permissions(Permission.READ_OWN_PROFILE, Permission.READ_EMPLOYEES)
-  getOrgChart(): Promise<any> {
-    return this.employeesService.getOrgChart();
+  getOrgChart(@Query("asOf") asOf?: string): Promise<any> {
+    return this.employeesService.getOrgChart(asOf);
   }
 
   @Get("search-directory")

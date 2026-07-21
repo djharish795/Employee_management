@@ -172,7 +172,7 @@ export class LeavesService {
    * Helper to fetch a leave balance for a given request within a transaction.
    */
   private async getLeaveBalance(tx: any, leave: { employeeId: string; leaveTypeId: string; startDate: Date }) {
-    const currentYear = new Date(leave.startDate).getFullYear();
+    const currentYear = new Date(leave.startDate).getUTCFullYear();
     return tx.leaveBalance.findUnique({
       where: {
         employeeId_leaveTypeId_year: {
@@ -381,7 +381,7 @@ export class LeavesService {
       throw new BadRequestException('Half day leave can only be applied for a single date');
     }
 
-    const currentYear = startDate.getFullYear();
+    const currentYear = startDate.getUTCFullYear();
     const createdLeaves = [];
 
     for (const leaveType of leaveTypes) {
@@ -418,6 +418,15 @@ export class LeavesService {
       if (daysForThisType <= 0) continue;
 
       const leave = await this.prisma.$transaction(async (tx) => {
+        // 1. PESSIMISTIC LOCK: Serialize concurrent requests at the DB layer
+        await tx.$executeRaw`
+          SELECT 1 FROM "LeaveBalance" 
+          WHERE "employeeId" = ${employee.id} 
+            AND "leaveTypeId" = ${leaveType.id} 
+            AND "year" = ${currentYear} 
+          FOR UPDATE
+        `;
+
         let balance = await tx.leaveBalance.findUnique({
           where: {
             employeeId_leaveTypeId_year: {
@@ -447,7 +456,7 @@ export class LeavesService {
 
         let available = 0;
         if (leaveType.code === 'CL_FULL') {
-          const currentMonth = startDate.getMonth();
+          const currentMonth = startDate.getUTCMonth();
           const policyMonth = currentMonth >= 5 ? currentMonth - 5 + 1 : currentMonth + 7 + 1;
           const accruedLimit = Math.min(Number(balance.allocated), policyMonth);
           available = Math.max(0, accruedLimit + Number(balance.carriedOver) - Number(balance.used) - Number(balance.pending));
@@ -459,9 +468,11 @@ export class LeavesService {
 
         if (leaveType.code === 'CL_FULL' || leaveType.code === 'CL_HALF') {
           const applicablePaidDays = Math.min(daysForThisType, available);
+          paidDays = applicablePaidDays;
+          unpaidDays = daysForThisType - applicablePaidDays;
 
-          const startOfMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
-          const endOfMonth = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+          const startOfMonth = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), 1));
+          const endOfMonth = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth() + 1, 0));
 
           const monthlyLeaves = await tx.leaveRequest.aggregate({
             where: {
@@ -653,7 +664,7 @@ export class LeavesService {
       let available = 0;
       if (balance) {
         if (leaveType.code === 'CL_FULL') {
-          const currentMonth = startDate.getMonth();
+          const currentMonth = startDate.getUTCMonth();
           const policyMonth = currentMonth >= 5 ? currentMonth - 5 + 1 : currentMonth + 7 + 1;
           const accruedLimit = Math.min(Number(balance.allocated), policyMonth);
           available = Math.max(0, accruedLimit + Number(balance.carriedOver) - Number(balance.used) - Number(balance.pending));
@@ -667,8 +678,8 @@ export class LeavesService {
       if (leaveType.code === 'CL_FULL' || leaveType.code === 'CL_HALF') {
         const applicablePaidDays = Math.min(daysForThisType, available);
 
-        const startOfMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
-        const endOfMonth = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+        const startOfMonth = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), 1));
+        const endOfMonth = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth() + 1, 0));
 
         const monthlyLeaves = await this.prisma.leaveRequest.aggregate({
           where: {
@@ -715,23 +726,57 @@ export class LeavesService {
     const { withRetry } = await import('../../common/utils/retry.util');
     return withRetry(async () => {
       const leave = await this.prisma.leaveRequest.findUnique({ where: { id: leaveId }, include: { employee: true } });
-      if (!leave) throw new NotFoundException('Leave not found');
-      if (leave.status !== 'PENDING') throw new BadRequestException('Leave is not pending');
+      const genericError = new NotFoundException('Leave not found or you are not authorized to view it');
+      if (!leave) throw genericError;
 
       const approver = await this.prisma.employee.findUnique({
         where: { id: approverId },
         include: { department: true, designation: true }
       });
-      if (!approver) throw new NotFoundException('Approver not found');
+      if (!approver) throw genericError;
 
       const approverRole = this.getRoleForEmployee(approver);
       
+      const leaveData = leave as typeof leave & { approvalQueue?: unknown, currentStep: number };
+      const queue = leaveData.approvalQueue as unknown as ApprovalQueueItem[];
+      const currentStepIndex = leaveData.currentStep;
+      const currentStep = queue[currentStepIndex];
+
+      let isAuthorized = false;
+      if (approverRole === 'CEO') {
+        isAuthorized = true;
+      } else if (currentStep) {
+        if (currentStep.approverId) {
+          isAuthorized = currentStep.approverId === approverId;
+        } else if (currentStep.role === approverRole) {
+          if (currentStep.role === 'TL') {
+            const assignment = await this.prisma.projectAssignment.findFirst({
+              where: {
+                employeeId: leave.employeeId,
+                project: { assignments: { some: { employeeId: approverId, projectRole: 'TL', releasedAt: null } } },
+                releasedAt: null
+              }
+            });
+            if (assignment || (leave as any).employee?.reportingManagerId === approverId) {
+              isAuthorized = true;
+            }
+          } else {
+            isAuthorized = true;
+          }
+        }
+      }
+
+      if (!isAuthorized) throw genericError;
+
+      if (leave.status !== 'PENDING') throw new BadRequestException('Leave is not pending');
+
       if (leave.employeeId === approverId && approverRole !== 'CEO') {
         throw new ForbiddenException('Self-approval is strictly prohibited. Your manager must approve this request.');
       }
 
-      const leaveData = leave as typeof leave & { approvalQueue?: unknown, currentStep: number };
-      const queue = leaveData.approvalQueue as unknown as ApprovalQueueItem[];
+      if (!currentStep && approverRole !== 'CEO') {
+        throw new BadRequestException('Queue is already completed.');
+      }
 
       // OR override logic
       if (approverRole === 'CEO') {
@@ -788,37 +833,6 @@ export class LeavesService {
         });
 
         return { message: 'Leave Approved Successfully via Override' };
-      }
-
-      const currentStepIndex = leaveData.currentStep;
-      const currentStep = queue[currentStepIndex];
-
-      if (!currentStep) {
-        throw new BadRequestException('Queue is already completed.');
-      }
-
-      let isAuthorized = false;
-      if (currentStep.approverId) {
-        isAuthorized = currentStep.approverId === approverId;
-      } else if (currentStep.role === approverRole) {
-        if (currentStep.role === 'TL') {
-          const assignment = await this.prisma.projectAssignment.findFirst({
-            where: {
-              employeeId: leave.employeeId,
-              project: { assignments: { some: { employeeId: approverId, projectRole: 'TL', releasedAt: null } } },
-              releasedAt: null
-            }
-          });
-          if (assignment || (leave as any).employee?.reportingManagerId === approverId) {
-            isAuthorized = true;
-          }
-        } else {
-          isAuthorized = true;
-        }
-      }
-
-      if (!isAuthorized) {
-        throw new BadRequestException(`You are not authorized for this step. Waiting for ${currentStep.role}`);
       }
 
       currentStep.status = 'APPROVED';
@@ -909,23 +923,57 @@ export class LeavesService {
 
   async rejectLeave(leaveId: string, approverId: string, reason: string): Promise<unknown> {
     const leave = await this.prisma.leaveRequest.findUnique({ where: { id: leaveId }, include: { employee: true } });
-    if (!leave) throw new NotFoundException('Leave not found');
-    if (leave.status !== 'PENDING') throw new BadRequestException('Leave is not pending');
+    const genericError = new NotFoundException('Leave not found or you are not authorized to view it');
+    if (!leave) throw genericError;
 
     const approver = await this.prisma.employee.findUnique({
       where: { id: approverId },
       include: { department: true, designation: true }
     });
-    if (!approver) throw new NotFoundException('Approver not found');
+    if (!approver) throw genericError;
 
     const approverRole = this.getRoleForEmployee(approver);
+
+    const leaveData = leave as typeof leave & { approvalQueue?: unknown, currentStep: number };
+    const queue = leaveData.approvalQueue as unknown as ApprovalQueueItem[];
+    const currentStepIndex = leaveData.currentStep;
+    const currentStep = queue[currentStepIndex];
+
+    let isAuthorized = false;
+    if (approverRole === 'CEO') {
+      isAuthorized = true;
+    } else if (currentStep) {
+      if (currentStep.approverId) {
+        isAuthorized = currentStep.approverId === approverId;
+      } else if (currentStep.role === approverRole) {
+        if (currentStep.role === 'TL') {
+          const assignment = await this.prisma.projectAssignment.findFirst({
+            where: {
+              employeeId: leave.employeeId,
+              project: { assignments: { some: { employeeId: approverId, projectRole: 'TL', releasedAt: null } } },
+              releasedAt: null
+            }
+          });
+          if (assignment || (leave as any).employee?.reportingManagerId === approverId) {
+            isAuthorized = true;
+          }
+        } else {
+          isAuthorized = true;
+        }
+      }
+    }
+
+    if (!isAuthorized) throw genericError;
+
+    if (leave.status !== 'PENDING') throw new BadRequestException('Leave is not pending');
 
     if (leave.employeeId === approverId && approverRole !== 'CEO') {
       throw new ForbiddenException('Self-rejection is strictly prohibited. Your manager must review this request.');
     }
 
-    const leaveData = leave as typeof leave & { approvalQueue?: unknown, currentStep: number };
-    const queue = leaveData.approvalQueue as unknown as ApprovalQueueItem[];
+    if (!currentStep && approverRole !== 'CEO') {
+      throw new BadRequestException('Queue is already completed.');
+    }
 
     // OR override logic for rejection
     if (approverRole === 'CEO') {
@@ -967,36 +1015,7 @@ export class LeavesService {
       return { message: 'Leave Rejected Successfully via Override' };
     }
 
-    const currentStepIndex = leaveData.currentStep;
-    const currentStep = queue[currentStepIndex];
 
-    if (!currentStep) {
-      throw new BadRequestException('Queue is already completed.');
-    }
-
-    let isAuthorized = false;
-    if (currentStep.approverId) {
-      isAuthorized = currentStep.approverId === approverId;
-    } else if (currentStep.role === approverRole) {
-      if (currentStep.role === 'TL') {
-        const assignment = await this.prisma.projectAssignment.findFirst({
-          where: {
-            employeeId: leave.employeeId,
-            project: { assignments: { some: { employeeId: approverId, projectRole: 'TL', releasedAt: null } } },
-            releasedAt: null
-          }
-        });
-        if (assignment || (leave as any).employee?.reportingManagerId === approverId) {
-          isAuthorized = true;
-        }
-      } else {
-        isAuthorized = true;
-      }
-    }
-
-    if (!isAuthorized) {
-      throw new BadRequestException(`You are not authorized for this step. Waiting for ${currentStep.role}`);
-    }
 
     currentStep.status = 'REJECTED';
     currentStep.approverId = approverId;
@@ -1134,7 +1153,7 @@ export class LeavesService {
               }
             },
             update: {
-              allocated: 0.5,
+              allocated: { increment: 0.5 },
               carriedOver: 0
             },
             create: {
@@ -1169,18 +1188,44 @@ export class LeavesService {
     const previousBalances = await this.prisma.leaveBalance.findMany({
       where: {
         year: previousYear,
-        leaveType: { code: 'CL_FULL' }
-      }
+        leaveType: { code: { in: ['CL_FULL', 'SL', 'SICK'] } }
+      },
+      include: { leaveType: true }
     });
 
     const ops: any[] = [];
 
     for (const pb of previousBalances) {
-      const remaining = Number(pb.allocated) + Number(pb.carriedOver) - Number(pb.used) - Number(pb.pending);
-      if (remaining > 0) {
-        // Max 7 days carry forward
-        const carryForwardAmount = Math.min(remaining, 7);
+      if (pb.leaveType.code === 'CL_FULL') {
+        const remaining = Number(pb.allocated) + Number(pb.carriedOver) - Number(pb.used) - Number(pb.pending);
+        if (remaining > 0) {
+          // Max 7 days carry forward
+          const carryForwardAmount = Math.min(remaining, 7);
 
+          ops.push(this.prisma.leaveBalance.upsert({
+            where: {
+              employeeId_leaveTypeId_year: {
+                employeeId: pb.employeeId,
+                leaveTypeId: pb.leaveTypeId,
+                year: currentYear
+              }
+            },
+            update: {
+              carriedOver: carryForwardAmount
+            },
+            create: {
+              employeeId: pb.employeeId,
+              leaveTypeId: pb.leaveTypeId,
+              year: currentYear,
+              allocated: 0, // Will be accrued separately
+              carriedOver: carryForwardAmount,
+              pending: 0,
+              used: 0
+            }
+          }));
+        }
+      } else if (pb.leaveType.code === 'SL' || pb.leaveType.code === 'SICK') {
+        // Sick Leave resets to flat 10 every year, no carry forward.
         ops.push(this.prisma.leaveBalance.upsert({
           where: {
             employeeId_leaveTypeId_year: {
@@ -1190,14 +1235,17 @@ export class LeavesService {
             }
           },
           update: {
-            carriedOver: carryForwardAmount
+            allocated: 10,
+            carriedOver: 0,
+            pending: 0,
+            used: 0
           },
           create: {
             employeeId: pb.employeeId,
             leaveTypeId: pb.leaveTypeId,
             year: currentYear,
-            allocated: 0, // Will be accrued separately
-            carriedOver: carryForwardAmount,
+            allocated: 10,
+            carriedOver: 0,
             pending: 0,
             used: 0
           }
