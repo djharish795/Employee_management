@@ -44,7 +44,7 @@ export default function DashboardPanel() {
 
   // ------ 2. Leave Calendar (recent requests) ------------------------------------------------------------------------------------------------------
   const calendarQuery = useQuery<ApiLeaveRequest[]>({
-    queryKey: ["leaves-calendar"],
+    queryKey: ["leaves-dashboard-calendar"],
     queryFn: () => fetchLeaveCalendar(),
     enabled: !!employeeId && ["MANAGER", "HR", "CEO", "ADMIN"].includes(leavePanelRole),
     staleTime: 120_000,

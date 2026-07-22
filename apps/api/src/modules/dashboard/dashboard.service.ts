@@ -670,7 +670,9 @@ export class DashboardService {
       if (!req.approvalQueue) return false;
       const queue = req.approvalQueue as any[];
       const currentStep = queue[req.currentStep];
-      return currentStep && currentStep.role === tlRole && currentStep.status === "PENDING";
+      const isApproverIdMatch = currentStep?.approverId === employeeId;
+      const isRoleMatch = currentStep?.role === tlRole;
+      return currentStep && currentStep.status === "PENDING" && (isApproverIdMatch || isRoleMatch);
     }).map((req: any) => {
       return {
         id: req.id,

@@ -159,6 +159,7 @@ export default function ApplyPanel() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leaves-kpi", employeeId] });
       queryClient.invalidateQueries({ queryKey: ["leaves-calendar"] });
+      queryClient.invalidateQueries({ queryKey: ["leaves-dashboard-calendar"] });
       setLeaveSuccess(true);
       setLeaveSubmitError("");
     },

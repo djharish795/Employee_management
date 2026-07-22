@@ -9,6 +9,13 @@ import { Loader2, FileClock, CheckCircle, XCircle, AlertCircle } from "lucide-re
 import { format } from "date-fns";
 import { toast } from "react-hot-toast";
 
+const safeFormatDate = (dateVal: any, formatStr: string) => {
+  if (!dateVal) return "N/A";
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return "N/A";
+  return format(d, formatStr);
+};
+
 export default function MyLeavesHistoryPage() {
   const { employeeId, role } = useAuthStore();
   const queryClient = useQueryClient();
@@ -75,12 +82,12 @@ export default function MyLeavesHistoryPage() {
                 {data.map((req: any) => (
                   <tr key={req.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4 text-slate-600">
-                      {format(new Date(req.appliedAt), "MMM d, yyyy")}
+                      {safeFormatDate(req.appliedAt, "MMM d, yyyy")}
                     </td>
                     <td className="px-6 py-4">
                       <div className="font-medium text-slate-900">
-                        {format(new Date(req.startDate), "MMM d, yyyy")}
-                        {req.startDate !== req.endDate && ` - ${format(new Date(req.endDate), "MMM d, yyyy")}`}
+                        {safeFormatDate(req.startDate, "MMM d, yyyy")}
+                        {req.startDate !== req.endDate && req.endDate ? ` - ${safeFormatDate(req.endDate, "MMM d, yyyy")}` : ""}
                       </div>
                       <div className="text-xs text-slate-500 mt-0.5">{Number(req.totalDays)} Day(s)</div>
                     </td>

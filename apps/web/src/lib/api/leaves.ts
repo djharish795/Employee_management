@@ -18,6 +18,7 @@ export interface ApiLeaveRequest {
   approvedAt?: string | null;
   employee?: { id: string; firstName: string; lastName: string; employeeId: string; department?: { name: string } };
   leaveType?: { id: string; name: string; code: string };
+  isPendingForMe?: boolean;
 }
 
 export interface ApiLeaveKpi {

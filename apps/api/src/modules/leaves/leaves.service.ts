@@ -165,6 +165,9 @@ export class LeavesService {
 
       return {
         ...req,
+        totalDays: reqData.totalDays?.toNumber(),
+        paidDays: reqData.paidDays?.toNumber(),
+        unpaidDays: reqData.unpaidDays?.toNumber(),
         isPendingForMe: isCurrentPending,
         myAction
       };
@@ -326,7 +329,12 @@ export class LeavesService {
       include: { leaveType: true },
       orderBy: { appliedAt: 'desc' }
     });
-    return requests;
+    return requests.map((r: any) => ({
+      ...r,
+      totalDays: r.totalDays?.toNumber(),
+      paidDays: r.paidDays?.toNumber(),
+      unpaidDays: r.unpaidDays?.toNumber()
+    }));
   }
 
   async applyLeave(data: ApplyLeaveDto & { employeeId: string }): Promise<unknown> {
@@ -448,7 +456,7 @@ export class LeavesService {
       const leave = await this.prisma.$transaction(async (tx) => {
         // 1. PESSIMISTIC LOCK: Serialize concurrent requests at the DB layer
         await tx.$executeRaw`
-          SELECT 1 FROM "LeaveBalance" 
+          SELECT 1 FROM "leave_balances" 
           WHERE "employeeId" = ${employee.id} 
             AND "leaveTypeId" = ${leaveType.id} 
             AND "year" = ${currentYear} 
@@ -617,7 +625,14 @@ export class LeavesService {
       }
     }
 
-    return { message: 'Leave Applied Successfully', data: createdLeaves.length > 1 ? createdLeaves : createdLeaves[0] };
+    const mappedLeaves = createdLeaves.map((r: any) => ({
+      ...r,
+      totalDays: r.totalDays?.toNumber(),
+      paidDays: r.paidDays?.toNumber(),
+      unpaidDays: r.unpaidDays?.toNumber()
+    }));
+
+    return { message: 'Leave Applied Successfully', data: mappedLeaves.length > 1 ? mappedLeaves : mappedLeaves[0] };
   }
 
   async calculateLeave(data: ApplyLeaveDto & { employeeId: string }): Promise<unknown> {
@@ -1336,7 +1351,7 @@ export class LeavesService {
       // because teamIds will at least have the employeeId.
     }
 
-    return this.prisma.leaveRequest.findMany({
+    const requests = await this.prisma.leaveRequest.findMany({
       where: {
         status: { in: ['APPROVED', 'PENDING'] },
         ...(teamIds ? { employeeId: { in: teamIds } } : {})
@@ -1347,6 +1362,13 @@ export class LeavesService {
       },
       orderBy: { startDate: 'asc' }
     });
+
+    return requests.map((r: any) => ({
+      ...r,
+      totalDays: r.totalDays?.toNumber(),
+      paidDays: r.paidDays?.toNumber(),
+      unpaidDays: r.unpaidDays?.toNumber()
+    }));
   }
 
 

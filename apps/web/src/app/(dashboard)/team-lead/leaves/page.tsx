@@ -33,7 +33,7 @@ export default function TeamLeavePage() {
     onSuccess: () => refetch(),
   });
 
-  const pendingApprovals = approvals.filter(req => req.status === "PENDING");
+  const pendingApprovals = approvals.filter(req => req.status === "PENDING" && req.isPendingForMe);
 
   return (
     <div className="flex-1 w-full bg-slate-50 min-h-screen flex flex-col font-sans overflow-x-hidden">

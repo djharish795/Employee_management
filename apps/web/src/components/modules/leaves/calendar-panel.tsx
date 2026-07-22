@@ -6,6 +6,13 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Loader2, AlertCirc
 import { fetchLeaveCalendar, ApiLeaveRequest } from "@/lib/api/leaves";
 import { fetchCompanyHolidays, ApiCompanyHoliday } from "@/lib/api/holidays";
 
+const safeToISO = (dateVal: any): string => {
+  if (!dateVal) return "1970-01-01T00:00:00.000Z";
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return "1970-01-01T00:00:00.000Z";
+  return d.toISOString();
+};
+
 interface CalendarPanelProps {
   activeRole: "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
 }
@@ -25,7 +32,6 @@ export default function CalendarPanel() {
   const { data: requests = [], isLoading: loadingLeaves, error: leavesError } = useQuery<ApiLeaveRequest[]>({
     queryKey: ["leaves-calendar"],
     queryFn: () => fetchLeaveCalendar(),
-    staleTime: 60_000,
     retry: 1,
   });
 
@@ -173,14 +179,14 @@ export default function CalendarPanel() {
             const currentCellDateStr = new Date(year, month, day, 12, 0, 0).toISOString().split("T")[0]; // Use noon to avoid timezone shift
 
             // 1. Find Holidays for this day
-            const holidaysOnThisDay = holidays.filter(h => h.date.startsWith(currentCellDateStr));
+            const holidaysOnThisDay = holidays.filter(h => safeToISO(h.date).startsWith(currentCellDateStr));
 
             // 2. Find Leave Requests spanning this day
             const leavesOnThisDay = filteredRequests.filter((r) => {
               if (r.status !== "APPROVED" && r.status !== "PENDING") return false; // Hide rejected
               // Use YYYY-MM-DD string comparison to avoid timezone shift issues
-              const startStr = r.startDate.split("T")[0];
-              const endStr = r.endDate.split("T")[0];
+              const startStr = safeToISO(r.startDate).split("T")[0];
+              const endStr = safeToISO(r.endDate).split("T")[0];
               return currentCellDateStr >= startStr && currentCellDateStr <= endStr;
             });
 
