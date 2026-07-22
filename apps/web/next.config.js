@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: "standalone",
   reactStrictMode: true,
   transpilePackages: ["@naprocs/types", "@naprocs/schemas", "@naprocs/ui"],
   // Expose server-only env vars to the Edge Runtime (middleware.ts)
