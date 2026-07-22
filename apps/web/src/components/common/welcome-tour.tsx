@@ -138,14 +138,34 @@ export default function WelcomeTour() {
 
   useEffect(() => {
     setIsClient(true);
-    if (!isFirstLogin) return;
+    if (!isFirstLogin || !employeeId) return;
     
-    // Always show if isFirstLogin is true for testing
-    const hasSeenTour = false;
+    // Check if they've already seen or completed it
+    const hasSeenTour = localStorage.getItem(`naprocs_tour_v2_completed_${employeeId}`);
     
     if (!hasSeenTour) {
       const timer = setTimeout(() => {
         setShowWelcome(true);
+        // Mark it so it doesn't show again on reload before they finish
+        localStorage.setItem(`naprocs_tour_v2_completed_${employeeId}`, "true");
+
+        // Fire party poppers
+        import('canvas-confetti').then((confettiModule) => {
+          const confetti = confettiModule.default;
+          const duration = 3 * 1000;
+          const animationEnd = Date.now() + duration;
+          const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 99999 };
+          const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+          const interval: any = setInterval(function() {
+            const timeLeft = animationEnd - Date.now();
+            if (timeLeft <= 0) {
+              return clearInterval(interval);
+            }
+            const particleCount = 50 * (timeLeft / duration);
+            confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+            confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+          }, 250);
+        });
       }, 600);
       return () => clearTimeout(timer);
     }

@@ -137,7 +137,7 @@ export class WorkReportsService {
     });
 
     const headers = ['Employee ID', 'Employee Name', 'Department', 'Report Type', 'Title', 'Priority', 'Status', 'Submitted At', 'Reviewed At'];
-    const rows = reports.map(r => [
+    const rows = reports.map((r: any) => [
       r.employee?.employeeId || '',
       `${r.employee?.firstName || ''} ${r.employee?.lastName || ''}`.trim(),
       r.department || '',
@@ -149,6 +149,6 @@ export class WorkReportsService {
       r.reviewedAt  ? new Date(r.reviewedAt).toLocaleDateString('en-IN')  : '',
     ]);
 
-    return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    return [headers.join(','), ...rows.map((r: any[]) => r.join(','))].join('\n');
   }
 }

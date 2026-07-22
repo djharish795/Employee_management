@@ -33,7 +33,8 @@ export class AuditRepository {
       resource: data.resource,
       resourceId: data.resourceId || "N/A",
       newValue: data.newValue,
-      oldValue: data.oldValue
+      oldValue: data.oldValue,
+      nonce: crypto.randomUUID()
     });
     
     const hash = crypto.createHash('sha256').update(previousHash + payloadString).digest('hex');
