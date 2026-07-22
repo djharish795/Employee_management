@@ -815,7 +815,7 @@ export class LeavesService {
 
       const approver = await this.prisma.employee.findUnique({
         where: { id: approverId },
-        include: { department: true, designation: true }
+        include: { department: true, designation: true, user: true }
       });
       if (!approver) throw genericError;
 
@@ -1012,7 +1012,7 @@ export class LeavesService {
 
     const approver = await this.prisma.employee.findUnique({
       where: { id: approverId },
-      include: { department: true, designation: true }
+      include: { department: true, designation: true, user: true }
     });
     if (!approver) throw genericError;
 
