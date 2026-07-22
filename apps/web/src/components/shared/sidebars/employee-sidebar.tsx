@@ -84,7 +84,7 @@ export function EmployeeSidebar() {
     return true;
   });
 
-  const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => (
+  const renderSidebarContent = (onNavigate?: () => void) => (
     <>
       {/* Brand Header */}
       <div className={`p-5 pb-4 flex items-center ${collapsed ? 'justify-center px-3' : 'justify-between'}`}>
@@ -182,7 +182,7 @@ export function EmployeeSidebar() {
           </button>
         </div>
         <div className="flex-1 overflow-y-auto flex flex-col">
-          <SidebarContent onNavigate={() => setMobileOpen(false)} />
+          {renderSidebarContent(() => setMobileOpen(false))}
         </div>
       </aside>
 
@@ -193,7 +193,7 @@ export function EmployeeSidebar() {
           collapsed ? 'w-[64px]' : 'w-[240px]'
         }`}
       >
-        <SidebarContent />
+        {renderSidebarContent()}
       </aside>
     </>
   );

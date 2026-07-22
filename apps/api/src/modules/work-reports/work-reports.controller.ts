@@ -8,37 +8,39 @@ import { Permission } from '@naprocs/types';
 
 @Controller('work-reports')
 @UseGuards(JwtAuthGuard, RbacGuard)
-@Permissions(Permission.ACCESS_CEM, Permission.APPROVE_FIELD_REQUESTS)
 export class WorkReportsController {
   constructor(private readonly workReportsService: WorkReportsService) {}
 
   @Post()
+  @Permissions(Permission.READ_OWN_PROFILE)
   async create(@Body() createWorkReportDto: CreateWorkReportDto, @Req() req: any) {
     const employeeId = req.user?.employeeId;
     return this.workReportsService.create(employeeId, createWorkReportDto);
   }
 
   @Get('me')
+  @Permissions(Permission.READ_OWN_PROFILE)
   async getMyReports(@Req() req: any) {
     const employeeId = req.user?.employeeId;
     return this.workReportsService.getMyReports(employeeId);
   }
 
   @Get('team')
+  @Permissions(Permission.APPROVE_FIELD_REQUESTS, Permission.ACCESS_CEM)
   async getTeamReports(@Req() req: any) {
     const reviewerId = req.user?.employeeId;
-    console.log("Fetching team reports for reviewerId:", reviewerId);
-    console.log("req.user object:", req.user);
-    const reports = await this.workReportsService.getTeamReports(reviewerId);
-    console.log("Found reports:", reports.length);
-    console.log("Reports array:", JSON.stringify(reports));
+    const role = req.user?.role;
+    console.log("Fetching team reports for reviewerId:", reviewerId, "role:", role);
+    const reports = await this.workReportsService.getTeamReports(reviewerId, role);
     return reports;
   }
 
   @Get('export')
+  @Permissions(Permission.APPROVE_FIELD_REQUESTS, Permission.ACCESS_CEM)
   async exportTeamCsv(@Req() req: any, @Res() res: any) {
     const reviewerId = req.user?.employeeId;
-    const csv = await this.workReportsService.exportTeamCsv(reviewerId);
+    const role = req.user?.role;
+    const csv = await this.workReportsService.exportTeamCsv(reviewerId, role);
     res.set({
       'Content-Type': 'text/csv',
       'Content-Disposition': `attachment; filename=Team_Work_Reports_${new Date().toISOString().split('T')[0]}.csv`,
@@ -47,12 +49,15 @@ export class WorkReportsController {
   }
 
   @Get(':id')
+  @Permissions(Permission.READ_OWN_PROFILE)
   async getReportById(@Param('id') id: string, @Req() req: any) {
     const employeeId = req.user?.employeeId;
-    return this.workReportsService.getReportById(id, employeeId);
+    const role = req.user?.role;
+    return this.workReportsService.getReportById(id, employeeId, role);
   }
 
   @Patch(':id/review')
+  @Permissions(Permission.APPROVE_FIELD_REQUESTS, Permission.ACCESS_CEM)
   async reviewReport(
     @Param('id') id: string,
     @Body('status') status: ReportStatus,
@@ -60,6 +65,7 @@ export class WorkReportsController {
     @Req() req: any
   ) {
     const reviewerId = req.user?.employeeId;
-    return this.workReportsService.reviewReport(reviewerId, id, status, rejectionReason);
+    const role = req.user?.role;
+    return this.workReportsService.reviewReport(reviewerId, role, id, status, rejectionReason);
   }
 }

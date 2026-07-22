@@ -38,8 +38,10 @@ const getNotificationIcon = (title: string) => {
 
 export default function EmployeeDashboardV2() {
   const queryClient = useQueryClient();
-  const { employeeId } = useAuthStore();
+  const { employeeId, role, isTeamLead } = useAuthStore();
   const router = useRouter();
+
+  const isManagerial = role === "MANAGER" || isTeamLead || role === "OM" || role === "HR" || role === "HRE" || role === "CAM" || role === "CRM" || role === "CTO" || role === "CEO";
 
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [mounted, setMounted] = useState(false);
@@ -342,6 +344,7 @@ export default function EmployeeDashboardV2() {
       </div>
 
       {/* Managerial Action Cards (Card 1 & Card 3) */}
+      {isManagerial && (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         {/* Card 1: Action Required (Pending Approvals) */}
         <PremiumCard hoverLift decorativeGradient className="p-5 flex flex-col justify-between border-blue-200 dark:border-blue-900/50">
@@ -379,6 +382,7 @@ export default function EmployeeDashboardV2() {
           <p className="text-xs text-slate-400 mt-3 font-medium">Live field tracking and updates.</p>
         </PremiumCard>
       </div>
+      )}
 
       {/* Main Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">

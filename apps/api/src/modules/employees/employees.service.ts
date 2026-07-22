@@ -382,13 +382,15 @@ export class EmployeesService {
       const hasOwn = this.rbacService.hasPermission(currentUser.role, [Permission.READ_OWN_PROFILE]);
       const hasTeam = this.rbacService.hasPermission(currentUser.role, [Permission.READ_TEAM_PROFILES]);
 
+      let isSanitizedView = false;
       if (!hasGlobal) {
         if (hasOwn && currentUser.employeeId === id) {
           // OK
         } else if (hasTeam && employee.reportingManagerId === currentUser.employeeId) {
           // OK - Manager can view their direct subordinate
         } else {
-          throw new ForbiddenException("You do not have permission to view this employee profile.");
+          // Allow sanitized view for project team leads and directory access
+          isSanitizedView = true;
         }
       }
     }
@@ -396,6 +398,34 @@ export class EmployeesService {
     // F-03: Strip sensitive data if requestor is only a Manager (not owner or HR)
     if (currentUser && currentUser.employeeId !== id && !['HR', 'SUPER_ADMIN', 'CHRO', 'CEO'].includes(currentUser.role)) {
       delete (employee as any).identityDocuments;
+      delete (employee as any).documents;
+    }
+
+    const empWithRels = employee as any;
+
+    if (currentUser && currentUser.role) {
+      // isSanitizedView is defined above
+      const hasGlobal = this.rbacService.hasPermission(currentUser.role, [Permission.READ_EMPLOYEES]);
+      const hasOwn = this.rbacService.hasPermission(currentUser.role, [Permission.READ_OWN_PROFILE]);
+      const hasTeam = this.rbacService.hasPermission(currentUser.role, [Permission.READ_TEAM_PROFILES]);
+      
+      const isSanitizedView = !hasGlobal && !(hasOwn && currentUser.employeeId === id) && !(hasTeam && employee.reportingManagerId === currentUser.employeeId);
+
+      // Strip extensive data for sanitized view (Team Leads looking at bench, etc.)
+      if (isSanitizedView) {
+        delete empWithRels.personalEmail;
+        delete empWithRels.phone;
+        delete empWithRels.alternatePhone;
+        delete empWithRels.emergencyContact;
+        delete empWithRels.currentAddress;
+        delete empWithRels.permanentAddress;
+        delete empWithRels.leaveBalances;
+        delete empWithRels.leaveRequestsMade;
+        delete empWithRels.attendanceRecords;
+        delete empWithRels.consentLogsAsSubject;
+        delete empWithRels.reviewsAsSubject;
+        delete empWithRels.salaryStructures;
+      }
     }
 
     if (employee.photoUrl && !employee.photoUrl.startsWith("http")) {
@@ -409,8 +439,6 @@ export class EmployeesService {
         console.error(`Failed to sign URL for employee ${employee.id}:`, error);
       }
     }
-
-    const empWithRels = employee as any;
 
     const hasPayrollRead = currentUser && currentUser.role && this.rbacService.hasPermission(currentUser.role, [Permission.READ_PAYROLL]);
     const isOwner = currentUser && currentUser.employeeId === id;

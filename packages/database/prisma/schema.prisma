@@ -1132,18 +1132,19 @@ model TransferRequest {
   @@map("transfer_requests")
 }
 
-model EmbeddingVector {
-  id           String                 @id @default(cuid())
-  chunkIndex   Int
-  chunkText    String
-  createdAt    DateTime               @default(now())
-  documentId   String
-  documentType String
-  embedding    Unsupported("vector")?
-  model        String
-
-  @@map("embedding_vectors")
-}
+// Phase 3 — requires pgvector extension. Uncomment when P3 is enabled.
+// model EmbeddingVector {
+//   id           String                 @id @default(cuid())
+//   chunkIndex   Int
+//   chunkText    String
+//   createdAt    DateTime               @default(now())
+//   documentId   String
+//   documentType String
+//   embedding    Unsupported("vector")?
+//   model        String
+//
+//   @@map("embedding_vectors")
+// }
 
 model AttritionRiskScore {
   id             String    @id @default(cuid())
@@ -1998,7 +1999,7 @@ model EmailTemplate {
 }
 
 model ClientLead {
-  id               String   @id @default(cuid())
+  id               String        @id @default(cuid())
   company          String
   industry         String
   phone            String
@@ -2007,18 +2008,19 @@ model ClientLead {
   stage            Int
   assignedCem      String
   leadOwner        String
-  createdDate      String
-  updatedDate      String
+  createdDate      DateTime      @default(now())
+  updatedDate      DateTime      @updatedAt
   sourceQuality    Int
   leadSource       String
   clientHealth     String
   changeRequests   Json?
   attachments      String[]
   stakeholders     Json?
-  requirementsList Json?
-  meetingsHistory  Json?
   notes            String[]
   calls            String[]
+
+  requirements     Requirement[]
+  meetings         Meeting[]     @relation("ClientLeadMeetings")
 
   @@map("client_leads")
 }
@@ -2037,7 +2039,7 @@ model IncomingHandoff {
 }
 
 model Requirement {
-  id               String   @id @default(cuid())
+  id               String      @id @default(cuid())
   title            String
   clientName       String
   module           String
@@ -2059,6 +2061,12 @@ model Requirement {
   attachments      String[]
   timeline         Json?
 
+  clientLeadId     String?
+  clientLead       ClientLead?  @relation(fields: [clientLeadId], references: [id], onDelete: SetNull)
+
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
   @@map("requirements")
 }
 
@@ -2074,7 +2082,7 @@ model CrmActivityLog {
 }
 
 model Meeting {
-  id                 String   @id @default(cuid())
+  id                 String      @id @default(cuid())
   client             String
   leadId             String
   leadName           String
@@ -2082,24 +2090,27 @@ model Meeting {
   time               String
   type               String
   assignedEmployee   String
-  status             String   @default("SCHEDULED")
-  outcome            String?  @default("None")
-  nextAction         String?  @default("None")
+  status             String      @default("SCHEDULED")
+  outcome            String?     @default("None")
+  nextAction         String?     @default("None")
   nextFollowUpDate   String?
   nextActionOwner    String?
-  notes              String?  @db.Text
-  requirements       String?  @db.Text
-  concerns           String?  @db.Text
+  notes              String?     @db.Text
+  requirements       String?     @db.Text
+  concerns           String?     @db.Text
   decisionMakers     String?
-  handoffCompleted   Boolean  @default(false)
+  handoffCompleted   Boolean     @default(false)
   clientPhone        String?
-  interactionCount   Int?     @default(1)
+  interactionCount   Int?        @default(1)
   
   cemLeadId          String?
-  cemLead            CemLead? @relation(fields: [cemLeadId], references: [id], onDelete: Cascade)
+  cemLead            CemLead?    @relation(fields: [cemLeadId], references: [id], onDelete: Cascade)
+
+  clientLeadId       String?
+  clientLead         ClientLead? @relation("ClientLeadMeetings", fields: [clientLeadId], references: [id], onDelete: SetNull)
   
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
 
   @@map("meetings")
 }

@@ -6,6 +6,7 @@ import { CeoSidebar } from '@/components/shared/sidebars/ceo-sidebar';
 import { EmployeeSidebar } from '@/components/shared/sidebars/employee-sidebar';
 import { TeamLeadSidebar } from '@/components/shared/sidebars/team-lead-sidebar';
 import { CemSidebar } from '@/components/shared/sidebars/cem-sidebar';
+import { OeSidebar } from '@/components/shared/sidebars/oe-sidebar';
 import { Topbar } from '@/components/shared/topbar';
 import { getSidebarTypeForRole, SidebarType } from '@naprocs/types';
 import { useRbac } from '@/hooks/use-rbac';
@@ -60,6 +61,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   
   const renderSidebar = () => {
     if (sidebarType === SidebarType.CEM) return <CemSidebar />;
+    if (sidebarType === SidebarType.OE) return <OeSidebar />;
     if (sidebarType === SidebarType.TEAM_LEAD) return <TeamLeadSidebar />;
     if (sidebarType === SidebarType.CEO) return <CeoSidebar />;
     return <EmployeeSidebar />;

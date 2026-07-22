@@ -24,18 +24,18 @@ export interface ClientLead {
   stage: number;
   assignedCem: string;
   leadOwner: string;
-  createdDate: string;
-  updatedDate: string;
+  createdDate: Date;
+  updatedDate: Date;
   sourceQuality: number;
   leadSource: string;
   clientHealth: string;
   changeRequests: any;
   attachments: string[];
   stakeholders: any;
-  requirementsList: any;
-  meetingsHistory: any;
   notes?: string[];
   calls?: string[];
+  requirements?: any[];
+  meetings?: any[];
 }
 
 export interface IncomingHandoff {
@@ -71,6 +71,7 @@ export interface Requirement {
   dependencies: any;
   attachments: string[];
   timeline: any;
+  clientLeadId?: string | null;
 }
 
 @Injectable()
@@ -82,7 +83,12 @@ export class CrmRepository {
   }
 
   async findAllClients(): Promise<ClientLead[]> {
-    return this.db.clientLead.findMany() as unknown as ClientLead[];
+    return this.db.clientLead.findMany({
+      include: {
+        requirements: true,
+        meetings: true,
+      }
+    }) as unknown as ClientLead[];
   }
 
   async findAllIncoming(): Promise<IncomingHandoff[]> {
@@ -101,16 +107,13 @@ export class CrmRepository {
         stage: 1,
         assignedCem: "CRM Team",
         leadOwner: dto.leadOwner || "Manual Creation",
-        createdDate: new Date().toISOString().replace("T", " ").slice(0, 16),
-        updatedDate: new Date().toISOString().replace("T", " ").slice(0, 16),
+        createdDate: new Date(),
         sourceQuality: dto.sourceQuality || 3,
         leadSource: dto.leadSource || "Direct Entry",
         clientHealth: "On Track",
         changeRequests: { open: 0, approved: 0, rejected: 0 },
         attachments: [],
         stakeholders: [{ name: "Primary Contact", role: "Point of Contact", email: dto.email, phone: dto.phone }],
-        requirementsList: [],
-        meetingsHistory: [],
         notes: [],
         calls: []
       }
@@ -135,16 +138,13 @@ export class CrmRepository {
           stage: 1,
           assignedCem: handoff.assignedBy,
           leadOwner: "Handoff Accepted",
-          createdDate: handoff.assignedDate,
-          updatedDate: new Date().toISOString().replace("T", " ").slice(0, 16),
+          createdDate: new Date(handoff.assignedDate),
           sourceQuality: 4,
           leadSource: "Incoming Handoff",
           clientHealth: "On Track",
           changeRequests: { open: 0, approved: 0, rejected: 0 },
           attachments: [],
           stakeholders: [{ name: "Operations Contact", role: "POC", email: handoff.email, phone: handoff.phone }],
-          requirementsList: [],
-          meetingsHistory: [],
           notes: ["Handoff accepted into active workspace"],
           calls: []
         }
@@ -170,10 +170,7 @@ export class CrmRepository {
     const client = await this.db.clientLead.findUnique({ where: { id } });
     const result = await this.db.clientLead.update({
       where: { id },
-      data: {
-        stage,
-        updatedDate: new Date().toISOString().replace("T", " ").slice(0, 16)
-      }
+      data: { stage }
     }) as unknown as ClientLead;
     if (client) {
       await this.logActivity(id, client.company, 'Stage Updated',
@@ -186,10 +183,7 @@ export class CrmRepository {
     const client = await this.db.clientLead.findUnique({ where: { id } });
     const result = await this.db.clientLead.update({
       where: { id },
-      data: {
-        clientHealth: health,
-        updatedDate: new Date().toISOString().replace("T", " ").slice(0, 16)
-      }
+      data: { clientHealth: health }
     }) as unknown as ClientLead;
     if (client) {
       await this.logActivity(id, client.company, 'Health Status Updated',
@@ -226,17 +220,43 @@ export class CrmRepository {
     return result;
   }
 
+  // --- Requirements now use the proper Requirement table ---
+
   async addClientRequirement(id: string, item: any): Promise<ClientLead | null> {
     const client = await this.db.clientLead.findUnique({ where: { id } });
     if (!client) return null;
 
-    let reqs = client.requirementsList as any[];
-    if (!Array.isArray(reqs)) reqs = [];
-    reqs.push(item);
+    // Create a proper Requirement row linked to this ClientLead
+    await this.db.requirement.create({
+      data: {
+        title: item.title || item.name || 'Untitled Requirement',
+        clientName: client.company,
+        module: item.module || 'General',
+        priority: item.priority || 'MEDIUM',
+        status: item.status || 'Pending',
+        category: item.category || 'Functional',
+        businessNeed: item.businessNeed || '',
+        description: item.description || '',
+        expectedDelivery: item.expectedDelivery || 'TBD',
+        clientNotes: item.clientNotes || '',
+        internalNotes: item.internalNotes || '',
+        owner: item.owner || 'Unassigned',
+        assignedCrm: item.assignedCrm || 'CRM Lead',
+        createdBy: item.createdBy || 'System User',
+        requestedBy: item.requestedBy || 'Client Request',
+        decisionMaker: item.decisionMaker || 'TBD',
+        approver: item.approver || 'TBD',
+        dependencies: item.dependencies || [],
+        attachments: item.attachments || [],
+        timeline: item.timeline || [{ date: 'Today', label: 'Requirement Drafted', done: true }],
+        clientLeadId: id,
+      }
+    });
 
-    return this.db.clientLead.update({
+    // Return the updated client with its requirements
+    return this.db.clientLead.findUnique({
       where: { id },
-      data: { requirementsList: reqs }
+      include: { requirements: true, meetings: true }
     }) as unknown as ClientLead;
   }
 
@@ -244,23 +264,19 @@ export class CrmRepository {
     const client = await this.db.clientLead.findUnique({ where: { id: clientId } });
     if (!client) return null;
 
-    let reqs = client.requirementsList as any[];
-    if (!Array.isArray(reqs)) reqs = [];
-    
-    let updated = false;
-    reqs = reqs.map(r => {
-      if (r.id === reqId || r.name === reqId || r.title === reqId) {
-        updated = true;
-        return { ...r, status };
-      }
-      return r;
-    });
+    // Try to find the requirement by ID
+    try {
+      await this.db.requirement.update({
+        where: { id: reqId },
+        data: { status }
+      });
+    } catch {
+      return null;
+    }
 
-    if (!updated) return null;
-
-    return this.db.clientLead.update({
+    return this.db.clientLead.findUnique({
       where: { id: clientId },
-      data: { requirementsList: reqs }
+      include: { requirements: true, meetings: true }
     }) as unknown as ClientLead;
   }
 
@@ -319,7 +335,9 @@ export class CrmRepository {
 
 
   async findAllRequirements(): Promise<Requirement[]> {
-    return this.db.requirement.findMany() as unknown as Requirement[];
+    return this.db.requirement.findMany({
+      include: { clientLead: { select: { company: true } } }
+    }) as unknown as Requirement[];
   }
 
   async createRequirement(dto: CreateRequirementDto): Promise<Requirement> {
@@ -344,7 +362,8 @@ export class CrmRepository {
         approver: dto.approver || "TBD",
         dependencies: dto.dependencies || [],
         attachments: dto.attachments || [],
-        timeline: dto.timeline || [{ date: "Today", label: "Requirement Drafted", done: true }]
+        timeline: dto.timeline || [{ date: "Today", label: "Requirement Drafted", done: true }],
+        clientLeadId: dto.clientLeadId || null,
       }
     }) as unknown as Requirement;
   }
@@ -399,7 +418,6 @@ export class CrmRepository {
       data: {
         stage: 6,
         assignedCem: "CRM Team",
-        updatedDate: new Date().toISOString().replace("T", " ").slice(0, 16)
       }
     });
 
@@ -411,7 +429,8 @@ export class CrmRepository {
   async getPipelineSummary(): Promise<any> {
     const clients = await this.db.clientLead.findMany({
       orderBy: { updatedDate: 'desc' },
-      take: 20
+      take: 20,
+      include: { requirements: true }
     });
     
     const allClients = await this.db.clientLead.findMany();
@@ -471,7 +490,7 @@ export class CrmRepository {
 
   async getClientMeetings(leadId: string) {
     return this.db.meeting.findMany({
-      where: { leadId },
+      where: { clientLeadId: leadId },
       orderBy: [
         { date: 'asc' },
         { time: 'asc' }
@@ -481,9 +500,10 @@ export class CrmRepository {
 
   async createMeeting(data: any) {
     return this.db.meeting.create({
-      data
+      data: {
+        ...data,
+        clientLeadId: data.clientLeadId || null,
+      }
     });
   }
 }
-
-

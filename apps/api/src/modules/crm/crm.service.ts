@@ -301,14 +301,23 @@ export class CrmService {
     // Generate Zoom link
     let zoomLink = '';
     try {
-      // Parse the dto.date and dto.time properly for zoom start time
-      // The frontend now needs to send it in a way we can parse, or we just combine them:
-      // Note: Time might be AM/PM or 24-hr. We'll handle it carefully later, but for now:
-      // In JS, new Date("YYYY-MM-DD hh:mm AM/PM") works in many browsers, but best to stick to standard parsing if needed.
-      // Wait, the frontend is currently sending 24h format (e.g. 23:30) as requested by the original code. 
-      // If the user changes it to AM/PM, we need to handle that.
+      // Parse the dto.date and dto.time properly for zoom start time.
+      // Handle both 24h ("14:30") and 12h AM/PM ("02:30 PM") formats.
+      let timeStr = (dto.time || '').trim();
+      const ampmMatch = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+      if (ampmMatch) {
+        let hours = parseInt(ampmMatch[1], 10);
+        const mins = ampmMatch[2];
+        const period = ampmMatch[3].toUpperCase();
+        if (period === 'PM' && hours < 12) hours += 12;
+        if (period === 'AM' && hours === 12) hours = 0;
+        timeStr = `${hours.toString().padStart(2, '0')}:${mins}`;
+      }
       
-      const startTime = new Date(`${dto.date}T${dto.time}:00`);
+      const startTime = new Date(`${dto.date}T${timeStr}:00`);
+      if (isNaN(startTime.getTime())) {
+        this.logger.warn(`Invalid meeting time: date=${dto.date}, time=${dto.time}. Falling back to current time.`);
+      }
       const validStartTime = isNaN(startTime.getTime()) ? new Date() : startTime;
       const endTime = new Date(validStartTime.getTime() + 45 * 60000);
       

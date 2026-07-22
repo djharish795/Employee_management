@@ -60,9 +60,10 @@ export class WorkReportsService {
     });
   }
 
-  async getTeamReports(reviewerId: string) {
+  async getTeamReports(reviewerId: string, role?: string) {
+    const isGlobalAdmin = role === 'CEO' || role === 'SUPER_ADMIN' || role === 'OPERATIONS_HEAD' || role === 'CEM' || role === 'OM' || role === 'CHRO' || role === 'HR';
     return this.prisma.workReport.findMany({
-      where: { reviewerId },
+      where: isGlobalAdmin ? undefined : { reviewerId },
       orderBy: { submittedAt: 'desc' },
       include: { 
         employee: { select: { firstName: true, lastName: true, photoUrl: true, employeeId: true } } 
@@ -70,7 +71,7 @@ export class WorkReportsService {
     });
   }
 
-  async getReportById(id: string, employeeId: string) {
+  async getReportById(id: string, employeeId: string, role?: string) {
     const report = await this.prisma.workReport.findUnique({
       where: { id },
       include: { employee: true, reviewer: true }
@@ -80,21 +81,28 @@ export class WorkReportsService {
       throw new NotFoundException('Report not found');
     }
 
-    // Ensure the requester is either the submitter or the reviewer
-    if (report.employeeId !== employeeId && report.reviewerId !== employeeId) {
+    const isGlobalAdmin = role === 'OM' || role === 'SUPER_ADMIN' || role === 'CEO' || role === 'OPERATIONS_HEAD';
+
+    // Ensure the requester is either the submitter, the reviewer, or a global admin
+    if (report.employeeId !== employeeId && report.reviewerId !== employeeId && !isGlobalAdmin) {
       throw new ForbiddenException('Access denied to this report');
     }
 
     return report;
   }
 
-  async reviewReport(reviewerId: string, reportId: string, status: ReportStatus, rejectionReason?: string) {
+  async reviewReport(reviewerId: string, role: string, reportId: string, status: ReportStatus, rejectionReason?: string) {
     const report = await this.prisma.workReport.findUnique({
       where: { id: reportId }
     });
 
     if (!report) throw new NotFoundException('Report not found');
-    if (report.reviewerId !== reviewerId) throw new BadRequestException('Not authorized to review this report');
+    
+    const isGlobalAdmin = role === 'CEO' || role === 'SUPER_ADMIN' || role === 'OPERATIONS_HEAD' || role === 'CEM' || role === 'OM' || role === 'CHRO' || role === 'HR';
+    
+    if (report.reviewerId !== reviewerId && !isGlobalAdmin) {
+      throw new BadRequestException('Not authorized to review this report');
+    }
 
     const updated = await this.prisma.workReport.update({
       where: { id: reportId },
@@ -102,6 +110,7 @@ export class WorkReportsService {
         status,
         rejectionReason,
         reviewedAt: new Date(),
+        reviewerId: report.reviewerId || reviewerId,
       },
       include: { employee: true }
     });
@@ -117,9 +126,10 @@ export class WorkReportsService {
     return updated;
   }
 
-  async exportTeamCsv(reviewerId: string): Promise<string> {
+  async exportTeamCsv(reviewerId: string, role?: string): Promise<string> {
+    const isGlobalAdmin = role === 'CEO' || role === 'SUPER_ADMIN' || role === 'OPERATIONS_HEAD' || role === 'CEM' || role === 'OM' || role === 'CHRO' || role === 'HR';
     const reports = await this.prisma.workReport.findMany({
-      where: { reviewerId },
+      where: isGlobalAdmin ? undefined : { reviewerId },
       orderBy: { submittedAt: 'desc' },
       include: {
         employee: { select: { firstName: true, lastName: true, employeeId: true } }

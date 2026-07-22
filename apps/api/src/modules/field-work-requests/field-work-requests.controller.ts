@@ -40,10 +40,11 @@ export class FieldWorkRequestsController {
   @Permissions(Permission.APPROVE_FIELD_REQUESTS)
   async getTeamApprovals(@Req() req: any) {
     const employeeId = req.user?.employeeId;
+    const role = req.user?.role;
     if (!employeeId) {
       throw new BadRequestException("Employee details not found in session");
     }
-    return this.service.getTeamApprovals(employeeId);
+    return this.service.getTeamApprovals(employeeId, role);
   }
 
   @Get("export")

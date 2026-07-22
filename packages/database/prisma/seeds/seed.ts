@@ -38,6 +38,7 @@ async function main() {
     { title: 'Backend Developer', departmentCode: 'ENG' },
     { title: 'Senior Frontend Developer', departmentCode: 'ENG' },
     { title: 'Frontend Developer', departmentCode: 'ENG' },
+    { title: 'Fullstack Developer', departmentCode: 'ENG' },
     { title: 'QA Engineer', departmentCode: 'ENG' },
     { title: 'DevOps Engineer', departmentCode: 'ENG' },
     { title: 'HR Executive', departmentCode: 'HR' },

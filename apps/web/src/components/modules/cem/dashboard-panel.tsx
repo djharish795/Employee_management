@@ -38,7 +38,7 @@ export default function CemDashboardPanel() {
     try {
       setIsRefreshing(true);
       const { data } = await apiClient.get('/cem/leads/dashboard-summary');
-      setSummary(data);
+      setSummary(data?.data || data);
     } catch (err) {
       console.error(err);
       toast.error('Failed to load dashboard summary.');
@@ -84,61 +84,58 @@ export default function CemDashboardPanel() {
       <Toaster position="top-right" />
       
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 tracking-tight">Today's Work</h1>
-          <p className="text-xs sm:text-sm font-semibold text-slate-500 mt-1">
-            Workflow snapshot for {todayFormatted}
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">CEM Executive Dashboard</h1>
+          <p className="text-xs sm:text-sm font-medium text-slate-500 mt-1">
+            Customer engagement snapshot for {todayFormatted}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <CheckInButton />
-          <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold capitalize tracking-wide text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
-            <Download className="w-4 h-4 text-slate-500" /> Export Report
-          </button>
         </div>
       </div>
 
       <PersonalAttendanceWidget />
 
-      {/* KPI Cards Row */}
+      {/* KPI Cards Row — matching OM/CRM dashboard style */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <PremiumCard className="p-5 flex flex-col justify-between hover:border-slate-300 transition-all">
+        <PremiumCard hoverLift decorativeGradient className="p-5 flex flex-col justify-between border-blue-200">
           <div className="flex justify-between items-start mb-4">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider leading-tight w-24">New Leads</span>
-            <UserPlus className="w-5 h-5 text-slate-400" />
+            <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider leading-tight w-24">New Leads</span>
+            <UserPlus className="w-5 h-5 text-blue-500" />
           </div>
           <h3 className="text-3xl font-black text-slate-900 tracking-tight">{kpis.newLeadsAssigned < 10 ? `0${kpis.newLeadsAssigned}` : kpis.newLeadsAssigned}</h3>
         </PremiumCard>
 
-        <PremiumCard className="p-5 flex flex-col justify-between hover:border-slate-300 transition-all">
+        <PremiumCard hoverLift decorativeGradient className="p-5 flex flex-col justify-between border-purple-200">
           <div className="flex justify-between items-start mb-4">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider leading-tight w-24">Follow-ups Due</span>
-            <Phone className="w-4.5 h-4.5 text-slate-400 transform -rotate-90" />
+            <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider leading-tight w-24">Follow-ups Due</span>
+            <Phone className="w-4.5 h-4.5 text-purple-500 transform -rotate-90" />
           </div>
           <h3 className="text-3xl font-black text-slate-900 tracking-tight">{kpis.followUpsDue < 10 ? `0${kpis.followUpsDue}` : kpis.followUpsDue}</h3>
         </PremiumCard>
 
-        <PremiumCard className="p-5 flex flex-col justify-between hover:border-slate-300 transition-all">
+        <PremiumCard hoverLift decorativeGradient className="p-5 flex flex-col justify-between border-indigo-200">
           <div className="flex justify-between items-start mb-4">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider leading-tight w-24">Meetings Today</span>
-            <Calendar className="w-5 h-5 text-slate-400" />
+            <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider leading-tight w-24">Meetings Today</span>
+            <Calendar className="w-5 h-5 text-indigo-500" />
           </div>
           <h3 className="text-3xl font-black text-slate-900 tracking-tight">{kpis.meetingsScheduled < 10 ? `0${kpis.meetingsScheduled}` : kpis.meetingsScheduled}</h3>
         </PremiumCard>
 
-        <PremiumCard className="p-5 flex flex-col justify-between hover:border-slate-300 transition-all">
+        <PremiumCard hoverLift decorativeGradient className="p-5 flex flex-col justify-between border-emerald-200">
           <div className="flex justify-between items-start mb-4">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider leading-tight w-24">Qualified</span>
-            <ShieldCheck className="w-5 h-5 text-slate-400" />
+            <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider leading-tight w-24">Qualified</span>
+            <ShieldCheck className="w-5 h-5 text-emerald-500" />
           </div>
           <h3 className="text-3xl font-black text-slate-900 tracking-tight">{kpis.qualifiedForCrm < 10 ? `0${kpis.qualifiedForCrm}` : kpis.qualifiedForCrm}</h3>
         </PremiumCard>
 
-        <PremiumCard className="p-5 flex flex-col justify-between hover:border-slate-300 transition-all col-span-2 lg:col-span-1">
+        <PremiumCard hoverLift decorativeGradient className="p-5 flex flex-col justify-between border-rose-200 col-span-2 lg:col-span-1">
           <div className="flex justify-between items-start mb-4">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider leading-tight w-24">Overdue Actions</span>
-            <AlertCircle className="w-5 h-5 text-slate-500" />
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-tight w-24">Overdue Actions</span>
+            <AlertCircle className="w-5 h-5 text-rose-500" />
           </div>
           <h3 className="text-3xl font-black text-rose-600 tracking-tight">{kpis.overdueActions < 10 ? `0${kpis.overdueActions}` : kpis.overdueActions}</h3>
         </PremiumCard>
@@ -186,7 +183,7 @@ export default function CemDashboardPanel() {
                       </td>
                       <td className="py-4 px-3 font-medium text-slate-700">
                         {lead.followUps && lead.followUps.length > 0 
-                          ? new Date(lead.followUps[0].date).toLocaleDateString()
+                          ? new Date(lead.followUps[0].dueDate).toLocaleDateString()
                           : 'Needs Follow-up'}
                       </td>
                       <td className="py-4 px-6 text-right">

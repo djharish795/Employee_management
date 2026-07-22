@@ -3,7 +3,7 @@ export type KpiMetric = {
   title: string;
   value: string | number;
   subtext: string;
-  iconType: 'users' | 'calendar' | 'umbrella' | 'userPlus' | 'userMinus';
+  iconType: 'users' | 'calendar' | 'umbrella' | 'userPlus' | 'userMinus' | 'briefcase';
 };
 
 export type DepartmentHeadcount = {

@@ -80,4 +80,8 @@ export class CreateRequirementDto {
   @IsOptional()
   @IsArray()
   timeline?: any[];
+
+  @IsOptional()
+  @IsString()
+  clientLeadId?: string;
 }

@@ -61,7 +61,7 @@ export default function CrmDashboardView() {
     const rows = pipelineData.clients.map((c: any) => [
       `"${c.company || 'Unknown'}"`, `"${c.industry || 'Unknown'}"`,
       `"Stage ${c.stage || 1}"`, `"${c.clientHealth || c.health || 'ON TRACK'}"`,
-      `"${new Date(c.updatedDate || c.createdAt).toLocaleDateString()}"`
+      `"${new Date(c.updatedDate || c.createdDate || c.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })}"`
     ]);
     const blob = new Blob([[headers.join(","), ...rows.map((e: any) => e.join(","))].join("\n")], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);

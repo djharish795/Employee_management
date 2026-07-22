@@ -39,9 +39,9 @@ const getNavGroups = (role: string, unreadCount: number, hasSettingsAccess: bool
       {
         label: 'OPERATIONS',
         items: [
-          { 
-            title: 'Attendance', 
-            icon: CalendarCheck, 
+          {
+            title: 'Attendance',
+            icon: CalendarCheck,
             subItems: [
               { title: 'Attendance Summary', href: '/attendance/summary' },
               { title: 'My Attendance', href: '/attendance' }
@@ -88,9 +88,9 @@ const getNavGroups = (role: string, unreadCount: number, hasSettingsAccess: bool
           { title: 'Assets', icon: Monitor, href: '/cto/assets' },
           { title: 'Team Leave', icon: Calendar, href: '/cto/leaves' },
           { title: 'Org Chart', icon: Network, href: '/org-chart' },
-          { 
-            title: 'Attendance', 
-            icon: CalendarCheck, 
+          {
+            title: 'Attendance',
+            icon: CalendarCheck,
             subItems: [
               { title: 'Attendance Summary', href: '/attendance/summary' },
               { title: 'My Attendance', href: '/attendance' }
@@ -156,9 +156,9 @@ const getNavGroups = (role: string, unreadCount: number, hasSettingsAccess: bool
   }
 
   if (['HR', 'CEO'].includes(role)) {
-    mainItems.push({ 
-      title: 'Attendance', 
-      icon: CalendarCheck, 
+    mainItems.push({
+      title: 'Attendance',
+      icon: CalendarCheck,
       subItems: [
         { title: 'Attendance Summary', href: '/attendance/summary' },
         { title: 'My Attendance', href: '/attendance' }
@@ -215,8 +215,8 @@ const getNavGroups = (role: string, unreadCount: number, hasSettingsAccess: bool
 };
 
 export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
-  const pathname  = usePathname();
-  const router    = useRouter();
+  const pathname = usePathname();
+  const router = useRouter();
   const clearSession = useAuthStore((state) => state.clearSession);
   const { unreadCount } = useNotifications();
   const { hasPermission } = useRbac();
@@ -235,14 +235,14 @@ export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
   }, [storeRole]);
 
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [collapsed, setCollapsed]   = useState(false);
-  const [mounted, setMounted]       = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
 
   const toggleExpand = (title: string) => {
     setExpandedItems(prev => ({ ...prev, [title]: !prev[title] }));
   };
-  
+
   let displayRole = role.replace('_', ' ');
   if (role === 'OM') displayRole = 'Operations Manager';
   else if (role === 'OE') displayRole = 'Operations Executive';
@@ -255,7 +255,7 @@ export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
     window.location.href = '/login';
   };
 
-  const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => (
+  const renderSidebarContent = (onNavigate?: () => void) => (
     <>
       {/* Brand Header */}
       <div className={`p-5 pb-4 flex items-center ${collapsed ? 'justify-center px-3' : 'justify-between'}`}>
@@ -282,7 +282,7 @@ export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
           // Check if this is the original CEO OTHER section (by inspecting the next item or just injecting)
           const isOtherSection = group.label === 'OTHER';
           const isCEO = role === 'CEO';
-          
+
           return (
             <React.Fragment key={group.label || gIndex}>
               {isCEO && isOtherSection && (
@@ -292,19 +292,17 @@ export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
                       OPERATIONS REVIEW
                     </div>
                   )}
-                  
+
                   {/* Team Work Reports */}
                   <Link
                     href="/ceo/work-reports"
                     onClick={onNavigate}
                     title={collapsed ? "Team Work Reports" : undefined}
-                    className={`group flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 active:scale-95 ${
-                      collapsed ? 'justify-center' : ''
-                    } ${
-                      (pathname === '/ceo/work-reports' || pathname.startsWith('/ceo/work-reports/'))
+                    className={`group flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 active:scale-95 ${collapsed ? 'justify-center' : ''
+                      } ${(pathname === '/ceo/work-reports' || pathname.startsWith('/ceo/work-reports/'))
                         ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-900 dark:text-white font-semibold'
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <ClipboardList className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${pathname.startsWith('/ceo/work-reports') ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`} />
@@ -322,13 +320,11 @@ export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
                     href="/ceo/field-reports"
                     onClick={onNavigate}
                     title={collapsed ? "Field Reports" : undefined}
-                    className={`group flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 active:scale-95 ${
-                      collapsed ? 'justify-center' : ''
-                    } ${
-                      (pathname === '/ceo/field-reports' || pathname.startsWith('/ceo/field-reports/'))
+                    className={`group flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 active:scale-95 ${collapsed ? 'justify-center' : ''
+                      } ${(pathname === '/ceo/field-reports' || pathname.startsWith('/ceo/field-reports/'))
                         ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-900 dark:text-white font-semibold'
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <Target className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${pathname.startsWith('/ceo/field-reports') ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`} />
@@ -349,86 +345,83 @@ export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
                   </div>
                 )}
 
-            {group.items.map((item: any) => {
-              if (item.locked) {
-                return (
-                  <div key={item.title} className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 dark:text-slate-600 cursor-not-allowed ${collapsed ? 'justify-center' : ''}`}>
-                    <div className="flex items-center gap-3">
-                      <item.icon className="w-4 h-4 flex-shrink-0" />
-                      {!collapsed && item.title}
-                    </div>
-                    {!collapsed && <Lock className="w-3.5 h-3.5" />}
-                  </div>
-                );
-              }
-              const isActive = item.href ? (pathname === item.href || pathname.startsWith(item.href + '/')) : (item.subItems?.some((s: any) => pathname === s.href) || false);
-              return (
-                <div key={item.title} className="space-y-1">
-                  {item.href ? (
-                    <Link
-                      href={item.href}
-                      onClick={onNavigate}
-                      title={collapsed ? item.title : undefined}
-                      className={`group flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 active:scale-95 ${
-                        collapsed ? 'justify-center' : ''
-                      } ${
-                        isActive
-                          ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-900 dark:text-white font-semibold'
-                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <item.icon className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`} />
-                        {!collapsed && item.title}
+                {group.items.map((item: any) => {
+                  if (item.locked) {
+                    return (
+                      <div key={item.title} className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 dark:text-slate-600 cursor-not-allowed ${collapsed ? 'justify-center' : ''}`}>
+                        <div className="flex items-center gap-3">
+                          <item.icon className="w-4 h-4 flex-shrink-0" />
+                          {!collapsed && item.title}
+                        </div>
+                        {!collapsed && <Lock className="w-3.5 h-3.5" />}
                       </div>
-                      {!collapsed && item.locked && (
-                        <Lock className={`w-3.5 h-3.5 ${isActive ? 'text-slate-900' : 'text-slate-400'}`} />
-                      )}
-                      {!collapsed && item.badge && !item.locked && (
-                        <span className="w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] font-bold">
-                          {item.badge}
-                        </span>
-                      )}
-                    </Link>
-                  ) : (
-                    <button 
-                      onClick={() => item.subItems ? toggleExpand(item.title) : undefined}
-                      className={`group w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 active:scale-95 ${collapsed ? 'justify-center' : ''} ${isActive ? 'text-slate-900 dark:text-white font-semibold bg-slate-100 dark:bg-slate-800/50' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <item.icon className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`} />
-                        {!collapsed && item.title}
-                      </div>
-                      {!collapsed && item.subItems && (
-                        expandedItems[item.title] ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />
-                      )}
-                    </button>
-                  )}
-
-                  {!collapsed && item.subItems && expandedItems[item.title] && (
-                    <div className="flex flex-col gap-1 pl-10 mt-1">
-                      {item.subItems.map((sub: any) => {
-                        const isSubActive = pathname === sub.href;
-                        return (
-                          <Link 
-                            key={sub.title} 
-                            href={sub.href} 
-                            onClick={onNavigate}
-                            className={`block px-3 py-2 text-[13px] rounded-lg transition-colors ${
-                              isSubActive 
-                              ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-900 dark:text-white font-semibold' 
-                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-900/50'
+                    );
+                  }
+                  const isActive = item.href ? (pathname === item.href || pathname.startsWith(item.href + '/')) : (item.subItems?.some((s: any) => pathname === s.href) || false);
+                  return (
+                    <div key={item.title} className="space-y-1">
+                      {item.href ? (
+                        <Link
+                          href={item.href}
+                          onClick={onNavigate}
+                          title={collapsed ? item.title : undefined}
+                          className={`group flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 active:scale-95 ${collapsed ? 'justify-center' : ''
+                            } ${isActive
+                              ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-900 dark:text-white font-semibold'
+                              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'
                             }`}
-                          >
-                            {sub.title}
-                          </Link>
-                        );
-                      })}
+                        >
+                          <div className="flex items-center gap-3">
+                            <item.icon className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`} />
+                            {!collapsed && item.title}
+                          </div>
+                          {!collapsed && item.locked && (
+                            <Lock className={`w-3.5 h-3.5 ${isActive ? 'text-slate-900' : 'text-slate-400'}`} />
+                          )}
+                          {!collapsed && item.badge && !item.locked && (
+                            <span className="w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] font-bold">
+                              {item.badge}
+                            </span>
+                          )}
+                        </Link>
+                      ) : (
+                        <button
+                          onClick={() => item.subItems ? toggleExpand(item.title) : undefined}
+                          className={`group w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 active:scale-95 ${collapsed ? 'justify-center' : ''} ${isActive ? 'text-slate-900 dark:text-white font-semibold bg-slate-100 dark:bg-slate-800/50' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <item.icon className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`} />
+                            {!collapsed && item.title}
+                          </div>
+                          {!collapsed && item.subItems && (
+                            expandedItems[item.title] ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />
+                          )}
+                        </button>
+                      )}
+
+                      {!collapsed && item.subItems && expandedItems[item.title] && (
+                        <div className="flex flex-col gap-1 pl-10 mt-1">
+                          {item.subItems.map((sub: any) => {
+                            const isSubActive = pathname === sub.href;
+                            return (
+                              <Link
+                                key={sub.title}
+                                href={sub.href}
+                                onClick={onNavigate}
+                                className={`block px-3 py-2 text-[13px] rounded-lg transition-colors ${isSubActive
+                                    ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-900 dark:text-white font-semibold'
+                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-900/50'
+                                  }`}
+                              >
+                                {sub.title}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              );
-            })}
+                  );
+                })}
               </div>
             </React.Fragment>
           );
@@ -476,9 +469,8 @@ export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
 
       {/* Mobile Drawer */}
       <aside
-        className={`lg:hidden fixed top-0 left-0 h-full w-72 bg-white dark:bg-slate-950 z-50 flex flex-col border-r border-slate-200 dark:border-slate-800 shadow-xl transition-transform duration-300 ease-in-out ${
-          mobileOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`lg:hidden fixed top-0 left-0 h-full w-72 bg-white dark:bg-slate-950 z-50 flex flex-col border-r border-slate-200 dark:border-slate-800 shadow-xl transition-transform duration-300 ease-in-out ${mobileOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
           <h2 className="text-base font-bold text-slate-900 dark:text-white capitalize">Naprocs {displayRole}</h2>
@@ -487,19 +479,18 @@ export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
           </button>
         </div>
         <div className="flex-1 overflow-y-auto flex flex-col">
-          <SidebarContent onNavigate={() => setMobileOpen(false)} />
+          {renderSidebarContent(() => setMobileOpen(false))}
         </div>
       </aside>
 
       {/* Desktop Sidebar */}
       <aside
-        className={`hidden lg:flex flex-col flex-shrink-0 bg-white dark:bg-slate-950 h-screen border-r border-slate-200 dark:border-slate-800 overflow-hidden transition-all duration-300 ease-in-out ${
-          collapsed ? 'w-[64px]' : 'w-[240px]'
-        }`}
+        className={`hidden lg:flex flex-col flex-shrink-0 bg-white dark:bg-slate-950 h-screen border-r border-slate-200 dark:border-slate-800 overflow-hidden transition-all duration-300 ease-in-out ${collapsed ? 'w-[64px]' : 'w-[240px]'
+          }`}
       >
-        <SidebarContent />
+        {renderSidebarContent()}
       </aside>
     </>
   );
 }
- 
+

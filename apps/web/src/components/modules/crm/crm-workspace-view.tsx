@@ -137,10 +137,8 @@ export default function CrmWorkspaceView() {
     if (!newReqName || !selectedAccount) return;
     
     try {
-      const generatedId = `REQ-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
       await crmApi.addClientRequirement(selectedAccount.id, {
-        id: generatedId,
-        name: newReqName,
+        title: newReqName,
         category: newReqCategory,
         priority: newReqPriority,
         status: 'Pending'
@@ -223,7 +221,8 @@ export default function CrmWorkspaceView() {
         date: newMeeting.date,
         time: time24,
         type: newMeeting.type,
-        notes: newMeeting.notes
+        notes: newMeeting.notes,
+        clientLeadId: selectedAccount.id
       });
       toast.success('Meeting scheduled successfully. Zoom link generated.');
       setIsScheduleModalOpen(false);
@@ -382,7 +381,7 @@ export default function CrmWorkspaceView() {
                   </span>
                 </div>
                 <p className="text-xs font-medium text-slate-500 mt-1">
-                  Added on {new Date(selectedAccount.createdAt).toLocaleDateString()}
+                  Added on {new Date(selectedAccount.createdDate || selectedAccount.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })}
                 </p>
               </div>
 
@@ -476,7 +475,7 @@ export default function CrmWorkspaceView() {
                   <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
                     <div className="p-4 px-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                       <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-indigo-500" /> Client Requirement Specifications ({(selectedAccount.requirementsList || []).length})
+                        <FileText className="w-4 h-4 text-indigo-500" /> Client Requirement Specifications ({(selectedAccount.requirements || []).length})
                       </h3>
                       <button 
                         onClick={() => setIsAddReqOpen(true)}
@@ -497,7 +496,7 @@ export default function CrmWorkspaceView() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 text-xs">
-                          {selectedAccount.requirementsList && selectedAccount.requirementsList.length > 0 ? selectedAccount.requirementsList.map((req: any) => (
+                          {selectedAccount.requirements && selectedAccount.requirements.length > 0 ? selectedAccount.requirements.map((req: any) => (
                             <tr key={req.id} className="hover:bg-slate-50 transition-colors">
                               <td className="px-5 py-3.5">
                                 <div className="font-bold text-slate-900">{req.name || req.title}</div>

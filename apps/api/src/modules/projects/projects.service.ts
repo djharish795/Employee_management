@@ -3,6 +3,8 @@ import { RbacGroups } from '../../common/rbac/rbac.config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProjectRole, ProjectStatus } from '@naprocs/database';
 import { AuditService } from '../audit/audit.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { EmailService } from '../notifications/email.service';
 
 @Injectable()
 export class ProjectsService {
@@ -11,6 +13,8 @@ export class ProjectsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly notificationsService: NotificationsService,
+    private readonly emailService: EmailService,
   ) {}
 
   async createProject(data: { name: string; description?: string; key?: string }, requestingUser: any) {
@@ -188,6 +192,29 @@ export class ProjectsService {
       actorId: requestingUser?.employeeId,
       metadata: { action: 'ASSIGN_MEMBER', employeeId, role: projectRole }
     });
+
+    try {
+      const actorName = requestingUser?.firstName ? `${requestingUser.firstName} ${requestingUser.lastName}`.trim() : 'a manager';
+      
+      await this.notificationsService.createNotification(
+        employeeId,
+        'New Project Assignment',
+        `You have been assigned to project ${project.name} as ${projectRole} by ${actorName}.`,
+        'GENERAL',
+        projectId
+      );
+
+      if (employee.officialEmail) {
+        await this.emailService.sendEmail(
+          employee.officialEmail,
+          'New Project Assignment',
+          'GENERAL',
+          { message: `Hello ${employee.firstName}, you have been assigned to project ${project.name} as ${projectRole} by ${actorName}. Please log in to your dashboard to view the project details.` }
+        );
+      }
+    } catch (error) {
+      this.logger.error(`Failed to send assignment notifications to ${employeeId}:`, error);
+    }
 
     return assignment;
   }

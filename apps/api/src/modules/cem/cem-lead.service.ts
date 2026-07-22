@@ -179,16 +179,13 @@ export class CemLeadService {
         stage: 1,
         assignedCem: lead.assignedCemId || 'CEM Team',
         leadOwner: crmOwner,
-        createdDate: new Date().toISOString().replace("T", " ").slice(0, 16),
-        updatedDate: new Date().toISOString().replace("T", " ").slice(0, 16),
+        createdDate: new Date(),
         sourceQuality: 3,
         leadSource: lead.leadSource || 'CEM Handoff',
         clientHealth: 'ON TRACK',
         changeRequests: { open: 0, approved: 0, rejected: 0 },
         attachments: [],
         stakeholders: [{ name: lead.prospectName, role: 'Primary Contact', email: lead.email, phone: lead.phone }],
-        requirementsList: [],
-        meetingsHistory: [],
         notes: ['Lead handed off from CEM module.'],
         calls: []
       }

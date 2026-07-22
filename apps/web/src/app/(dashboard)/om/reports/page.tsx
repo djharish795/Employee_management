@@ -1,6 +1,5 @@
-
-import CamReportsPage from "../../cem/reports/page";
+import OmReportsView from '@/components/modules/om/om-reports-view';
 
 export default function OmReportsPage() {
-  return <CamReportsPage />;
+  return <OmReportsView />;
 }

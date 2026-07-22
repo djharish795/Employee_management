@@ -44,8 +44,9 @@ export function OeSidebar() {
       label: 'OE PORTAL',
       items: [
         { title: 'Dashboard', icon: LayoutDashboard, href: '/oe/dashboard' },
+        { title: 'Work Reports', icon: AlignLeft, href: '/oe/work-reports' },
+        { title: 'Field Operations', icon: Target, href: '/oe/field-requests' },
         { title: 'Scheduler', icon: Calendar, href: '/oe/scheduler' },
-        { title: 'Reports', icon: BarChart3, href: '/oe/reports' },
       ]
     },
     {
@@ -65,7 +66,7 @@ export function OeSidebar() {
     }
   ];
 
-  const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => (
+  const renderSidebarContent = (onNavigate?: () => void) => (
     <>
       {/* Brand Header */}
       <div className={`p-5 pb-4 flex items-center ${collapsed ? 'justify-center px-3' : 'justify-between'}`}>
@@ -85,21 +86,7 @@ export function OeSidebar() {
       </div>
 
       {/* Quick Action */}
-      {!collapsed && (
-        <div className="px-4 pb-5">
-          <button className="w-full bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm">
-            <Plus className="w-4 h-4" />
-            <span>New Lead</span>
-          </button>
-        </div>
-      )}
-      {collapsed && (
-        <div className="px-3 pb-5">
-          <button className="w-full bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white flex items-center justify-center py-2.5 rounded-lg transition-colors shadow-sm" title="New Lead">
-            <Plus className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+      {/* Intentionally removed per design feedback */}
 
       {/* Navigation */}
       <nav className={`flex-1 space-y-6 overflow-y-auto ${collapsed ? 'px-2 py-4' : 'px-3 py-2'}`}>
@@ -146,12 +133,12 @@ export function OeSidebar() {
                       collapsed ? 'justify-center' : ''
                     } ${
                       isActive
-                        ? 'bg-blue-600 text-white font-semibold shadow-sm'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
+                        ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-900 dark:text-white font-semibold'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <item.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500'}`} />
+                      <item.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
                       {!collapsed && item.title}
                     </div>
                     {!collapsed && item.badge && (
@@ -204,7 +191,7 @@ export function OeSidebar() {
             >
               <X className="w-5 h-5" />
             </button>
-            <SidebarContent onNavigate={() => setMobileOpen(false)} />
+            {renderSidebarContent(() => setMobileOpen(false))}
           </aside>
         </div>
       )}
@@ -215,7 +202,7 @@ export function OeSidebar() {
           collapsed ? 'w-20' : 'w-64'
         }`}
       >
-        <SidebarContent />
+        {renderSidebarContent()}
       </aside>
     </>
   );

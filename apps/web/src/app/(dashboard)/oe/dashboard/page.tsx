@@ -1,6 +1,6 @@
 import React from 'react';
 import { Metadata } from 'next';
-import EmployeeDashboardV2 from '@/components/modules/employee/employee-dashboard-v2';
+import OeDashboardView from '@/components/modules/oe/oe-dashboard-view';
 
 export const metadata: Metadata = {
   title: 'OE Dashboard | Naprocs EMS',
@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function OeDashboardPage() {
-  return <EmployeeDashboardV2 />;
+  return <OeDashboardView />;
 }

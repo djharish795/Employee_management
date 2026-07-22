@@ -89,9 +89,10 @@ export class FieldWorkRequestsService {
     return requests.map(req => this.decryptRequest(req));
   }
 
-  async getTeamApprovals(approverId: string): Promise<any[]> {
+  async getTeamApprovals(approverId: string, role?: string): Promise<any[]> {
+    const isGlobalAdmin = role === 'CEO' || role === 'SUPER_ADMIN' || role === 'OPERATIONS_HEAD' || role === 'CEM' || role === 'OM' || role === 'CHRO' || role === 'HR';
     const requests = await this.prisma.fieldWorkRequest.findMany({
-      where: {
+      where: isGlobalAdmin ? undefined : {
         approverId,
       },
       include: {
@@ -594,7 +595,11 @@ export class FieldWorkRequestsService {
       }
     };
 
-    if (isApprover) {
+    const isGlobalAdmin = role === 'CEO' || role === 'SUPER_ADMIN' || role === 'OPERATIONS_HEAD' || role === 'CEM' || role === 'OM' || role === 'CHRO' || role === 'HR';
+    
+    if (isGlobalAdmin) {
+      // Do not restrict employeeId or approverId for global admins
+    } else if (isApprover) {
       whereClause.OR = [{ employeeId }, { approverId: employeeId }];
     } else {
       whereClause.employeeId = employeeId;

@@ -26,7 +26,7 @@ async function main() {
 
   const desigCeo = await getDesig('Chief Executive Officer', deptExec.id);
   const desigCto = await getDesig('Chief Technology Officer', deptExec.id);
-  const desigLeadArch = await getDesig('Lead Architect', deptEng.id);
+  const desigFullstack = await getDesig('Fullstack Developer', deptEng.id);
   const desigBackend = await getDesig('Backend Developer', deptEng.id);
   const desigFrontend = await getDesig('Frontend Developer', deptEng.id);
   const desigQa = await getDesig('QA Engineer', deptEng.id);
@@ -69,7 +69,7 @@ async function main() {
   });
 
   const leadArch = await upsertEmployeeAndUser({
-    emp: { employeeId: 'NAP/TR/002', firstName: 'Tejesh', lastName: 'Kumar', officialEmail: 'tejesh@naprocs.in', departmentId: deptEng.id, designationId: desigLeadArch?.id, status: EmployeeStatus.ACTIVE, reportingManagerId: cto.id, joiningDate: new Date('2022-01-15'), gender: Gender.MALE, maritalStatus: MaritalStatus.MARRIED },
+    emp: { employeeId: 'NAP/TR/002', firstName: 'Tejesh', lastName: 'Kumar', officialEmail: 'tejesh@naprocs.in', departmentId: deptEng.id, designationId: desigFullstack?.id, status: EmployeeStatus.ACTIVE, reportingManagerId: cto.id, joiningDate: new Date('2022-01-15'), gender: Gender.MALE, maritalStatus: MaritalStatus.MARRIED },
     userRole: UserRole.EMPLOYEE,
   });
 

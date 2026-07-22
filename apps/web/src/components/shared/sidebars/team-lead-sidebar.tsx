@@ -75,7 +75,7 @@ export function TeamLeadSidebar() {
 
   const navItems = workspace === 'individual' ? INDIVIDUAL_NAV_ITEMS : TEAM_NAV_ITEMS;
 
-  const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => (
+  const renderSidebarContent = (onNavigate?: () => void) => (
     <>
       {/* Brand Header */}
       <div className={`p-5 pb-4 flex items-center ${collapsed ? 'justify-center px-3' : 'justify-between'}`}>
@@ -227,7 +227,7 @@ export function TeamLeadSidebar() {
           </button>
         </div>
         <div className="flex-1 overflow-y-auto flex flex-col">
-          <SidebarContent onNavigate={() => setMobileOpen(false)} />
+          {renderSidebarContent(() => setMobileOpen(false))}
         </div>
       </aside>
 
@@ -237,7 +237,7 @@ export function TeamLeadSidebar() {
           collapsed ? 'w-[64px]' : 'w-[240px]'
         }`}
       >
-        <SidebarContent />
+        {renderSidebarContent()}
       </aside>
     </>
   );

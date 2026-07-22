@@ -72,8 +72,8 @@ export default function FollowUpHubPage() {
         apiClient.get('/cem/follow-ups'),
         apiClient.get('/cem/follow-ups/summary')
       ]);
-      setFollowUps(listRes.data);
-      setMetrics(summaryRes.data);
+      setFollowUps(listRes.data?.data || listRes.data || []);
+      setMetrics(summaryRes.data?.data || summaryRes.data || { todayCount: 0, missedCount: 0, completedCount: 0 });
     } catch (error) {
       toast.error('Failed to load follow-ups.');
     } finally {
@@ -114,10 +114,14 @@ export default function FollowUpHubPage() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  const formatDueDate = (dateStr: string) => {
+  const formatDueDate = (dateVal: any) => {
+    if (!dateVal) return '';
+    if (typeof dateVal === 'object') {
+      return JSON.stringify(dateVal);
+    }
     try {
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return dateStr;
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) return String(dateVal);
       return d.toLocaleString('en-US', {
         year: 'numeric',
         month: 'short',
@@ -126,7 +130,7 @@ export default function FollowUpHubPage() {
         minute: '2-digit'
       });
     } catch {
-      return dateStr;
+      return String(dateVal);
     }
   };
 
@@ -224,13 +228,16 @@ export default function FollowUpHubPage() {
     const dueDate = new Date(f.dueDate);
     const now = new Date();
 
-    // Set both to midnight to compare just the date
-    const dateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
-    const todayOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const isToday = dueDate.toDateString() === now.toDateString();
+    
+    // Normalize times to midnight for accurate past/future comparison
+    const dueMidnight = new Date(dueDate);
+    dueMidnight.setHours(0, 0, 0, 0);
+    const todayMidnight = new Date(now);
+    todayMidnight.setHours(0, 0, 0, 0);
 
-    const isToday = dateOnly.getTime() === todayOnly.getTime();
-    const isPast = dateOnly.getTime() < todayOnly.getTime();
-    const isFuture = dateOnly.getTime() > todayOnly.getTime();
+    const isPast = dueMidnight < todayMidnight;
+    const isFuture = dueMidnight > todayMidnight;
 
     let tabMatch = false;
     if (activeTab === 'Today') {
@@ -336,23 +343,23 @@ export default function FollowUpHubPage() {
                     <td className="py-5 px-6">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 text-slate-600 font-bold text-[10px] flex items-center justify-center flex-shrink-0">
-                          {getInitials(fu.leadName)}
+                          {getInitials(fu.leadName || '')}
                         </div>
                         <div>
                           <button
                             onClick={() => openDetailDrawer(fu)}
                             className="font-bold text-slate-950 hover:text-blue-600 hover:underline text-left"
                           >
-                            {fu.leadName}
+                            {String(fu.leadName || '')}
                           </button>
-                          <div className="text-[10px] font-medium text-slate-400 mt-0.5">{fu.role}</div>
+                          <div className="text-[10px] font-medium text-slate-400 mt-0.5">{String(fu.role || 'Unknown Role')}</div>
                         </div>
                       </div>
                     </td>
 
                     {/* Company */}
                     <td className="py-5 px-3 text-slate-900 font-bold">
-                      {fu.company}
+                      {String(fu.company || '')}
                     </td>
 
                     {/* Current Stage */}
@@ -362,7 +369,7 @@ export default function FollowUpHubPage() {
                             fu.currentStage === 'Follow Up' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
                               'bg-slate-100 text-slate-600 border border-slate-200'
                         }`}>
-                        {fu.currentStage}
+                        {String(fu.currentStage || '')}
                       </span>
                     </td>
 
@@ -372,13 +379,13 @@ export default function FollowUpHubPage() {
                         {fu.type === 'Phone Call' && <Phone className="w-3 h-3 text-slate-500 transform -rotate-90" />}
                         {fu.type === 'Email' && <Mail className="w-3 h-3 text-slate-500" />}
                         {fu.type === 'Meeting' && <Calendar className="w-3 h-3 text-slate-500" />}
-                        {fu.type}
+                        {String(fu.type || '')}
                       </span>
                     </td>
 
                     {/* Next Action */}
                     <td className="py-5 px-3 text-slate-900 font-black">
-                      {fu.nextAction}
+                      {String(fu.nextAction || '')}
                     </td>
 
                     {/* Due Date */}
@@ -392,13 +399,13 @@ export default function FollowUpHubPage() {
                           fu.priority === 'Medium' ? 'bg-blue-50 text-blue-600 border-blue-100' :
                             'bg-slate-50 text-slate-500 border-slate-200'
                         }`}>
-                        {fu.priority}
+                        {String(fu.priority || '')}
                       </span>
                     </td>
 
                     {/* Last Note Preview */}
-                    <td className="py-5 px-4 max-w-xs truncate font-medium text-slate-500" title={fu.lastNote}>
-                      {fu.lastNote}
+                    <td className="py-5 px-4 max-w-xs truncate font-medium text-slate-500" title={typeof fu.lastNote === 'string' ? fu.lastNote : ''}>
+                      {String(fu.lastNote || '')}
                     </td>
 
                     {/* Status */}
@@ -415,7 +422,7 @@ export default function FollowUpHubPage() {
                               fu.status === 'Missed' ? 'text-rose-600' :
                                 'text-indigo-600'
                         }>
-                          {fu.status}
+                          {String(fu.status || '')}
                         </span>
                       </span>
                     </td>

@@ -23,6 +23,7 @@ export enum SidebarType {
   CEM = "CEM",
   TEAM_LEAD = "TEAM_LEAD",
   EMPLOYEE = "EMPLOYEE",
+  OE = "OE",
 }
 
 export interface RoleRegistryEntry {
@@ -126,7 +127,7 @@ export const ROLE_REGISTRY: Record<UserRole, RoleRegistryEntry> = {
   [UserRole.OE]: {
     role: UserRole.OE,
     defaultDashboard: "/oe/dashboard",
-    sidebarType: SidebarType.CEM,
+    sidebarType: SidebarType.OE,
     allowedNamespaces: ["/cem", "/oe", "/om", "/crm"]
   },
   [UserRole.CRM]: {
