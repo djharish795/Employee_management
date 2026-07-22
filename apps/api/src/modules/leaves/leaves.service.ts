@@ -293,12 +293,10 @@ export class LeavesService {
 
       } else if (role === 'OE' || role === 'CRM' || role === 'CEM' || role === 'CAM') {
         // Operations Team (OE / CRM / CEM / CAM)
-        // Step 1: Operations Manager (their reportingManagerId)
+        // Step 1: Operations Manager (their reportingManagerId or fallback to role)
         // Step 2: HR Executive
         // No project TL override — their lead IS the OM
-        if (employee.reportingManagerId) {
-          queue.push({ role: 'OM', status: 'PENDING', approverId: employee.reportingManagerId });
-        }
+        queue.push({ role: 'OM', status: 'PENDING', approverId: employee.reportingManagerId || undefined });
         queue.push({ role: 'HRE', status: 'PENDING', approverId: employee.assignedHrId || undefined });
 
         // Emergency (< 24 hrs) → escalate to CEO as final step

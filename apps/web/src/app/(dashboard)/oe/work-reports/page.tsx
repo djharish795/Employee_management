@@ -102,22 +102,22 @@ export default function OeWorkReportsPage() {
         <div className="flex gap-3">
           <button 
             onClick={() => router.push('/oe/work-reports/new')}
-            className="flex items-center gap-2 px-4 py-2 border border-blue-600 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-colors shadow-sm">
-            <Plus className="w-4 h-4" /> New Report
+            className="flex items-center gap-1.5 px-4 py-2 bg-slate-950 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 rounded-lg text-xs font-black transition-all shadow-sm">
+            <Plus className="w-3.5 h-3.5" /> New Report
           </button>
         </div>
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {statCards.map((stat, idx) => (
-          <PremiumCard key={idx} className="p-5 flex items-center justify-between shadow-sm border border-slate-200">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${stat.bgColor} ${stat.color}`}>
-              <stat.icon className="w-6 h-6" />
+          <PremiumCard key={idx} className="p-4 flex items-center justify-between shadow-sm border border-slate-200">
+            <div className="text-left">
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{stat.label}</p>
+              <h3 className="text-2xl font-black text-slate-900 leading-none">{stat.value}</h3>
             </div>
-            <div className="text-right">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{stat.label}</p>
-              <h3 className="text-3xl font-black text-slate-900 leading-none">{stat.value}</h3>
+            <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center ${stat.bgColor} ${stat.color}`}>
+              <stat.icon className="w-5 h-5" />
             </div>
           </PremiumCard>
         ))}

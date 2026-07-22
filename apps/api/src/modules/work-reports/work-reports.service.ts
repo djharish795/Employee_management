@@ -62,8 +62,11 @@ export class WorkReportsService {
 
   async getTeamReports(reviewerId: string, role?: string) {
     const isGlobalAdmin = role === 'CEO' || role === 'SUPER_ADMIN' || role === 'OPERATIONS_HEAD' || role === 'CEM' || role === 'OM' || role === 'CHRO' || role === 'HR';
+    const whereClause: any = isGlobalAdmin ? {} : { reviewerId };
+    whereClause.employeeId = { not: reviewerId };
+    
     return this.prisma.workReport.findMany({
-      where: isGlobalAdmin ? undefined : { reviewerId },
+      where: whereClause,
       orderBy: { submittedAt: 'desc' },
       include: { 
         employee: { select: { firstName: true, lastName: true, photoUrl: true, employeeId: true } } 
@@ -128,8 +131,11 @@ export class WorkReportsService {
 
   async exportTeamCsv(reviewerId: string, role?: string): Promise<string> {
     const isGlobalAdmin = role === 'CEO' || role === 'SUPER_ADMIN' || role === 'OPERATIONS_HEAD' || role === 'CEM' || role === 'OM' || role === 'CHRO' || role === 'HR';
+    const whereClause: any = isGlobalAdmin ? {} : { reviewerId };
+    whereClause.employeeId = { not: reviewerId };
+    
     const reports = await this.prisma.workReport.findMany({
-      where: isGlobalAdmin ? undefined : { reviewerId },
+      where: whereClause,
       orderBy: { submittedAt: 'desc' },
       include: {
         employee: { select: { firstName: true, lastName: true, employeeId: true } }

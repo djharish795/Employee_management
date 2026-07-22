@@ -50,7 +50,7 @@ export function SubmitWorkReportForm() {
               setSubmitted(false);
               setFormData({ ...formData, title: '', content: '' });
             }}
-            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors"
+            className="px-6 py-2.5 bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:bg-slate-800 dark:hover:bg-slate-100 font-bold rounded-lg transition-colors"
           >
             Submit Another Report
           </button>
@@ -131,7 +131,7 @@ export function SubmitWorkReportForm() {
             <button 
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed text-white text-sm font-bold rounded-lg transition-colors shadow-sm"
+              className="flex items-center gap-2 px-6 py-3 bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:bg-slate-800 dark:hover:bg-slate-100 disabled:opacity-70 disabled:cursor-not-allowed text-sm font-bold rounded-lg transition-colors shadow-sm"
             >
               {isSubmitting ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

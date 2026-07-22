@@ -163,7 +163,7 @@ export default function OmReportsView() {
         </div>
 
         {/* Quick Action Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           
           {/* Submit Work Report */}
           <div 
@@ -171,19 +171,19 @@ export default function OmReportsView() {
               const basePath = window.location.pathname.split('/')[1];
               router.push(`/${basePath}/work-reports/new`);
             }}
-            className="bg-white dark:bg-slate-900 rounded-xl border border-blue-200 dark:border-blue-900/50 p-6 shadow-sm relative group overflow-hidden cursor-pointer hover:border-blue-400 dark:hover:border-blue-700 transition-colors"
+            className="bg-white dark:bg-slate-900 rounded-xl border border-blue-200 dark:border-blue-900/50 p-4 shadow-sm relative group overflow-hidden cursor-pointer hover:border-blue-400 dark:hover:border-blue-700 transition-colors"
           >
-            <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-600 rounded-l-xl"></div>
-            <div className="flex justify-between items-start mb-4">
-              <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center">
-                <FileText className="w-6 h-6" />
+            <div className="absolute top-0 left-0 w-1 h-full bg-blue-600 rounded-l-xl"></div>
+            <div className="flex justify-between items-start mb-3">
+              <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center">
+                <FileText className="w-5 h-5" />
               </div>
-              <button className="text-blue-400 group-hover:text-blue-600 transition-colors bg-blue-50 dark:bg-blue-900/30 w-8 h-8 rounded-full flex items-center justify-center">
-                <Plus className="w-5 h-5" />
+              <button className="text-blue-400 group-hover:text-blue-600 transition-colors bg-blue-50 dark:bg-blue-900/30 w-7 h-7 rounded-full flex items-center justify-center">
+                <Plus className="w-4 h-4" />
               </button>
             </div>
-            <h3 className="font-bold text-slate-900 dark:text-white mb-2">Submit Work Report</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1.5">Submit Work Report</h3>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
               Draft and submit your daily or weekly progress update.
             </p>
           </div>
@@ -194,43 +194,46 @@ export default function OmReportsView() {
               const basePath = window.location.pathname.split('/')[1];
               router.push(`/${basePath}/reports/field-request`);
             }}
-            className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm relative group overflow-hidden cursor-pointer hover:border-slate-400 dark:hover:border-slate-600 transition-colors"
+            className="bg-white dark:bg-slate-900 rounded-xl border border-purple-200 dark:border-purple-900/50 p-4 shadow-sm relative group overflow-hidden cursor-pointer hover:border-purple-400 dark:hover:border-purple-700 transition-colors"
           >
-            <div className="absolute top-0 left-0 w-1.5 h-full bg-slate-950 dark:bg-white rounded-l-xl"></div>
-            <div className="flex justify-between items-start mb-4">
-              <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg flex items-center justify-center">
-                <MapPin className="w-6 h-6" />
+            <div className="absolute top-0 left-0 w-1 h-full bg-purple-600 rounded-l-xl"></div>
+            <div className="flex justify-between items-start mb-3">
+              <div className="w-10 h-10 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg flex items-center justify-center">
+                <MapPin className="w-5 h-5" />
               </div>
-              <button className="text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors bg-slate-50 dark:bg-slate-800 w-8 h-8 rounded-full flex items-center justify-center">
-                <Plus className="w-5 h-5" />
+              <button className="text-purple-400 group-hover:text-purple-600 transition-colors bg-purple-50 dark:bg-purple-900/30 w-7 h-7 rounded-full flex items-center justify-center">
+                <Plus className="w-4 h-4" />
               </button>
             </div>
-            <h3 className="font-bold text-slate-900 dark:text-white mb-2">Request Field Work</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1.5">Request Field Work</h3>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
               Submit a formal request for upcoming on-site field visits.
             </p>
           </div>
 
           {/* Stats Summary */}
-          <div className="bg-slate-950 dark:bg-slate-900 rounded-xl p-6 shadow-sm relative overflow-hidden flex flex-col justify-center">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-              <BarChart2 className="w-24 h-24 text-white" />
+          <div className="bg-slate-950 dark:bg-slate-900 rounded-xl p-4 shadow-sm relative overflow-hidden flex flex-col justify-center">
+            <div className="absolute top-0 right-0 p-3 opacity-10">
+              <BarChart2 className="w-16 h-16 text-white" />
             </div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 z-10">Pending Submissions</p>
-            <h3 className="text-4xl font-black text-white mb-1 z-10">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 z-10">Pending Submissions</p>
+            <h3 className="text-3xl font-black text-white mb-1 z-10">
               {localRequests.filter(r => r.status === 'PENDING' || r.status === 'Pending').length}
             </h3>
-            <p className="text-xs text-slate-400 z-10">Your requests currently waiting on review.</p>
+            <p className="text-[11px] text-slate-400 z-10">Waiting on review.</p>
           </div>
         </div>
 
         {/* Main Content Layout */}
-        <div className="w-full">
+        <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-6">
           
-          {/* Recently Generated Table */}
+          {/* Work Reports Table */}
           <div className="w-full bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-[550px]">
             <div className="p-5 flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-white">My Submissions</h3>
+              <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <FileText className="w-4 h-4 text-blue-500" />
+                Work Reports
+              </h3>
               <div className="flex items-center gap-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -285,20 +288,18 @@ export default function OmReportsView() {
                 <thead className="sticky top-0 bg-white dark:bg-slate-900 z-10">
                   <tr className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
                     <th className="px-5 py-4 w-[40%]">REPORT NAME</th>
-                    <th className="px-5 py-4 w-[15%]">CATEGORY</th>
-                    <th className="px-5 py-4 w-[15%]">DATE</th>
-                    <th className="px-5 py-4 w-[15%]">STATUS</th>
-                    <th className="px-5 py-4 w-[15%]">ACTION</th>
+                    <th className="px-5 py-4 w-[20%]">DATE</th>
+                    <th className="px-5 py-4 w-[20%]">STATUS</th>
+                    <th className="px-5 py-4 w-[20%]">ACTION</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-                  {/* Local / Team Requests depending on tab */}
                   {(() => {
                     if (isDataLoading) {
                       return (
                         <tr>
-                          <td colSpan={5} className="px-5 py-8 text-center text-sm font-semibold text-slate-500">
-                            Loading requests...
+                          <td colSpan={4} className="px-5 py-8 text-center text-sm font-semibold text-slate-500">
+                            Loading reports...
                           </td>
                         </tr>
                       );
@@ -307,7 +308,7 @@ export default function OmReportsView() {
                     if (errorMessage) {
                       return (
                         <tr>
-                          <td colSpan={5} className="px-5 py-8 text-center text-sm font-semibold text-rose-500">
+                          <td colSpan={4} className="px-5 py-8 text-center text-sm font-semibold text-rose-500">
                             Error: {errorMessage}
                           </td>
                         </tr>
@@ -316,35 +317,31 @@ export default function OmReportsView() {
                     
                     const currentList = localRequests;
                     const filteredList = statusFilter === 'ALL' ? currentList : currentList.filter(req => req.status === statusFilter);
+                    const workReportsList = filteredList.filter(req => req.type === 'WORK_REPORT');
 
-                    if (filteredList.length === 0) {
+                    if (workReportsList.length === 0) {
                       return (
                         <tr>
-                          <td colSpan={5} className="px-5 py-16 text-center">
+                          <td colSpan={4} className="px-5 py-16 text-center">
                             <div className="flex flex-col items-center justify-center gap-2">
                               <FileSpreadsheet className="w-8 h-8 text-slate-300 dark:text-slate-700 animate-pulse" />
-                              <p className="text-sm font-bold text-slate-900 dark:text-white">No Submissions Found</p>
-                              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Your submitted reports and drafts will appear here.</p>
+                              <p className="text-sm font-bold text-slate-900 dark:text-white">No Work Reports Found</p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Your submitted work reports will appear here.</p>
                             </div>
                           </td>
                         </tr>
                       );
                     }
 
-                    return filteredList.map((req, index) => (
-                      <tr key={`${activeTab}-${index}`} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors animate-in fade-in duration-300">
+                    return workReportsList.map((req, index) => (
+                      <tr key={`wr-${req.id || index}`} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors animate-in fade-in duration-300">
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
                             <FileSpreadsheet className="w-4 h-4 text-slate-400" />
                             <span className="font-medium text-slate-900 dark:text-white text-sm">
-                              {req.type === 'WORK_REPORT' ? 'Work Report' : 'Field Work'}: {req.destination || "Unspecified"}
+                              {req.destination || "Unspecified"}
                             </span>
                           </div>
-                        </td>
-                        <td className="px-5 py-4">
-                          <span className={`px-2 py-1 text-[10px] font-bold rounded uppercase ${req.type === 'WORK_REPORT' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200'}`}>
-                            {req.type === 'WORK_REPORT' ? 'REPORT' : 'FIELD'}
-                          </span>
                         </td>
                         <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-400">
                           {req.date && !isNaN(new Date(req.date).getTime()) ? new Date(req.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'N/A'}
@@ -357,48 +354,194 @@ export default function OmReportsView() {
                         </td>
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
-                            {req.type === 'WORK_REPORT' ? (
-                              <button 
-                                onClick={() => router.push(`/om/work-reports/${req.id}`)}
-                                className="text-sm font-bold text-slate-900 dark:text-white hover:underline"
-                              >
-                                View Report
-                              </button>
+                            <button 
+                              onClick={() => router.push(`/om/work-reports/${req.id}`)}
+                              className="text-sm font-bold text-slate-900 dark:text-white hover:underline"
+                            >
+                              View
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ));
+                  })()}
+                </tbody>
+              </table>
+            </div>
+            
+            {(() => {
+              const currentList = localRequests;
+              const filteredList = statusFilter === 'ALL' ? currentList : currentList.filter(req => req.status === statusFilter);
+              const workReportsList = filteredList.filter(req => req.type === 'WORK_REPORT');
+
+              return !isDataLoading && workReportsList.length > 0 && (
+                <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                    Showing {workReportsList.length} report{workReportsList.length !== 1 ? 's' : ''} {statusFilter !== 'ALL' && `(${statusFilter.toLowerCase()})`}
+                  </span>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Field Requests Table */}
+          <div className="w-full bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-[550px]">
+            <div className="p-5 flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
+              <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-purple-500" />
+                Field Requests
+              </h3>
+              <div className="flex items-center gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors relative">
+                      <Filter className="w-4 h-4" />
+                      {statusFilter !== 'ALL' && (
+                        <span className="absolute top-0 right-0 w-2 h-2 bg-indigo-500 rounded-full border border-white dark:border-slate-900"></span>
+                      )}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800">
+                    <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setStatusFilter('ALL')} className="cursor-pointer">
+                      <span className={statusFilter === 'ALL' ? 'font-bold' : ''}>All Requests</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setStatusFilter('DRAFT')} className="cursor-pointer">
+                      <span className={statusFilter === 'DRAFT' ? 'font-bold' : ''}>Drafts</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setStatusFilter('PENDING')} className="cursor-pointer">
+                      <span className={statusFilter === 'PENDING' ? 'font-bold' : ''}>Under Review</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setStatusFilter('APPROVED')} className="cursor-pointer">
+                      <span className={statusFilter === 'APPROVED' ? 'font-bold text-emerald-600' : 'text-emerald-600'}>Approved</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setStatusFilter('REJECTED')} className="cursor-pointer">
+                      <span className={statusFilter === 'REJECTED' ? 'font-bold text-rose-600' : 'text-rose-600'}>Rejected</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setStatusFilter('CANCELLED')} className="cursor-pointer">
+                      <span className={statusFilter === 'CANCELLED' ? 'font-bold' : ''}>Cancelled</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-40 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800">
+                    <DropdownMenuItem onClick={loadData} className="cursor-pointer">
+                      Refresh Data
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-auto">
+              <table className="w-full text-left border-collapse">
+                <thead className="sticky top-0 bg-white dark:bg-slate-900 z-10">
+                  <tr className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
+                    <th className="px-5 py-4 w-[40%]">DESTINATION</th>
+                    <th className="px-5 py-4 w-[20%]">DATE</th>
+                    <th className="px-5 py-4 w-[20%]">STATUS</th>
+                    <th className="px-5 py-4 w-[20%]">ACTION</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                  {(() => {
+                    if (isDataLoading) {
+                      return (
+                        <tr>
+                          <td colSpan={4} className="px-5 py-8 text-center text-sm font-semibold text-slate-500">
+                            Loading requests...
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    if (errorMessage) {
+                      return (
+                        <tr>
+                          <td colSpan={4} className="px-5 py-8 text-center text-sm font-semibold text-rose-500">
+                            Error: {errorMessage}
+                          </td>
+                        </tr>
+                      );
+                    }
+                    
+                    const currentList = localRequests;
+                    const filteredList = statusFilter === 'ALL' ? currentList : currentList.filter(req => req.status === statusFilter);
+                    const fieldRequestsList = filteredList.filter(req => req.type !== 'WORK_REPORT');
+
+                    if (fieldRequestsList.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={4} className="px-5 py-16 text-center">
+                            <div className="flex flex-col items-center justify-center gap-2">
+                              <MapPin className="w-8 h-8 text-slate-300 dark:text-slate-700 animate-pulse" />
+                              <p className="text-sm font-bold text-slate-900 dark:text-white">No Field Requests Found</p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Your submitted field requests will appear here.</p>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return fieldRequestsList.map((req, index) => (
+                      <tr key={`fr-${req.id || index}`} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors animate-in fade-in duration-300">
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <MapPin className="w-4 h-4 text-slate-400" />
+                            <span className="font-medium text-slate-900 dark:text-white text-sm">
+                              {req.destination || "Unspecified"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-400">
+                          {req.date && !isNaN(new Date(req.date).getTime()) ? new Date(req.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'N/A'}
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-1.5 text-slate-650 dark:text-slate-350 text-xs font-semibold">
+                            <div className={`w-1.5 h-1.5 rounded-full ${getStatusColorClass(req.status)}`}></div>
+                            {getStatusDisplay(req.status)}
+                          </div>
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            {req.status === 'DRAFT' || req.status === 'Draft' ? (
+                              <>
+                                <button 
+                                  onClick={() => router.push(`/om/reports/field-request?id=${req.id}`)}
+                                  className="text-sm font-bold text-slate-900 dark:text-white hover:underline"
+                                >
+                                  Edit
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteRequest(req.id)}
+                                  className="text-sm font-bold text-rose-600 hover:text-rose-700 hover:underline"
+                                >
+                                  Delete
+                                </button>
+                              </>
                             ) : (
                               <>
-                                {req.status === 'DRAFT' || req.status === 'Draft' ? (
-                                  <>
-                                    <button 
-                                      onClick={() => router.push(`/om/reports/field-request?id=${req.id}`)}
-                                      className="text-sm font-bold text-slate-900 dark:text-white hover:underline"
-                                    >
-                                      Edit
-                                    </button>
-                                    <button 
-                                      onClick={() => handleDeleteRequest(req.id)}
-                                      className="text-sm font-bold text-rose-600 hover:text-rose-700 hover:underline"
-                                    >
-                                      Delete
-                                    </button>
-                                  </>
-                                ) : (
-                                  <>
-                                    <button 
-                                      onClick={() => router.push(`/om/field-requests/${req.id}`)}
-                                      className="text-sm font-bold text-slate-900 dark:text-white hover:underline"
-                                    >
-                                      View
-                                    </button>
-                                    {(req.status === 'CANCELLED' || req.status === 'Cancelled') && (
-                                      <button 
-                                        onClick={() => handleDeleteRequest(req.id)}
-                                        className="text-sm font-bold text-rose-600 hover:text-rose-700 hover:underline"
-                                        title="Delete from list"
-                                      >
-                                        Delete
-                                      </button>
-                                    )}
-                                  </>
+                                <button 
+                                  onClick={() => router.push(`/om/field-requests/${req.id}`)}
+                                  className="text-sm font-bold text-slate-900 dark:text-white hover:underline"
+                                >
+                                  View
+                                </button>
+                                {(req.status === 'CANCELLED' || req.status === 'Cancelled') && (
+                                  <button 
+                                    onClick={() => handleDeleteRequest(req.id)}
+                                    className="text-sm font-bold text-rose-600 hover:text-rose-700 hover:underline"
+                                    title="Delete from list"
+                                  >
+                                    Delete
+                                  </button>
                                 )}
                               </>
                             )}
@@ -410,20 +553,22 @@ export default function OmReportsView() {
                 </tbody>
               </table>
             </div>
-
+            
             {(() => {
-              const currentList = activeTab === 'my-requests' ? localRequests : teamRequests;
+              const currentList = localRequests;
               const filteredList = statusFilter === 'ALL' ? currentList : currentList.filter(req => req.status === statusFilter);
+              const fieldRequestsList = filteredList.filter(req => req.type !== 'WORK_REPORT');
 
-              return !isDataLoading && filteredList.length > 0 && (
+              return !isDataLoading && fieldRequestsList.length > 0 && (
                 <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
                   <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
-                    Showing {filteredList.length} request{filteredList.length !== 1 ? 's' : ''} {statusFilter !== 'ALL' && `(${statusFilter.toLowerCase()})`}
+                    Showing {fieldRequestsList.length} request{fieldRequestsList.length !== 1 ? 's' : ''} {statusFilter !== 'ALL' && `(${statusFilter.toLowerCase()})`}
                   </span>
                 </div>
               );
             })()}
           </div>
+          
         </div>
       </div>
     </div>

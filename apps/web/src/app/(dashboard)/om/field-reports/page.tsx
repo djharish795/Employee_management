@@ -136,13 +136,13 @@ export default function OmFieldReportsPage() {
       {/* Stats row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {statCards.map((stat, i) => (
-          <PremiumCard key={i} className="p-5 flex items-center gap-4 border-l-4" style={{ borderLeftColor: 'currentColor' }}>
-            <div className={`w-12 h-12 rounded-xl ${stat.bgColor} flex items-center justify-center flex-shrink-0`}>
-              <stat.icon className={`w-6 h-6 ${stat.color}`} />
-            </div>
+          <PremiumCard key={i} className="p-5 flex items-center justify-between gap-4 border-l-4" style={{ borderLeftColor: 'currentColor' }}>
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{stat.label}</p>
               <h3 className="text-2xl font-black text-slate-900 mt-0.5">{stat.value}</h3>
+            </div>
+            <div className={`w-12 h-12 rounded-xl ${stat.bgColor} flex items-center justify-center flex-shrink-0`}>
+              <stat.icon className={`w-6 h-6 ${stat.color}`} />
             </div>
           </PremiumCard>
         ))}

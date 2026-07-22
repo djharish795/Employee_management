@@ -163,12 +163,12 @@ export default function OmWorkReportsPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {statCards.map((stat, idx) => (
           <PremiumCard key={idx} className="p-5 flex items-center justify-between shadow-sm border border-slate-200">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${stat.bgColor} ${stat.color}`}>
-              <stat.icon className="w-6 h-6" />
-            </div>
-            <div className="text-right">
+            <div className="text-left">
               <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{stat.label}</p>
               <h3 className="text-3xl font-black text-slate-900 leading-none">{stat.value}</h3>
+            </div>
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${stat.bgColor} ${stat.color}`}>
+              <stat.icon className="w-6 h-6" />
             </div>
           </PremiumCard>
         ))}
