@@ -391,6 +391,25 @@ export class LeavesService {
     const startDate = new Date(data.startDate);
     const endDate = new Date(data.endDate);
 
+    if (data.attachmentUrl) {
+      const usedAttachment = await this.prisma.leaveRequest.findFirst({
+        where: { attachmentUrl: data.attachmentUrl, status: { notIn: ['REJECTED', 'CANCELLED'] } }
+      });
+      if (usedAttachment) {
+        throw new BadRequestException('This medical certificate has already been used in a previous leave request.');
+      }
+
+      try {
+        const response = await fetch(data.attachmentUrl, { method: 'HEAD' });
+        if (!response.ok) {
+          throw new BadRequestException('The provided medical certificate URL is inaccessible or fake.');
+        }
+      } catch (err) {
+        if (err instanceof BadRequestException) throw err;
+        throw new BadRequestException('The provided medical certificate URL could not be verified.');
+      }
+    }
+
     const durationDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     const isSickLeave = leaveTypes.some(lt => ['SL', 'SICK'].includes(lt.code));
     if (isSickLeave && durationDays > 3 && (!data.attachmentUrl || data.attachmentUrl.trim() === '')) {
@@ -469,8 +488,74 @@ export class LeavesService {
         throw new BadRequestException('Optional holidays require at least 7 days prior notice.');
       }
 
-      if ((leaveType.code === 'SL' || leaveType.code === 'SICK') && totalWorkingDays > 2 && !data.attachmentUrl) {
-        throw new BadRequestException(`Sick Leave requests exceeding 2 consecutive days require a medical report or document.`);
+      if ((leaveType.code === 'SL' || leaveType.code === 'SICK') && !data.attachmentUrl) {
+        const windowStart = new Date(startDate);
+        windowStart.setDate(windowStart.getDate() - 21);
+        const windowEnd = new Date(endDate);
+        windowEnd.setDate(windowEnd.getDate() + 21);
+
+        const recentSickLeaves = await this.prisma.leaveRequest.findMany({
+          where: {
+            employeeId: employee.id,
+            leaveTypeId: leaveType.id,
+            status: { notIn: ['REJECTED', 'CANCELLED'] },
+            startDate: { gte: windowStart },
+            endDate: { lte: windowEnd }
+          },
+          select: { startDate: true, endDate: true }
+        });
+
+        const windowHolidays = await this.prisma.companyHoliday.findMany({
+          where: { date: { gte: windowStart, lte: windowEnd } }
+        });
+        const windowHolidayDates = windowHolidays.map((h: any) => h.date.toISOString().split('T')[0]);
+
+        const sickDates = new Set<string>();
+
+        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+          if (d.getUTCDay() !== 0 && d.getUTCDay() !== 6 && !windowHolidayDates.includes(d.toISOString().split('T')[0])) {
+            sickDates.add(d.toISOString().split('T')[0]);
+          }
+        }
+
+        for (const rsl of recentSickLeaves) {
+          for (let d = new Date(rsl.startDate); d <= rsl.endDate; d.setDate(d.getDate() + 1)) {
+            if (d.getUTCDay() !== 0 && d.getUTCDay() !== 6 && !windowHolidayDates.includes(d.toISOString().split('T')[0])) {
+              sickDates.add(d.toISOString().split('T')[0]);
+            }
+          }
+        }
+
+        const sortedDates = Array.from(sickDates).sort();
+        let maxChain = 0;
+        let currentChain = 0;
+        let prevDate: Date | null = null;
+
+        for (const dateStr of sortedDates) {
+          const currDate = new Date(dateStr);
+          if (!prevDate) {
+            currentChain = 1;
+          } else {
+            let gapWorkingDays = 0;
+            for (let d = new Date(prevDate); d < currDate; d.setDate(d.getDate() + 1)) {
+              if (d.toISOString().split('T')[0] === prevDate.toISOString().split('T')[0]) continue;
+              if (d.getUTCDay() !== 0 && d.getUTCDay() !== 6 && !windowHolidayDates.includes(d.toISOString().split('T')[0])) {
+                gapWorkingDays++;
+              }
+            }
+            if (gapWorkingDays === 0) {
+              currentChain++;
+            } else {
+              currentChain = 1;
+            }
+          }
+          if (currentChain > maxChain) maxChain = currentChain;
+          prevDate = currDate;
+        }
+
+        if (maxChain > 2) {
+          throw new BadRequestException(`Sick Leave requests exceeding 2 consecutive working days (including contiguous past/future requests) require a medical report or document.`);
+        }
       }
 
       if (leaveType.requiresDocumentAbove && totalWorkingDays > Number(leaveType.requiresDocumentAbove) && !data.attachmentUrl) {
@@ -558,7 +643,8 @@ export class LeavesService {
           });
 
           const alreadyPaidThisMonth = Number(monthlyLeaves._sum.paidDays || 0);
-          const maxPaidAllowedThisMonth = (leaveType as any).maxPaidPerMonth ? Number((leaveType as any).maxPaidPerMonth) : 3;
+          const defaultMax = leaveType.code === 'CL_HALF' ? 0.5 : 3;
+          const maxPaidAllowedThisMonth = (leaveType as any).maxPaidPerMonth ? Number((leaveType as any).maxPaidPerMonth) : defaultMax;
           const remainingPaidAllowedThisMonth = Math.max(0, maxPaidAllowedThisMonth - alreadyPaidThisMonth);
 
           paidDays = Math.min(applicablePaidDays, remainingPaidAllowedThisMonth);
@@ -818,7 +904,7 @@ export class LeavesService {
       if (!approver) throw genericError;
 
       const approverRole = this.getRoleForEmployee(approver);
-      
+
       const leaveData = leave as typeof leave & { approvalQueue?: unknown, currentStep: number };
       const queue = leaveData.approvalQueue as unknown as ApprovalQueueItem[];
       const currentStepIndex = leaveData.currentStep;
@@ -1154,9 +1240,9 @@ export class LeavesService {
     await this.prisma.$transaction(async (tx) => {
       const updateResult = await tx.leaveRequest.updateMany({
         where: { id: leaveId, status: 'PENDING' },
-        data: { 
+        data: {
           status: 'CANCELLED',
-          approvalQueue: Array.isArray(leave.approvalQueue) 
+          approvalQueue: Array.isArray(leave.approvalQueue)
             ? (leave.approvalQueue as any[]).map((q: any) => q.status === 'PENDING' ? { ...q, status: 'CANCELLED' } : q)
             : leave.approvalQueue || []
         }
@@ -1184,7 +1270,20 @@ export class LeavesService {
   }
 
   async accrueMonthlyLeaves(): Promise<unknown> {
-    const currentYear = new Date().getFullYear();
+    const today = new Date();
+    const jobName = `accrueMonthlyLeaves_${today.getFullYear()}_${today.getMonth() + 1}`;
+
+    try {
+      await this.prisma.systemJobLog.create({ data: { jobName } });
+    } catch (e: any) {
+      if (e.code === 'P2002') {
+        this.logger.warn(`Job ${jobName} already executed. Skipping.`);
+        return { message: 'Job already executed.' };
+      }
+      throw e;
+    }
+
+    const currentYear = today.getFullYear();
     const employees = await this.prisma.employee.findMany({
       where: { exitDate: null }
     });
@@ -1271,6 +1370,17 @@ export class LeavesService {
 
   async carryForwardYearlyLeaves(): Promise<unknown> {
     const currentYear = new Date().getFullYear();
+    const jobName = `carryForwardYearlyLeaves_${currentYear}`;
+
+    try {
+      await this.prisma.systemJobLog.create({ data: { jobName } });
+    } catch (e: any) {
+      if (e.code === 'P2002') {
+        this.logger.warn(`Job ${jobName} already executed. Skipping.`);
+        return { message: 'Job already executed.' };
+      }
+      throw e;
+    }
     const previousYear = currentYear - 1;
 
     const previousBalances = await this.prisma.leaveBalance.findMany({
@@ -1352,7 +1462,7 @@ export class LeavesService {
     return { message: `Successfully carried forward leaves for ${carriedOverCount} employees.` };
   }
 
-  async getCalendar(employeeId?: string): Promise<unknown> {
+  async getCalendar(employeeId?: string, role?: string): Promise<unknown> {
     let teamIds: string[] | undefined = undefined;
 
     if (employeeId) {
@@ -1400,13 +1510,63 @@ export class LeavesService {
       orderBy: { startDate: 'asc' }
     });
 
-    return requests.map((r: any) => ({
-      ...r,
-      totalDays: r.totalDays?.toNumber(),
-      paidDays: r.paidDays?.toNumber(),
-      unpaidDays: r.unpaidDays?.toNumber()
-    }));
+    return requests.map((r: any) => {
+      const isSensitive = ['MATERNITY', 'PATERNITY', 'SL', 'SICK', 'BEREAVEMENT'].includes(r.leaveType?.code);
+      const shouldMask = role !== 'HR' && isSensitive;
+      
+      const maskedLeaveType = shouldMask ? { ...r.leaveType, name: 'Approved Leave', code: 'LEAVE' } : r.leaveType;
+      const maskedReason = shouldMask ? '[Redacted for privacy]' : r.reason;
+
+      return {
+        ...r,
+        leaveType: maskedLeaveType,
+        reason: maskedReason,
+        totalDays: r.totalDays?.toNumber(),
+        paidDays: r.paidDays?.toNumber(),
+        unpaidDays: r.unpaidDays?.toNumber()
+      };
+    });
   }
 
+  async expireStaleLeaves(): Promise<void> {
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
 
+    const staleLeaves = await this.prisma.leaveRequest.findMany({
+      where: {
+        status: 'PENDING',
+        startDate: { lt: today }
+      },
+      include: { leaveType: true, employee: true }
+    });
+
+    for (const leave of staleLeaves) {
+      await this.prisma.$transaction(async (tx) => {
+        const updateResult = await tx.leaveRequest.updateMany({
+          where: { id: leave.id, status: 'PENDING' },
+          data: {
+            status: 'CANCELLED',
+            rejectionReason: 'System: Auto-expired stale pending request',
+            approvalQueue: Array.isArray(leave.approvalQueue)
+              ? (leave.approvalQueue as any[]).map((q: any) => q.status === 'PENDING' ? { ...q, status: 'CANCELLED' } : q)
+              : leave.approvalQueue || []
+          }
+        });
+
+        if (updateResult.count === 0) return;
+
+        const balance = await this.getLeaveBalance(tx, leave);
+        if (balance) {
+          const paidDays = leave.paidDays ? Number(leave.paidDays) : 0;
+          await tx.leaveBalance.update({
+            where: { id: balance.id },
+            data: {
+              pending: { decrement: paidDays }
+            }
+          });
+        }
+      });
+      this.logger.log(`Auto-expired and refunded stale leave request ${leave.id}`);
+    }
+  }
 }

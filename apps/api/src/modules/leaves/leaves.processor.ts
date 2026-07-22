@@ -18,6 +18,9 @@ export class LeavesProcessor extends WorkerHost {
     } else if (job.name === 'carry-forward-yearly') {
       this.logger.log('Running automated yearly leave rollover via BullMQ');
       return this.leavesService.carryForwardYearlyLeaves();
+    } else if (job.name === 'expire-stale-leaves') {
+      this.logger.log('Running automated stale leave expiry via BullMQ');
+      return this.leavesService.expireStaleLeaves();
     }
   }
 

@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import { Calendar as CalendarIcon, CheckCircle2, Clock, CalendarX, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { fetchTeamAttendanceView } from "@/lib/api/attendance";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchTeamAttendanceView, approveOvertime } from "@/lib/api/attendance";
+import { toast } from "react-hot-toast";
 import { format, subDays, addDays } from "date-fns";
 
 export default function TeamAttendancePage() {
@@ -12,6 +13,18 @@ export default function TeamAttendancePage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['teamAttendanceView', format(selectedDate, "yyyy-MM-dd")],
     queryFn: () => fetchTeamAttendanceView(format(selectedDate, "yyyy-MM-dd"))
+  });
+
+  const queryClient = useQueryClient();
+  const approveMutation = useMutation({
+    mutationFn: approveOvertime,
+    onSuccess: () => {
+      toast.success("Overtime approved successfully");
+      queryClient.invalidateQueries({ queryKey: ['teamAttendanceView'] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || "Failed to approve overtime");
+    }
   });
 
   const handlePrevDay = () => setSelectedDate(prev => subDays(prev, 1));
@@ -135,6 +148,7 @@ export default function TeamAttendancePage() {
                       <th className="px-6 py-4">CHECK-IN</th>
                       <th className="px-6 py-4">CHECK-OUT</th>
                       <th className="px-6 py-4">HOURS TODAY</th>
+                      <th className="px-6 py-4">OVERTIME</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -159,6 +173,30 @@ export default function TeamAttendancePage() {
                         </td>
                         <td className="px-6 py-4 font-bold text-slate-700">
                           {member.hours}
+                        </td>
+                        <td className="px-6 py-4">
+                          {member.overtime && Number(member.overtime) > 0 ? (
+                            member.isOvertimeApproved ? (
+                              <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
+                                Approved (+{member.overtime}h)
+                              </span>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-amber-600">
+                                  {member.overtime}h pending
+                                </span>
+                                <button 
+                                  onClick={() => approveMutation.mutate(member.recordId)}
+                                  disabled={approveMutation.isPending}
+                                  className="text-[10px] font-bold bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                                >
+                                  Approve
+                                </button>
+                              </div>
+                            )
+                          ) : (
+                            <span className="text-xs text-slate-400">-</span>
+                          )}
                         </td>
                       </tr>
                     ))}

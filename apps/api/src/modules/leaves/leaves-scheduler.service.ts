@@ -42,5 +42,20 @@ export class LeavesSchedulerService implements OnModuleInit {
         error.stack,
       );
     });
+
+    this.logger.log('Registering stale leave expiry cron job in BullMQ');
+    this.leavesQueue.add('expire-stale-leaves', {}, {
+      repeat: {
+        pattern: '0 0 * * *', // Every midnight
+      },
+      jobId: 'expire-stale-leaves-job',
+    }).then(() => {
+      this.logger.log('Stale leave expiry cron job registered successfully');
+    }).catch((error: any) => {
+      this.logger.error(
+        `Failed to register stale leave expiry cron job: ${error.message}`,
+        error.stack,
+      );
+    });
   }
 }

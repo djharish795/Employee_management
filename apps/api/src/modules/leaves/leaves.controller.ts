@@ -46,56 +46,59 @@ export class LeavesController {
 
   @RequirePermissions(RbacPermissions.LEAVE_READ)
   @Get('my')
-  getMyLeaves(@Req() req: any): Promise<unknown> {
-    // Assuming JwtAuthGuard adds user info to req.user
-    const employeeId = req.user?.employeeId || req.query.employeeId;
+  getMyLeaves(@CurrentUser() user: any): Promise<unknown> {
+    const employeeId = user?.employeeId;
+    if (!employeeId) throw new ForbiddenException('Invalid session');
     return this.leaveService.getMyLeaves(employeeId);
   }
 
   @RequirePermissions(RbacPermissions.LEAVE_CREATE)
   @Post('apply')
-  applyLeave(@Body() data: ApplyLeaveDto, @Req() req: any): Promise<unknown> {
-    const employeeId = req.user?.employeeId;
+  applyLeave(@Body() data: ApplyLeaveDto, @CurrentUser() user: any): Promise<unknown> {
+    const employeeId = user?.employeeId;
+    if (!employeeId) throw new ForbiddenException('Invalid session');
     return this.leaveService.applyLeave({ ...data, employeeId });
   }
 
   @RequirePermissions(RbacPermissions.LEAVE_READ)
   @Post('calculate')
-  calculateLeave(@Body() data: ApplyLeaveDto, @Req() req: any): Promise<unknown> {
-    const employeeId = req.user?.employeeId;
+  calculateLeave(@Body() data: ApplyLeaveDto, @CurrentUser() user: any): Promise<unknown> {
+    const employeeId = user?.employeeId;
+    if (!employeeId) throw new ForbiddenException('Invalid session');
     return this.leaveService.calculateLeave({ ...data, employeeId });
   }
 
   @RequirePermissions(RbacPermissions.LEAVE_APPROVE)
   @Post(':id/approve')
-  approveLeave(@Param('id') id: string, @Req() req: any): Promise<unknown> {
-    const approverId = req.user?.employeeId;
+  approveLeave(@Param('id') id: string, @CurrentUser() user: any): Promise<unknown> {
+    const approverId = user?.employeeId;
+    if (!approverId) throw new ForbiddenException('Invalid session');
     return this.leaveService.approveLeave(id, approverId);
   }
 
   @RequirePermissions(RbacPermissions.LEAVE_REJECT)
   @Post(':id/reject')
-  rejectLeave(@Param('id') id: string, @Req() req: any, @Body('reason') reason: string): Promise<unknown> {
-    const approverId = req.user?.employeeId;
+  rejectLeave(@Param('id') id: string, @CurrentUser() user: any, @Body('reason') reason: string): Promise<unknown> {
+    const approverId = user?.employeeId;
+    if (!approverId) throw new ForbiddenException('Invalid session');
     return this.leaveService.rejectLeave(id, approverId, reason || 'No reason provided');
   }
 
   @RequirePermissions(RbacPermissions.LEAVE_CREATE)
   @Post(':id/cancel')
-  cancelLeave(@Param('id') id: string, @Req() req: any): Promise<unknown> {
-    const employeeId = req.user?.employeeId;
+  cancelLeave(@Param('id') id: string, @CurrentUser() user: any): Promise<unknown> {
+    const employeeId = user?.employeeId;
     if (!employeeId) {
       throw new ForbiddenException('You can only cancel your own leaves.');
     }
     return this.leaveService.cancelLeave(id, employeeId);
   }
 
-
   @RequirePermissions(RbacPermissions.LEAVE_READ)
   @Get('calendar')
   getCalendar(@CurrentUser() user: any): Promise<unknown> {
     // Always use the authenticated user's own ID from the JWT
-    return this.leaveService.getCalendar(user.employeeId);
+    return this.leaveService.getCalendar(user.employeeId, user.role);
   }
 
 }

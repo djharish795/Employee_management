@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards, Res, Req, UnauthorizedException, Get } from "@nestjs/common";
+import { Body, Controller, Post, UseGuards, Res, Req, UnauthorizedException, Get, Param } from "@nestjs/common";
 import { Response, Request, CookieOptions } from "express";
 import { ThrottlerGuard, Throttle } from "@nestjs/throttler";
 import { AuthService } from "./auth.service";
@@ -20,7 +20,7 @@ const cookieOptions = (maxAge: number): CookieOptions => ({
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Throttle({ default: { limit: 50, ttl: 300000 } })
+  @Throttle({ default: { limit: 5, ttl: 300000 } })
   @Post("login")
   async login(@Req() req: Request, @Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const ip = req.ip;
@@ -100,9 +100,9 @@ export class AuthController {
 
   @Post("sessions/:jti/revoke")
   @UseGuards(JwtAuthGuard)
-  async revokeSession(@Req() req: Request & { user?: any }, @Body() body: { jti: string }) {
+  async revokeSession(@Req() req: Request & { user?: any }, @Param('jti') jti: string) {
     const userId = req.user?.userId;
     if (!userId) throw new UnauthorizedException();
-    return this.authService.revokeSession(userId, body.jti);
+    return this.authService.revokeSession(userId, jti);
   }
 }

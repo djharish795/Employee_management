@@ -2,7 +2,7 @@
 import toast from "react-hot-toast";
 
 import React, { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search, Filter, Download, ArrowUpDown, Calendar, RefreshCcw } from "lucide-react";
 import { AttendanceLog } from "@/types/attendance";
 import { memo } from "react";
@@ -21,7 +21,7 @@ const formatDecimalHoursToHMS = (hoursDecimal: number): string => {
   return parts.join(" ");
 };
 
-import { fetchMyLogs, fetchAllLogs, exportAllLogsCsv } from "@/lib/api/attendance";
+import { fetchMyLogs, fetchAllLogs, exportAllLogsCsv, approveOvertime } from "@/lib/api/attendance";
 
 const formatTimeValue = (val: string | null | undefined): string => {
   if (!val) return "—";
@@ -39,7 +39,7 @@ interface HistoryPanelProps {
   mode?: "personal" | "org";
 }
 
-const MemoizedHistoryRow = memo(({ log, isOrgMode }: { log: any, isOrgMode: boolean }) => {
+const MemoizedHistoryRow = memo(({ log, isOrgMode, onApprove, isApproving }: { log: any, isOrgMode: boolean, onApprove?: (id: string) => void, isApproving?: boolean }) => {
   let badge = "text-slate-600 bg-slate-100";
   if (log.status === "PRESENT") badge = "text-emerald-700 bg-emerald-50 border border-emerald-200/50";
   else if (log.status === "LATE") badge = "text-amber-700 bg-amber-50 border border-amber-200/50";
@@ -96,6 +96,30 @@ const MemoizedHistoryRow = memo(({ log, isOrgMode }: { log: any, isOrgMode: bool
         </td>
         <td className="px-6 py-4 text-slate-500 leading-relaxed max-w-[240px] truncate" title={log.remarks}>
           {log.remarks}
+        </td>
+        <td className="px-6 py-4">
+          {log.overtime && Number(log.overtime) > 0 ? (
+            log.isOvertimeApproved ? (
+              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                +{log.overtime}h
+              </span>
+            ) : isOrgMode && onApprove ? (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-amber-600">{log.overtime}h</span>
+                <button 
+                  onClick={() => onApprove(log.id)}
+                  disabled={isApproving}
+                  className="text-[9px] font-bold bg-blue-600 text-white px-2 py-0.5 rounded hover:bg-blue-700 disabled:opacity-50"
+                >
+                  Approve
+                </button>
+              </div>
+            ) : (
+              <span className="text-[10px] font-bold text-amber-600">{log.overtime}h Pending</span>
+            )
+          ) : (
+            <span className="text-slate-300">-</span>
+          )}
         </td>
       </tr>
       
@@ -166,6 +190,20 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
         return { data: res.data || (res as any), total: (res as any).total || 500 };
       }
     },
+  });
+
+  const queryClient = useQueryClient();
+  const approveMutation = useMutation({
+    mutationFn: approveOvertime,
+    onSuccess: () => {
+      toast.success("Overtime approved");
+      queryClient.invalidateQueries({ queryKey: ["attendanceLogs"] });
+      // Also invalidate teamAttendanceView to be safe if they use that too
+      queryClient.invalidateQueries({ queryKey: ["teamAttendanceView"] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || "Failed to approve overtime");
+    }
   });
 
   const rawLogs = queryResult?.data || [];
@@ -415,11 +453,18 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
                   <th className="px-6 py-4">Break Time</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4">Remarks</th>
+                  <th className="px-6 py-4">Overtime</th>
                 </tr>
               </thead>
               <tbody className="text-xs font-semibold text-slate-700 divide-y divide-slate-100">
                 {displayLogs.map((log, idx) => (
-                  <MemoizedHistoryRow key={(log as any).id || idx} log={log} isOrgMode={isOrgMode} />
+                  <MemoizedHistoryRow 
+                    key={(log as any).id || idx} 
+                    log={log} 
+                    isOrgMode={isOrgMode}
+                    onApprove={(id) => approveMutation.mutate(id)}
+                    isApproving={approveMutation.isPending}
+                  />
                 ))}
               </tbody>
             </table>

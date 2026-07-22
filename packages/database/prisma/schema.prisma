@@ -328,6 +328,7 @@ model AttendanceRecord {
   isRegularized         Boolean          @default(false)
   notes                 String?
   overtime              Decimal?         @db.Decimal(5, 2)
+  isOvertimeApproved    Boolean          @default(false)
   regularizedById       String?
   status                AttendanceStatus @default(PRESENT)
   totalBreakSeconds     Int              @default(0)
@@ -2207,4 +2208,12 @@ model WorkReport {
 
   @@index([reviewerId, status])
   @@map("work_reports")
+}
+
+model SystemJobLog {
+  id         String   @id @default(cuid())
+  jobName    String   @unique
+  executedAt DateTime @default(now())
+
+  @@map("system_job_logs")
 }

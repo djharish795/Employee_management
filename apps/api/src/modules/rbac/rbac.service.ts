@@ -17,10 +17,10 @@ export class RbacService {
     if (!requiredPermissions || requiredPermissions.length === 0) {
       return true;
     }
-    return requiredPermissions.some((perm) => {
-      // Force allow own profile read/write here to bypass shared package compilation sync issues
-      if (perm === Permission.READ_OWN_PROFILE || perm === Permission.WRITE_OWN_PROFILE) return true;
-      return checkPermission(role, perm);
-    });
+    // Fetch the locally computed permissions for the role (which safely includes the universally granted ones without short-circuiting)
+    const rolePermissions = this.getPermissionsForRole(role);
+
+    // Cross-reference the required permissions against the actual computed permissions
+    return requiredPermissions.some((perm) => rolePermissions.includes(perm));
   }
 }

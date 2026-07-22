@@ -4,6 +4,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import * as bcrypt from "bcrypt";
+import * as crypto from "crypto";
 import { PrismaService } from "../../prisma/prisma.service";
 import { MfaService } from "./mfa.service";
 import { TokenService } from "./token.service";
@@ -125,6 +126,24 @@ export class AuthService {
       data: { lastLoginAt: new Date() },
     });
 
+    const fingerprintString = `${user.id}:${ipAddress || 'unknown'}:${userAgent || 'unknown'}`;
+    const fingerprint = crypto.createHash('sha256').update(fingerprintString).digest('hex');
+
+    const device = await this.prisma.device.findFirst({
+      where: { userId: user.id, fingerprint, isTrusted: true },
+    });
+
+    const isUnknownDevice = !device;
+
+    if (isUnknownDevice) {
+      // Store pending device trust request in Redis for the frontend UI
+      await this.redis.setJson(`auth:trust_pending:${dto.challengeId}`, {
+        userId: user.id,
+        fingerprint,
+        name: userAgent ? userAgent.substring(0, 255) : 'Unknown Device',
+      }, 3600); // 1 hour TTL
+    }
+
     const issued = await this.tokens.issueTokens({
       userId: user.id,
       email: user.email,
@@ -141,14 +160,29 @@ export class AuthService {
       role: issued.role,
       redirectPath: issued.redirectPath,
       employeeId: user.employeeId ?? null,
-      unknownDevice: false,
+      unknownDevice: isUnknownDevice,
       isFirstLogin,
     };
   }
 
   async trustDevice(challengeId: string) {
-    // Device trust is persisted in a later iteration; acknowledge for UI flow.
-    void challengeId;
+    const pendingKey = `auth:trust_pending:${challengeId}`;
+    const pendingData = await this.redis.getJson<{userId: string, fingerprint: string, name: string}>(pendingKey);
+    
+    if (!pendingData) {
+      throw new UnauthorizedException("Device trust request expired or invalid");
+    }
+
+    await this.prisma.device.create({
+      data: {
+        userId: pendingData.userId,
+        fingerprint: pendingData.fingerprint,
+        name: pendingData.name,
+        isTrusted: true,
+      }
+    });
+
+    await this.redis.del(pendingKey);
     return { success: true };
   }
 
@@ -245,8 +279,9 @@ export class AuthService {
       if (data) {
         const parts = key.split(':');
         const refreshToken = parts[parts.length - 1];
+        const sessionId = crypto.createHash('sha256').update(refreshToken).digest('hex');
         sessions.push({
-          id: refreshToken,
+          id: sessionId,
           ipAddress: data.ipAddress || 'Authorized IP',
           userAgent: data.userAgent || 'Authorized Session',
           createdAt: data.createdAt,
@@ -260,8 +295,25 @@ export class AuthService {
   }
 
   async revokeSession(userId: string, sessionId: string) {
-    await this.redis.del(`auth:refresh:${sessionId}`);
-    await this.redis.del(`auth:session:${userId}:${sessionId}`);
+    const pattern = `auth:session:${userId}:*`;
+    const keys = await this.redis.keys(pattern);
+    
+    for (const key of keys) {
+      const parts = key.split(':');
+      const refreshToken = parts[parts.length - 1];
+      const hash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+      
+      if (hash === sessionId) {
+        await this.redis.del(`auth:refresh:${refreshToken}`);
+        await this.redis.del(key);
+        
+        // Also remove from concurrent sessions ZSET
+        const redisClient = this.redis.getClient();
+        await redisClient.zrem(`auth:user_sessions:${userId}`, refreshToken);
+        break;
+      }
+    }
+    
     return { success: true };
   }
 }

@@ -142,13 +142,33 @@ export class AttendanceService {
       }
     }
 
-    const key = this.getRedisKey(employeeId);
-    let state = await this.getState(employeeId);
+    try {
+      const key = this.getRedisKey(employeeId);
+      let state = await this.getState(employeeId);
     const now = Date.now();
     const today = this.getTodayShiftDate();
 
     if (dto.action === "IN") {
       if (state.state === "IN") throw new BadRequestException("Already punched in");
+
+      const istTime = toZonedTime(now, 'Asia/Kolkata');
+      if (istTime.getHours() < 10) {
+        throw new BadRequestException("Check-in is not allowed before 10:00 AM.");
+      }
+
+      const overlappingLeave = await this.prisma.leaveRequest.findFirst({
+        where: {
+          employeeId,
+          startDate: { lte: today },
+          endDate: { gte: today },
+          status: 'APPROVED',
+          isHalfDay: false
+        }
+      });
+
+      if (overlappingLeave) {
+        throw new BadRequestException("Cannot check in on an approved full-day leave.");
+      }
 
       const isFirstPunch = state.state === "OUT" && state.offset === 0;
 
@@ -332,6 +352,7 @@ export class AttendanceService {
         let overtimeDecimal = 0;
         if (state.offset > 32400) {
           overtimeDecimal = (state.offset - 32400) / 3600;
+          workHoursDecimal = 9;
         }
 
         let punchHistory = existingRecord?.punchHistory ? (existingRecord.punchHistory as any[]) : [];
@@ -366,6 +387,12 @@ export class AttendanceService {
     }
 
     throw new BadRequestException("Invalid action");
+    } catch (e) {
+      if (dto.idempotencyKey) {
+        await this.redis.del(`punch_lock:${employeeId}:${dto.idempotencyKey}`);
+      }
+      throw e;
+    }
   }
 
   async getMyLogs(employeeId: string, query: any): Promise<{ data: any[]; total: number; page: number; limit: number }> {
@@ -395,7 +422,9 @@ export class AttendanceService {
       remarks: record.notes || "",
       totalBreakSeconds: record.totalBreakSeconds || 0,
       breakHistory: parseBreakHistory((record as any).breakHistory),
-      punchHistory: Array.isArray((record as any).punchHistory) ? (record as any).punchHistory : []
+      punchHistory: Array.isArray((record as any).punchHistory) ? (record as any).punchHistory : [],
+      overtime: record.overtime ? Number(record.overtime) : 0,
+      isOvertimeApproved: (record as any).isOvertimeApproved || false
     }));
 
     return { data: mappedData, total, page, limit };
@@ -493,7 +522,64 @@ export class AttendanceService {
 
     // Calculate this week hours
     const thisWeekHours = weeklyTrends.reduce((sum, day) => sum + day.hours, 0);
-    const weeklyTargetHours = 45;
+    // Fetch leaves for the week
+    const weeklyLeaves = await this.prisma.leaveRequest.findMany({
+      where: {
+        employeeId,
+        status: "APPROVED",
+        startDate: { lte: endOfWeek },
+        endDate: { gte: startOfWeek }
+      },
+      include: { leaveType: true }
+    });
+
+    // Chronological allocation of paid days
+    const paidLeaveDates = new Set<string>();
+    const halfPaidLeaveDates = new Set<string>();
+
+    for (const l of weeklyLeaves) {
+      if (!l.leaveType.isPaidLeave) continue;
+      
+      let remainingPaid = Number(l.paidDays || 0);
+      if (remainingPaid <= 0) continue;
+
+      const lStart = new Date(l.startDate);
+      const lEnd = new Date(l.endDate);
+      
+      for (let d = new Date(lStart); d <= lEnd; d.setUTCDate(d.getUTCDate() + 1)) {
+        if (remainingPaid <= 0) break;
+        
+        const dayOfWeek = d.getUTCDay();
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Mon-Fri
+          const isoDate = d.toISOString().split("T")[0];
+          if (l.isHalfDay) {
+             halfPaidLeaveDates.add(isoDate);
+             remainingPaid -= 0.5;
+          } else {
+             paidLeaveDates.add(isoDate);
+             remainingPaid -= 1;
+          }
+        }
+      }
+    }
+
+    let weeklyTargetHours = 45;
+    for (let i = 0; i < 5; i++) { // Mon to Fri
+      const currentDay = new Date(startOfWeek);
+      currentDay.setUTCDate(currentDay.getUTCDate() + i);
+      const isoDate = currentDay.toISOString().split("T")[0];
+
+      const record = weeklyRecords.find(r => r.date.toISOString().split("T")[0] === isoDate);
+      if (record && record.status === "HOLIDAY") {
+        weeklyTargetHours -= 9;
+      } else if (paidLeaveDates.has(isoDate)) {
+        weeklyTargetHours -= 9;
+      } else if (halfPaidLeaveDates.has(isoDate)) {
+        weeklyTargetHours -= 4.5;
+      }
+    }
+    
+    if (weeklyTargetHours < 0) weeklyTargetHours = 0;
 
     return {
       presentToday,
@@ -954,11 +1040,6 @@ export class AttendanceService {
       const checkOut = record.checkOutTime ? record.checkOutTime.toISOString() : null;
       const hoursWorked = record.workHours ? Number(record.workHours) : "--";
       let statusStr = record.status;
-      if (statusStr === "PRESENT" && Number(hoursWorked) < 9) {
-        if (record.checkOutTime) {
-          statusStr = "EARLY_CHECKOUT" as any;
-        }
-      }
 
       return {
         id: record.id,
@@ -969,7 +1050,9 @@ export class AttendanceService {
         hoursWorked,
         status: statusStr,
         remarks: record.notes || "Standard Entry",
-        punchHistory: Array.isArray((record as any).punchHistory) ? (record as any).punchHistory : []
+        punchHistory: Array.isArray((record as any).punchHistory) ? (record as any).punchHistory : [],
+        overtime: record.overtime ? Number(record.overtime) : 0,
+        isOvertimeApproved: (record as any).isOvertimeApproved || false
       };
     });
 
@@ -1238,10 +1321,12 @@ export class AttendanceService {
         status: true,
         checkInTime: true,
         checkOutTime: true,
-        workHours: true
-      }
+        workHours: true,
+        overtime: true,
+        isOvertimeApproved: true
+      } as any
     });
-    const recordMap = new Map(todayRecords.map(r => [r.employeeId, r]));
+    const recordMap = new Map<string, any>(todayRecords.map((r: any) => [r.employeeId, r]));
 
     // 3. Get today's leaves for the team
     const startOfToday = new Date(today);
@@ -1298,7 +1383,10 @@ export class AttendanceService {
         status,
         checkIn: checkInFormat,
         checkOut: checkOutFormat,
-        hours: hoursStr
+        hours: hoursStr,
+        recordId: record?.id,
+        overtime: (record as any)?.overtime,
+        isOvertimeApproved: (record as any)?.isOvertimeApproved
       };
     });
 
@@ -1384,5 +1472,63 @@ export class AttendanceService {
       realTimeStatus,
       heatmapData
     };
+  }
+
+  async approveOvertime(recordId: string, managerId: string) {
+    const record = await this.prisma.attendanceRecord.findUnique({
+      where: { id: recordId },
+      include: { employee: true }
+    });
+
+    if (!record) {
+      throw new NotFoundException("Attendance record not found");
+    }
+
+    if ((record as any).isOvertimeApproved) {
+      throw new BadRequestException("Overtime is already approved for this record");
+    }
+
+    if (!record.overtime || Number(record.overtime) <= 0) {
+      throw new BadRequestException("No overtime recorded for this shift");
+    }
+
+    const manager = await this.prisma.employee.findUnique({ where: { id: managerId }, include: { user: true } });
+    if (!manager) {
+      throw new ForbiddenException("Invalid manager profile");
+    }
+
+    // Role-based validation
+    const isAdmin = ['HR', 'CHRO', 'CEO', 'SUPER_ADMIN'].includes(manager.user?.role || '');
+    const isDirectManager = record.employee.reportingManagerId === managerId;
+
+    if (!isAdmin && !isDirectManager) {
+      throw new ForbiddenException("Only the direct manager or an admin can approve overtime.");
+    }
+
+    const currentWorkHours = Number(record.workHours || 0);
+    const overtimeHours = Number(record.overtime);
+    const newWorkHours = currentWorkHours + overtimeHours;
+
+    const managerName = manager ? `${manager.firstName} ${manager.lastName}` : managerId;
+    
+    const newNote = `Overtime of ${overtimeHours} hours approved by ${managerName}.`;
+    const finalNotes = record.notes ? `${record.notes}\n${newNote}` : newNote;
+
+    const updatedRecord = await this.prisma.attendanceRecord.update({
+      where: { id: recordId },
+      data: {
+        isOvertimeApproved: true,
+        workHours: newWorkHours,
+        notes: finalNotes
+      } as any
+    });
+
+    this.inApp.broadcastEvent('attendance.overtime_approved', { 
+      employeeId: record.employeeId, 
+      date: record.date.toISOString(),
+      hours: overtimeHours
+    });
+
+    return updatedRecord;
   }
 }

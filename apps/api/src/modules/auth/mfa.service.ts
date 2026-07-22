@@ -12,6 +12,7 @@ export interface MfaChallenge {
   otp: string;
   method: "EMAIL_OTP";
   createdAt: string;
+  attempts: number;
 }
 
 @Injectable()
@@ -34,6 +35,7 @@ export class MfaService {
       otp,
       method: "EMAIL_OTP",
       createdAt: new Date().toISOString(),
+      attempts: 0,
     };
 
     await this.redis.setJson(`${CHALLENGE_PREFIX}${challengeId}`, challenge, CHALLENGE_TTL_SECONDS);
@@ -43,11 +45,26 @@ export class MfaService {
   }
 
   async verifyChallenge(challengeId: string, code: string): Promise<MfaChallenge | null> {
-    const challenge = await this.redis.getJson<MfaChallenge>(`${CHALLENGE_PREFIX}${challengeId}`);
+    const key = `${CHALLENGE_PREFIX}${challengeId}`;
+    const challenge = await this.redis.getJson<MfaChallenge>(key);
     if (!challenge) return null;
-    if (challenge.otp !== code) return null;
+    
+    if (challenge.otp !== code) {
+      challenge.attempts = (challenge.attempts || 0) + 1;
+      if (challenge.attempts >= 3) {
+        this.logger.warn(`Burning MFA challenge ${challengeId} after 3 failed attempts`);
+        await this.redis.del(key);
+      } else {
+        const redisClient = this.redis.getClient();
+        const ttl = await redisClient.ttl(key);
+        if (ttl > 0) {
+          await this.redis.setJson(key, challenge, ttl);
+        }
+      }
+      return null;
+    }
 
-    await this.redis.del(`${CHALLENGE_PREFIX}${challengeId}`);
+    await this.redis.del(key);
     return challenge;
   }
 }

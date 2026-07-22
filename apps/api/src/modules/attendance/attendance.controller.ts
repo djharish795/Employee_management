@@ -7,6 +7,8 @@ import { Permissions } from "../../common/decorators/permissions.decorator";
 import { Permission } from "@naprocs/types";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { PunchDto } from "./dto/punch.dto";
+import { RegularizeDto } from "./dto/regularize.dto";
+import { ActionRegularizationDto } from "./dto/action-regularization.dto";
 import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
 import { RbacPermissions } from '../../common/rbac/rbac.config';
 
@@ -113,7 +115,7 @@ export class AttendanceController {
   @Permissions(Permission.WRITE_OWN_PROFILE)
   async createRegularization(
     @CurrentUser() user: any,
-    @Body() dto: any
+    @Body() dto: RegularizeDto
   ) {
     return this.attendanceService.createRegularization(user.employeeId, dto);
   }
@@ -125,9 +127,20 @@ export class AttendanceController {
   async actionRegularization(
     @CurrentUser() user: any,
     @Param('id') id: string,
-    @Body() dto: { action: "APPROVE" | "REJECT" }
+    @Body() dto: ActionRegularizationDto
   ) {
     return this.attendanceService.actionRegularization(id, dto.action, user);
+  }
+
+  @Post("records/:id/approve-overtime")
+  @Permissions(Permission.READ_OWN_PROFILE)
+  async approveOvertime(
+    @CurrentUser() user: any,
+    @Param('id') id: string
+  ) {
+    // Basic RBAC check can be added here or in service.
+    // Assuming team leads and admins have access based on the UI flow.
+    return this.attendanceService.approveOvertime(id, user.employeeId);
   }
 }
 

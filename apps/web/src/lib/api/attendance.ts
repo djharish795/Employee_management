@@ -88,3 +88,8 @@ export const fetchTeamAttendanceView = async (dateStr?: string): Promise<any> =>
   const { data } = await apiClient.get(`/attendance/team-view?${params.toString()}`);
   return data;
 };
+
+export const approveOvertime = async (recordId: string): Promise<any> => {
+  const { data } = await apiClient.post(`/attendance/records/${recordId}/approve-overtime`);
+  return data;
+};
