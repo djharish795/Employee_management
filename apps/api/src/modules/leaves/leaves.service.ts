@@ -176,7 +176,7 @@ export class LeavesService {
 
   private getRoleForEmployee(employee: any): string {
     if (employee.user?.role) {
-      if (['CEO', 'CTO'].includes(employee.user.role)) {
+      if (['CEO', 'CTO', 'OM'].includes(employee.user.role)) {
         return employee.user.role;
       }
     }
@@ -246,15 +246,23 @@ export class LeavesService {
         queue.push({ role: step.approverRoleId, status: 'PENDING', approverId });
       }
     } else {
-      // Fallback
+      // Fallback queue determination based on role
+
       if (role === 'CTO') {
+        // CTO → CEO only
         queue.push({ role: 'CEO', status: 'PENDING' });
+
+      } else if (role === 'OM') {
+        // Operations Manager → CEO only (no HR step)
+        queue.push({ role: 'CEO', status: 'PENDING' });
+
       } else if (role === 'TR') {
+        // Trainee Researcher → TL (from project) → HR
         const projectAssignment = await this.prisma.projectAssignment.findFirst({
           where: { employeeId: employee.id, releasedAt: null },
           include: { project: { include: { assignments: { where: { projectRole: 'TL', releasedAt: null } } } } }
         });
-        
+
         let teamLeadId = undefined;
         if (projectAssignment && projectAssignment.project.assignments.length > 0) {
           teamLeadId = projectAssignment.project.assignments[0].employeeId;
@@ -266,27 +274,53 @@ export class LeavesService {
           queue.push({ role: 'MANAGER', status: 'PENDING', approverId: employee.reportingManagerId });
         }
         queue.push({ role: 'HRE', status: 'PENDING', approverId: employee.assignedHrId || undefined });
+
+        // Emergency (< 24 hrs) → add CEO as final escalation step
+        if (isEmergency) {
+          queue.push({ role: 'CEO', status: 'PENDING' });
+        }
+
       } else if (role === 'TL') {
+        // Team Lead → Reporting Manager → HR
         if (employee.reportingManagerId) {
           queue.push({ role: 'MANAGER', status: 'PENDING', approverId: employee.reportingManagerId });
         }
         queue.push({ role: 'HRE', status: 'PENDING', approverId: employee.assignedHrId || undefined });
-      } else if (role === 'CAM' || role === 'CRM') {
-        queue.push({ role: 'HRE', status: 'PENDING', approverId: employee.assignedHrId || undefined });
-        if (employee.reportingManagerId) {
-          queue.push({ role: 'MANAGER', status: 'PENDING', approverId: employee.reportingManagerId });
+
+        if (isEmergency) {
+          queue.push({ role: 'CEO', status: 'PENDING' });
         }
+
+      } else if (role === 'OE' || role === 'CRM' || role === 'CEM' || role === 'CAM') {
+        // Operations Team (OE / CRM / CEM / CAM)
+        // Step 1: Operations Manager (their reportingManagerId)
+        // Step 2: HR Executive
+        // No project TL override — their lead IS the OM
+        if (employee.reportingManagerId) {
+          queue.push({ role: 'OM', status: 'PENDING', approverId: employee.reportingManagerId });
+        }
+        queue.push({ role: 'HRE', status: 'PENDING', approverId: employee.assignedHrId || undefined });
+
+        // Emergency (< 24 hrs) → escalate to CEO as final step
+        if (isEmergency) {
+          queue.push({ role: 'CEO', status: 'PENDING' });
+        }
+
       } else if (role === 'HRE') {
+        // HR Executive → Reporting Manager (HR Head / Director)
         if (employee.reportingManagerId) {
           queue.push({ role: 'MANAGER', status: 'PENDING', approverId: employee.reportingManagerId });
         }
+
       } else if (role !== 'CEO') {
-        // Includes OE and generic employees (Frontend/Backend devs, QA, etc.)
+        // Generic employees (Frontend/Backend devs, QA, TS, etc.)
+        // Step 1: Project TL → fallback to Reporting Manager
+        // Step 2: HR
         const projectAssignment = await this.prisma.projectAssignment.findFirst({
           where: { employeeId: employee.id, releasedAt: null },
           include: { project: { include: { assignments: { where: { projectRole: 'TL', releasedAt: null } } } } }
         });
-        
+
         let teamLeadId = undefined;
         if (projectAssignment && projectAssignment.project.assignments.length > 0) {
           teamLeadId = projectAssignment.project.assignments[0].employeeId;
@@ -298,10 +332,15 @@ export class LeavesService {
           queue.push({ role: 'MANAGER', status: 'PENDING', approverId: employee.reportingManagerId });
         }
         queue.push({ role: 'HRE', status: 'PENDING', approverId: employee.assignedHrId || undefined });
+
+        if (isEmergency) {
+          queue.push({ role: 'CEO', status: 'PENDING' });
+        }
       }
 
-      // Apply CEO Scope filter on the fallback queue
-      queue = queue.filter(q => !(q.role === 'CEO' && policy?.ceoLeaveApprovalScope === 'EMERGENCY_ONLY' && !isEmergency));
+      // NOTE: For OM and CTO, CEO is always the approver regardless of policy scope.
+      // For all other roles, if NOT emergency, CEO step (added above) is only included
+      // when isEmergency is true, so no further filtering needed for the fallback path.
     }
 
     // CYCLE DETECTION: Ensure no duplicate approver roles or IDs
@@ -319,7 +358,7 @@ export class LeavesService {
       uniqueQueue.push(q);
     }
 
-    return uniqueQueue.filter(q => q.approverId || ['HRE', 'CEO', 'CTO'].includes(q.role));
+    return uniqueQueue.filter(q => q.approverId || ['HRE', 'CEO', 'CTO', 'OM'].includes(q.role));
   }
 
   async getMyLeaves(employeeId: string): Promise<unknown> {
