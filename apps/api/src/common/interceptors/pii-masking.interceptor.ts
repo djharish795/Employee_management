@@ -26,6 +26,9 @@ export class PiiMaskingInterceptor implements NestInterceptor {
     }
     
     if (data !== null && typeof data === 'object') {
+      if (data instanceof Date) {
+        return data;
+      }
       const maskedObj: any = {};
       for (const key in data) {
         if (Object.prototype.hasOwnProperty.call(data, key)) {
