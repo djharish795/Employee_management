@@ -46,19 +46,20 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 USER nextjs
 
-# Copy standalone output (server.js + bundled node_modules from monorepo root)
+# Copy standalone output — with outputFileTracingRoot at monorepo root,
+# Next.js preserves the full path: server.js is at apps/web/server.js inside standalone
 COPY --from=installer --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
 
-# Static files must be at .next/static relative to server.js (which is at /app/server.js)
-COPY --from=installer --chown=nextjs:nodejs /app/apps/web/.next/static ./.next/static
+# Static files must be alongside server.js at apps/web/.next/static
+COPY --from=installer --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
 
-# Public folder must be at ./public relative to server.js
-COPY --from=installer --chown=nextjs:nodejs /app/apps/web/public ./public
+# Public folder must be alongside server.js at apps/web/public
+COPY --from=installer --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
 
 # Expose port (default 3000 for NextJS)
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# server.js is created by next build with output: standalone
-CMD ["node", "server.js"]
+# server.js lives at apps/web/server.js inside the standalone output
+CMD ["node", "apps/web/server.js"]
