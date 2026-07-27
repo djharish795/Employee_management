@@ -35,7 +35,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm turbo run build --filter=web...
 
 # 3. Create the production runner image
-FROM base AS runner
+FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -46,19 +46,19 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 USER nextjs
 
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
-# Copy public folder
-COPY --from=installer --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
-
-# Copy standalone output
+# Copy standalone output (server.js + bundled node_modules from monorepo root)
 COPY --from=installer --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
-COPY --from=installer --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
+
+# Static files must be at .next/static relative to server.js (which is at /app/server.js)
+COPY --from=installer --chown=nextjs:nodejs /app/apps/web/.next/static ./.next/static
+
+# Public folder must be at ./public relative to server.js
+COPY --from=installer --chown=nextjs:nodejs /app/apps/web/public ./public
 
 # Expose port (default 3000 for NextJS)
 EXPOSE 3000
 ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
-# Server.js is created by next build from the standalone output
-# It runs the next server without the full node_modules
+# server.js is created by next build with output: standalone
 CMD ["node", "server.js"]
