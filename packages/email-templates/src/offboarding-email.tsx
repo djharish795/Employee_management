@@ -2,74 +2,63 @@ import React from "react";
 import { MainLayout } from "./MainLayout";
 import { Text, Section, Hr, Button } from "@react-email/components";
 
-interface LeaveApprovedEmailProps {
+interface OffboardingEmailProps {
   name: string;
-  leaveType: string;
-  startDate: string;
-  endDate: string;
-  totalDays: string;
-  approverName: string;
+  lastWorkingDay: string;
+  settlementDate: string;
 }
 
 const BRAND_COLOR = "#003366";
 
-export const LeaveApprovedEmail = ({
+export const OffboardingEmail = ({
   name = "Employee",
-  leaveType = "Annual Leave",
-  startDate = "Oct 1, 2024",
-  endDate = "Oct 3, 2024",
-  totalDays = "3",
-  approverName = "Manager",
-}: LeaveApprovedEmailProps) => {
+  lastWorkingDay = "Dec 31, 2024",
+  settlementDate = "Jan 15, 2025",
+}: OffboardingEmailProps) => {
   return (
-    <MainLayout previewText={`Your ${leaveType} has been approved`}>
-      <Text style={heading}>Leave Request Approved!</Text>
+    <MainLayout previewText="Offboarding Process Initiated">
+      <Text style={heading}>Offboarding Process Initiated</Text>
       
       <Text style={paragraph}>
         Hi {name},
       </Text>
       
       <Text style={paragraph}>
-        Great news! Your recent leave request has been reviewed and approved by <strong>{approverName}</strong>.
+        We have received your exit request and have initiated the offboarding process. We wish you the best in your future endeavors!
       </Text>
 
       <Hr style={hr} />
 
       <Section style={detailsBox}>
         <Text style={detailRow}>
-          <strong>Leave Type:</strong> {leaveType}
+          <strong>Last Working Day:</strong> {lastWorkingDay}
         </Text>
         <Text style={detailRow}>
-          <strong>Start Date:</strong> {startDate}
-        </Text>
-        <Text style={detailRow}>
-          <strong>End Date:</strong> {endDate}
-        </Text>
-        <Text style={detailRow}>
-          <strong>Total Days:</strong> {totalDays}
+          <strong>Expected Settlement Date:</strong> {settlementDate}
         </Text>
       </Section>
       
+      <Text style={paragraph}>
+        Please ensure you complete all your pending tasks, submit any final expense claims, and complete your Knowledge Transfer (KT) checklist. 
+        Your system access will be revoked automatically at the end of your last working day.
+      </Text>
+      
       <Section style={buttonContainer}>
-        <Button style={button} href="https://crewbase.naprocs.in/leaves">
-          View Leave History
+        <Button style={button} href="https://crewbase.naprocs.in/offboarding">
+          View Exit Checklist
         </Button>
       </Section>
-
-      <Text style={paragraph}>
-        Enjoy your time off! Please ensure you have handed over any urgent tasks to your team members before you leave.
-      </Text>
     </MainLayout>
   );
 };
 
-export default LeaveApprovedEmail;
+export default OffboardingEmail;
 
 // Styles
 const heading = {
   fontSize: "24px",
   fontWeight: "bold",
-  color: "#047857", // Emerald green for approval
+  color: "#b91c1c", // Red for exit
   marginBottom: "16px",
 };
 

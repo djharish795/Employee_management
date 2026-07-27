@@ -4,6 +4,8 @@ import { PrismaService } from "../../prisma/prisma.service";
 import * as Handlebars from "handlebars";
 import { SESClient } from "@aws-sdk/client-ses";
 
+import { renderEmailHtml } from "@naprocs/email-templates";
+
 @Injectable()
 export class EmailService implements OnModuleInit {
   private readonly logger = new Logger(EmailService.name);
@@ -22,10 +24,10 @@ export class EmailService implements OnModuleInit {
         this.transporter = nodemailer.createTransport({
           host: "smtp.ethereal.email",
           port: 587,
-          secure: false, // true for 465, false for other ports
+          secure: false,
           auth: {
-            user: testAccount.user, // generated ethereal user
-            pass: testAccount.pass, // generated ethereal password
+            user: testAccount.user,
+            pass: testAccount.pass,
           },
         });
         this.logger.log(`Ethereal Email initialized successfully! Emails will be caught here.`);
@@ -35,13 +37,20 @@ export class EmailService implements OnModuleInit {
     } else {
       this.logger.log("Initializing AWS SES for production email delivery...");
       try {
-        const sesClient = new SESClient({
+        const sesConfig: any = {
           region: process.env.AWS_SES_REGION || process.env.AWS_REGION || "ap-south-1",
-          credentials: {
-            accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
-            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
-          },
-        });
+        };
+        
+        // Only explicitly set credentials if they exist in env,
+        // otherwise let AWS SDK securely inherit the ECS Task Role.
+        if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
+          sesConfig.credentials = {
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+          };
+        }
+
+        const sesClient = new SESClient(sesConfig);
         this.transporter = nodemailer.createTransport({
           SES: { ses: sesClient, aws: require('@aws-sdk/client-ses') }
         } as any);
@@ -59,22 +68,14 @@ export class EmailService implements OnModuleInit {
       return;
     }
 
-    let compiledHtml = `<p><strong>Template:</strong> ${templateName}</p><pre>${JSON.stringify(context, null, 2)}</pre>`;
-    let finalSubject = subject;
-
-    const template = await this.prisma.emailTemplate.findUnique({
-      where: { code: templateName.toUpperCase() }
-    });
-
-    if (template) {
-      try {
-        const templateSubject = Handlebars.compile(template.subject);
-        const templateBody = Handlebars.compile(template.bodyHtml);
-        finalSubject = templateSubject(context);
-        compiledHtml = templateBody(context);
-      } catch (err) {
-        this.logger.error(`Handlebars compilation failed for template ${templateName}`, err);
-      }
+    let compiledHtml = "";
+    
+    try {
+      // Use our new React Email rendering package
+      compiledHtml = await renderEmailHtml(templateName, context);
+    } catch (err) {
+      this.logger.error(`React Email rendering failed for template ${templateName}`, err);
+      compiledHtml = `<p><strong>Template:</strong> ${templateName}</p><pre>${JSON.stringify(context, null, 2)}</pre>`;
     }
 
     if (this.transporter) {
@@ -82,22 +83,23 @@ export class EmailService implements OnModuleInit {
         const info = await this.transporter.sendMail({
           from: `"Naprocs EMS" <${process.env.AWS_SES_FROM_EMAIL || 'noreply@naprocs.in'}>`,
           to,
-          subject: finalSubject,
+          subject,
           text: `Template: ${templateName}\n\nContext:\n${JSON.stringify(context, null, 2)}`,
           html: compiledHtml,
         });
         
         if (process.env.NODE_ENV === "development") {
-          this.logger.log(`[TEST EMAIL SENT] To: ${to} | Subject: ${finalSubject}`);
+          this.logger.log(`[TEST EMAIL SENT] To: ${to} | Subject: ${subject}`);
           this.logger.log(`[VIEW EMAIL HERE]: ${nodemailer.getTestMessageUrl(info)}`);
         } else {
-          this.logger.log(`[EMAIL SENT] To: ${to} | Subject: ${finalSubject}`);
+          this.logger.log(`[EMAIL SENT] To: ${to} | Subject: ${subject}`);
         }
       } catch (err) {
         this.logger.error(`Failed to send email to ${to}`, err);
       }
     } else {
-      this.logger.log(`[MOCK EMAIL] Sending to ${to} | Subject: ${finalSubject} | Template: ${templateName}`);
+      this.logger.log(`[MOCK EMAIL] Sending to ${to} | Subject: ${subject} | Template: ${templateName}`);
     }
   }
 }
+

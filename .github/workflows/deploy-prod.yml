@@ -1,1 +1,106 @@
-# placeholder
+name: Deploy to Production (AWS ECS)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ap-south-1
+  ECR_API_REPO: crewbase-api
+  ECR_WEB_REPO: crewbase-web
+  ECS_CLUSTER: crewbase-cluster
+  # NOTE: Make sure these service & task names match what you create in the AWS ECS Console
+  ECS_API_SERVICE: crewbase-api-service
+  ECS_WEB_SERVICE: crewbase-web-service
+  API_TASK_FAMILY: crewbase-api-task
+  WEB_TASK_FAMILY: crewbase-web-task
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push API image to ECR
+        id: build-api
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_API_REPO:$IMAGE_TAG -f apps/api/Dockerfile .
+          docker push $ECR_REGISTRY/$ECR_API_REPO:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_API_REPO:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Build, tag, and push WEB image to ECR
+        id: build-web
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_WEB_REPO:$IMAGE_TAG -f apps/web/Dockerfile .
+          docker push $ECR_REGISTRY/$ECR_WEB_REPO:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_WEB_REPO:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      # ---------------------------------------------------------
+      # Download current task definitions from AWS
+      # ---------------------------------------------------------
+      - name: Download API Task Definition
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ env.API_TASK_FAMILY }} --query taskDefinition > api-task-def.json
+
+      - name: Download Web Task Definition
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ env.WEB_TASK_FAMILY }} --query taskDefinition > web-task-def.json
+
+      # ---------------------------------------------------------
+      # Inject new Docker image tags into task definitions
+      # ---------------------------------------------------------
+      - name: Fill in the new image ID in the API task definition
+        id: task-def-api
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: api-task-def.json
+          container-name: crewbase-api
+          image: ${{ steps.build-api.outputs.image }}
+
+      - name: Fill in the new image ID in the Web task definition
+        id: task-def-web
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: web-task-def.json
+          container-name: crewbase-web
+          image: ${{ steps.build-web.outputs.image }}
+
+      # ---------------------------------------------------------
+      # Deploy to ECS Cluster
+      # ---------------------------------------------------------
+      - name: Deploy API to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def-api.outputs.task-definition }}
+          service: ${{ env.ECS_API_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      - name: Deploy WEB to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def-web.outputs.task-definition }}
+          service: ${{ env.ECS_WEB_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true

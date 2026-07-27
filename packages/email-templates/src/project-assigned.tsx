@@ -2,74 +2,69 @@ import React from "react";
 import { MainLayout } from "./MainLayout";
 import { Text, Section, Hr, Button } from "@react-email/components";
 
-interface LeaveApprovedEmailProps {
+interface ProjectAssignedEmailProps {
   name: string;
-  leaveType: string;
-  startDate: string;
-  endDate: string;
-  totalDays: string;
-  approverName: string;
+  projectName: string;
+  role: string;
+  deadline: string;
+  assignedBy: string;
 }
 
 const BRAND_COLOR = "#003366";
 
-export const LeaveApprovedEmail = ({
+export const ProjectAssignedEmail = ({
   name = "Employee",
-  leaveType = "Annual Leave",
-  startDate = "Oct 1, 2024",
-  endDate = "Oct 3, 2024",
-  totalDays = "3",
-  approverName = "Manager",
-}: LeaveApprovedEmailProps) => {
+  projectName = "Apollo Migration",
+  role = "Frontend Lead",
+  deadline = "Dec 31, 2024",
+  assignedBy = "Manager",
+}: ProjectAssignedEmailProps) => {
   return (
-    <MainLayout previewText={`Your ${leaveType} has been approved`}>
-      <Text style={heading}>Leave Request Approved!</Text>
+    <MainLayout previewText={`You have been assigned to ${projectName}`}>
+      <Text style={heading}>New Project Assignment</Text>
       
       <Text style={paragraph}>
         Hi {name},
       </Text>
       
       <Text style={paragraph}>
-        Great news! Your recent leave request has been reviewed and approved by <strong>{approverName}</strong>.
+        You have just been assigned to a new project team by <strong>{assignedBy}</strong>!
       </Text>
 
       <Hr style={hr} />
 
       <Section style={detailsBox}>
         <Text style={detailRow}>
-          <strong>Leave Type:</strong> {leaveType}
+          <strong>Project Name:</strong> {projectName}
         </Text>
         <Text style={detailRow}>
-          <strong>Start Date:</strong> {startDate}
+          <strong>Your Role:</strong> {role}
         </Text>
         <Text style={detailRow}>
-          <strong>End Date:</strong> {endDate}
-        </Text>
-        <Text style={detailRow}>
-          <strong>Total Days:</strong> {totalDays}
+          <strong>Target Deadline:</strong> {deadline}
         </Text>
       </Section>
       
       <Section style={buttonContainer}>
-        <Button style={button} href="https://crewbase.naprocs.in/leaves">
-          View Leave History
+        <Button style={button} href="https://crewbase.naprocs.in/projects">
+          View Project Details
         </Button>
       </Section>
 
       <Text style={paragraph}>
-        Enjoy your time off! Please ensure you have handed over any urgent tasks to your team members before you leave.
+        Please review the project briefs in the EMS portal and reach out to your team lead if you have any questions.
       </Text>
     </MainLayout>
   );
 };
 
-export default LeaveApprovedEmail;
+export default ProjectAssignedEmail;
 
 // Styles
 const heading = {
   fontSize: "24px",
   fontWeight: "bold",
-  color: "#047857", // Emerald green for approval
+  color: "#111827",
   marginBottom: "16px",
 };
 
