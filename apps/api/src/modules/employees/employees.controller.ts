@@ -89,6 +89,13 @@ export class EmployeesController {
     return this.employeesService.getCtoTeam();
   }
 
+  @Get("birthdays/today")
+  // Everyone should be able to see who has a birthday today
+  @Permissions(Permission.READ_OWN_PROFILE, Permission.READ_EMPLOYEES, Permission.READ_TEAM_PROFILES)
+  getTodaysBirthdays(): Promise<any> {
+    return this.employeesService.getTodaysBirthdays();
+  }
+
   @Get(":id")
   @Permissions(Permission.READ_EMPLOYEES, Permission.READ_TEAM_PROFILES, Permission.READ_OWN_PROFILE)
   getEmployeeById(@Param() params: EmployeeIdParamDto, @CurrentUser() user: any): Promise<EmployeeResponseDto> {

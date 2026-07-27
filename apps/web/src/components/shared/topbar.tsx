@@ -388,7 +388,7 @@ export function Topbar() {
               <span className="text-sm font-bold text-slate-900 dark:text-white leading-tight">{isMounted ? userName : "User"}</span>
               <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 leading-none uppercase tracking-wide">{isMounted ? displayRole : "Employee"}</span>
             </div>
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-700 dark:text-slate-300 font-bold text-sm uppercase transition-colors">
+            <div className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-700 dark:text-slate-300 font-bold text-sm uppercase transition-colors">
               {displayPhotoUrl && isMounted ? (
                 <Image src={displayPhotoUrl} alt="Profile" className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
               ) : (

@@ -99,7 +99,7 @@ export default function CemDashboardPanel() {
       <PersonalAttendanceWidget />
 
       {/* KPI Cards Row — matching OM/CRM dashboard style */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div id="tour-dashboard-stats" className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <PremiumCard hoverLift decorativeGradient className="p-5 flex flex-col justify-between border-blue-200">
           <div className="flex justify-between items-start mb-4">
             <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider leading-tight w-24">New Leads</span>
@@ -267,7 +267,7 @@ export default function CemDashboardPanel() {
           </div>
 
         {/* Right Sidebar Widgets */}
-        <div className="space-y-6 flex flex-col">
+        <div id="tour-quick-actions" className="space-y-6 flex flex-col">
           
           {/* Ready For Handoff */}
           <PremiumCard className="p-6 space-y-4">

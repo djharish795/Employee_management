@@ -224,7 +224,7 @@ export default function OmDashboardView() {
       </div>
 
       {/* Personal KPI Cards Row */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+      <div id="tour-dashboard-stats" className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
         {/* Today's Status */}
         <PremiumCard hoverLift decorativeGradient className="p-5 flex flex-col justify-between">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Today's Status</p>
@@ -324,7 +324,7 @@ export default function OmDashboardView() {
         ]} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div id="tour-quick-actions" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <PremiumCard className="p-0 border border-slate-200 shadow-sm flex flex-col h-[400px]">
           <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
             <div>

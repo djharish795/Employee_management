@@ -102,7 +102,7 @@ export default function OeDashboardView() {
       <PersonalAttendanceWidget />
 
       {/* KPI Cards Row using exact Executive Dashboard new UI design */}
-      <div className="mt-6 mb-6">
+      <div id="tour-dashboard-stats" className="mt-6 mb-6">
         <KpiGrid metrics={[
           {
             id: "1",
@@ -129,7 +129,7 @@ export default function OeDashboardView() {
       </div>
 
       {/* Main Grid Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+      <div id="tour-quick-actions" className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         
         {/* Active Field Operations */}
         <PremiumCard className="overflow-hidden p-0 flex flex-col h-full">

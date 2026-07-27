@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Joyride, EventData, STATUS, Step, TooltipRenderProps } from "react-joyride";
 import { useAuthStore } from "@/store/auth";
+import { useUiStore } from "@/store/ui";
 import { 
   motion, AnimatePresence, Variants, 
   useMotionValue, useSpring, useTransform, useMotionTemplate 
@@ -103,6 +104,7 @@ const CustomTooltip = ({
 
 export default function WelcomeTour() {
   const { isFirstLogin, employeeId } = useAuthStore();
+  const { setWelcomeTourActive } = useUiStore();
   const [showWelcome, setShowWelcome] = useState(false);
   const [runTour, setRunTour] = useState(false);
   const [isClient, setIsClient] = useState(false);
@@ -138,12 +140,16 @@ export default function WelcomeTour() {
 
   useEffect(() => {
     setIsClient(true);
-    if (!isFirstLogin || !employeeId) return;
+    if (!isFirstLogin || !employeeId) {
+      setWelcomeTourActive(false);
+      return;
+    }
     
     // Check if they've already seen or completed it
     const hasSeenTour = localStorage.getItem(`naprocs_tour_v2_completed_${employeeId}`);
     
     if (!hasSeenTour) {
+      setWelcomeTourActive(true);
       const timer = setTimeout(() => {
         setShowWelcome(true);
         // Mark it so it doesn't show again on reload before they finish
@@ -168,14 +174,17 @@ export default function WelcomeTour() {
         });
       }, 600);
       return () => clearTimeout(timer);
+    } else {
+      setWelcomeTourActive(false);
     }
-  }, [employeeId, isFirstLogin]);
+  }, [employeeId, isFirstLogin, setWelcomeTourActive]);
 
   const handleSkip = () => {
     if (employeeId) {
       localStorage.setItem(`naprocs_tour_v2_completed_${employeeId}`, "true");
     }
     setShowWelcome(false);
+    setWelcomeTourActive(false);
   };
 
   const handleStartTour = () => {
@@ -190,6 +199,7 @@ export default function WelcomeTour() {
     const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
     if (finishedStatuses.includes(status)) {
       setRunTour(false);
+      setWelcomeTourActive(false);
       if (employeeId) {
         localStorage.setItem(`naprocs_tour_v2_completed_${employeeId}`, "true");
       }

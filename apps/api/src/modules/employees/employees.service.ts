@@ -927,4 +927,38 @@ export class EmployeesService {
       throw error;
     }
   }
+
+  async getTodaysBirthdays() {
+    const activeEmployees = await this.prisma.employee.findMany({
+      where: { status: 'ACTIVE', dateOfBirth: { not: null } },
+      select: { 
+        id: true, 
+        firstName: true, 
+        lastName: true, 
+        photoUrl: true, 
+        dateOfBirth: true, 
+        department: { select: { name: true } }, 
+        designation: { select: { title: true } } 
+      }
+    });
+    
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentDay = today.getDate();
+    
+    const birthdays = activeEmployees.filter(emp => {
+      if (!emp.dateOfBirth) return false;
+      const dob = new Date(emp.dateOfBirth);
+      return dob.getMonth() === currentMonth && dob.getDate() === currentDay;
+    });
+
+    return birthdays.map(emp => ({
+      id: emp.id,
+      firstName: emp.firstName,
+      lastName: emp.lastName,
+      photoUrl: emp.photoUrl,
+      department: emp.department?.name,
+      designation: emp.designation?.title
+    }));
+  }
 }

@@ -2,6 +2,7 @@ import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
+import { json, urlencoded } from "express";
 import { AppModule } from "./app.module";
 
 // Prevent node process from crashing due to Redis / VPN drops
@@ -22,6 +23,9 @@ async function bootstrap() {
     origin: process.env.WS_CORS_ORIGIN ?? "http://localhost:3000",
     credentials: true,
   });
+
+  app.use(json({ limit: '50mb' }));
+  app.use(urlencoded({ extended: true, limit: '50mb' }));
 
   // EMS-SECURITY: Prevent browser cache stealing and framework profiling
   app.use(helmet({

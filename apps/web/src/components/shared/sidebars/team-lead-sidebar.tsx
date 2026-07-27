@@ -191,7 +191,7 @@ export function TeamLeadSidebar() {
 
   if (!mounted) {
     return (
-      <aside className="hidden lg:flex flex-col flex-shrink-0 bg-white h-screen border-r border-slate-200 overflow-hidden w-[240px] transition-colors" />
+      <aside id="tour-sidebar" className="hidden lg:flex flex-col flex-shrink-0 bg-white h-screen border-r border-slate-200 overflow-hidden w-[240px] transition-colors" />
     );
   }
 
@@ -233,6 +233,7 @@ export function TeamLeadSidebar() {
 
       {/* Desktop Sidebar */}
       <aside
+        id="tour-sidebar"
         className={`hidden lg:flex flex-col flex-shrink-0 bg-white h-screen border-r border-slate-200 overflow-hidden transition-all duration-300 ease-in-out ${
           collapsed ? 'w-[64px]' : 'w-[240px]'
         }`}

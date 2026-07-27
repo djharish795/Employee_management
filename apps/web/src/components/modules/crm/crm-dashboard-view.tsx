@@ -113,7 +113,7 @@ export default function CrmDashboardView() {
       <PersonalAttendanceWidget />
 
       {/* KPI Cards Row — matching OM dashboard style */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div id="tour-dashboard-stats" className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <PremiumCard hoverLift decorativeGradient className="p-5 flex flex-col justify-between border-blue-200">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Total Clients</p>
           <div className="flex items-baseline gap-1.5">
@@ -153,7 +153,7 @@ export default function CrmDashboardView() {
         </PremiumCard>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div id="tour-quick-actions" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Active Client Pipeline */}
         <div className="lg:col-span-2">
           <PremiumCard className="overflow-hidden p-0">

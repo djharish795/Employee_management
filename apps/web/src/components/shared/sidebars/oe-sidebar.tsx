@@ -198,6 +198,7 @@ export function OeSidebar() {
 
       {/* Desktop Sidebar */}
       <aside
+        id="tour-sidebar"
         className={`hidden lg:flex flex-col bg-white dark:bg-[#0B1120] border-r border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out relative z-30 ${
           collapsed ? 'w-20' : 'w-64'
         }`}

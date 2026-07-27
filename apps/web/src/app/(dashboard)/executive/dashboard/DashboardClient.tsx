@@ -127,7 +127,7 @@ export function DashboardClient() {
       <PersonalAttendanceWidget />
 
       {/* KPI Grid (Top Row) — 1 col mobile, 2 tablet, 4 desktop */}
-      <div className="mb-6">
+      <div id="tour-dashboard-stats" className="mb-6">
         <KpiGrid metrics={kpiData} />
       </div>
 
@@ -145,7 +145,7 @@ export function DashboardClient() {
         </div>
 
         {/* Quick Links */}
-        <div className="md:col-span-2 lg:col-span-1">
+        <div id="tour-quick-actions" className="md:col-span-2 lg:col-span-1">
           <QuickLinks links={quickLinksData} />
         </div>
 

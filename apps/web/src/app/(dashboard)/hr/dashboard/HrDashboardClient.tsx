@@ -227,7 +227,7 @@ export default function HrDashboardPage() {
       <PersonalAttendanceWidget />
 
       {/* KPI Cards Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-7 gap-4 mb-6">
+      <div id="tour-dashboard-stats" className="grid grid-cols-2 lg:grid-cols-7 gap-4 mb-6">
         {/* Total HeadCount */}
         <PremiumCard hoverLift decorativeGradient className="p-5">
           <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">TOTAL HEADCOUNT</p>
@@ -302,7 +302,7 @@ export default function HrDashboardPage() {
       </div>
 
       {/* Middle Row Widgets */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <div id="tour-quick-actions" className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
 
         {/* Attendance snapshot */}
         <PremiumCard className="p-6 flex flex-col">

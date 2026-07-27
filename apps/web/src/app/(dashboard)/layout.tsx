@@ -12,6 +12,7 @@ import { getSidebarTypeForRole, SidebarType } from '@naprocs/types';
 import { useRbac } from '@/hooks/use-rbac';
 import { useAuthStore } from '@/store/auth';
 import WelcomeTour from '@/components/common/welcome-tour';
+import BirthdayModal from '@/components/common/birthday-modal';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -70,6 +71,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-900 font-sans transition-colors">
       <WelcomeTour />
+      <BirthdayModal />
       {renderSidebar()}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <Topbar />
