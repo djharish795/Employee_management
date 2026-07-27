@@ -252,14 +252,14 @@ export default function CtoDashboardPage() {
           <PremiumCard hoverLift decorativeGradient className="p-5 flex flex-col justify-between">
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Engineering Headcount</div>
             <div className="flex items-end justify-between">
-              <span className="text-4xl font-extrabold text-slate-900">{metrics?.headcount || '--'}</span>
+              <span className="text-4xl font-extrabold text-slate-900">{metrics?.headcount ?? '--'}</span>
             </div>
           </PremiumCard>
 
           <PremiumCard hoverLift decorativeGradient className="p-5 flex flex-col justify-between">
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Assets Allocated</div>
             <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-extrabold text-slate-900">{metrics?.assetsAllocated || '--'}</span>
+              <span className="text-4xl font-extrabold text-slate-900">{metrics?.assetsAllocated ?? '--'}</span>
               <span className="text-sm font-semibold text-slate-500">devices</span>
             </div>
           </PremiumCard>
@@ -268,7 +268,7 @@ export default function CtoDashboardPage() {
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Open Tech Positions</div>
             <div className="flex items-center gap-3">
               <span className="w-2.5 h-2.5 rounded-full bg-orange-400"></span>
-              <span className="text-4xl font-extrabold text-slate-900">{metrics?.openPositions || '--'}</span>
+              <span className="text-4xl font-extrabold text-slate-900">{metrics?.openPositions ?? '--'}</span>
             </div>
             <div className="mt-2 flex items-center gap-1.5 px-2 py-1 bg-slate-50 text-slate-500 text-[10px] font-bold rounded border border-slate-200 w-fit">
               <Lock className="w-3 h-3" /> Locked - Phase 2
@@ -278,7 +278,7 @@ export default function CtoDashboardPage() {
           <PremiumCard hoverLift decorativeGradient className="p-5 flex flex-col justify-between">
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Avg Tenure</div>
             <div className="flex items-baseline gap-1">
-              <span className="text-4xl font-extrabold text-slate-900">{metrics?.avgTenure || '--'}</span>
+              <span className="text-4xl font-extrabold text-slate-900">{metrics?.avgTenure ?? '--'}</span>
               <span className="text-sm font-semibold text-slate-500">yrs</span>
             </div>
             <div className="text-[10px] font-bold text-slate-400 mt-2">
@@ -319,7 +319,7 @@ export default function CtoDashboardPage() {
                   <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading org data...
                 </div>
               ) : orgBreakdown.length === 0 ? (
-                <div className="py-12 text-center text-sm font-medium text-slate-400">Waiting for backend org data...</div>
+                <div className="py-12 text-center text-sm font-medium text-slate-400">No org data available.</div>
               ) : (
                 (() => {
                   const maxCount = Math.max(...orgBreakdown.map(o => o.count), 0);
@@ -351,7 +351,7 @@ export default function CtoDashboardPage() {
                   <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading assets...
                 </div>
               ) : recentAssets.length === 0 ? (
-                <div className="py-12 text-center text-sm font-medium text-slate-400">Waiting for backend asset data...</div>
+                <div className="py-12 text-center text-sm font-medium text-slate-400">No assets allocated yet.</div>
               ) : (
                 recentAssets.map(asset => (
                   <div key={asset.id} className="flex items-center justify-between">

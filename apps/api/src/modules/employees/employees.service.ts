@@ -565,16 +565,8 @@ export class EmployeesService {
     const totalEmployees = await this.prisma.employee.count({ where: { status: "ACTIVE" } });
     const departmentsCount = await this.prisma.department.count();
 
-    const managersResult = await this.prisma.employee.findMany({
-      where: { status: "ACTIVE", reportingManagerId: { not: null } },
-      select: { reportingManagerId: true },
-      distinct: ['reportingManagerId']
-    });
-    const managersCount = managersResult.length;
-
     const openJobs = await this.prisma.job.findMany({ where: { status: "OPEN" } });
     const vacantCount = openJobs.reduce((acc, job) => acc + (job.openPositions - job.filledPositions), 0);
-    const avgSpanOfControl = managersCount > 0 ? (totalEmployees / managersCount).toFixed(1) : "0";
 
     const deps = await this.prisma.department.findMany({
       include: { _count: { select: { employees: { where: { status: "ACTIVE" } } } } }
@@ -585,10 +577,48 @@ export class EmployeesService {
       percentage: totalEmployees > 0 ? Math.round((d._count.employees / totalEmployees) * 100) : 0
     })).filter(d => d.count > 0);
 
-    const cLevel = await this.prisma.user.count({ where: { role: { in: ["CEO", "CTO", "CHRO"] } } });
-    const directors = await this.prisma.user.count({ where: { role: "OPERATIONS_HEAD" } });
-    const managers = await this.prisma.user.count({ where: { role: { in: ["HR", "MANAGER"] } } });
-    const individualContributors = await this.prisma.user.count({ where: { role: "EMPLOYEE" } });
+    // Fetch all active employees to categorize them accurately
+    const activeEmployees = await this.prisma.employee.findMany({
+      where: { status: "ACTIVE" },
+      include: {
+        user: true,
+        designation: true,
+        subordinates: { where: { status: "ACTIVE" }, select: { id: true } }
+      }
+    });
+
+    let cLevel = 0;
+    let directors = 0;
+    let managers = 0;
+    let individualContributors = 0;
+    let managersCount = 0;
+    let subordinatesCount = 0;
+
+    for (const emp of activeEmployees) {
+      const hasSubordinates = emp.subordinates.length > 0;
+      
+      if (hasSubordinates) {
+        managersCount++;
+      }
+      if (emp.reportingManagerId) {
+        subordinatesCount++;
+      }
+
+      const role = emp.user?.role;
+      const title = (emp.designation?.title || "").toLowerCase();
+
+      if (role && ["CEO", "CTO", "CHRO", "CFO"].includes(role)) {
+        cLevel++;
+      } else if (role === "OPERATIONS_HEAD" || title.includes("director") || title.includes("vp")) {
+        directors++;
+      } else if (hasSubordinates || (role && ["HR", "MANAGER"].includes(role))) {
+        managers++;
+      } else {
+        individualContributors++;
+      }
+    }
+
+    const avgSpanOfControl = managersCount > 0 ? (subordinatesCount / managersCount).toFixed(1) : "0";
 
     // Dynamic Notifications
     const notifications: Array<{ title: string; message: string; type: string }> = [];

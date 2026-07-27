@@ -360,11 +360,13 @@ export class DashboardService {
 
   async getCtoOverview() {
     const allDepts = await this.prisma.department.findMany({
+      where: { name: { in: ['Engineering', 'Technology', 'IT', 'Product', 'Data'] } },
       include: { head: true }
     });
+    const techDeptIds = allDepts.map(d => d.id);
 
     const activeEmployees = await this.prisma.employee.findMany({
-      where: { status: 'ACTIVE' },
+      where: { status: 'ACTIVE', departmentId: { in: techDeptIds } },
       include: { department: true }
     });
     const headcount = activeEmployees.length;
@@ -384,12 +386,13 @@ export class DashboardService {
     const avgTenure = headcount > 0 ? Number((companyTotalTenure / headcount).toFixed(1)) : 0;
     const headcountGrowth = headcount > 0 ? Math.round((newJoinsThisMonth / headcount) * 100) : 0;
 
+    // Assets usually managed by IT/CTO for the whole company, so keeping this company-wide
     const assetsAllocated = await this.prisma.assetAssignment.count({
       where: { returnedAt: null }
     });
 
     const openJobs = await this.prisma.job.findMany({
-      where: { status: 'OPEN' }
+      where: { status: 'OPEN', departmentId: { in: techDeptIds } }
     });
     const openPositions = openJobs.reduce((acc, job) => acc + (job.openPositions - job.filledPositions), 0);
 

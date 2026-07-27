@@ -12,8 +12,8 @@ export default function OrgChartDashboardPage() {
   const activeRole = useAuthStore((state) => state.role) || "EMPLOYEE";
   const router = useRouter();
 
-  const { isExecutive, canManageOrg } = usePermissions();
-  const isRestrictedRole = !(isExecutive || canManageOrg);
+  const { isExecutive, canManageOrg, role } = usePermissions();
+  const isRestrictedRole = !(isExecutive || canManageOrg || role === "OM");
 
   useEffect(() => {
     if (isRestrictedRole) {

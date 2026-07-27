@@ -15,12 +15,9 @@ interface OrgLayoutProps {
 }
 const ALL_ROLES: OrgRole[] = ["ADMIN", "HR", "CEO", "CTO", "MANAGER", "EMPLOYEE"];
 export default function OrgLayout({ children }: OrgLayoutProps) {
-  const { role } = usePermissions();
-  const activeRole = role as any;
+  const { role, isExecutive, canManageOrg } = usePermissions();
   const pathname = usePathname();
-  const currentUserRole = useAuthStore((state) => state.role) || "EMPLOYEE";
-  const isEmployeeLevel = ["EMPLOYEE", "MANAGER", "TEAM_LEAD"].includes(currentUserRole);
-  const effectiveRole = isEmployeeLevel ? "EMPLOYEE" : activeRole;
+  const canViewDashboard = isExecutive || canManageOrg || role === "OM";
 
   const navItems = React.useMemo(() => {
     const items = [
@@ -30,28 +27,37 @@ export default function OrgLayout({ children }: OrgLayoutProps) {
       { title: "Reporting Structure", href: "/org-chart/reporting", icon: GitFork },
     ];
 
-    if (effectiveRole === "EMPLOYEE") {
+    if (!canViewDashboard) {
       return items.filter((i) => i.title !== "Dashboard" && i.title !== "Departments");
     }
 
     return items;
-  }, [effectiveRole]);
+  }, [canViewDashboard]);
 
   const subtitle = React.useMemo(() => {
-    switch (effectiveRole) {
+    switch (role) {
       case "EMPLOYEE":
+      case "CRM":
+      case "CEM":
+      case "OE":
         return "Find colleagues and view the organization's structure.";
       case "MANAGER":
+      case "TEAM_LEAD":
         return "View your reporting tree and manage team analytics.";
       case "HR":
+      case "CHRO":
         return "Manage departments, structure, and succession plans.";
       case "CEO":
       case "CTO":
+      case "CFO":
+      case "COO":
+      case "SUPER_ADMIN":
+      case "OM":
         return "Executive overview of spans of control and headcount.";
       default:
         return "Organizational directory and structural management.";
     }
-  }, [effectiveRole]);
+  }, [role]);
 
   return (
     <div className="flex flex-col h-full bg-slate-50 font-sans">

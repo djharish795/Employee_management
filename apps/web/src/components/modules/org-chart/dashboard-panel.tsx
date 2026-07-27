@@ -16,10 +16,8 @@ interface OrgDashboardPanelProps {
 
 
 export default function OrgDashboardPanel() {
-  const { role } = usePermissions();
-  const activeRole = role as any;
-  const isEmployee = activeRole === "EMPLOYEE";
-  const isManager = activeRole === "MANAGER";
+  const { isExecutive, canManageOrg, role } = usePermissions();
+  const isRestricted = !(isExecutive || canManageOrg || role === "OM");
 
   const { data: stats, isLoading } = useQuery({
     queryKey: ["orgStats"],
@@ -27,10 +25,10 @@ export default function OrgDashboardPanel() {
       const res = await apiClient.get('/employees/org-stats');
       return res.data;
     },
-    enabled: !isEmployee // Only fetch if they have access
+    enabled: !isRestricted // Only fetch if they have access
   });
 
-  if (isEmployee || isLoading || !stats) return null;
+  if (isRestricted || isLoading || !stats) return null;
 
   const colors = ["bg-slate-900", "bg-emerald-500", "bg-violet-500", "bg-amber-500", "bg-rose-500", "bg-blue-500", "bg-cyan-500"];
   const orgDistribution = stats.breakdown.map((d: any, i: number) => ({
@@ -41,8 +39,8 @@ export default function OrgDashboardPanel() {
   }));
 
   const mStruct = stats.managementStructure;
-  const totalMStruct = mStruct.cLevel + mStruct.directors + mStruct.managers + mStruct.individualContributors;
-  const calcPercent = (val: number) => totalMStruct > 0 ? Math.round((val / totalMStruct) * 100) : 0;
+  const totalEmployees = stats.totalEmployees;
+  const calcPercent = (val: number) => totalEmployees > 0 ? Math.round((val / totalEmployees) * 100) : 0;
 
   const managementDistribution = [
     { title: "Individual Contributors", percent: calcPercent(mStruct.individualContributors), color: "bg-sky-400", count: mStruct.individualContributors },
@@ -63,7 +61,7 @@ export default function OrgDashboardPanel() {
           </div>
           <div className="text-2xl font-bold text-slate-900">{stats.totalEmployees}</div>
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">
-            {isManager ? "Team Size" : "Total Employees"}
+            Total Employees
           </div>
         </div>
 
@@ -91,8 +89,7 @@ export default function OrgDashboardPanel() {
           </div>
         </div>
 
-        {(!isEmployee) && (
-          <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
+        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
             <div className="flex items-center justify-between mb-3">
               <div className="w-9 h-9 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center">
                 <UserPlus className="w-4.5 h-4.5" />
@@ -103,10 +100,7 @@ export default function OrgDashboardPanel() {
               Vacant Positions
             </div>
           </div>
-        )}
-
-        {(!isEmployee) && (
-          <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
+        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
             <div className="flex items-center justify-between mb-3">
               <div className="w-9 h-9 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center">
                 <GitFork className="w-4.5 h-4.5" />
@@ -117,7 +111,6 @@ export default function OrgDashboardPanel() {
               Avg Span of Control
             </div>
           </div>
-        )}
       </div>
 
       {/* ── Visual Summaries ───────────────────────────────────────────── */}
@@ -192,8 +185,7 @@ export default function OrgDashboardPanel() {
             </div>
           </div>
 
-          {(!isEmployee) && (
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-sm">
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-sm">
               <h3 className="text-sm font-bold text-slate-900 mb-2">Structure Notifications</h3>
               <p className="text-xs font-semibold text-slate-500 mb-4">
                 Recent changes requiring attention
@@ -221,7 +213,6 @@ export default function OrgDashboardPanel() {
                 )}
               </div>
             </div>
-          )}
         </div>
       </div>
     </div>
