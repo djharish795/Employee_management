@@ -6,7 +6,7 @@ RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
 # Setup workspace
 WORKDIR /app
-RUN pnpm install -g turbo
+RUN npm install -g turbo
 
 # 1. Prune the workspace for the WEB project
 FROM base AS builder
