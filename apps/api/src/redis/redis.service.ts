@@ -8,11 +8,11 @@ export class RedisService implements OnModuleDestroy {
   private readonly client: Redis;
 
   constructor(private readonly config: ConfigService) {
-    const host = this.config.get<string>("REDIS_HOST");
+    const host = this.config.get<string>("REDIS_HOST") ?? process.env.REDIS_HOST;
     if (!host) throw new Error("REDIS_HOST is not defined in environment");
-    const port = Number(this.config.get<string>("REDIS_PORT", "6379"));
-    const password = this.config.get<string>("REDIS_PASSWORD") || undefined;
-    const tlsEnabled = this.config.get<string>("REDIS_TLS", "false") === "true";
+    const port = Number(this.config.get<string>("REDIS_PORT") ?? process.env.REDIS_PORT ?? "6379");
+    const password = (this.config.get<string>("REDIS_PASSWORD") ?? process.env.REDIS_PASSWORD) || undefined;
+    const tlsEnabled = (this.config.get<string>("REDIS_TLS") ?? process.env.REDIS_TLS ?? "false") === "true";
 
     this.client = new Redis({
       host,

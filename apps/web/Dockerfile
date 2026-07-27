@@ -61,4 +61,4 @@ ENV PORT=3000
 
 # Server.js is created by next build from the standalone output
 # It runs the next server without the full node_modules
-CMD ["node", "apps/web/server.js"]
+CMD ["node", "server.js"]
