@@ -2,7 +2,7 @@ FROM node:20-alpine AS base
 
 # Install necessary alpine packages
 RUN apk update && apk add --no-cache libc6-compat
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
 # Setup workspace
 WORKDIR /app
