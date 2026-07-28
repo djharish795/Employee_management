@@ -1189,6 +1189,10 @@ export class AttendanceService {
       throw new BadRequestException("Regularization request not found");
     }
 
+    if (request.employeeId === currentUser.employeeId) {
+      throw new ForbiddenException("Cannot self-approve regularization request");
+    }
+
     let approverRole: "MANAGER" | "HR" | null = null;
 
     if (RbacGroups.ATTENDANCE_ADMINS.includes(currentUser.role as any)) {
@@ -1499,6 +1503,10 @@ export class AttendanceService {
 
     if (!record) {
       throw new NotFoundException("Attendance record not found");
+    }
+
+    if (record.employeeId === managerId) {
+      throw new ForbiddenException("Cannot self-approve overtime");
     }
 
     if ((record as any).isOvertimeApproved) {

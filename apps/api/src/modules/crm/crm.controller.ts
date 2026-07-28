@@ -39,8 +39,9 @@ export class CrmController {
 
   @Get("reports/pipeline-summary")
   @Permissions(Permission.READ_EMPLOYEES)
-  async getPipelineSummary() {
-    return this.service.getPipelineSummary();
+  async getPipelineSummary(@Req() req: any) {
+    const actorId = req.user?.employeeId || req.user?.id;
+    return this.service.getPipelineSummary(actorId, req.user);
   }
 
   @Get("reports/lead-activity")
@@ -60,7 +61,7 @@ export class CrmController {
   @Permissions(Permission.READ_EMPLOYEES)
   async createClient(@Body() dto: CreateClientDto, @Req() req: any) {
     const actorId = req.user?.employeeId || req.user?.id;
-    return this.service.createClient(dto, actorId);
+    return this.service.createClient(dto, actorId, req.user);
   }
 
   @Post("clients/:id/accept")
@@ -86,9 +87,13 @@ export class CrmController {
 
   @Post("clients/:id/transfer-to-crm")
   @Permissions(Permission.READ_EMPLOYEES)
-  async transferToCrm(@Param("id") id: string, @Req() req: any) {
+  async transferToCrm(
+    @Param("id") id: string,
+    @Body("assignedCrmId") assignedCrmId: string,
+    @Req() req: any
+  ) {
     const actorId = req.user?.employeeId || req.user?.id;
-    return this.service.transferToCrm(id, actorId);
+    return this.service.transferToCrm(id, assignedCrmId, actorId, req.user);
   }
 
   @Put("clients/:id/stage")
@@ -99,7 +104,7 @@ export class CrmController {
     @Req() req: any
   ) {
     const actorId = req.user?.employeeId || req.user?.id;
-    return this.service.updateClientStage(id, stage, actorId);
+    return this.service.updateClientStage(id, stage, actorId, req.user);
   }
 
   @Put("clients/:id/health")
@@ -110,7 +115,7 @@ export class CrmController {
     @Req() req: any
   ) {
     const actorId = req.user?.employeeId || req.user?.id;
-    return this.service.updateClientHealth(id, health, actorId);
+    return this.service.updateClientHealth(id, health, actorId, req.user);
   }
 
   @Post("clients/:id/close-deal")
@@ -131,7 +136,7 @@ export class CrmController {
     @Req() req: any
   ) {
     const actorId = req.user?.employeeId || req.user?.id;
-    return this.service.addClientNote(id, note, actorId);
+    return this.service.addClientNote(id, note, actorId, req.user);
   }
 
   @Post("clients/:id/calls")
@@ -142,7 +147,7 @@ export class CrmController {
     @Req() req: any
   ) {
     const actorId = req.user?.employeeId || req.user?.id;
-    return this.service.addClientCall(id, call, actorId);
+    return this.service.addClientCall(id, call, actorId, req.user);
   }
 
   @Post("clients/:id/requirements")
@@ -212,7 +217,7 @@ export class CrmController {
   @Permissions(Permission.READ_EMPLOYEES)
   async createRequirement(@Body() dto: CreateRequirementDto, @Req() req: any) {
     const actorId = req.user?.employeeId || req.user?.id;
-    return this.service.createRequirement(dto, actorId);
+    return this.service.createRequirement(dto, actorId, req.user);
   }
 
   @Put("requirements/:id")
@@ -223,7 +228,7 @@ export class CrmController {
     @Req() req: any
   ) {
     const actorId = req.user?.employeeId || req.user?.id;
-    return this.service.updateRequirement(id, dto, actorId);
+    return this.service.updateRequirement(id, dto, actorId, req.user);
   }
 
   @Put("requirements/:id/status")
@@ -241,7 +246,32 @@ export class CrmController {
   @Permissions(Permission.READ_EMPLOYEES)
   async deleteRequirement(@Param("id") id: string, @Req() req: any) {
     const actorId = req.user?.employeeId || req.user?.id;
-    return this.service.deleteRequirement(id, actorId);
+    return this.service.deleteRequirement(id, actorId, req.user);
+  }
+
+  @Post("requirements/:id/decision")
+  @Permissions(Permission.READ_EMPLOYEES)
+  async updateRequirementDecision(
+    @Param("id") id: string,
+    @Body("decision") decision: string,
+    @Req() req: any
+  ) {
+    const actorId = req.user?.employeeId || req.user?.id;
+    return this.service.updateRequirementDecision(id, decision, actorId, req.user);
+  }
+
+  @Get("scheduler")
+  @Permissions(Permission.READ_EMPLOYEES)
+  async getDailyWorkLogs(@Req() req: any) {
+    const actorId = req.user?.employeeId || req.user?.id;
+    return this.service.getDailyWorkLogs(actorId);
+  }
+
+  @Post("scheduler")
+  @Permissions(Permission.READ_EMPLOYEES)
+  async addDailyWorkLog(@Body() body: any, @Req() req: any) {
+    const actorId = req.user?.employeeId || req.user?.id;
+    return this.service.addDailyWorkLog(actorId, body.date, body.content);
   }
 
   // CRM Meetings
@@ -261,6 +291,6 @@ export class CrmController {
   @Permissions(Permission.READ_EMPLOYEES)
   async createMeeting(@Body() dto: CreateMeetingDto, @Req() req: any) {
     const actorId = req.user?.employeeId || req.user?.id;
-    return this.service.createMeeting(dto, actorId);
+    return this.service.createMeeting(dto, actorId, req.user);
   }
 }

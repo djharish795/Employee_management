@@ -210,7 +210,7 @@ export class AssetRequestsController {
     @CurrentUser() user: any,
     @Body() dto: CreateAssetRequestDto
   ) {
-    return this.assetsService.createRequest(user.employeeId, dto);
+    return this.assetsService.createRequest(user.role as UserRole, user.employeeId, dto);
   }
 
   @Patch(":id/om-select")

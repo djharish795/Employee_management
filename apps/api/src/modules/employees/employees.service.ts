@@ -266,7 +266,10 @@ export class EmployeesService {
   }
 
   async getEmployees(params: EmployeeFilterDto, currentUser?: any): Promise<PaginatedResult<Employee>> {
-    const { skip, take, page, limit } = getPaginationOptions(params);
+    let { skip, take, page, limit } = getPaginationOptions(params);
+    limit = Math.min(limit, 100);
+    take = limit;
+    skip = (page - 1) * limit;
 
     const whereClause: any = {};
 
@@ -309,7 +312,18 @@ export class EmployeesService {
         take,
         where: whereClause,
         orderBy: { createdAt: "desc" },
-        include: {
+        select: {
+          id: true,
+          employeeId: true,
+          firstName: true,
+          lastName: true,
+          officialEmail: true,
+          photoUrl: true,
+          status: true,
+          reportingManagerId: true,
+          workLocation: true,
+          createdAt: true,
+          updatedAt: true,
           department: {
             select: { id: true, name: true, code: true }
           },
@@ -341,7 +355,7 @@ export class EmployeesService {
       }
     }
 
-    return createPaginatedResponse(data, total, page, limit);
+    return createPaginatedResponse(data as any, total, page, limit);
   }
 
   async getEmployeeById(id: string, currentUser?: any): Promise<Employee> {
@@ -454,6 +468,11 @@ export class EmployeesService {
       delete empWithRels.bankAccountEnc;
       delete empWithRels.voterId;
       delete empWithRels.drivingLicence;
+      delete empWithRels.bankName;
+      delete empWithRels.bankBranch;
+      delete empWithRels.bankIfsc;
+      delete empWithRels.currentAddress;
+      delete empWithRels.permanentAddress;
     }
 
     if (empWithRels.subordinates && empWithRels.subordinates.length > 0) {

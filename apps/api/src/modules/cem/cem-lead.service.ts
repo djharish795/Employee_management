@@ -1,5 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Prisma } from '@naprocs/database';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
 import { CreateCemLeadDto } from './dto/create-cem-lead.dto';
 import { UpdateCemLeadDto } from './dto/update-cem-lead.dto';
 import { BantUpdateDto } from './dto/bant-update.dto';
@@ -8,13 +10,19 @@ import { AddMeetingLogDto } from './dto/add-meeting-log.dto';
 
 @Injectable()
 export class CemLeadService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly auditService: AuditService
+  ) {}
 
-  async getAllLeads(cemId: string, priority?: string) {
+  async getAllLeads(cemId: string, priority?: string, role?: string) {
     const where: any = {};
     if (priority && priority !== 'All') where.priority = priority;
-    // For now we don't strictly filter by cemId because test accounts might need to see all leads
-    // if (cemId) where.assignedCemId = cemId;
+    
+    const isGlobalAdmin = role === 'OM' || role === 'SUPER_ADMIN' || role === 'CEO';
+    if (cemId && !isGlobalAdmin) {
+      where.assignedCemId = cemId;
+    }
 
     return this.prisma.cemLead.findMany({
       where,
@@ -35,15 +43,23 @@ export class CemLeadService {
     if (!lead) throw new NotFoundException('Lead not found');
     return lead;
   }
-
   async createLead(dto: CreateCemLeadDto, actorId: string) {
-    return this.prisma.cemLead.create({
+    const lead = await this.prisma.cemLead.create({
       data: {
         ...dto,
         assignedCemId: actorId
       },
       include: { followUps: true, meetings: true }
     });
+    
+    await this.auditService.logCreate({
+      moduleName: 'CEM_LEAD',
+      entityId: lead.id,
+      actorId,
+      metadata: lead as any
+    });
+    
+    return lead;
   }
 
   async updateStage(id: string, stage: number) {
@@ -54,11 +70,21 @@ export class CemLeadService {
       throw new Error('Cannot assign to CRM without 100% BANT qualification.');
     }
 
-    return this.prisma.cemLead.update({
+    const updated = await this.prisma.cemLead.update({
       where: { id },
       data: { stage },
       include: { followUps: true, meetings: true }
     });
+
+    await this.auditService.logUpdate({
+      moduleName: 'CEM_LEAD',
+      entityId: id,
+      actorId: 'SYSTEM', // Should ideally be actorId but interface doesn't have it here
+      oldValue: { stage: lead.stage },
+      newValue: { stage }
+    });
+
+    return updated;
   }
 
   async toggleBant(id: string, dto: BantUpdateDto) {
@@ -79,7 +105,7 @@ export class CemLeadService {
       newStage = 5; // Automatically move to Qualified stage
     }
 
-    return this.prisma.cemLead.update({
+    const updated = await this.prisma.cemLead.update({
       where: { id },
       data: {
         ...newData,
@@ -88,13 +114,23 @@ export class CemLeadService {
       },
       include: { followUps: true, meetings: true }
     });
+
+    await this.auditService.logUpdate({
+      moduleName: 'CEM_LEAD',
+      entityId: id,
+      actorId: 'SYSTEM',
+      oldValue: { qualificationScore: lead.qualificationScore, stage: lead.stage, ...newData },
+      newValue: { qualificationScore: score, stage: newStage, ...newData }
+    });
+
+    return updated;
   }
 
   async addFollowUpLog(id: string, dto: AddFollowUpLogDto) {
     const lead = await this.getLeadById(id);
     if (!lead) throw new Error('Lead not found');
 
-    await this.prisma.followUp.create({
+    const followUp = await this.prisma.followUp.create({
       data: {
         cemLead: { connect: { id } },
         leadName: lead.prospectName,
@@ -111,6 +147,14 @@ export class CemLeadService {
         currentStage: 'Follow Up'
       }
     });
+    
+    await this.auditService.logCreate({
+      moduleName: 'CEM_FOLLOW_UP',
+      entityId: followUp.id,
+      actorId: lead.assignedCemId || 'SYSTEM',
+      metadata: followUp as any
+    });
+    
     return this.getLeadById(id);
   }
 
@@ -118,7 +162,7 @@ export class CemLeadService {
     const lead = await this.getLeadById(id);
     if (!lead) throw new Error('Lead not found');
 
-    await this.prisma.meeting.create({
+    const meeting = await this.prisma.meeting.create({
       data: {
         cemLead: { connect: { id } },
         client: lead.company,
@@ -132,11 +176,26 @@ export class CemLeadService {
         status: 'SCHEDULED'
       }
     });
+    
+    await this.auditService.logCreate({
+      moduleName: 'CEM_MEETING',
+      entityId: meeting.id,
+      actorId: lead.assignedCemId || 'SYSTEM',
+      metadata: meeting as any
+    });
+    
     return this.getLeadById(id);
   }
 
   async triggerHandoff(id: string, actorId: string) {
-    return this.prisma.cemLead.update({
+    const lead = await this.getLeadById(id);
+    if (!lead) throw new NotFoundException('Lead not found');
+
+    if (lead.qualificationScore < 100) {
+      throw new BadRequestException('Cannot assign to CRM without 100% BANT qualification.');
+    }
+
+    const updated = await this.prisma.cemLead.update({
       where: { id },
       data: {
         qualificationStatus: 'AWAITING_HANDOFF',
@@ -144,14 +203,37 @@ export class CemLeadService {
       },
       include: { followUps: true, meetings: true }
     });
+
+    await this.auditService.logUpdate({
+      moduleName: 'CEM_LEAD',
+      entityId: id,
+      actorId,
+      oldValue: { qualificationStatus: lead.qualificationStatus, stage: lead.stage },
+      newValue: { qualificationStatus: 'AWAITING_HANDOFF', stage: 6 }
+    });
+
+    return updated;
   }
 
-  async updateStatus(id: string, status: string) {
-    return this.prisma.cemLead.update({
+  async cancelLead(id: string, actorId: string) {
+    const lead = await this.getLeadById(id);
+    if (!lead) throw new NotFoundException('Lead not found');
+
+    const updated = await this.prisma.cemLead.update({
       where: { id },
-      data: { qualificationStatus: status },
+      data: { qualificationStatus: 'CANCELED' },
       include: { followUps: true, meetings: true }
     });
+
+    await this.auditService.logUpdate({
+      moduleName: 'CEM_LEAD',
+      entityId: id,
+      actorId,
+      oldValue: { qualificationStatus: lead.qualificationStatus },
+      newValue: { qualificationStatus: 'CANCELED' }
+    });
+
+    return updated;
   }
 
   async getPipelineLeads() {
@@ -167,6 +249,23 @@ export class CemLeadService {
   async confirmHandoff(id: string, crmOwner: string) {
     const lead = await this.prisma.cemLead.findUnique({ where: { id } });
     if (!lead) throw new NotFoundException('Lead not found');
+    
+    if (lead.qualificationStatus !== 'AWAITING_HANDOFF') {
+      throw new BadRequestException('Lead is not awaiting handoff');
+    }
+
+    const crmEmployee = await this.prisma.employee.findUnique({
+      where: { id: crmOwner },
+      include: { user: true }
+    });
+
+    if (!crmEmployee) {
+      throw new BadRequestException('Invalid CRM owner ID provided');
+    }
+
+    if (crmEmployee.user?.role !== 'CRM' && crmEmployee.user?.role !== 'OM' && crmEmployee.user?.role !== 'CEO') {
+      throw new BadRequestException('Assigned owner does not have CRM privileges');
+    }
 
     // Create the ClientLead in the CRM module upon handoff confirmation
     await this.prisma.clientLead.create({
@@ -177,7 +276,7 @@ export class CemLeadService {
         email: lead.email || '',
         priority: lead.priority || 'Medium',
         stage: 1,
-        assignedCem: lead.assignedCemId || 'CEM Team',
+        assignedCemId: lead.assignedCemId || null,
         leadOwner: crmOwner,
         createdDate: new Date().toISOString(),
         updatedDate: new Date().toISOString(),
@@ -192,7 +291,7 @@ export class CemLeadService {
       }
     });
 
-    return this.prisma.cemLead.update({
+    const updated = await this.prisma.cemLead.update({
       where: { id },
       data: {
         qualificationStatus: 'HANDED_OVER',
@@ -200,8 +299,19 @@ export class CemLeadService {
       },
       include: { assignedCem: true }
     });
+
+    await this.auditService.logUpdate({
+      moduleName: 'CEM_LEAD',
+      entityId: id,
+      actorId: 'SYSTEM',
+      oldValue: { qualificationStatus: lead.qualificationStatus, assignedCrm: lead.assignedCrm },
+      newValue: { qualificationStatus: 'HANDED_OVER', assignedCrm: crmOwner }
+    });
+
+    return updated;
   }
-  async getDashboardSummary() {
+
+  async getDashboardSummary(actorId: string, role?: string) {
     const today = new Date();
     // Use local date string YYYY-MM-DD for comparing with string dates stored in FollowUp/MeetingLog
     const todayStr = today.toISOString().split('T')[0];
@@ -210,32 +320,37 @@ export class CemLeadService {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(today.getDate() - 7);
 
+    const isGlobalAdmin = role === 'OM' || role === 'SUPER_ADMIN' || role === 'CEO';
+    const cemWhere: Prisma.CemLeadWhereInput = (!isGlobalAdmin && actorId) ? { assignedCemId: actorId } : {};
+    const meetingWhere: Prisma.MeetingWhereInput = (!isGlobalAdmin && actorId) ? { cemLead: { assignedCemId: actorId } } : {};
+    const followUpWhere: Prisma.FollowUpWhereInput = (!isGlobalAdmin && actorId) ? { cemLead: { assignedCemId: actorId } } : {};
+
     // 1. KPIs
-    const newLeadsAssigned = await this.prisma.cemLead.count({ where: { stage: 1, qualificationStatus: { not: 'CANCELED' } } });
+    const newLeadsAssigned = await this.prisma.cemLead.count({ where: { ...cemWhere, stage: 1, qualificationStatus: { not: 'CANCELED' } } });
     
     const followUpsDue = await this.prisma.followUp.count({
-      where: { status: 'Pending', dueDate: { lte: today } }
+      where: { ...followUpWhere, status: 'Pending', dueDate: { lte: today } }
     });
 
     const meetingsScheduled = await this.prisma.meeting.count({
-      where: { status: 'SCHEDULED', date: todayStr }
+      where: { ...meetingWhere, status: 'SCHEDULED', date: todayStr }
     });
 
     const qualifiedForCrm = await this.prisma.cemLead.count({
-      where: { qualificationStatus: { in: ['AWAITING_HANDOFF', 'HANDED_OVER', 'CRM_ACTIVE'] } }
+      where: { ...cemWhere, qualificationStatus: { in: ['AWAITING_HANDOFF', 'HANDED_OVER', 'CRM_ACTIVE'] } }
     });
 
     const overdueFollowUps = await this.prisma.followUp.count({
-      where: { status: 'Pending', dueDate: { lt: today } }
+      where: { ...followUpWhere, status: 'Pending', dueDate: { lt: today } }
     });
     
     const overdueMeetings = await this.prisma.meeting.count({
-      where: { status: 'SCHEDULED', date: { lt: todayStr } }
+      where: { ...meetingWhere, status: 'SCHEDULED', date: { lt: todayStr } }
     });
 
     // 2. Action Required Leads
     const activeLeads = await this.prisma.cemLead.findMany({
-      where: { stage: { lt: 6 }, qualificationStatus: 'ACTIVE' },
+      where: { ...cemWhere, stage: { lt: 6 }, qualificationStatus: 'ACTIVE' },
       orderBy: { updatedAt: 'desc' },
       take: 10,
       include: { followUps: { orderBy: { dueDate: 'asc' }, take: 1 } }
@@ -243,7 +358,7 @@ export class CemLeadService {
 
     // 3. Today's Meetings
     const todaysMeetingsList = await this.prisma.meeting.findMany({
-      where: { date: todayStr },
+      where: { ...meetingWhere, date: todayStr },
       orderBy: { time: 'asc' },
       include: { cemLead: true }
     });
@@ -251,6 +366,7 @@ export class CemLeadService {
     // 4. Neglected Clients
     const neglectedClients = await this.prisma.cemLead.findMany({
       where: {
+        ...cemWhere,
         stage: { lt: 6 },
         qualificationStatus: 'ACTIVE',
         updatedAt: { lt: sevenDaysAgo }
@@ -262,23 +378,26 @@ export class CemLeadService {
 
     // 5. Ready for CRM
     const readyForCrmList = await this.prisma.cemLead.findMany({
-      where: { qualificationStatus: 'AWAITING_HANDOFF' },
+      where: { ...cemWhere, qualificationStatus: 'AWAITING_HANDOFF' },
       orderBy: { updatedAt: 'desc' },
       take: 5
     });
 
     // 6. Recent Activity
     const recentLeads = await this.prisma.cemLead.findMany({
+      where: { ...cemWhere },
       orderBy: { createdAt: 'desc' },
       take: 3,
       select: { id: true, company: true, createdAt: true }
     });
     const recentMeetings = await this.prisma.meeting.findMany({
+      where: meetingWhere,
       orderBy: { createdAt: 'desc' },
       take: 3,
       include: { cemLead: { select: { company: true } } }
     });
     const recentFollowUps = await this.prisma.followUp.findMany({
+      where: followUpWhere,
       orderBy: { createdAt: 'desc' },
       take: 3,
       include: { cemLead: { select: { company: true } } }

@@ -7,7 +7,7 @@ import {
 import { RbacGroups, RbacRoles } from "../../common/rbac/rbac.config";
 import { AssetsRepository } from "./assets.repository";
 import { UserRole } from "@naprocs/types";
-import { AssetStatus, AssetCategory, NotificationType } from "@naprocs/database";
+import { AssetStatus, AssetCategory, NotificationType, AssetRequestStatus } from "@naprocs/database";
 import { CreateAssetDto } from "./dto/create-asset.dto";
 import { UpdateAssetDto } from "./dto/update-asset.dto";
 import { AssignAssetDto } from "./dto/assign-asset.dto";
@@ -40,8 +40,14 @@ export class AssetsService {
   }
 
   private validateWriteRole(role: UserRole) {
-    if (!RbacGroups.ASSET_WRITERS.includes(role as any)) {
+    if (!RbacGroups.ASSET_ADMINS.includes(role as any)) {
       throw new ForbiddenException("Only IT Admin, Super Admin, or HR can manage assets");
+    }
+  }
+
+  private validateCreateRole(role: UserRole) {
+    if (!RbacGroups.ASSET_CREATORS.includes(role as any)) {
+      throw new ForbiddenException("Insufficient permissions to create assets");
     }
   }
 
@@ -83,7 +89,7 @@ export class AssetsService {
   }
 
   async create(role: UserRole, actorId: string, dto: CreateAssetDto): Promise<any> {
-    this.validateWriteRole(role);
+    this.validateCreateRole(role);
     const asset = await this.assetsRepository.create(dto);
     await this.auditService.logCreate({
       moduleName: "Asset",
@@ -204,13 +210,23 @@ export class AssetsService {
     return this.assetsRepository.findRequests({ status: statusFilter, employeeId: resolvedEmployeeId });
   }
 
-  async createRequest(employeeId: string, dto: CreateAssetRequestDto): Promise<any> {
+  async createRequest(role: UserRole, employeeId: string, dto: CreateAssetRequestDto): Promise<any> {
+    if (dto.employeeId !== employeeId && !RbacGroups.ASSET_ADMINS.includes(role as any)) {
+      throw new ForbiddenException("You can only request assets for yourself");
+    }
+
+    let initialStatus: AssetRequestStatus = 'PENDING_OM_SELECTION';
+    if (role === 'OM') {
+      initialStatus = 'PENDING_CEO_APPROVAL';
+    }
+
     const request = await this.assetsRepository.createAssetRequest({
       employeeId: dto.employeeId,
       requesterId: employeeId,
       type: dto.type,
       requestedItems: dto.requestedItems,
       reason: dto.reason,
+      status: initialStatus,
     });
 
     await this.notificationsService.notifyRole(
@@ -225,8 +241,14 @@ export class AssetsService {
   }
 
   async omSelectAsset(role: UserRole, omId: string, requestId: string, dto: OmSelectAssetRequestDto): Promise<any> {
+    if (role !== 'OM' && role !== 'SUPER_ADMIN' && role !== 'CEO') {
+      throw new ForbiddenException("Only OM can select assets for a request");
+    }
     const req = await this.assetsRepository.getAssetRequestById(requestId);
     if (!req) throw new NotFoundException("Asset request not found");
+    if (req.requesterId === omId || req.employeeId === omId) {
+      throw new ForbiddenException("You cannot approve your own asset request");
+    }
     if (req.status !== "PENDING_OM_SELECTION") throw new BadRequestException("Request is not waiting for OM selection");
     
     console.log(`[OM_SELECT] Updating request ${requestId} with assets ${dto.assetIds}`);
@@ -255,14 +277,25 @@ export class AssetsService {
   }
 
   async ceoApproveAsset(role: UserRole, ceoId: string, requestId: string, dto: RespondAssetRequestDto): Promise<any> {
+    if (role !== 'CEO' && role !== 'SUPER_ADMIN') {
+      throw new ForbiddenException("Only CEO can approve asset requests");
+    }
     const req = await this.assetsRepository.getAssetRequestById(requestId);
     if (!req) throw new NotFoundException("Asset request not found");
+    if (req.requesterId === ceoId || req.employeeId === ceoId || req.omApproverId === ceoId) {
+      throw new ForbiddenException("You cannot approve your own asset request");
+    }
     if (req.status !== "PENDING_CEO_APPROVAL") throw new BadRequestException("Request is not waiting for CEO approval");
     
     console.log(`[CEO_APPROVE] Approving request ${requestId} with status ${dto.status}`);
     if (dto.status === "APPROVED") {
       // Assign the selected assets
       for (const assetId of req.selectedAssetIds) {
+        const asset = await this.assetsRepository.findById(assetId);
+        if (!asset || asset.status === AssetStatus.ASSIGNED || asset.status === AssetStatus.RETIRED || asset.status === AssetStatus.LOST) {
+          throw new BadRequestException(`Asset ${assetId} is not available for assignment`);
+        }
+        await this.assetsRepository.closeActiveAssignments(assetId);
         await this.assetsRepository.assign(assetId, req.employeeId, ceoId, "Assigned via Asset Request: " + dto.notes);
       }
       const updated = await this.assetsRepository.updateAssetRequest(requestId, {

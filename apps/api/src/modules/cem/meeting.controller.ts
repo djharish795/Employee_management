@@ -23,24 +23,4 @@ export class MeetingController {
     return this.service.getMeetings({ status, type, employee, date });
   }
 
-  @Post()
-  @Permissions(Permission.ACCESS_CEM)
-  async createMeeting(@Body() dto: CreateMeetingDto, @Req() req: any) {
-    const actorId = req.user?.employeeId || req.user?.id;
-    return this.service.createMeeting(dto, actorId);
-  }
-
-  @Put(':id')
-  @Permissions(Permission.ACCESS_CEM)
-  async updateMeeting(@Param('id') id: string, @Body() dto: UpdateMeetingDto, @Req() req: any) {
-    const actorId = req.user?.employeeId || req.user?.id;
-    return this.service.updateMeeting(id, dto, actorId);
-  }
-
-  @Delete(':id')
-  @Permissions(Permission.ACCESS_CEM)
-  async deleteMeeting(@Param('id') id: string, @Req() req: any) {
-    const actorId = req.user?.employeeId || req.user?.id;
-    return this.service.deleteMeeting(id, actorId);
-  }
 }

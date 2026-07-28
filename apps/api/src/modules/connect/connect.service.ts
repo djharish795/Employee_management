@@ -243,8 +243,7 @@ export class ConnectService {
   async getAvailability(employeeId: string, dateStr: string) {
     const targetDate = new Date(dateStr);
     const busySlots = await this.repository.getBusySlots(employeeId, targetDate);
-    const settings = await this.repository.getSettings(employeeId);
-    return { busySlots, settings };
+    return { busySlots };
   }
 
   async updateWorkspace(id: string, user: any, agenda: any, actionItems: any): Promise<any> {
@@ -458,7 +457,6 @@ export class ConnectService {
     if (dto.description !== undefined) updateData.description = dto.description;
     if (dto.startTime !== undefined) updateData.startTime = new Date(dto.startTime);
     if (dto.endTime !== undefined) updateData.endTime = new Date(dto.endTime);
-    if (dto.status !== undefined) updateData.status = dto.status;
     if (dto.agenda !== undefined) updateData.agenda = dto.agenda;
 
     return this.prisma.meetRequest.update({

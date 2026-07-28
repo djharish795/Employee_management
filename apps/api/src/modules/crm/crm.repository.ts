@@ -241,7 +241,7 @@ export class CrmRepository {
         clientNotes: item.clientNotes || '',
         internalNotes: item.internalNotes || '',
         owner: item.owner || 'Unassigned',
-        assignedCrm: item.assignedCrm || 'CRM Lead',
+        assignedCrmId: item.assignedCrmId || null,
         createdBy: item.createdBy || 'System User',
         requestedBy: item.requestedBy || 'Client Request',
         decisionMaker: item.decisionMaker || 'TBD',
@@ -340,7 +340,7 @@ export class CrmRepository {
     }) as unknown as Requirement[];
   }
 
-  async createRequirement(dto: CreateRequirementDto): Promise<Requirement> {
+  async createRequirement(dto: any): Promise<Requirement> {
     return this.db.requirement.create({
       data: {
         title: dto.title,
@@ -355,7 +355,7 @@ export class CrmRepository {
         clientNotes: dto.clientNotes || "",
         internalNotes: dto.internalNotes || "",
         owner: dto.owner || "Unassigned",
-        assignedCrm: dto.assignedCrm || "CRM Lead",
+        assignedCrmId: dto.assignedCrmId || null,
         createdBy: dto.createdBy || "System User",
         requestedBy: dto.requestedBy || "Client Request",
         decisionMaker: dto.decisionMaker || "TBD",

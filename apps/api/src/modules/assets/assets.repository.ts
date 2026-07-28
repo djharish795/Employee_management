@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { RbacGroups, RbacRoles } from "../../common/rbac/rbac.config";
 import { PrismaService } from "../../prisma/prisma.service";
-import { AssetStatus, AssetCategory } from "@naprocs/database";
+import { AssetStatus, AssetCategory, AssetRequestStatus } from "@naprocs/database";
 import { CreateAssetDto } from "./dto/create-asset.dto";
 import { UpdateAssetDto } from "./dto/update-asset.dto";
 
@@ -241,6 +241,7 @@ export class AssetsRepository {
     type: "ONBOARDING" | "OFFBOARDING" | "GENERAL";
     requestedItems?: any;
     reason?: string;
+    status?: AssetRequestStatus;
   }) {
     return this.prisma.assetRequest.create({
       data: {
@@ -249,6 +250,7 @@ export class AssetsRepository {
         type: data.type,
         requestedItems: data.requestedItems || [],
         reason: data.reason || "",
+        status: data.status || "PENDING_OM_SELECTION",
       },
     });
   }

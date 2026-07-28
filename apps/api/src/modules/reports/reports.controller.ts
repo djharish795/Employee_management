@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Req, ForbiddenException } from '@nestjs/common';
 import { ReportsService } from './reports.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
@@ -58,6 +58,9 @@ export class ReportsController {
     @Body('expiresInHours') expiresInHours: number,
     @Req() req: any
   ) {
+    if (req.user?.role !== 'CEO' && req.user?.role !== 'SUPER_ADMIN') {
+      throw new ForbiddenException("Only CEO or Super Admin can generate VDRs");
+    }
     const employeeId = req.user?.employeeId;
     return this.reportsService.generateVdr(payload, expiresInHours, employeeId);
   }
@@ -74,21 +77,30 @@ export class ReportsController {
   @Get('vdr-audit')
   @UseGuards(JwtAuthGuard, RbacGuard)
   @Permissions(Permission.READ_AUDIT)
-  async getVdrAudits() {
+  async getVdrAudits(@Req() req: any) {
+    if (req.user?.role !== 'CEO' && req.user?.role !== 'SUPER_ADMIN') {
+      throw new ForbiddenException("Only CEO or Super Admin can view VDR audits");
+    }
     return this.reportsService.getVdrAudits();
   }
 
   @Get('vdr-audit/:token')
   @UseGuards(JwtAuthGuard, RbacGuard)
   @Permissions(Permission.READ_AUDIT)
-  async getVdrAuditDetails(@Param('token') token: string) {
+  async getVdrAuditDetails(@Param('token') token: string, @Req() req: any) {
+    if (req.user?.role !== 'CEO' && req.user?.role !== 'SUPER_ADMIN') {
+      throw new ForbiddenException("Only CEO or Super Admin can view VDR audits");
+    }
     return this.reportsService.getVdrAuditDetails(token);
   }
 
   @Post('vdr-audit/:token/revoke')
   @UseGuards(JwtAuthGuard, RbacGuard)
   @Permissions(Permission.READ_AUDIT)
-  async revokeVdr(@Param('token') token: string) {
+  async revokeVdr(@Param('token') token: string, @Req() req: any) {
+    if (req.user?.role !== 'CEO' && req.user?.role !== 'SUPER_ADMIN') {
+      throw new ForbiddenException("Only CEO or Super Admin can revoke VDRs");
+    }
     return this.reportsService.revokeVdr(token);
   }
 }

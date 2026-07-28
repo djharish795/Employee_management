@@ -44,7 +44,12 @@ export class KnowledgeService {
       isPublished = true;
     }
 
-    return this.searchService.search(searchDto.q, searchDto.category, isPublished);
+    const page = searchDto.page || 1;
+    const limit = Math.min(searchDto.limit || 50, 100);
+    const skip = (page - 1) * limit;
+
+    const results = await this.searchService.search(searchDto.q, searchDto.category, isPublished, skip, limit);
+    return { data: results, page, limit };
   }
 
   async findOne(id: string, role: UserRole, employeeId?: string) {

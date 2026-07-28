@@ -19,4 +19,12 @@ export class SearchKnowledgeDocDto {
     return value;
   })
   isPublished?: boolean;
+
+  @IsOptional()
+  @Transform(({ value }) => parseInt(value, 10))
+  page?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => parseInt(value, 10))
+  limit?: number;
 }

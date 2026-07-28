@@ -6,7 +6,7 @@ import { KnowledgeCategory, Prisma } from "@naprocs/database";
 export class SearchService {
   constructor(private readonly prisma: PrismaService) { }
 
-  async search(q?: string, category?: KnowledgeCategory, isPublished?: boolean) {
+  async search(q?: string, category?: KnowledgeCategory, isPublished?: boolean, skip: number = 0, take: number = 50) {
     if (!q) {
       const where: Prisma.KnowledgeDocWhereInput = {};
       if (category) {
@@ -18,6 +18,8 @@ export class SearchService {
 
       return this.prisma.knowledgeDoc.findMany({
         where,
+        skip,
+        take,
         include: {
           author: {
             select: {
@@ -54,6 +56,7 @@ export class SearchService {
       AND (${dbCategory}::text IS NULL OR d.category::text = ${dbCategory})
       AND (${dbIsPublished}::boolean IS NULL OR d."isPublished" = ${dbIsPublished})
       ORDER BY rank DESC, d."updatedAt" DESC
+      LIMIT ${take} OFFSET ${skip}
     `;
 
     return results.map((row) => ({

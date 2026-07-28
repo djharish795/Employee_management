@@ -15,7 +15,8 @@ export class WorkReportsController {
   @Permissions(Permission.READ_OWN_PROFILE)
   async create(@Body() createWorkReportDto: CreateWorkReportDto, @Req() req: any) {
     const employeeId = req.user?.employeeId;
-    return this.workReportsService.create(employeeId, createWorkReportDto);
+    const role = req.user?.role;
+    return this.workReportsService.create(employeeId, role, createWorkReportDto);
   }
 
   @Get('me')
@@ -26,21 +27,17 @@ export class WorkReportsController {
   }
 
   @Get('team')
-  // Coarse gate only (everyone passes) — real authorization is enforced in
-  // the service via WORK_REPORT_ADMIN_ROLES / reviewerId scoping. Gating on
-  // APPROVE_FIELD_REQUESTS/ACCESS_CEM here let OE/CRM through (over-broad)
-  // while incorrectly locking out HR/CHRO, who hold neither permission but
-  // are legitimate admins per WORK_REPORT_ADMIN_ROLES.
-  @Permissions(Permission.READ_OWN_PROFILE)
+  @Permissions(Permission.APPROVE_FIELD_REQUESTS)
   async getTeamReports(@Req() req: any) {
     const reviewerId = req.user?.employeeId;
     const role = req.user?.role;
+    console.log("Fetching team reports for reviewerId:", reviewerId, "role:", role);
     const reports = await this.workReportsService.getTeamReports(reviewerId, role);
     return reports;
   }
 
   @Get('export')
-  @Permissions(Permission.READ_OWN_PROFILE)
+  @Permissions(Permission.APPROVE_FIELD_REQUESTS)
   async exportTeamCsv(@Req() req: any, @Res() res: any) {
     const reviewerId = req.user?.employeeId;
     const role = req.user?.role;
@@ -61,7 +58,7 @@ export class WorkReportsController {
   }
 
   @Patch(':id/review')
-  @Permissions(Permission.READ_OWN_PROFILE)
+  @Permissions(Permission.APPROVE_FIELD_REQUESTS)
   async reviewReport(
     @Param('id') id: string,
     @Body('status') status: ReportStatus,
@@ -71,5 +68,16 @@ export class WorkReportsController {
     const reviewerId = req.user?.employeeId;
     const role = req.user?.role;
     return this.workReportsService.reviewReport(reviewerId, role, id, status, rejectionReason);
+  }
+
+  @Patch(':id')
+  @Permissions(Permission.READ_OWN_PROFILE)
+  async updateReport(
+    @Param('id') id: string,
+    @Body() updateDto: any,
+    @Req() req: any
+  ) {
+    const employeeId = req.user?.employeeId;
+    return this.workReportsService.resubmitReport(employeeId, id, updateDto);
   }
 }

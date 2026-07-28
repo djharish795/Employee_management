@@ -27,17 +27,4 @@ export class FollowUpController {
     return this.service.getSummaryMetrics();
   }
 
-  @Post()
-  @Permissions(Permission.ACCESS_CEM)
-  async createFollowUp(@Body() dto: CreateFollowUpDto, @Req() req: any) {
-    const actorId = req.user?.employeeId || req.user?.id;
-    return this.service.createFollowUp(dto, actorId);
-  }
-
-  @Put(':id/outcome')
-  @Permissions(Permission.ACCESS_CEM)
-  async logOutcome(@Param('id') id: string, @Body() dto: UpdateFollowUpOutcomeDto, @Req() req: any) {
-    const actorId = req.user?.employeeId || req.user?.id;
-    return this.service.logOutcome(id, dto, actorId);
-  }
 }
