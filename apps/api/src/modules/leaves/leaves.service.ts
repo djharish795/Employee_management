@@ -216,6 +216,10 @@ export class LeavesService {
     const role = this.getRoleForEmployee(employee);
     const policy = await this.prisma.orgPolicy.findFirst();
 
+    if (role === 'OM' || role === 'CTO') {
+      return [{ role: 'CEO', status: 'PENDING' }];
+    }
+
     // 1. Fetch from ApprovalMatrix
     const matrix = await this.prisma.approvalMatrix.findMany({
       where: { requesterRoleId: role, isEmergency },
@@ -234,6 +238,9 @@ export class LeavesService {
             approverId = projectAssignment.project.assignments[0].employeeId;
           }
         } else if (step.approverRoleId === 'MANAGER') {
+          if (!employee.reportingManagerId) {
+            throw new BadRequestException("A reporting manager is required for this leave approval process but none is assigned.");
+          }
           approverId = employee.reportingManagerId;
         } else if (step.approverRoleId === 'HRE') {
           approverId = employee.assignedHrId || undefined;

@@ -340,7 +340,7 @@ export class ReportsService {
 
     await this.prisma.reportHistory.update({
       where: { secureToken: token },
-      data: { expiresAt: new Date() }
+      data: { expiresAt: new Date(), isRevoked: true }
     });
 
     return { success: true };

@@ -147,6 +147,10 @@ model Employee {
   cemLeads                   CemLead[]                  @relation("CemLeadOwner")
   workReportsSubmitted       WorkReport[]               @relation("ReportSubmitter")
   workReportsReviewed        WorkReport[]               @relation("ReportReviewer")
+  clientLeadsAssigned        ClientLead[]               @relation("ClientLeadOwner")
+  clientLeadsAssignedCrm     ClientLead[]               @relation("ClientCrmOwner")
+  requirementsAssigned       Requirement[]              @relation("RequirementOwner")
+  dailyWorkLogs              DailyWorkLog[]
   @@map("employees")
 }
 
@@ -1420,6 +1424,13 @@ enum WorkflowType {
   OFFBOARDING
 }
 
+enum RequirementDecision {
+  PENDING
+  APPROVED
+  REJECTED
+  READY_FOR_SALE
+}
+
 enum WorkflowInstanceStatus {
   PENDING
   IN_PROGRESS
@@ -2007,7 +2018,10 @@ model ClientLead {
   email            String
   priority         String
   stage            Int
-  assignedCem      String
+  assignedCemId    String?
+  assignedCem      Employee?     @relation("ClientLeadOwner", fields: [assignedCemId], references: [id])
+  assignedCrmId    String?
+  assignedCrm      Employee?     @relation("ClientCrmOwner", fields: [assignedCrmId], references: [id])
   leadOwner        String
   createdDate      DateTime      @default(now())
   updatedDate      DateTime      @updatedAt
@@ -2017,8 +2031,8 @@ model ClientLead {
   changeRequests   Json?
   attachments      String[]
   stakeholders     Json?
-  notes            String[]
-  calls            String[]
+  notes            Json?         @default("[]")
+  calls            Json?         @default("[]")
 
   requirements     Requirement[]
   meetings         Meeting[]     @relation("ClientLeadMeetings")
@@ -2053,7 +2067,8 @@ model Requirement {
   clientNotes      String
   internalNotes    String
   owner            String
-  assignedCrm      String
+  assignedCrmId    String?
+  assignedCrm      Employee?    @relation("RequirementOwner", fields: [assignedCrmId], references: [id])
   createdBy        String
   requestedBy      String
   decisionMaker    String
@@ -2061,6 +2076,7 @@ model Requirement {
   dependencies     Json?
   attachments      String[]
   timeline         Json?
+  requirementDecision RequirementDecision @default(PENDING)
 
   clientLeadId     String?
   clientLead       ClientLead?  @relation(fields: [clientLeadId], references: [id], onDelete: SetNull)
@@ -2217,3 +2233,18 @@ model SystemJobLog {
 
   @@map("system_job_logs")
 }
+
+model DailyWorkLog {
+  id          String   @id @default(cuid())
+  employeeId  String
+  date        String
+  content     String   @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, date])
+  @@map("daily_work_logs")
+}
+

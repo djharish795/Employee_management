@@ -50,26 +50,6 @@ export class CreateRequirementDto {
   owner?: string;
 
   @IsOptional()
-  @IsString()
-  assignedCrm?: string;
-
-  @IsOptional()
-  @IsString()
-  createdBy?: string;
-
-  @IsOptional()
-  @IsString()
-  requestedBy?: string;
-
-  @IsOptional()
-  @IsString()
-  decisionMaker?: string;
-
-  @IsOptional()
-  @IsString()
-  approver?: string;
-
-  @IsOptional()
   @IsArray()
   dependencies?: any[];
 

@@ -15,7 +15,8 @@ export class WorkReportsController {
   @Permissions(Permission.READ_OWN_PROFILE)
   async create(@Body() createWorkReportDto: CreateWorkReportDto, @Req() req: any) {
     const employeeId = req.user?.employeeId;
-    return this.workReportsService.create(employeeId, createWorkReportDto);
+    const role = req.user?.role;
+    return this.workReportsService.create(employeeId, role, createWorkReportDto);
   }
 
   @Get('me')
@@ -26,7 +27,7 @@ export class WorkReportsController {
   }
 
   @Get('team')
-  @Permissions(Permission.APPROVE_FIELD_REQUESTS, Permission.ACCESS_CEM)
+  @Permissions(Permission.APPROVE_FIELD_REQUESTS)
   async getTeamReports(@Req() req: any) {
     const reviewerId = req.user?.employeeId;
     const role = req.user?.role;
@@ -36,7 +37,7 @@ export class WorkReportsController {
   }
 
   @Get('export')
-  @Permissions(Permission.APPROVE_FIELD_REQUESTS, Permission.ACCESS_CEM)
+  @Permissions(Permission.APPROVE_FIELD_REQUESTS)
   async exportTeamCsv(@Req() req: any, @Res() res: any) {
     const reviewerId = req.user?.employeeId;
     const role = req.user?.role;
@@ -57,7 +58,7 @@ export class WorkReportsController {
   }
 
   @Patch(':id/review')
-  @Permissions(Permission.APPROVE_FIELD_REQUESTS, Permission.ACCESS_CEM)
+  @Permissions(Permission.APPROVE_FIELD_REQUESTS)
   async reviewReport(
     @Param('id') id: string,
     @Body('status') status: ReportStatus,
@@ -67,5 +68,16 @@ export class WorkReportsController {
     const reviewerId = req.user?.employeeId;
     const role = req.user?.role;
     return this.workReportsService.reviewReport(reviewerId, role, id, status, rejectionReason);
+  }
+
+  @Patch(':id')
+  @Permissions(Permission.READ_OWN_PROFILE)
+  async updateReport(
+    @Param('id') id: string,
+    @Body() updateDto: any,
+    @Req() req: any
+  ) {
+    const employeeId = req.user?.employeeId;
+    return this.workReportsService.resubmitReport(employeeId, id, updateDto);
   }
 }

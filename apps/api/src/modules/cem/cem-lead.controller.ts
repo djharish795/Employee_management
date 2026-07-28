@@ -18,7 +18,7 @@ export class CemLeadController {
   @Permissions(Permission.ACCESS_CEM)
   async getAllLeads(@Query('priority') priority: string, @Req() req: any) {
     const actorId = req.user?.employeeId || req.user?.id;
-    return this.service.getAllLeads(actorId, priority);
+    return this.service.getAllLeads(actorId, priority, req.user?.role);
   }
 
   @Get('pipeline')
@@ -29,8 +29,9 @@ export class CemLeadController {
 
   @Get('dashboard-summary')
   @Permissions(Permission.ACCESS_CEM)
-  async getDashboardSummary() {
-    return this.service.getDashboardSummary();
+  async getDashboardSummary(@Req() req: any) {
+    const actorId = req.user?.employeeId || req.user?.id;
+    return this.service.getDashboardSummary(actorId, req.user?.role);
   }
 
   @Get(':id')
@@ -77,10 +78,11 @@ export class CemLeadController {
     return this.service.triggerHandoff(id, actorId);
   }
 
-  @Put(':id/status')
+  @Post(':id/cancel')
   @Permissions(Permission.ACCESS_CEM)
-  async updateStatus(@Param('id') id: string, @Body() body: { status: string }) {
-    return this.service.updateStatus(id, body.status);
+  async cancelLead(@Param('id') id: string, @Req() req: any) {
+    const actorId = req.user?.employeeId || req.user?.id;
+    return this.service.cancelLead(id, actorId);
   }
 
 

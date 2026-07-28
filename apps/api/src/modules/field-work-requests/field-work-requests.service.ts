@@ -276,9 +276,9 @@ export class FieldWorkRequestsService {
     }
 
     const isDirectManager = request.approverId === approverId;
-    const isOpsAdmin = role === UserRole.OPERATIONS_HEAD || role === UserRole.OM || role === UserRole.CEM;
+    const isCeoOverride = role === UserRole.CEO || role === UserRole.SUPER_ADMIN;
 
-    if (!isDirectManager && !isOpsAdmin) {
+    if (!isDirectManager && !isCeoOverride) {
       throw new ForbiddenException("You are not authorized to approve this request");
     }
 
@@ -347,9 +347,9 @@ export class FieldWorkRequestsService {
     }
 
     const isDirectManager = request.approverId === approverId;
-    const isOpsAdmin = role === UserRole.OPERATIONS_HEAD || role === UserRole.OM || role === UserRole.CEM;
+    const isCeoOverride = role === UserRole.CEO || role === UserRole.SUPER_ADMIN;
 
-    if (!isDirectManager && !isOpsAdmin) {
+    if (!isDirectManager && !isCeoOverride) {
       throw new ForbiddenException("You are not authorized to reject this request");
     }
 
@@ -512,7 +512,7 @@ export class FieldWorkRequestsService {
     }
 
     // Operations Manager (OM or Operations Head) -> Operations Head / CEO / Admin
-    if (requesterRole === UserRole.OM || requesterRole === UserRole.OPERATIONS_HEAD || requesterRole === UserRole.CEM) {
+    if (requesterRole === UserRole.OM || requesterRole === UserRole.OPERATIONS_HEAD) {
       // Find an Operations Head, CEO, or Super Admin who is NOT the requester
       const adminUser = await this.prisma.user.findFirst({
         where: {
@@ -525,6 +525,25 @@ export class FieldWorkRequestsService {
         select: { employeeId: true }
       });
       return adminUser?.employeeId || null;
+    }
+
+    // CRM / OE -> OM
+    if (requesterRole === UserRole.CRM || requesterRole === UserRole.OE) {
+      if (manager && manager.user?.role === UserRole.OM) {
+        return manager.id;
+      }
+      // Fallback: Find any OM
+      const omUser = await this.prisma.user.findFirst({
+        where: {
+          role: UserRole.OM,
+          employeeId: { not: null }
+        },
+        select: { employeeId: true }
+      });
+      if (omUser?.employeeId) {
+        return omUser.employeeId;
+      }
+      throw new BadRequestException("No Operations Manager (OM) found to approve this field work request.");
     }
 
     // Team Lead -> Manager
@@ -596,7 +615,7 @@ export class FieldWorkRequestsService {
       }
     };
 
-    const isGlobalAdmin = role === 'CEO' || role === 'SUPER_ADMIN' || role === 'OPERATIONS_HEAD' || role === 'CEM' || role === 'OM' || role === 'CHRO' || role === 'HR';
+    const isGlobalAdmin = role === 'CEO' || role === 'SUPER_ADMIN';
     
     if (isGlobalAdmin) {
       // Do not restrict employeeId or approverId for global admins
@@ -617,7 +636,7 @@ export class FieldWorkRequestsService {
     const headers = ["ID", "Employee Name", "Employee ID", "Date", "Destination", "Client", "Purpose", "Status", "Created At"];
     const rows = requests.map((req) => [
       req.id,
-      `"${req.employee?.firstName || ''} ${req.employee?.lastName || ''}"`.trim(),
+      this.sanitizeCsvField(`${req.employee?.firstName || ''} ${req.employee?.lastName || ''}`.trim()),
       req.employee?.employeeId || '',
       req.date ? req.date.toISOString().split("T")[0] : '',
       this.sanitizeCsvField(req.destination),

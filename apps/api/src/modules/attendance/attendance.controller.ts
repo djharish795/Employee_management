@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Query, Ip, Patch, Param, BadRequestException, Res } from "@nestjs/common";
+import { Controller, Get, Post, Body, UseGuards, Query, Ip, Patch, Param, BadRequestException, Res, ForbiddenException } from "@nestjs/common";
 import { AttendanceService } from "./attendance.service";
 import { AttendanceCronService } from "./attendance.cron";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
@@ -56,8 +56,9 @@ export class AttendanceController {
 
   @Get("org-reports")
   @Permissions(Permission.READ_EMPLOYEES)
-  async getOrgReports() {
+  async getOrgReports(@CurrentUser() user?: any) {
     try {
+      if (user?.role === 'OM') throw new ForbiddenException("OMs cannot view org attendance records");
       return await this.attendanceService.getOrgReports();
     } catch (e: any) {
       throw new BadRequestException(e.message + "\n" + e.stack);
@@ -72,6 +73,7 @@ export class AttendanceController {
     @CurrentUser() user?: any
   ) {
     try {
+      if (user?.role === 'OM') throw new ForbiddenException("OMs cannot view attendance records");
       return await this.attendanceService.getSummaryToday(date, departmentId, user);
     } catch (e: any) {
       throw new BadRequestException(e.message + "\n" + e.stack);
@@ -81,12 +83,14 @@ export class AttendanceController {
   @Get("all-logs")
   @Permissions(Permission.READ_EMPLOYEES, Permission.READ_TEAM_PROFILES)
   async getAllLogs(@Query() query: any, @CurrentUser() user?: any) {
+    if (user?.role === 'OM') throw new ForbiddenException("OMs cannot view attendance records");
     return this.attendanceService.getAllLogs(query, user);
   }
 
   @Get("export-all")
   @Permissions(Permission.READ_EMPLOYEES, Permission.READ_TEAM_PROFILES)
   async exportAllLogs(@Query() query: any, @CurrentUser() user?: any, @Res() res?: any) {
+    if (user?.role === 'OM') throw new ForbiddenException("OMs cannot export attendance records");
     const csv = await this.attendanceService.exportAllLogs(query, user);
     res.header('Content-Type', 'text/csv');
     res.attachment('attendance_logs.csv');
@@ -99,6 +103,7 @@ export class AttendanceController {
     @CurrentUser() user: any,
     @Query('date') dateStr: string
   ) {
+    if (user?.role === 'OM') throw new ForbiddenException("OMs cannot view team attendance");
     if (!dateStr) {
       dateStr = new Date().toISOString();
     }

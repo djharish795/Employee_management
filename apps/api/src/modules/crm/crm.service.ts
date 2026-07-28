@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { Injectable, Logger, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { AuditService } from "../audit/audit.service";
 import { CrmRepository } from "./crm.repository";
 import { CreateClientDto } from "./dto/create-client.dto";
@@ -8,6 +8,7 @@ import { UpdateRequirementDto } from "./dto/update-requirement.dto";
 import { CreateMeetingDto } from "./dto/create-meeting.dto";
 import { ZoomService } from "../connect/zoom.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { PrismaService } from "../../prisma/prisma.service";
 
 @Injectable()
 export class CrmService {
@@ -17,8 +18,26 @@ export class CrmService {
     private readonly repository: CrmRepository,
     private readonly auditService: AuditService,
     private readonly notificationService: NotificationsService,
-    private readonly zoomService: ZoomService
+    private readonly zoomService: ZoomService,
+    private readonly prisma: PrismaService
   ) {}
+
+  private async enforceOwnership(entityId: string, actorId: string, user: any, type: 'CLIENT' | 'REQUIREMENT') {
+    const isGlobalAdmin = user?.role === 'OM' || user?.role === 'SUPER_ADMIN' || user?.role === 'CEO';
+    if (isGlobalAdmin || !actorId) return;
+    
+    if (type === 'CLIENT') {
+      const client = await this.prisma.clientLead.findUnique({ where: { id: entityId } });
+      if (client && client.assignedCrmId !== actorId && client.assignedCemId !== actorId) {
+        throw new ForbiddenException("You do not have permission to modify this client.");
+      }
+    } else {
+      const req = await this.prisma.requirement.findUnique({ where: { id: entityId }, include: { clientLead: true } });
+      if (req && req.assignedCrmId !== actorId && req.clientLead?.assignedCrmId !== actorId) {
+        throw new ForbiddenException("You do not have permission to modify this requirement.");
+      }
+    }
+  }
 
   async getClients() {
     const data = await this.repository.findAllClients();
@@ -30,9 +49,14 @@ export class CrmService {
     return { data };
   }
 
-  async createClient(dto: CreateClientDto, actorId?: string) {
+  async createClient(dto: CreateClientDto, actorId?: string, user?: any) {
     this.logger.log(`Creating client for company: ${dto.company}`);
+    // Extract assignedCemId from user if they are CEM
+    let crmId = (dto as any).assignedCrm || null;
     const created = await this.repository.createClient(dto);
+    if (actorId) {
+      await this.prisma.clientLead.update({ where: { id: created.id }, data: { assignedCrmId: actorId } });
+    }
     await this.auditService.logCreate({
       moduleName: "CRM_CLIENT",
       entityId: created.id,
@@ -84,7 +108,8 @@ export class CrmService {
     return { success: true, id };
   }
 
-  async updateClientStage(id: string, stage: number, actorId?: string) {
+  async updateClientStage(id: string, stage: number, actorId?: string, user?: any) {
+    if (actorId && user) await this.enforceOwnership(id, actorId, user, 'CLIENT');
     const updated = await this.repository.updateClientStage(id, stage);
     if (!updated) {
       throw new NotFoundException(`Client ${id} not found`);
@@ -98,7 +123,8 @@ export class CrmService {
     return { success: true, data: updated };
   }
 
-  async updateClientHealth(id: string, health: string, actorId?: string) {
+  async updateClientHealth(id: string, health: string, actorId?: string, user?: any) {
+    if (actorId && user) await this.enforceOwnership(id, actorId, user, 'CLIENT');
     const updated = await this.repository.updateClientHealth(id, health);
     if (!updated) {
       throw new NotFoundException(`Client ${id} not found`);
@@ -128,23 +154,47 @@ export class CrmService {
     return { success: true, data: updated };
   }
 
-  async addClientNote(id: string, note: string, actorId?: string) {
-    const updated = await this.repository.addClientNote(id, note);
-    if (!updated) {
-      throw new NotFoundException(`Client ${id} not found`);
-    }
+  async addClientNote(id: string, note: string, actorId?: string, user?: any) {
+    if (actorId && user) await this.enforceOwnership(id, actorId, user, 'CLIENT');
+    const noteObj = { text: note, authorId: actorId, timestamp: new Date().toISOString() };
+    
+    // We rewrite the repository method directly here using prisma for JSON support
+    const client = await this.prisma.clientLead.findUnique({ where: { id } });
+    if (!client) throw new NotFoundException(`Client ${id} not found`);
+    const notes = Array.isArray(client.notes) ? client.notes : [];
+    notes.push(noteObj as any);
+    const updated = await this.prisma.clientLead.update({ where: { id }, data: { notes } });
+    
+    await this.auditService.logUpdate({
+      moduleName: "CRM_CLIENT",
+      entityId: id,
+      actorId,
+      newValue: { newNote: noteObj },
+    });
     return { success: true, data: updated };
   }
 
-  async addClientCall(id: string, call: string, actorId?: string) {
-    const updated = await this.repository.addClientCall(id, call);
-    if (!updated) {
-      throw new NotFoundException(`Client ${id} not found`);
-    }
+  async addClientCall(id: string, call: string, actorId?: string, user?: any) {
+    if (actorId && user) await this.enforceOwnership(id, actorId, user, 'CLIENT');
+    const callObj = { text: call, authorId: actorId, timestamp: new Date().toISOString() };
+    
+    const client = await this.prisma.clientLead.findUnique({ where: { id } });
+    if (!client) throw new NotFoundException(`Client ${id} not found`);
+    const calls = Array.isArray(client.calls) ? client.calls : [];
+    calls.push(callObj as any);
+    const updated = await this.prisma.clientLead.update({ where: { id }, data: { calls } });
+    
+    await this.auditService.logUpdate({
+      moduleName: "CRM_CLIENT",
+      entityId: id,
+      actorId,
+      newValue: { newCall: callObj },
+    });
     return { success: true, data: updated };
   }
 
-  async addClientRequirement(id: string, item: any, actorId?: string) {
+  async addClientRequirement(id: string, item: any, actorId?: string, user?: any) {
+    if (actorId && user) await this.enforceOwnership(id, actorId, user, 'CLIENT');
     const updated = await this.repository.addClientRequirement(id, item);
     if (!updated) {
       throw new NotFoundException(`Client ${id} not found`);
@@ -152,7 +202,8 @@ export class CrmService {
     return { success: true, data: updated };
   }
 
-  async updateClientRequirementStatus(clientId: string, reqId: string, status: string, actorId?: string) {
+  async updateClientRequirementStatus(clientId: string, reqId: string, status: string, actorId?: string, user?: any) {
+    if (actorId && user) await this.enforceOwnership(clientId, actorId, user, 'CLIENT');
     const updated = await this.repository.updateClientRequirementStatus(clientId, reqId, status);
     if (!updated) {
       throw new NotFoundException(`Client ${clientId} or requirement ${reqId} not found`);
@@ -166,7 +217,8 @@ export class CrmService {
     return { success: true, data: updated };
   }
 
-  async addClientChangeRequest(id: string, item: any, actorId?: string) {
+  async addClientChangeRequest(id: string, item: any, actorId?: string, user?: any) {
+    if (actorId && user) await this.enforceOwnership(id, actorId, user, 'CLIENT');
     const updated = await this.repository.addClientChangeRequest(id, item);
     if (!updated) {
       throw new NotFoundException(`Client ${id} not found`);
@@ -174,7 +226,8 @@ export class CrmService {
     return { success: true, data: updated };
   }
 
-  async updateClientChangeRequestStatus(clientId: string, crId: string, status: string, actorId?: string) {
+  async updateClientChangeRequestStatus(clientId: string, crId: string, status: string, actorId?: string, user?: any) {
+    if (actorId && user) await this.enforceOwnership(clientId, actorId, user, 'CLIENT');
     const updated = await this.repository.updateClientChangeRequestStatus(clientId, crId, status);
     if (!updated) {
       throw new NotFoundException(`Client ${clientId} or change request ${crId} not found`);
@@ -188,7 +241,8 @@ export class CrmService {
     return { success: true, data: updated };
   }
 
-  async addClientAttachment(id: string, attachment: string, actorId?: string) {
+  async addClientAttachment(id: string, attachment: string, actorId?: string, user?: any) {
+    if (actorId && user) await this.enforceOwnership(id, actorId, user, 'CLIENT');
     const updated = await this.repository.addClientAttachment(id, attachment);
     if (!updated) {
       throw new NotFoundException(`Client ${id} not found`);
@@ -207,8 +261,15 @@ export class CrmService {
     return { data };
   }
 
-  async createRequirement(dto: CreateRequirementDto, actorId?: string) {
-    const created = await this.repository.createRequirement(dto);
+  async createRequirement(dto: CreateRequirementDto, actorId?: string, user?: any) {
+    const created = await this.repository.createRequirement({
+      ...dto,
+      createdBy: actorId || 'System User'
+    } as any);
+    // Set the assigned CRM as the actor ID by default if not set
+    if (actorId) {
+      await this.prisma.requirement.update({ where: { id: created.id }, data: { assignedCrmId: actorId } });
+    }
     await this.auditService.logCreate({
       moduleName: "CRM_REQUIREMENT",
       entityId: created.id,
@@ -218,7 +279,8 @@ export class CrmService {
     return { success: true, data: created };
   }
 
-  async updateRequirement(id: string, dto: UpdateRequirementDto, actorId?: string) {
+  async updateRequirement(id: string, dto: UpdateRequirementDto, actorId?: string, user?: any) {
+    if (actorId && user) await this.enforceOwnership(id, actorId, user, 'REQUIREMENT');
     const updated = await this.repository.updateRequirement(id, dto);
     if (!updated) {
       throw new NotFoundException(`Requirement ${id} not found`);
@@ -232,7 +294,8 @@ export class CrmService {
     return { success: true, data: updated };
   }
 
-  async updateRequirementStatus(id: string, status: string, actorId?: string) {
+  async updateRequirementStatus(id: string, status: string, actorId?: string, user?: any) {
+    if (actorId && user) await this.enforceOwnership(id, actorId, user, 'REQUIREMENT');
     const updated = await this.repository.updateRequirementStatus(id, status);
     if (!updated) {
       throw new NotFoundException(`Requirement ${id} not found`);
@@ -246,7 +309,25 @@ export class CrmService {
     return { success: true, data: updated };
   }
 
-  async deleteRequirement(id: string, actorId?: string) {
+  async updateRequirementDecision(id: string, decision: any, actorId?: string, user?: any) {
+    if (actorId && user) await this.enforceOwnership(id, actorId, user, 'REQUIREMENT');
+    const req = await this.prisma.requirement.findUnique({ where: { id } });
+    if (!req) throw new NotFoundException(`Requirement ${id} not found`);
+    const updated = await this.prisma.requirement.update({
+      where: { id },
+      data: { requirementDecision: decision, decisionMaker: actorId || 'Unknown' }
+    });
+    await this.auditService.logUpdate({
+      moduleName: "CRM_REQUIREMENT",
+      entityId: id,
+      actorId,
+      newValue: { requirementDecision: decision },
+    });
+    return { success: true, data: updated };
+  }
+
+  async deleteRequirement(id: string, actorId?: string, user?: any) {
+    if (actorId && user) await this.enforceOwnership(id, actorId, user, 'REQUIREMENT');
     const ok = await this.repository.deleteRequirement(id);
     if (!ok) {
       throw new NotFoundException(`Requirement ${id} not found`);
@@ -259,18 +340,33 @@ export class CrmService {
     return { success: true, id };
   }
 
-  async transferToCrm(id: string, actorId?: string) {
-    const transferred = await this.repository.transferToCrm(id);
-    if (!transferred) {
-      throw new NotFoundException(`Client ${id} not found`);
+  async transferToCrm(id: string, assignedCrmId: string, actorId?: string, user?: any) {
+    // Only Global Admins or the owning CEM can transfer
+    const client = await this.prisma.clientLead.findUnique({ where: { id } });
+    if (!client) throw new NotFoundException(`Client ${id} not found`);
+    
+    const isGlobalAdmin = user?.role === 'OM' || user?.role === 'SUPER_ADMIN' || user?.role === 'CEO';
+    if (!isGlobalAdmin && client.assignedCemId !== actorId) {
+       throw new ForbiddenException("Only the assigned CEM or an Admin can transfer this lead.");
     }
+    
+    const updatedClient = await this.prisma.clientLead.update({
+      where: { id },
+      data: {
+        stage: 6,
+        assignedCrmId: assignedCrmId,
+      }
+    });
+
+    await this.repository.logActivity(id, client.company, "Transferred to CRM", `Lead ${client.company} was handed off to CRM user ${assignedCrmId}.`);
+
     await this.auditService.logUpdate({
       moduleName: "CRM_CLIENT",
       entityId: id,
       actorId,
-      newValue: { stage: 6, assignedCem: "CRM Team", status: "TRANSFERRED_TO_CRM" },
+      newValue: { stage: 6, assignedCrmId, status: "TRANSFERRED_TO_CRM" },
     });
-    return { success: true, data: transferred };
+    return { success: true, data: updatedClient };
   }
 
   async getRecentActivity() {
@@ -278,9 +374,46 @@ export class CrmService {
     return { data };
   }
 
-  async getPipelineSummary() {
-    const data = await this.repository.getPipelineSummary();
-    return { data };
+  async getPipelineSummary(actorId?: string, user?: any) {
+    const isGlobalAdmin = user?.role === 'OM' || user?.role === 'SUPER_ADMIN' || user?.role === 'CEO';
+    
+    // Scoped queries
+    const clientWhere: any = (!isGlobalAdmin && actorId) ? { OR: [{ assignedCrmId: actorId }, { assignedCemId: actorId }] } : {};
+    const reqWhere: any = (!isGlobalAdmin && actorId) ? { OR: [{ assignedCrmId: actorId }, { clientLead: { assignedCemId: actorId } }] } : {};
+
+    const clients = await this.prisma.clientLead.findMany({
+      where: clientWhere,
+      orderBy: { updatedDate: 'desc' },
+      take: 20,
+      include: { requirements: true }
+    });
+    
+    const allClients = await this.prisma.clientLead.findMany({ where: clientWhere });
+    const requirements = await this.prisma.requirement.findMany({ where: reqWhere });
+    
+    const stageCounts: Record<number, number> = {};
+    const healthCounts: Record<string, number> = {};
+
+    let completedDeals = 0;
+    allClients.forEach((c: any) => {
+      stageCounts[c.stage] = (stageCounts[c.stage] || 0) + 1;
+      healthCounts[c.clientHealth] = (healthCounts[c.clientHealth] || 0) + 1;
+      if (c.stage >= 6) completedDeals++;
+    });
+
+    const activeRequirements = requirements.length;
+    // Reconcile pendingClarification: For CRM it means requirements in "Validation Needed"
+    const pendingClarification = requirements.filter((r: any) => r.status === 'Validation Needed').length;
+
+    return {
+      totalClients: allClients.length,
+      activeRequirements,
+      pendingClarification,
+      completedDeals,
+      clients, // The frontend uses pipelineData.clients
+      byStage: stageCounts,
+      byHealth: healthCounts,
+    };
   }
 
   async getLeadActivityReport() {
@@ -297,7 +430,15 @@ export class CrmService {
     return this.repository.getClientMeetings(leadId);
   }
 
-  async createMeeting(dto: CreateMeetingDto, actorId: string) {
+  async createMeeting(dto: CreateMeetingDto, actorId: string, user?: any) {
+    if (user && dto.leadId) await this.enforceOwnership(dto.leadId, actorId, user, 'CLIENT');
+    
+    // Verify client exists
+    const clientExists = await this.prisma.clientLead.findUnique({ where: { id: dto.leadId || '' }});
+    if (dto.leadId && !clientExists) {
+      throw new NotFoundException(`ClientLead with id ${dto.leadId} not found`);
+    }
+
     // Generate Zoom link
     let zoomLink = '';
     try {
@@ -354,6 +495,24 @@ export class CrmService {
     });
 
     return meeting;
+  }
+
+  async getDailyWorkLogs(actorId: string) {
+    if (!actorId) return { data: [] };
+    const logs = await this.prisma.dailyWorkLog.findMany({
+      where: { employeeId: actorId },
+      orderBy: { date: 'desc' }
+    });
+    return { data: logs };
+  }
+
+  async addDailyWorkLog(actorId: string, date: string, content: string) {
+    const updated = await this.prisma.dailyWorkLog.upsert({
+      where: { employeeId_date: { employeeId: actorId, date } },
+      update: { content },
+      create: { employeeId: actorId, date, content }
+    });
+    return { success: true, data: updated };
   }
 }
 
