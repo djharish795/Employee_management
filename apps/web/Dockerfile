@@ -30,6 +30,12 @@ COPY --from=builder /app/out/full/ .
 # Set telemetry disabled
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Inject public API URLs at build time (Next.js bakes these into static assets)
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_WS_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
+
 # Build the web project and its dependencies
 # Assuming next.config.js has output: "standalone"
 RUN pnpm turbo run build --filter=web...
