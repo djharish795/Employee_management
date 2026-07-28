@@ -52,7 +52,11 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_WEB_REPO:$IMAGE_TAG -f apps/web/Dockerfile .
+          docker build \
+            --build-arg NEXT_PUBLIC_API_URL=https://api.naprocs.in/api/v1 \
+            --build-arg NEXT_PUBLIC_WS_URL=wss://api.naprocs.in \
+            -t $ECR_REGISTRY/$ECR_WEB_REPO:$IMAGE_TAG \
+            -f apps/web/Dockerfile .
           docker push $ECR_REGISTRY/$ECR_WEB_REPO:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_WEB_REPO:$IMAGE_TAG" >> $GITHUB_OUTPUT
 

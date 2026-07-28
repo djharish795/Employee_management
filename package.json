@@ -22,8 +22,10 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
+    "@aws-sdk/client-ecs": "^3.1096.0",
     "@naprocs/database": "workspace:^",
     "@types/multer": "^2.2.0",
+    "dotenv": "^17.4.2",
     "exceljs": "^4.4.0",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.22.0",

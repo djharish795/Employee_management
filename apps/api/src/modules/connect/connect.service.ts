@@ -39,7 +39,7 @@ export class ConnectService {
 
     const meet = await this.prisma.$transaction(async (tx) => {
       // EMS-006: Row-level lock on the requester to serialize their requests and prevent TOCTOU duplicates
-      await tx.$queryRaw`SELECT 1 FROM "Employee" WHERE id = ${requesterId} FOR UPDATE`;
+      await tx.$queryRaw`SELECT 1 FROM "employees" WHERE id = ${requesterId} FOR UPDATE`;
 
       if (dto.type !== MeetType.DEPARTMENT) {
         const existing = await tx.meetRequest.findFirst({

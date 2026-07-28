@@ -28,7 +28,7 @@ export interface KnowledgeDoc {
 export const knowledgeApi = {
   list: async (params?: { q?: string; category?: string }): Promise<KnowledgeDoc[]> => {
     const response = await apiClient.get(API_BASE_URL, { params });
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   getBySlug: async (slug: string): Promise<KnowledgeDoc> => {

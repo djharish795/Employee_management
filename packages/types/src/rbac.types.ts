@@ -183,11 +183,13 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.READ_OWN_PROFILE,
     Permission.WRITE_OWN_PROFILE,
     Permission.READ_TEAM_PROFILES,
+    Permission.APPROVE_FIELD_REQUESTS,
   ],
   [UserRole.TEAM_LEAD]: [
     Permission.READ_OWN_PROFILE,
     Permission.WRITE_OWN_PROFILE,
     Permission.READ_TEAM_PROFILES,
+    Permission.APPROVE_FIELD_REQUESTS,
   ],
   [UserRole.HR]: [
     Permission.READ_EMPLOYEES,
