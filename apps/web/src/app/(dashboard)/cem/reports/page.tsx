@@ -2,7 +2,7 @@
 import toast from "react-hot-toast";
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { 
   Download, FileSpreadsheet, BarChart2, ShoppingCart, 
   DollarSign, TrendingUp, Filter, MoreVertical, 
@@ -26,6 +26,8 @@ import {
 
 export default function CamReportsPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const basePath = pathname.split('/')[1] || 'cem';
   const { hasPermission } = useRbac();
   const canApprove = hasPermission(Permission.APPROVE_FIELD_REQUESTS);
 
@@ -177,7 +179,6 @@ export default function CamReportsPage() {
           {/* Submit Work Report */}
           <div 
             onClick={() => {
-              const basePath = window.location.pathname.split('/')[1];
               router.push(`/${basePath}/work-reports/new`);
             }}
             className="bg-white dark:bg-slate-900 rounded-xl border border-blue-200 dark:border-blue-900/50 p-4 shadow-sm relative group overflow-hidden cursor-pointer hover:border-blue-400 dark:hover:border-blue-700 transition-colors"
@@ -200,7 +201,6 @@ export default function CamReportsPage() {
           {/* Request Field Work */}          
           <div 
             onClick={() => {
-              const basePath = window.location.pathname.split('/')[1];
               router.push(`/${basePath}/reports/field-request`);
             }}
             className="bg-white dark:bg-slate-900 rounded-xl border border-purple-200 dark:border-purple-900/50 p-4 shadow-sm relative group overflow-hidden cursor-pointer hover:border-purple-400 dark:hover:border-purple-700 transition-colors"
@@ -364,7 +364,7 @@ export default function CamReportsPage() {
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
                             <button 
-                              onClick={() => router.push(`/cem/work-reports/${req.id}`)}
+                              onClick={() => router.push(`/${basePath}/work-reports/${req.id}`)}
                               className="text-sm font-bold text-slate-900 dark:text-white hover:underline"
                             >
                               View
@@ -523,7 +523,7 @@ export default function CamReportsPage() {
                             {req.status === 'DRAFT' || req.status === 'Draft' ? (
                               <>
                                 <button 
-                                  onClick={() => router.push(`/cem/reports/field-request?id=${req.id}`)}
+                                  onClick={() => router.push(`/${basePath}/reports/field-request?id=${req.id}`)}
                                   className="text-sm font-bold text-slate-900 dark:text-white hover:underline"
                                 >
                                   Edit
@@ -538,7 +538,7 @@ export default function CamReportsPage() {
                             ) : (
                               <>
                                 <button 
-                                  onClick={() => router.push(`/cem/reports/${req.id}`)}
+                                  onClick={() => router.push(`/${basePath}/reports/${req.id}`)}
                                   className="text-sm font-bold text-slate-900 dark:text-white hover:underline"
                                 >
                                   View

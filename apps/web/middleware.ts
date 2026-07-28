@@ -10,7 +10,7 @@ import { isPhase2Enabled } from '@naprocs/feature-flags';
 // the user's ROLE_REGISTRY.allowedNamespaces before being allowed through.
 const ROLE_EXCLUSIVE_NAMESPACES = [
   '/executive', '/admin', '/cto', '/finance', '/hr',
-  '/employee', '/cam', '/oe', '/om', '/team-lead', '/crm',
+  '/employee', '/cem', '/oe', '/om', '/team-lead', '/crm', '/ceo'
 ];
 
 // Roles that may act as approvers in the Leave Approvals queue
@@ -21,11 +21,11 @@ const employeeViewRoles = new Set(['HR', 'CHRO', 'MANAGER', 'TEAM_LEAD', 'CTO', 
 
 // All protected route prefixes (require authentication)
 const protectedRoutes = [
-  '/employee', '/admin', '/executive', '/cto', '/finance', '/hr', '/cam',
+  '/employee', '/admin', '/executive', '/cto', '/finance', '/hr', '/cem', '/ceo',
   '/employees', '/attendance', '/leaves', '/assets', '/compliance',
   '/audit', '/onboarding', '/offboarding', '/knowledge', '/workflows',
   '/recruitment', '/payroll', '/performance', '/org-chart', '/settings',
-  '/connect', '/cam', '/oe', '/om', '/team-lead', '/crm'
+  '/connect', '/oe', '/om', '/team-lead', '/crm'
 ];
 
 // Ensure this matches the backend JWT secret

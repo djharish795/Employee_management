@@ -1,3 +1,4 @@
+
 import { Injectable, Logger, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { AuditService } from "../audit/audit.service";
 import { CrmRepository } from "./crm.repository";
@@ -20,12 +21,12 @@ export class CrmService {
     private readonly notificationService: NotificationsService,
     private readonly zoomService: ZoomService,
     private readonly prisma: PrismaService
-  ) {}
+  ) { }
 
   private async enforceOwnership(entityId: string, actorId: string, user: any, type: 'CLIENT' | 'REQUIREMENT') {
     const isGlobalAdmin = user?.role === 'OM' || user?.role === 'SUPER_ADMIN' || user?.role === 'CEO';
     if (isGlobalAdmin || !actorId) return;
-    
+
     if (type === 'CLIENT') {
       const client = await this.prisma.clientLead.findUnique({ where: { id: entityId } });
       if (client && client.assignedCrmId !== actorId && client.assignedCemId !== actorId) {
@@ -144,7 +145,7 @@ export class CrmService {
       throw new NotFoundException(`Client ${id} not found`);
     }
     await this.repository.updateClientHealth(id, "CLOSED WON");
-    
+
     await this.auditService.logUpdate({
       moduleName: "CRM_CLIENT",
       entityId: id,
@@ -157,14 +158,14 @@ export class CrmService {
   async addClientNote(id: string, note: string, actorId?: string, user?: any) {
     if (actorId && user) await this.enforceOwnership(id, actorId, user, 'CLIENT');
     const noteObj = { text: note, authorId: actorId, timestamp: new Date().toISOString() };
-    
+
     // We rewrite the repository method directly here using prisma for JSON support
     const client = await this.prisma.clientLead.findUnique({ where: { id } });
     if (!client) throw new NotFoundException(`Client ${id} not found`);
     const notes = Array.isArray(client.notes) ? client.notes : [];
     notes.push(noteObj as any);
     const updated = await this.prisma.clientLead.update({ where: { id }, data: { notes } });
-    
+
     await this.auditService.logUpdate({
       moduleName: "CRM_CLIENT",
       entityId: id,
@@ -177,13 +178,13 @@ export class CrmService {
   async addClientCall(id: string, call: string, actorId?: string, user?: any) {
     if (actorId && user) await this.enforceOwnership(id, actorId, user, 'CLIENT');
     const callObj = { text: call, authorId: actorId, timestamp: new Date().toISOString() };
-    
+
     const client = await this.prisma.clientLead.findUnique({ where: { id } });
     if (!client) throw new NotFoundException(`Client ${id} not found`);
     const calls = Array.isArray(client.calls) ? client.calls : [];
     calls.push(callObj as any);
     const updated = await this.prisma.clientLead.update({ where: { id }, data: { calls } });
-    
+
     await this.auditService.logUpdate({
       moduleName: "CRM_CLIENT",
       entityId: id,
@@ -344,12 +345,12 @@ export class CrmService {
     // Only Global Admins or the owning CEM can transfer
     const client = await this.prisma.clientLead.findUnique({ where: { id } });
     if (!client) throw new NotFoundException(`Client ${id} not found`);
-    
+
     const isGlobalAdmin = user?.role === 'OM' || user?.role === 'SUPER_ADMIN' || user?.role === 'CEO';
     if (!isGlobalAdmin && client.assignedCemId !== actorId) {
-       throw new ForbiddenException("Only the assigned CEM or an Admin can transfer this lead.");
+      throw new ForbiddenException("Only the assigned CEM or an Admin can transfer this lead.");
     }
-    
+
     const updatedClient = await this.prisma.clientLead.update({
       where: { id },
       data: {
@@ -376,7 +377,7 @@ export class CrmService {
 
   async getPipelineSummary(actorId?: string, user?: any) {
     const isGlobalAdmin = user?.role === 'OM' || user?.role === 'SUPER_ADMIN' || user?.role === 'CEO';
-    
+
     // Scoped queries
     const clientWhere: any = (!isGlobalAdmin && actorId) ? { OR: [{ assignedCrmId: actorId }, { assignedCemId: actorId }] } : {};
     const reqWhere: any = (!isGlobalAdmin && actorId) ? { OR: [{ assignedCrmId: actorId }, { clientLead: { assignedCemId: actorId } }] } : {};
@@ -387,10 +388,10 @@ export class CrmService {
       take: 20,
       include: { requirements: true }
     });
-    
+
     const allClients = await this.prisma.clientLead.findMany({ where: clientWhere });
     const requirements = await this.prisma.requirement.findMany({ where: reqWhere });
-    
+
     const stageCounts: Record<number, number> = {};
     const healthCounts: Record<string, number> = {};
 
@@ -432,9 +433,9 @@ export class CrmService {
 
   async createMeeting(dto: CreateMeetingDto, actorId: string, user?: any) {
     if (user && dto.leadId) await this.enforceOwnership(dto.leadId, actorId, user, 'CLIENT');
-    
+
     // Verify client exists
-    const clientExists = await this.prisma.clientLead.findUnique({ where: { id: dto.leadId || '' }});
+    const clientExists = await this.prisma.clientLead.findUnique({ where: { id: dto.leadId || '' } });
     if (dto.leadId && !clientExists) {
       throw new NotFoundException(`ClientLead with id ${dto.leadId} not found`);
     }
@@ -454,14 +455,14 @@ export class CrmService {
         if (period === 'AM' && hours === 12) hours = 0;
         timeStr = `${hours.toString().padStart(2, '0')}:${mins}`;
       }
-      
+
       const startTime = new Date(`${dto.date}T${timeStr}:00`);
       if (isNaN(startTime.getTime())) {
         this.logger.warn(`Invalid meeting time: date=${dto.date}, time=${dto.time}. Falling back to current time.`);
       }
       const validStartTime = isNaN(startTime.getTime()) ? new Date() : startTime;
       const endTime = new Date(validStartTime.getTime() + 45 * 60000);
-      
+
       const zoomDetails = await this.zoomService.createMeetEvent(
         `Meeting with ${dto.leadName} (${dto.client}) - ${dto.type}`,
         dto.notes || 'No agenda provided',
@@ -497,22 +498,6 @@ export class CrmService {
     return meeting;
   }
 
-  async getDailyWorkLogs(actorId: string) {
-    if (!actorId) return { data: [] };
-    const logs = await this.prisma.dailyWorkLog.findMany({
-      where: { employeeId: actorId },
-      orderBy: { date: 'desc' }
-    });
-    return { data: logs };
-  }
 
-  async addDailyWorkLog(actorId: string, date: string, content: string) {
-    const updated = await this.prisma.dailyWorkLog.upsert({
-      where: { employeeId_date: { employeeId: actorId, date } },
-      update: { content },
-      create: { employeeId: actorId, date, content }
-    });
-    return { success: true, data: updated };
-  }
 }
 

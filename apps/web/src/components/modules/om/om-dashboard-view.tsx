@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { 
   Download, Filter, Plus, ArrowUpRight, Search, CheckCircle2, 
-  XCircle, Clock, FileText, ChevronRight, Eye, Briefcase, RefreshCw, Calendar, Lock, LogOut, Loader2
+  XCircle, Clock, FileText, ChevronRight, Eye, Briefcase, RefreshCw, Calendar, Lock, LogOut, Loader2, Coffee
 } from 'lucide-react';
 import { apiClient } from '@/lib/api/client';
 import toast, { Toaster } from 'react-hot-toast';
@@ -48,7 +48,7 @@ export default function OmDashboardView() {
   const PHASE_2_ENABLED = process.env.NEXT_PUBLIC_PHASE_2_ENABLED === 'true';
 
   const punchMutation = useMutation({
-    mutationFn: (action: "IN" | "OUT") => submitPunch(action),
+    mutationFn: (action: "IN" | "BREAK" | "OUT") => submitPunch(action),
     onSuccess: (newData) => {
       queryClient.setQueryData(["attendanceStatus"], newData);
       queryClient.invalidateQueries({ queryKey: ["attendanceKpis"] });
@@ -66,6 +66,12 @@ export default function OmDashboardView() {
 
   const handlePunch = () => {
     if (punchMutation.isPending) return;
+    
+    if (todayState === "BREAK") {
+      punchMutation.mutate("IN");
+      return;
+    }
+
     const nextAction = isPunchedIn ? "OUT" : "IN";
     if (nextAction === "OUT") {
       setShowCheckoutModal(true);
@@ -209,6 +215,8 @@ export default function OmDashboardView() {
           >
             {punchMutation.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
+            ) : todayState === "BREAK" ? (
+              <><Coffee className="w-4 h-4" /> End break</>
             ) : isPunchedIn ? (
               <><LogOut className="w-4 h-4" /> Check out</>
             ) : (
@@ -332,7 +340,7 @@ export default function OmDashboardView() {
               <p className="text-[12px] font-medium text-slate-500 mt-0.5">Latest reports needing your review.</p>
             </div>
             <button 
-              onClick={() => router.push('/om/reports')}
+              onClick={() => router.push('/om/work-reports')}
               className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-md transition-colors"
             >
               View All <ChevronRight className="w-3.5 h-3.5" />
@@ -384,7 +392,7 @@ export default function OmDashboardView() {
               <p className="text-[12px] font-medium text-slate-500 mt-0.5">Latest field requests needing your approval.</p>
             </div>
             <button 
-              onClick={() => router.push('/om/field-requests')}
+              onClick={() => router.push('/om/field-reports')}
               className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-md transition-colors"
             >
               View All <ChevronRight className="w-3.5 h-3.5" />

@@ -18,10 +18,10 @@ export const metadata: Metadata = {
 
 export default function CeoDashboardPage() {
   const stats = [
-    { label: "Total Employees", value: "842", trend: "+12%" },
-    { label: "Active Roles", value: "24", trend: "0%" },
-    { label: "Compliance Score", value: "98%", trend: "+2%" },
-    { label: "Open Tasks", value: "14", trend: "-5%" },
+    { label: "Total Employees", value: "-", trend: "" },
+    { label: "Active Roles", value: "-", trend: "" },
+    { label: "Compliance Score", value: "-", trend: "" },
+    { label: "Open Tasks", value: "-", trend: "" },
   ];
 
   const modules = [

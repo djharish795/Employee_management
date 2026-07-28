@@ -260,20 +260,6 @@ export class CrmController {
     return this.service.updateRequirementDecision(id, decision, actorId, req.user);
   }
 
-  @Get("scheduler")
-  @Permissions(Permission.READ_EMPLOYEES)
-  async getDailyWorkLogs(@Req() req: any) {
-    const actorId = req.user?.employeeId || req.user?.id;
-    return this.service.getDailyWorkLogs(actorId);
-  }
-
-  @Post("scheduler")
-  @Permissions(Permission.READ_EMPLOYEES)
-  async addDailyWorkLog(@Body() body: any, @Req() req: any) {
-    const actorId = req.user?.employeeId || req.user?.id;
-    return this.service.addDailyWorkLog(actorId, body.date, body.content);
-  }
-
   // CRM Meetings
   @Get("meetings")
   @Permissions(Permission.READ_EMPLOYEES)

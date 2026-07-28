@@ -47,7 +47,7 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
   }, [activeRole]);
 
   return (
-    <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
+    <div className="flex h-full bg-slate-50 font-sans overflow-hidden">
       
       {/* ── Left Admin Sidebar ─────────────────────────────────────────── */}
       <aside className="w-64 bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-400 flex flex-col flex-shrink-0 z-20 border-r border-slate-200 dark:border-slate-800">

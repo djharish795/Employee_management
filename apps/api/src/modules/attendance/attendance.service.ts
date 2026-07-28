@@ -239,7 +239,7 @@ export class AttendanceService {
         await this.prisma.$transaction(async (tx) => {
           const lockedRecords = await tx.$queryRaw<any[]>`
             SELECT "punchHistory" 
-            FROM "AttendanceRecord" 
+            FROM "attendance_records" 
             WHERE "employeeId" = ${employeeId} 
               AND "date" = ${shiftDate}::date
             FOR UPDATE
@@ -247,7 +247,12 @@ export class AttendanceService {
           
           if (lockedRecords.length === 0) return;
           
-          const ph = lockedRecords[0].punchHistory ? (lockedRecords[0].punchHistory as any[]) : [];
+          let ph = lockedRecords[0].punchHistory;
+          if (typeof ph === 'string') {
+            try { ph = JSON.parse(ph); } catch { ph = []; }
+          }
+          if (!Array.isArray(ph)) ph = [];
+          
           ph.push({ action: "IN", time: new Date(now).toISOString() });
           
           await tx.attendanceRecord.update({
@@ -275,7 +280,7 @@ export class AttendanceService {
       await this.prisma.$transaction(async (tx) => {
         const lockedRecords = await tx.$queryRaw<any[]>`
           SELECT "breakHistory", "punchHistory" 
-          FROM "AttendanceRecord" 
+          FROM "attendance_records" 
           WHERE "employeeId" = ${employeeId} 
             AND "date" = ${shiftDate}::date
           FOR UPDATE
@@ -286,7 +291,11 @@ export class AttendanceService {
         let breakHistory: any[] = parseBreakHistory(lockedRecords[0].breakHistory);
         breakHistory.push({ start: new Date(now).toISOString(), end: null });
 
-        let punchHistory = lockedRecords[0].punchHistory ? (lockedRecords[0].punchHistory as any[]) : [];
+        let punchHistory = lockedRecords[0].punchHistory;
+        if (typeof punchHistory === 'string') {
+          try { punchHistory = JSON.parse(punchHistory); } catch { punchHistory = []; }
+        }
+        if (!Array.isArray(punchHistory)) punchHistory = [];
         punchHistory.push({ action: "BREAK", time: new Date(now).toISOString() });
 
         await tx.attendanceRecord.updateMany({
@@ -316,7 +325,7 @@ export class AttendanceService {
       await this.prisma.$transaction(async (tx) => {
         const lockedRecords = await tx.$queryRaw<any[]>`
           SELECT "punchHistory", "status", "checkInTime"
-          FROM "AttendanceRecord" 
+          FROM "attendance_records" 
           WHERE "employeeId" = ${employeeId} 
             AND "date" = ${shiftDate}::date
           FOR UPDATE
@@ -355,7 +364,11 @@ export class AttendanceService {
           workHoursDecimal = 9;
         }
 
-        let punchHistory = existingRecord?.punchHistory ? (existingRecord.punchHistory as any[]) : [];
+        let punchHistory = existingRecord?.punchHistory;
+        if (typeof punchHistory === 'string') {
+          try { punchHistory = JSON.parse(punchHistory); } catch { punchHistory = []; }
+        }
+        if (!Array.isArray(punchHistory)) punchHistory = [];
         punchHistory.push({ action: "OUT", time: new Date(now).toISOString() });
 
         await tx.attendanceRecord.upsert({

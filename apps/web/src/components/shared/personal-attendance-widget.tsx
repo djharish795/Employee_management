@@ -1,15 +1,18 @@
 "use client";
 
-import React from "react";
-import { useQuery } from "@tanstack/react-query";
-import { fetchTodayStatus } from "@/lib/api/attendance";
+import React, { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchTodayStatus, submitPunch } from "@/lib/api/attendance";
 import { fetchMyLeaveKpi } from "@/lib/api/leaves";
 import { assetsApi } from "@/lib/api/assets";
 import { useAuthStore } from "@/store/auth";
-import { Lock } from "lucide-react";
+import { Clock, LogOut, FileText, Activity, AlertCircle, TrendingUp, TrendingDown, Target, Loader2, Coffee, Lock } from "lucide-react";
+import EarlyCheckoutModal from "@/components/shared/early-checkout-modal";
 
 export function PersonalAttendanceWidget() {
   const employeeId = useAuthStore(state => state.employeeId);
+  const queryClient = useQueryClient();
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
 
   // ── Today's attendance state from backend ─────────────────────────────────
   const todayQuery = useQuery({
@@ -23,7 +26,28 @@ export function PersonalAttendanceWidget() {
   const isPunchedIn = todayState === "IN" || todayState === "BREAK";
 
   // ── Punch mutation ────────────────────────────────────────────────────────
+  const punchMutation = useMutation({
+    mutationFn: (action: "IN" | "BREAK" | "OUT") => submitPunch(action),
+    onSuccess: (newData) => {
+      queryClient.setQueryData(["attendanceStatus"], newData);
+    },
+  });
 
+  const handlePunch = () => {
+    if (punchMutation.isPending) return;
+    
+    if (todayState === "BREAK") {
+      punchMutation.mutate("IN");
+      return;
+    }
+
+    const nextAction = isPunchedIn ? "OUT" : "IN";
+    if (nextAction === "OUT") {
+      setShowCheckoutModal(true);
+    } else {
+      punchMutation.mutate(nextAction);
+    }
+  };
 
   // ── Formatted clock-in time ───────────────────────────────────────────────
   const checkInTimeDisplay = (() => {
@@ -34,6 +58,14 @@ export function PersonalAttendanceWidget() {
       hour12: true
     });
   })();
+
+  const getSecondsElapsed = () => {
+    let secs = todayQuery.data?.offset || 0;
+    if ((todayState === "IN" || todayState === "BREAK") && todayQuery.data?.startTime) {
+      secs += Math.floor((Date.now() - new Date(todayQuery.data.startTime).getTime()) / 1000);
+    }
+    return secs;
+  };
 
   const leaveKpiQuery = useQuery({
     queryKey: ["leaves-kpi", employeeId],
@@ -54,6 +86,16 @@ export function PersonalAttendanceWidget() {
 
   return (
     <>
+      <EarlyCheckoutModal
+        isOpen={showCheckoutModal}
+        secondsElapsed={getSecondsElapsed()}
+        isPending={punchMutation.isPending}
+        onClose={() => setShowCheckoutModal(false)}
+        onConfirm={() => {
+          setShowCheckoutModal(false);
+          punchMutation.mutate("OUT");
+        }}
+      />
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 sm:mb-8">
         {/* Today's Status */}
         <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm flex flex-col justify-between transition-colors">
@@ -63,7 +105,7 @@ export function PersonalAttendanceWidget() {
               <div className="flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${isPunchedIn ? 'bg-emerald-500' : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32400 ? 'bg-orange-500' : 'bg-emerald-500') : 'bg-slate-300 dark:bg-slate-600')}`}></span>
                 <span className={`text-base font-bold ${isPunchedIn ? 'text-emerald-600 dark:text-emerald-400' : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32400 ? 'text-orange-600 dark:text-orange-400' : 'text-emerald-600 dark:text-emerald-400') : 'text-slate-600 dark:text-slate-400')}`}>
-                  {isPunchedIn ? 'Present' : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32400 ? 'Early Checkout' : 'Checked Out') : 'Not checked in')}
+                  {isPunchedIn ? (todayState === "BREAK" ? "On Break" : "Present") : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32400 ? 'Early Checkout' : 'Checked Out') : 'Not checked in')}
                 </span>
               </div>
               <p className="text-xs font-medium text-slate-500 dark:text-slate-500 mt-1">
@@ -74,6 +116,21 @@ export function PersonalAttendanceWidget() {
                     : 'No punch recorded today')}
               </p>
             </div>
+            <button 
+              onClick={handlePunch}
+              disabled={punchMutation.isPending}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg text-sm font-semibold hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors disabled:opacity-50"
+            >
+              {punchMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : todayState === "BREAK" ? (
+                <><Coffee className="w-4 h-4" /> End break</>
+              ) : isPunchedIn ? (
+                <><LogOut className="w-4 h-4" /> Check out</>
+              ) : (
+                <><Clock className="w-4 h-4" /> Check in</>
+              )}
+            </button>
           </div>
         </div>
 
