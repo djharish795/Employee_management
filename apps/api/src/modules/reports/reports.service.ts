@@ -271,18 +271,53 @@ export class ReportsService {
     return Buffer.from(buffer);
   }
 
-  async getOeMetrics(): Promise<any> {
-    const totalLeads = await (this.prisma as any).clientLead.count();
-    const totalMeetings = await this.prisma.meetRequest.count();
-    const totalFieldWork = await this.prisma.fieldWorkRequest.count();
-    const pendingFieldWork = await this.prisma.fieldWorkRequest.count({ where: { status: 'PENDING' } });
+  async getOeMetrics(employeeId: string): Promise<any> {
+    if (!employeeId) {
+      return {
+        myReportsCount: 0,
+        pendingApprovalsCount: 0,
+        activeFieldOpsCount: 0,
+        recentReports: [],
+      };
+    }
 
+    const myReportsCount = await this.prisma.workReport.count({
+      where: { employeeId }
+    });
+
+    const pendingReports = await this.prisma.workReport.count({
+      where: { employeeId, status: 'PENDING' }
+    });
+
+    const pendingFieldRequests = await this.prisma.fieldWorkRequest.count({
+      where: { employeeId, status: 'PENDING' }
+    });
+
+    const activeFieldOpsCount = await this.prisma.fieldWorkRequest.count({
+      where: {
+        employeeId,
+        status: { in: ['APPROVED', 'PENDING'] }
+      }
+    });
+
+    const recentReports = await this.prisma.workReport.findMany({
+      where: { employeeId },
+      orderBy: { submittedAt: 'desc' },
+      take: 5,
+      select: {
+        id: true,
+        title: true,
+        reportType: true,
+        status: true,
+        submittedAt: true,
+      },
+    });
 
     return {
-      leadReports: { totalLeads, conversionRate: totalLeads > 0 ? "24%" : "0%" },
-      salesReports: { totalMeetings, cycleTime: "14 days" },
-      revenueReports: { mrr: "$45,000", arr: "$540,000" },
-      forecastReports: { totalFieldWork, pendingFieldWork },
+      myReportsCount,
+      pendingApprovalsCount: pendingReports + pendingFieldRequests,
+      activeFieldOpsCount,
+      recentReports,
     };
   }
 

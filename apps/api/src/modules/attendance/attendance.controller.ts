@@ -56,12 +56,8 @@ export class AttendanceController {
 
   @Get("org-reports")
   @Permissions(Permission.READ_EMPLOYEES)
-  async getOrgReports() {
-    try {
-      return await this.attendanceService.getOrgReports();
-    } catch (e: any) {
-      throw new BadRequestException(e.message + "\n" + e.stack);
-    }
+  async getOrgReports(@CurrentUser() user?: any) {
+    return this.attendanceService.getOrgReports(user);
   }
 
   @Get("summary-today")

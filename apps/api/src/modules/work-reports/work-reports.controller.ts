@@ -26,17 +26,21 @@ export class WorkReportsController {
   }
 
   @Get('team')
-  @Permissions(Permission.APPROVE_FIELD_REQUESTS, Permission.ACCESS_CEM)
+  // Coarse gate only (everyone passes) — real authorization is enforced in
+  // the service via WORK_REPORT_ADMIN_ROLES / reviewerId scoping. Gating on
+  // APPROVE_FIELD_REQUESTS/ACCESS_CEM here let OE/CRM through (over-broad)
+  // while incorrectly locking out HR/CHRO, who hold neither permission but
+  // are legitimate admins per WORK_REPORT_ADMIN_ROLES.
+  @Permissions(Permission.READ_OWN_PROFILE)
   async getTeamReports(@Req() req: any) {
     const reviewerId = req.user?.employeeId;
     const role = req.user?.role;
-    console.log("Fetching team reports for reviewerId:", reviewerId, "role:", role);
     const reports = await this.workReportsService.getTeamReports(reviewerId, role);
     return reports;
   }
 
   @Get('export')
-  @Permissions(Permission.APPROVE_FIELD_REQUESTS, Permission.ACCESS_CEM)
+  @Permissions(Permission.READ_OWN_PROFILE)
   async exportTeamCsv(@Req() req: any, @Res() res: any) {
     const reviewerId = req.user?.employeeId;
     const role = req.user?.role;
@@ -57,7 +61,7 @@ export class WorkReportsController {
   }
 
   @Patch(':id/review')
-  @Permissions(Permission.APPROVE_FIELD_REQUESTS, Permission.ACCESS_CEM)
+  @Permissions(Permission.READ_OWN_PROFILE)
   async reviewReport(
     @Param('id') id: string,
     @Body('status') status: ReportStatus,

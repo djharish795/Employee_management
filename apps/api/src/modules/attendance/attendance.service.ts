@@ -9,6 +9,11 @@ import { isLateArrival, parseBreakHistory, PRESENT_STATUSES, PRESENT_WITH_LATE_S
 import { InAppNotificationService } from "../notifications/in-app.service";
 import { EmailService } from "../notifications/email.service";
 
+// Ops-tier roles (OM/CRM/CEM/OE) are spec'd as "same as a regular employee" for
+// Attendance — they must not get org-wide visibility just because they hold the
+// broadly-granted READ_EMPLOYEES/ACCESS_CEM permissions.
+const OPS_TIER_LIMITED_ROLES = ['OM', 'CRM', 'CEM', 'OE'];
+
 @Injectable()
 export class AttendanceService {
   private readonly logger = new Logger(AttendanceService.name);
@@ -595,7 +600,11 @@ export class AttendanceService {
     };
   }
 
-  async getOrgReports() {
+  async getOrgReports(user?: any) {
+    if (user && OPS_TIER_LIMITED_ROLES.includes(user.role)) {
+      throw new ForbiddenException('Not authorized to view org-wide attendance reports');
+    }
+
     const today = this.getTodayShiftDate();
     const startOfMonth = new Date(today);
     startOfMonth.setUTCDate(1);
@@ -980,14 +989,18 @@ export class AttendanceService {
   }
 
   async getAllLogs(query: any, user?: any) {
+    if (user && OPS_TIER_LIMITED_ROLES.includes(user.role)) {
+      throw new ForbiddenException('Not authorized to view attendance logs beyond your own');
+    }
+
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 20;
     const skip = (page - 1) * limit;
 
     const where: any = {};
-    
+
     // Filter to only direct reports if the user is a Team Lead/Manager without global admin permissions
-    const isTeamLeadOnly = user && 
+    const isTeamLeadOnly = user &&
       !['SUPER_ADMIN', 'CTO', 'CEO', 'HR', 'CHRO'].includes(user.role) &&
       ['TEAM_LEAD', 'MANAGER'].includes(user.role);
 
@@ -1060,8 +1073,12 @@ export class AttendanceService {
   }
 
   async exportAllLogs(query: any, user?: any) {
+    if (user && OPS_TIER_LIMITED_ROLES.includes(user.role)) {
+      throw new ForbiddenException('Not authorized to export attendance logs beyond your own');
+    }
+
     const where: any = {};
-    const isTeamLeadOnly = user && 
+    const isTeamLeadOnly = user &&
       !['SUPER_ADMIN', 'CTO', 'CEO', 'HR', 'CHRO'].includes(user.role) &&
       ['TEAM_LEAD', 'MANAGER'].includes(user.role);
 

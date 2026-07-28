@@ -45,6 +45,7 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { CrmModule } from "./modules/crm/crm.module";
 import { CemModule } from "./modules/cem/cem.module";
 import { WorkReportsModule } from "./modules/work-reports/work-reports.module";
+import { SchedulerModule } from "./modules/scheduler/scheduler.module";
 
 @Module({
   imports: [
@@ -120,6 +121,7 @@ import { WorkReportsModule } from "./modules/work-reports/work-reports.module";
     CrmModule,
     CemModule,
     WorkReportsModule,
+    SchedulerModule,
   ],
   providers: [
     {

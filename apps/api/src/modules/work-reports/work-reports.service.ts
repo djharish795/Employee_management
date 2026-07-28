@@ -10,6 +10,8 @@ export enum ReportStatus {
   NEEDS_REVISION = 'NEEDS_REVISION'
 }
 
+export const WORK_REPORT_ADMIN_ROLES = ['CEO', 'SUPER_ADMIN', 'OPERATIONS_HEAD', 'CEM', 'OM', 'CHRO', 'HR'];
+
 @Injectable()
 export class WorkReportsService {
   constructor(
@@ -61,7 +63,7 @@ export class WorkReportsService {
   }
 
   async getTeamReports(reviewerId: string, role?: string) {
-    const isGlobalAdmin = role === 'CEO' || role === 'SUPER_ADMIN' || role === 'OPERATIONS_HEAD' || role === 'CEM' || role === 'OM' || role === 'CHRO' || role === 'HR';
+    const isGlobalAdmin = role && WORK_REPORT_ADMIN_ROLES.includes(role);
     const whereClause: any = isGlobalAdmin ? {} : { reviewerId };
     whereClause.employeeId = { not: reviewerId };
     
@@ -84,7 +86,7 @@ export class WorkReportsService {
       throw new NotFoundException('Report not found');
     }
 
-    const isGlobalAdmin = role === 'OM' || role === 'SUPER_ADMIN' || role === 'CEO' || role === 'OPERATIONS_HEAD';
+    const isGlobalAdmin = role && WORK_REPORT_ADMIN_ROLES.includes(role);
 
     // Ensure the requester is either the submitter, the reviewer, or a global admin
     if (report.employeeId !== employeeId && report.reviewerId !== employeeId && !isGlobalAdmin) {
@@ -101,7 +103,7 @@ export class WorkReportsService {
 
     if (!report) throw new NotFoundException('Report not found');
     
-    const isGlobalAdmin = role === 'CEO' || role === 'SUPER_ADMIN' || role === 'OPERATIONS_HEAD' || role === 'CEM' || role === 'OM' || role === 'CHRO' || role === 'HR';
+    const isGlobalAdmin = role && WORK_REPORT_ADMIN_ROLES.includes(role);
     
     if (report.reviewerId !== reviewerId && !isGlobalAdmin) {
       throw new BadRequestException('Not authorized to review this report');
@@ -129,11 +131,19 @@ export class WorkReportsService {
     return updated;
   }
 
+  private sanitizeCsvField(value: string | null | undefined): string {
+    let val = value || '';
+    if (/^[=\-+\@\t\r]/.test(val)) {
+      val = "'" + val;
+    }
+    return `"${val.replace(/"/g, '""')}"`;
+  }
+
   async exportTeamCsv(reviewerId: string, role?: string): Promise<string> {
-    const isGlobalAdmin = role === 'CEO' || role === 'SUPER_ADMIN' || role === 'OPERATIONS_HEAD' || role === 'CEM' || role === 'OM' || role === 'CHRO' || role === 'HR';
+    const isGlobalAdmin = role && WORK_REPORT_ADMIN_ROLES.includes(role);
     const whereClause: any = isGlobalAdmin ? {} : { reviewerId };
     whereClause.employeeId = { not: reviewerId };
-    
+
     const reports = await this.prisma.workReport.findMany({
       where: whereClause,
       orderBy: { submittedAt: 'desc' },
@@ -144,17 +154,17 @@ export class WorkReportsService {
 
     const headers = ['Employee ID', 'Employee Name', 'Department', 'Report Type', 'Title', 'Priority', 'Status', 'Submitted At', 'Reviewed At'];
     const rows = reports.map((r: any) => [
-      r.employee?.employeeId || '',
-      `${r.employee?.firstName || ''} ${r.employee?.lastName || ''}`.trim(),
-      r.department || '',
-      r.reportType || '',
-      `"${(r.title || '').replace(/"/g, '""')}"`,
-      r.priority || '',
-      r.status || '',
-      r.submittedAt ? new Date(r.submittedAt).toLocaleDateString('en-IN') : '',
-      r.reviewedAt  ? new Date(r.reviewedAt).toLocaleDateString('en-IN')  : '',
+      this.sanitizeCsvField(r.employee?.employeeId),
+      this.sanitizeCsvField(`${r.employee?.firstName || ''} ${r.employee?.lastName || ''}`.trim()),
+      this.sanitizeCsvField(r.department),
+      this.sanitizeCsvField(r.reportType),
+      this.sanitizeCsvField(r.title),
+      this.sanitizeCsvField(r.priority),
+      this.sanitizeCsvField(r.status),
+      this.sanitizeCsvField(r.submittedAt ? new Date(r.submittedAt).toLocaleDateString('en-IN') : ''),
+      this.sanitizeCsvField(r.reviewedAt ? new Date(r.reviewedAt).toLocaleDateString('en-IN') : ''),
     ]);
 
-    return [headers.join(','), ...rows.map((r: any[]) => r.join(','))].join('\n');
+    return [headers.map(h => this.sanitizeCsvField(h)).join(','), ...rows.map((r: string[]) => r.join(','))].join('\n');
   }
 }

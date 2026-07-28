@@ -38,8 +38,9 @@ export class ReportsController {
   @Get('oe-metrics')
   @UseGuards(JwtAuthGuard, RbacGuard)
   @Permissions(Permission.READ_EMPLOYEES)
-  async getOeMetrics() {
-    return this.reportsService.getOeMetrics();
+  async getOeMetrics(@Req() req: any) {
+    const employeeId = req.user?.employeeId;
+    return this.reportsService.getOeMetrics(employeeId);
   }
 
   @Get(':id/download')

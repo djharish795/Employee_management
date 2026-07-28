@@ -1,11 +1,15 @@
 const path = require('path');
 
+const isProd = process.env.NODE_ENV === 'production';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "standalone",
-  experimental: {
-    outputFileTracingRoot: path.join(__dirname, '../../'),
-  },
+  output: isProd ? 'standalone' : undefined,
+  ...(isProd && {
+    experimental: {
+      outputFileTracingRoot: path.join(__dirname, '../../'),
+    },
+  }),
   reactStrictMode: true,
   transpilePackages: ["@naprocs/types", "@naprocs/schemas", "@naprocs/ui"],
   // Expose server-only env vars to the Edge Runtime (middleware.ts)
@@ -35,7 +39,7 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: '/:path*',
+        source: '/((?!_next/static|_next/image|favicon.ico).*)',
         headers: [
           {
             key: 'X-DNS-Prefetch-Control',

@@ -546,8 +546,10 @@ export class FieldWorkRequestsService {
       return managerUser?.employeeId || null;
     }
 
-    // Default Employee / OE -> Team Lead
-    if (manager) {
+    // Default Employee / OE -> reporting manager, but only if that manager actually
+    // holds an approver-capable role (don't blindly trust reportingManagerId).
+    const validDefaultApproverRoles = [UserRole.MANAGER, UserRole.TEAM_LEAD, UserRole.OM, UserRole.OPERATIONS_HEAD, UserRole.CEM];
+    if (manager && manager.user?.role && validDefaultApproverRoles.includes(manager.user.role)) {
       return manager.id;
     }
 

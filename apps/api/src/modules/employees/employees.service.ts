@@ -18,6 +18,11 @@ import { createS3Client } from "../../common/utils/s3.util";
 import { NotificationsService } from "../notifications/notifications.service";
 import { EmailService } from "../notifications/email.service";
 import { NotificationType, EmployeeStatus } from "@naprocs/database";
+
+// Ops-tier roles (OM/CRM/CEM/OE) are spec'd as "same as a regular employee" — they
+// hold READ_EMPLOYEES for directory purposes only and must not bypass PII sanitization
+// the way genuine org-wide roles (HR/CHRO/SUPER_ADMIN/etc.) do.
+const OPS_TIER_LIMITED_ROLES = ['OM', 'CRM', 'CEM', 'OE'];
 import * as crypto from "crypto";
 
 @Injectable()
@@ -405,10 +410,10 @@ export class EmployeesService {
 
     if (currentUser && currentUser.role) {
       // isSanitizedView is defined above
-      const hasGlobal = this.rbacService.hasPermission(currentUser.role, [Permission.READ_EMPLOYEES]);
+      const hasGlobal = this.rbacService.hasPermission(currentUser.role, [Permission.READ_EMPLOYEES]) && !OPS_TIER_LIMITED_ROLES.includes(currentUser.role);
       const hasOwn = this.rbacService.hasPermission(currentUser.role, [Permission.READ_OWN_PROFILE]);
       const hasTeam = this.rbacService.hasPermission(currentUser.role, [Permission.READ_TEAM_PROFILES]);
-      
+
       const isSanitizedView = !hasGlobal && !(hasOwn && currentUser.employeeId === id) && !(hasTeam && employee.reportingManagerId === currentUser.employeeId);
 
       // Strip extensive data for sanitized view (Team Leads looking at bench, etc.)

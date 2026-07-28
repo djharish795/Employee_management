@@ -147,6 +147,7 @@ model Employee {
   cemLeads                   CemLead[]                  @relation("CemLeadOwner")
   workReportsSubmitted       WorkReport[]               @relation("ReportSubmitter")
   workReportsReviewed        WorkReport[]               @relation("ReportReviewer")
+  dailyWorkLogs              DailyWorkLog[]
   @@map("employees")
 }
 
@@ -2007,7 +2008,7 @@ model ClientLead {
   email            String
   priority         String
   stage            Int
-  assignedCem      String
+  assignedCem      String        @default("")
   leadOwner        String
   createdDate      DateTime      @default(now())
   updatedDate      DateTime      @updatedAt
@@ -2208,6 +2209,23 @@ model WorkReport {
 
   @@index([reviewerId, status])
   @@map("work_reports")
+}
+
+model DailyWorkLog {
+  id          String   @id @default(cuid())
+  employeeId  String
+  date        DateTime @db.Date
+  summary     String
+  tasksDone   String[] @default([])
+  hoursLogged Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  employee    Employee @relation(fields: [employeeId], references: [id])
+
+  @@unique([employeeId, date])
+  @@index([employeeId, date])
+  @@map("daily_work_logs")
 }
 
 model SystemJobLog {
