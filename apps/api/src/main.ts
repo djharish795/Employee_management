@@ -20,7 +20,11 @@ async function bootstrap() {
   app.use(cookieParser());
 
   app.enableCors({
-    origin: process.env.WS_CORS_ORIGIN ?? "http://localhost:3000",
+    origin: [
+      "http://localhost:3000",
+      "https://crewbase.naprocs.in",
+      process.env.WS_CORS_ORIGIN,
+    ].filter(Boolean),
     credentials: true,
   });
 
