@@ -23,7 +23,7 @@ export class TransformInterceptor<T>
     next: CallHandler,
   ): Observable<Response<T>> {
     return next.handle().pipe(
-      map((res) => {
+      map((res: any) => {
         // If it's already an HTTP response object or stream, just return it
         if (res && res.pipe && typeof res.pipe === 'function') {
           return res;
