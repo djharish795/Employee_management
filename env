@@ -33,6 +33,13 @@ JWT_REFRESH_EXPIRES=7d                        # P1 | refresh token lifetime
 MFA_TOTP_ISSUER=Naprocs EMS                  # P1 | shown in Google Authenticator
 SESSION_MAX_CONCURRENT=3                      # P1 | max concurrent sessions per user
 
+# ── NETWORK SECURITY ─────────────────────────────────────────────────
+# ALLOWED_IP_RANGES only applies when NODE_ENV=production (IpWhitelistGuard).
+# Comma-separated list of office/VPN CIDR ranges or exact IPs, e.g.:
+# ALLOWED_IP_RANGES=203.0.113.0/24,198.51.100.14
+# Required in production — requests are denied by default (fail-closed) until set.
+ALLOWED_IP_RANGES=                            # P1 | office CIDR + AWS Client VPN CIDR
+
 # ── AWS ──────────────────────────────────────────────────────────────
 AWS_REGION=ap-south-1                        # P1 | Mumbai — DPDPA compliant
 AWS_ACCESS_KEY_ID=REPLACE_WITH_IAM_KEY       # P1 | use IAM role on ECS in prod — do not hardcode

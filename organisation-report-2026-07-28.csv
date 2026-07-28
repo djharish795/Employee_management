@@ -1,0 +1,20 @@
+Metric,Value,Subtext
+"Total Employees","60","Based on DB records"
+"Active Employees","54","Currently active"
+"On Leave","0","Pending approvals: 1"
+"New This Month","60","Joined recently"
+"Resigned This Month","0","Turnover rate: 0.0%"
+"Open Roles","0","0 Active interviews"
+"Employees on Probation","6","Under review"
+"Exited Employees","0","Former employees"
+
+Department,Headcount
+"Marketing & Sales","7"
+"Executive","3"
+"Technology","13"
+"Unassigned","6"
+"Finance","3"
+"Engineering","13"
+"Operations","9"
+"Sales","2"
+"Human Resources","4"
