@@ -276,9 +276,9 @@ export class FieldWorkRequestsService {
     }
 
     const isDirectManager = request.approverId === approverId;
-    const isCeoOverride = role === UserRole.CEO || role === UserRole.SUPER_ADMIN;
+    const isOverride = role === UserRole.CEO || role === UserRole.SUPER_ADMIN || role === UserRole.OM;
 
-    if (!isDirectManager && !isCeoOverride) {
+    if (!isDirectManager && !isOverride) {
       throw new ForbiddenException("You are not authorized to approve this request");
     }
 
@@ -347,9 +347,9 @@ export class FieldWorkRequestsService {
     }
 
     const isDirectManager = request.approverId === approverId;
-    const isCeoOverride = role === UserRole.CEO || role === UserRole.SUPER_ADMIN;
+    const isOverride = role === UserRole.CEO || role === UserRole.SUPER_ADMIN || role === UserRole.OM;
 
-    if (!isDirectManager && !isCeoOverride) {
+    if (!isDirectManager && !isOverride) {
       throw new ForbiddenException("You are not authorized to reject this request");
     }
 

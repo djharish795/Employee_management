@@ -141,7 +141,7 @@ export default function EmployeeDashboardV2() {
 
   // ── Punch mutation ────────────────────────────────────────────────────────
   const punchMutation = useMutation({
-    mutationFn: (action: "IN" | "OUT") => submitPunch(action),
+    mutationFn: (action: "IN" | "BREAK" | "OUT") => submitPunch(action),
     onSuccess: (newData) => {
       // Instantly update local state with backend response
       queryClient.setQueryData(["attendanceStatus"], newData);
@@ -162,6 +162,12 @@ export default function EmployeeDashboardV2() {
 
   const handlePunch = () => {
     if (punchMutation.isPending) return;
+    
+    if (todayState === "BREAK") {
+      punchMutation.mutate("IN");
+      return;
+    }
+
     const nextAction = isPunchedIn ? "OUT" : "IN";
     if (nextAction === "OUT") {
       setShowCheckoutModal(true);
@@ -269,6 +275,8 @@ export default function EmployeeDashboardV2() {
         >
           {punchMutation.isPending ? (
             <Loader2 className="w-4 h-4 animate-spin" />
+          ) : todayState === "BREAK" ? (
+            <><Coffee className="w-4 h-4" /> End break</>
           ) : isPunchedIn ? (
             <><LogOut className="w-4 h-4" /> Check out</>
           ) : (

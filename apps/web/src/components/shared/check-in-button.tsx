@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Clock, LogOut, Loader2 } from "lucide-react";
+import { Clock, LogOut, Loader2, Coffee } from "lucide-react";
 import { fetchTodayStatus, submitPunch } from "@/lib/api/attendance";
 import EarlyCheckoutModal from "@/components/shared/early-checkout-modal";
 
@@ -20,7 +20,7 @@ export function CheckInButton() {
   const isPunchedIn = todayState === "IN" || todayState === "BREAK";
 
   const punchMutation = useMutation({
-    mutationFn: (action: "IN" | "OUT") => submitPunch(action),
+    mutationFn: (action: "IN" | "BREAK" | "OUT") => submitPunch(action),
     onSuccess: (newData) => {
       queryClient.setQueryData(["attendanceStatus"], newData);
       queryClient.invalidateQueries({ queryKey: ["attendanceKpis"] });
@@ -40,6 +40,13 @@ export function CheckInButton() {
 
   const handlePunch = () => {
     if (punchMutation.isPending) return;
+    
+    if (todayState === "BREAK") {
+      // If on break, clicking the button ends the break (punches IN again)
+      punchMutation.mutate("IN");
+      return;
+    }
+
     const nextAction = isPunchedIn ? "OUT" : "IN";
     if (nextAction === "OUT") {
       setShowCheckoutModal(true);
@@ -70,6 +77,8 @@ export function CheckInButton() {
       >
         {punchMutation.isPending ? (
           <Loader2 className="w-4 h-4 animate-spin" />
+        ) : todayState === "BREAK" ? (
+          <><Coffee className="w-4 h-4" /> End break</>
         ) : isPunchedIn ? (
           <><LogOut className="w-4 h-4" /> Check out</>
         ) : (

@@ -2,7 +2,7 @@
 import toast from "react-hot-toast";
 
 import React, { useState } from 'react';
-import { Search, Bell, Download, Lock, MoreHorizontal, Loader2, X, FileText, Network, Clock, LogOut } from 'lucide-react';
+import { Search, Bell, Download, Lock, MoreHorizontal, Loader2, X, FileText, Network, Clock, LogOut, Coffee } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { fetchCtoDashboard } from '@/lib/api/cto';
 import { fetchTodayStatus, submitPunch } from '@/lib/api/attendance';
@@ -56,7 +56,7 @@ export default function CtoDashboardPage() {
   });
 
   const punchMutation = useMutation({
-    mutationFn: (action: "IN" | "OUT") => submitPunch(action),
+    mutationFn: (action: "IN" | "BREAK" | "OUT") => submitPunch(action),
     onSuccess: (newData) => {
       queryClient.setQueryData(["attendanceStatus"], newData);
     },
@@ -77,6 +77,12 @@ export default function CtoDashboardPage() {
 
   const handlePunch = () => {
     if (punchMutation.isPending) return;
+    
+    if (todayState === "BREAK") {
+      punchMutation.mutate("IN");
+      return;
+    }
+
     const nextAction = isPunchedIn ? "OUT" : "IN";
     if (nextAction === "OUT") {
       setShowCheckoutModal(true);
@@ -239,6 +245,8 @@ export default function CtoDashboardPage() {
           >
             {punchMutation.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
+            ) : todayState === "BREAK" ? (
+              <><Coffee className="w-4 h-4" /> End break</>
             ) : isPunchedIn ? (
               <><LogOut className="w-4 h-4" /> Check out</>
             ) : (

@@ -62,6 +62,9 @@ export class ProfileService {
     if (dto.currentAddress !== undefined) updateData.currentAddress = dto.currentAddress;
     if (dto.permanentAddress !== undefined) updateData.permanentAddress = dto.permanentAddress;
     if (dto.preferences !== undefined) updateData.preferences = dto.preferences;
+    if (dto.gender !== undefined) updateData.gender = dto.gender === '' ? null : dto.gender;
+    if (dto.dateOfBirth !== undefined) updateData.dateOfBirth = dto.dateOfBirth ? new Date(dto.dateOfBirth) : null;
+    if (dto.maritalStatus !== undefined) updateData.maritalStatus = dto.maritalStatus === '' ? null : dto.maritalStatus;
 
     // Encrypt sensitive fields
     if (dto.phone !== undefined) updateData.phone = dto.phone ? encryptData(dto.phone) : null;

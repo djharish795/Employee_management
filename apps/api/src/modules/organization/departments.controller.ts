@@ -13,6 +13,7 @@ import { RequirePermissions } from '../../common/rbac/require-permissions.decora
 import { RbacPermissions } from '../../common/rbac/rbac.config';
 
 @Controller("departments")
+@UseGuards(JwtAuthGuard, RbacGuard)
 export class DepartmentsController {
   constructor(private readonly departmentsService: DepartmentsService) {}
 
@@ -36,7 +37,6 @@ export class DepartmentsController {
 
   @RequirePermissions(RbacPermissions.DEPARTMENTS_READ)
   @Get("dashboard")
-  @UseGuards(JwtAuthGuard, RbacGuard)
   @Permissions(Permission.READ_EMPLOYEES)
   getDashboardStats() {
     return this.departmentsService.getOrganisationDashboardStats();
