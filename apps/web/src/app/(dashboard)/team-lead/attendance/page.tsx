@@ -34,12 +34,14 @@ export default function TeamAttendancePage() {
     switch (status) {
       case 'Present':
         return <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-bold border border-emerald-100">Present</span>;
+      case 'Half Day':
+        return <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 text-[10px] font-bold border border-indigo-100">Half Day</span>;
       case 'Late':
         return <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-bold border border-amber-100">Late</span>;
       case 'On leave':
         return <span className="px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-600 text-[10px] font-bold border border-rose-100">On leave</span>;
       default:
-        return <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold border border-slate-200">Absent</span>;
+        return <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold border border-slate-200">{status || 'Absent'}</span>;
     }
   };
 
@@ -51,6 +53,8 @@ export default function TeamAttendancePage() {
     switch (status) {
       case 'PRESENT':
         return baseClasses + height + (isToday ? " bg-emerald-600/90 border-2 border-slate-700" : " bg-emerald-600/90 border-emerald-700/20");
+      case 'HALF_DAY':
+        return baseClasses + height + (isToday ? " bg-indigo-500/90 border-2 border-slate-700" : " bg-indigo-500/90 border-indigo-600/20");
       case 'LATE':
         return baseClasses + height + (isToday ? " bg-amber-500/90 border-2 border-slate-700" : " bg-amber-500/90 border-amber-600/20 mt-1 mb-1");
       case 'LEAVE':

@@ -350,7 +350,7 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated }: TaskD
                         <button
                           onClick={handleAddComment}
                           disabled={!commentContent.trim() || isSubmitting}
-                          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                          className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 disabled:opacity-50"
                         >
                           Comment
                         </button>

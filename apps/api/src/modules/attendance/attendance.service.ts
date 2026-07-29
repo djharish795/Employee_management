@@ -123,8 +123,23 @@ export class AttendanceService {
           shiftDate: dbRecord.date.toISOString() 
         };
         await this.redis.setJson(key, state, 60 * 60 * 24);
+      } else if (dbRecord && dbRecord.status === "ON_LEAVE") {
+        state = { state: "ON_LEAVE", startTime: 0, offset: 0, shiftDate: dbRecord.date.toISOString() };
       } else {
-        state = { state: "OUT", startTime: 0, offset: 0, shiftDate: null };
+        const approvedLeave = await this.prisma.leaveRequest.findFirst({
+          where: {
+            employeeId,
+            startDate: { lte: today },
+            endDate: { gte: today },
+            status: 'APPROVED',
+            isHalfDay: false
+          }
+        });
+        if (approvedLeave) {
+          state = { state: "ON_LEAVE", startTime: 0, offset: 0, shiftDate: today.toISOString() };
+        } else {
+          state = { state: "OUT", startTime: 0, offset: 0, shiftDate: null };
+        }
       }
     }
     return state;
@@ -359,7 +374,9 @@ export class AttendanceService {
         
         if (state.offset < thresholdSeconds && finalStatus !== "WFH") {
           finalStatus = "EARLY_CHECKOUT";
-        } else if (isLate && !approvedHalfDay && finalStatus !== "WFH") {
+        } else if (approvedHalfDay && finalStatus !== "WFH") {
+          finalStatus = "HALF_DAY";
+        } else if (isLate && finalStatus !== "WFH") {
           finalStatus = "LATE";
         }
 
@@ -1179,7 +1196,7 @@ export class AttendanceService {
   }
 
   async createRegularization(employeeId: string, dto: any) {
-    return this.prisma.regularizationRequest.create({
+    const request = await this.prisma.regularizationRequest.create({
       data: {
         employeeId,
         attendanceDate: new Date(dto.attendanceDate),
@@ -1188,6 +1205,55 @@ export class AttendanceService {
         attachmentName: dto.attachmentName,
       }
     });
+
+    // Notify Manager or HR/CEO
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: { reportingManagerId: true, firstName: true, lastName: true }
+    });
+
+    const targetManagerId = employee?.reportingManagerId;
+
+    if (targetManagerId) {
+      const notification = await this.prisma.notification.create({
+        data: {
+          recipientId: targetManagerId,
+          title: "New Regularization Request",
+          body: `${employee?.firstName} ${employee?.lastName} has requested regularization for ${new Date(dto.attendanceDate).toLocaleDateString()}.`,
+          type: "APPROVAL_ALERT",
+          isRead: false,
+          data: { referenceId: request.id }
+        }
+      });
+      this.inApp.emitNotification(targetManagerId, notification);
+    } else {
+      // If no manager, we should notify HR or CEO (or roles defined)
+      const notifyRoles = ['HR', 'CEO'];
+      for (const role of notifyRoles) {
+        const users = await this.prisma.user.findMany({
+          where: { role: role as any, status: 'ACTIVE', employeeId: { not: null } },
+          select: { employeeId: true }
+        });
+        
+        for (const user of users) {
+          if (user.employeeId) {
+            const notification = await this.prisma.notification.create({
+              data: {
+                recipientId: user.employeeId,
+                title: "New Regularization Request",
+                body: `${employee?.firstName} ${employee?.lastName} has requested regularization for ${new Date(dto.attendanceDate).toLocaleDateString()}.`,
+                type: "APPROVAL_ALERT",
+                isRead: false,
+                data: { referenceId: request.id }
+              }
+            });
+            this.inApp.emitNotification(user.employeeId, notification);
+          }
+        }
+      }
+    }
+
+    return request;
   }
 
   async actionRegularization(id: string, action: "APPROVE" | "REJECT", currentUser: any) {

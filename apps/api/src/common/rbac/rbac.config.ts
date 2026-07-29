@@ -190,6 +190,8 @@ export const RbacRolePermissionsMapping: Record<RbacRoleType, RbacPermissionType
     RbacPermissions.NOTIFICATIONS_MANAGE,
     RbacPermissions.SETTINGS_VIEW,
     RbacPermissions.SETTINGS_MANAGE,
+    RbacPermissions.REPORTS_READ,
+    RbacPermissions.REPORTS_GENERATE,
   ],
   [RbacRoles.HR]: [
     RbacPermissions.EMPLOYEES_READ,
@@ -202,6 +204,8 @@ export const RbacRolePermissionsMapping: Record<RbacRoleType, RbacPermissionType
     RbacPermissions.DEPARTMENTS_DELETE,
     RbacPermissions.DASHBOARD_VIEW,
     RbacPermissions.AUDIT_READ,
+    RbacPermissions.REPORTS_READ,
+    RbacPermissions.REPORTS_GENERATE,
   ],
   [RbacRoles.MANAGER]: [
     RbacPermissions.EMPLOYEES_READ, // Team level handled by logic later
@@ -213,7 +217,7 @@ export const RbacRolePermissionsMapping: Record<RbacRoleType, RbacPermissionType
     RbacPermissions.DASHBOARD_VIEW,
   ],
   // Fallback for new roles (to be filled in later phases)
-  [RbacRoles.SUPER_ADMIN]: [RbacPermissions.AUDIT_READ, RbacPermissions.SETTINGS_VIEW, RbacPermissions.SETTINGS_MANAGE, RbacPermissions.DASHBOARD_VIEW, RbacPermissions.EMPLOYEES_READ, RbacPermissions.DEPARTMENTS_READ],
+  [RbacRoles.SUPER_ADMIN]: [RbacPermissions.AUDIT_READ, RbacPermissions.SETTINGS_VIEW, RbacPermissions.SETTINGS_MANAGE, RbacPermissions.DASHBOARD_VIEW, RbacPermissions.EMPLOYEES_READ, RbacPermissions.DEPARTMENTS_READ, RbacPermissions.REPORTS_READ, RbacPermissions.REPORTS_GENERATE],
   [RbacRoles.CTO]: [],
   [RbacRoles.COO]: [],
   [RbacRoles.OPERATIONS_HEAD]: [],

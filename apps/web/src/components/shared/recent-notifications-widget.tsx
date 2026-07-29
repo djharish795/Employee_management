@@ -19,8 +19,12 @@ const getNotificationIcon = (type: string) => {
   }
 };
 
-const getNotificationLink = (type: string) => {
-  switch (type) {
+const getNotificationLink = (notif: any) => {
+  if (notif.title === "New Regularization Request") {
+    return '/attendance/summary?tab=regularization';
+  }
+  
+  switch (notif.type) {
     case 'LEAVE_STATUS':
       return '/leaves';
     case 'ASSET_STATUS':
@@ -65,7 +69,7 @@ export const RecentNotificationsWidget = ({ maxItems }: { maxItems?: number }) =
           displayNotifications.map((notif) => (
             <Link
               key={notif.id}
-              href={getNotificationLink(notif.type)}
+              href={getNotificationLink(notif)}
               onClick={() => {
                 if (!notif.isRead) markAsRead(notif.id);
               }}

@@ -212,7 +212,7 @@ export function NewTaskModal({
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-white bg-slate-900 border border-transparent rounded-md shadow-sm hover:bg-slate-800 disabled:opacity-50"
             >
               {loading ? "Saving..." : "Save"}
             </button>

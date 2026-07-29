@@ -146,7 +146,7 @@ export default function MeetingsPage() {
                     {!isExpired(meeting.endTime) && meeting.meetLink ? (
                       <button 
                         onClick={(e) => { e.stopPropagation(); window.open(meeting.meetLink, '_blank'); }} 
-                        className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2"
+                        className="px-6 py-2 bg-slate-900 hover:bg-slate-800 text-white shadow-sm rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2"
                       >
                         Join Meet <ArrowRight className="w-4 h-4" />
                       </button>

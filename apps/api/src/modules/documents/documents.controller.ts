@@ -14,7 +14,7 @@ import { CurrentUser } from "../../common/decorators/current-user.decorator";
 export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
-  @Permissions(Permission.READ_EMPLOYEES)
+  @Permissions(Permission.READ_OWN_PROFILE)
   @Post("upload-url")
   async getUploadUrl(@Body() body: { fileName: string; contentType: string }, @CurrentUser() user: any) {
     if (!body.fileName || !body.contentType) {
@@ -27,7 +27,7 @@ export class DocumentsController {
     };
   }
 
-  @Permissions(Permission.READ_EMPLOYEES)
+  @Permissions(Permission.READ_OWN_PROFILE)
   @Get("view-url")
   async getDownloadUrl(@Query("objectKey") objectKey: string, @CurrentUser() user: any) {
     if (!objectKey) {
@@ -40,7 +40,7 @@ export class DocumentsController {
     };
   }
 
-  @Permissions(Permission.READ_EMPLOYEES)
+  @Permissions(Permission.READ_OWN_PROFILE)
   @Post("upload")
   @UseInterceptors(FileInterceptor('file'))
   async uploadFile(@UploadedFile() file: Express.Multer.File, @CurrentUser() user: any) {
