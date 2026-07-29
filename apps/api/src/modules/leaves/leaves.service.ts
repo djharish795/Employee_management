@@ -107,7 +107,14 @@ export class LeavesService {
   async getApprovals(approverId: string): Promise<unknown> {
     const approver = await this.prisma.employee.findUnique({
       where: { id: approverId },
-      include: { department: true, designation: true, user: true }
+      include: { 
+        department: true, 
+        designation: true, 
+        user: true,
+        projectAssignments: {
+          where: { projectRole: 'TL', releasedAt: null }
+        }
+      }
     });
 
     if (!approver) throw new NotFoundException('Approver not found');
@@ -180,6 +187,10 @@ export class LeavesService {
         return employee.user.role;
       }
     }
+    const activeAssignments = employee.projectAssignments || [];
+    const isProjectTL = activeAssignments.some((pa: any) => pa.projectRole === 'TL');
+    if (isProjectTL) return 'TL';
+
     const designTitle = (employee.designation?.title || '').toUpperCase();
     if (designTitle.includes('TRAINEE RESEARCHER') || designTitle === 'TR') return 'TR';
     if (designTitle.includes('TEAM LEAD') || designTitle === 'TL') return 'TL';
@@ -216,10 +227,6 @@ export class LeavesService {
     const role = this.getRoleForEmployee(employee);
     const policy = await this.prisma.orgPolicy.findFirst();
 
-    if (role === 'OM' || role === 'CTO') {
-      return [{ role: 'CEO', status: 'PENDING' }];
-    }
-
     // 1. Fetch from ApprovalMatrix
     const matrix = await this.prisma.approvalMatrix.findMany({
       where: { requesterRoleId: role, isEmergency },
@@ -238,9 +245,6 @@ export class LeavesService {
             approverId = projectAssignment.project.assignments[0].employeeId;
           }
         } else if (step.approverRoleId === 'MANAGER') {
-          if (!employee.reportingManagerId) {
-            throw new BadRequestException("A reporting manager is required for this leave approval process but none is assigned.");
-          }
           approverId = employee.reportingManagerId;
         } else if (step.approverRoleId === 'HRE') {
           approverId = employee.assignedHrId || undefined;
@@ -384,7 +388,14 @@ export class LeavesService {
   async applyLeave(data: ApplyLeaveDto & { employeeId: string }): Promise<unknown> {
     const employee = await this.prisma.employee.findUnique({
       where: { id: data.employeeId },
-      include: { department: true, designation: true, user: true }
+      include: { 
+        department: true, 
+        designation: true, 
+        user: true,
+        projectAssignments: {
+          where: { projectRole: 'TL', releasedAt: null }
+        }
+      }
     });
 
     if (!employee) throw new NotFoundException('Employee not found');
@@ -906,7 +917,14 @@ export class LeavesService {
 
       const approver = await this.prisma.employee.findUnique({
         where: { id: approverId },
-        include: { department: true, designation: true, user: true }
+        include: { 
+          department: true, 
+          designation: true, 
+          user: true,
+          projectAssignments: {
+            where: { projectRole: 'TL', releasedAt: null }
+          }
+        }
       });
       if (!approver) throw genericError;
 
@@ -998,31 +1016,6 @@ export class LeavesService {
               }
             });
           }
-
-          if (!leave.isHalfDay) {
-            const today = new Date();
-            today.setUTCHours(0, 0, 0, 0);
-            const start = new Date(leave.startDate);
-            start.setUTCHours(0, 0, 0, 0);
-            const end = new Date(leave.endDate);
-            end.setUTCHours(0, 0, 0, 0);
-            for (let d = new Date(start); d <= end && d <= today; d.setUTCDate(d.getUTCDate() + 1)) {
-              const dayOfWeek = d.getUTCDay();
-              if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-                await tx.attendanceRecord.upsert({
-                  where: { employeeId_date: { employeeId: leave.employeeId, date: new Date(d) } },
-                  update: { status: 'ON_LEAVE' },
-                  create: {
-                    employeeId: leave.employeeId,
-                    date: new Date(d),
-                    status: 'ON_LEAVE',
-                    workHours: 0,
-                    isRegularized: false
-                  }
-                });
-              }
-            }
-          }
         });
 
         this.auditService.logApprove({
@@ -1078,31 +1071,6 @@ export class LeavesService {
               }
             });
           }
-
-          if (!leave.isHalfDay) {
-            const today = new Date();
-            today.setUTCHours(0, 0, 0, 0);
-            const start = new Date(leave.startDate);
-            start.setUTCHours(0, 0, 0, 0);
-            const end = new Date(leave.endDate);
-            end.setUTCHours(0, 0, 0, 0);
-            for (let d = new Date(start); d <= end && d <= today; d.setUTCDate(d.getUTCDate() + 1)) {
-              const dayOfWeek = d.getUTCDay();
-              if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-                await tx.attendanceRecord.upsert({
-                  where: { employeeId_date: { employeeId: leave.employeeId, date: new Date(d) } },
-                  update: { status: 'ON_LEAVE' },
-                  create: {
-                    employeeId: leave.employeeId,
-                    date: new Date(d),
-                    status: 'ON_LEAVE',
-                    workHours: 0,
-                    isRegularized: false
-                  }
-                });
-              }
-            }
-          }
         }
       });
 
@@ -1153,7 +1121,14 @@ export class LeavesService {
 
     const approver = await this.prisma.employee.findUnique({
       where: { id: approverId },
-      include: { department: true, designation: true, user: true }
+      include: { 
+        department: true, 
+        designation: true, 
+        user: true,
+        projectAssignments: {
+          where: { projectRole: 'TL', releasedAt: null }
+        }
+      }
     });
     if (!approver) throw genericError;
 

@@ -1,5 +1,7 @@
 "use client";
 import toast from "react-hot-toast";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -21,7 +23,7 @@ const formatDecimalHoursToHMS = (hoursDecimal: number): string => {
   return parts.join(" ");
 };
 
-import { fetchMyLogs, fetchAllLogs, exportAllLogsCsv, approveOvertime } from "@/lib/api/attendance";
+import { fetchMyLogs, fetchAllLogs, approveOvertime } from "@/lib/api/attendance";
 
 const formatTimeValue = (val: string | null | undefined): string => {
   if (!val) return "—";
@@ -269,17 +271,21 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
     return result;
   }, [logs, filterStatus, filterMonth, filterSearch]);
 
-  // Export to CSV Functionality
-  const handleExportCSV = async () => {
-    if (isOrgMode) {
-      exportAllLogsCsv();
-      return;
-    }
-    
+  // Export to PDF Functionality
+  const handleExportPDF = async () => {
     try {
-      const fullRawLogs = (await fetchMyLogs(1, 10000)).data;
+      const toastId = toast.loading("Generating PDF...");
       
-      const formattedLogs = fullRawLogs.map((log) => {
+      let rawData: any[] = [];
+      if (isOrgMode) {
+        const res = await fetchAllLogs(1, 10000, filterStatus, filterMonth, filterSearch);
+        rawData = res.data || [];
+      } else {
+        const res = await fetchMyLogs(1, 10000);
+        rawData = res.data || [];
+      }
+
+      const formattedLogs = rawData.map((log) => {
         const displayDate = new Date(log.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
         const checkIns = log.punchHistory?.filter((p: any) => p.action === 'IN').map((p: any) => formatTimeValue(p.time)) || [];
         const checkOuts = log.punchHistory?.filter((p: any) => p.action === 'OUT').map((p: any) => formatTimeValue(p.time)) || [];
@@ -301,41 +307,105 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
       });
 
       let result = [...formattedLogs];
-      if (filterStatus) result = result.filter(log => log.status === filterStatus);
-      if (filterMonth) result = result.filter(log => log.displayDate.includes(filterMonth));
+      if (!isOrgMode) {
+        if (filterStatus) result = result.filter(log => log.status === filterStatus);
+        if (filterMonth) result = result.filter(log => log.displayDate.includes(filterMonth));
+        if (filterSearch.trim()) {
+          const q = filterSearch.toLowerCase();
+          result = result.filter(log =>
+            log.displayDate.toLowerCase().includes(q) ||
+            log.remarks.toLowerCase().includes(q) ||
+            log.status.toLowerCase().includes(q)
+          );
+        }
+      }
 
       if (result.length === 0) {
-        toast.error("No records found to export");
+        toast.error("No records found to export", { id: toastId });
         return;
       }
 
-      const escapeCsv = (str: any) => {
-        if (str === null || str === undefined) return '""';
-        let s = String(str);
-        if (s.startsWith('=') || s.startsWith('+') || s.startsWith('-') || s.startsWith('@')) s = "'" + s;
-        if (s.includes('"') || s.includes(',') || s.includes('\n') || s.includes('\r')) return `"${s.replace(/"/g, '""')}"`;
-        return s;
-      };
+      const doc = new jsPDF();
+      
+      // Title
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      const title = isOrgMode ? "Organization Attendance Logs" : "My Attendance Logs";
+      doc.text(title, 14, 20);
+      
+      // Meta info
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100);
+      doc.text(`Generated on ${new Date().toLocaleDateString("en-GB")} ${new Date().toLocaleTimeString()}`, 14, 26);
+      
+      let subtitle = "Filters: ";
+      subtitle += `Month: ${filterMonth || "All"} | Status: ${filterStatus || "All"}`;
+      if (filterSearch.trim()) subtitle += ` | Search: "${filterSearch}"`;
+      doc.text(subtitle, 14, 31);
 
-      const headers = ["Date", "Check In", "Check Out", "Time Worked", "Break Time", "Status", "Remarks"];
-      const rows = result.map((log) => [
-        escapeCsv(log.displayDate), escapeCsv(log.displayCheckIn), escapeCsv(log.displayCheckOut),
-        escapeCsv(log.displayHours), escapeCsv(log.displayBreak), escapeCsv(log.status), escapeCsv(log.remarks)
-      ].join(","));
+      // Define columns
+      const headers = isOrgMode 
+        ? [["Employee", "Date", "Check In", "Check Out", "Worked", "Break", "Status", "Remarks"]]
+        : [["Date", "Check In", "Check Out", "Worked", "Break", "Status", "Remarks"]];
 
-      const csvContent = headers.join(",") + "\n" + rows.join("\n");
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `attendance_history_${new Date().toISOString().split("T")[0]}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      // Define body
+      const body = result.map((log) => {
+        const row = [
+          log.displayDate,
+          log.displayCheckIn,
+          log.displayCheckOut,
+          log.displayHours || "0s",
+          log.displayBreak,
+          log.status,
+          log.remarks || ""
+        ];
+        if (isOrgMode) {
+          row.unshift(log.employeeName || "Unknown");
+        }
+        return row;
+      });
+
+      // Render autoTable
+      autoTable(doc, {
+        startY: 38,
+        head: headers,
+        body: body,
+        theme: 'striped',
+        headStyles: { fillColor: [15, 20, 32], fontSize: 8, fontStyle: 'bold' },
+        bodyStyles: { fontSize: 8 },
+        columnStyles: isOrgMode 
+          ? {
+              0: { cellWidth: 30 }, // Employee
+              1: { cellWidth: 22 }, // Date
+              2: { cellWidth: 15 }, // Check In
+              3: { cellWidth: 15 }, // Check Out
+              4: { cellWidth: 18 }, // Worked
+              5: { cellWidth: 15 }, // Break
+              6: { cellWidth: 20 }, // Status
+              7: { cellWidth: 'auto' } // Remarks
+            }
+          : {
+              0: { cellWidth: 25 }, // Date
+              1: { cellWidth: 20 }, // Check In
+              2: { cellWidth: 20 }, // Check Out
+              3: { cellWidth: 22 }, // Worked
+              4: { cellWidth: 20 }, // Break
+              5: { cellWidth: 22 }, // Status
+              6: { cellWidth: 'auto' } // Remarks
+            },
+        styles: { overflow: 'linebreak', cellPadding: 2 },
+      });
+
+      const filename = isOrgMode 
+        ? `org_attendance_${new Date().toISOString().split("T")[0]}.pdf`
+        : `my_attendance_${new Date().toISOString().split("T")[0]}.pdf`;
+      
+      doc.save(filename);
+      toast.success("PDF exported successfully!", { id: toastId });
     } catch (e) {
-      console.error("Export failed", e);
-      toast.error("Failed to export logs");
+      console.error("Export PDF failed", e);
+      toast.error("Failed to export PDF");
     }
   };
 
@@ -419,12 +489,12 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
 
         {/* Action button */}
         <button
-          onClick={handleExportCSV}
+          onClick={handleExportPDF}
           disabled={filteredLogs.length === 0}
           className="flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-slate-900 hover:bg-slate-800 disabled:bg-slate-100 disabled:text-slate-400 text-white font-bold text-xs shadow-sm transition-colors cursor-pointer"
         >
           <Download className="w-3.5 h-3.5" />
-          Export CSV
+          Export PDF
         </button>
       </div>
 

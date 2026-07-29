@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Loader2, AlertCircle } from "lucide-react";
 import { fetchLeaveCalendar, ApiLeaveRequest } from "@/lib/api/leaves";
 import { fetchCompanyHolidays, ApiCompanyHoliday } from "@/lib/api/holidays";
+import { useAuthStore } from "@/store/auth";
 
 const safeToISO = (dateVal: any): string => {
   if (!dateVal) return "1970-01-01T00:00:00.000Z";
@@ -20,6 +21,7 @@ interface CalendarPanelProps {
 export default function CalendarPanel() {
   const { role } = usePermissions();
   const activeRole = role as any;
+  const { employeeId } = useAuthStore();
   // Calendar state
   const [currentDate, setCurrentDate] = useState(() => {
     const d = new Date();
@@ -27,6 +29,7 @@ export default function CalendarPanel() {
   });
 
   const [filterDept, setFilterDept] = useState("");
+  const [onlyMyLeaves, setOnlyMyLeaves] = useState(false);
 
   // Queries
   const { data: requests = [], isLoading: loadingLeaves, error: leavesError } = useQuery<ApiLeaveRequest[]>({
@@ -49,9 +52,15 @@ export default function CalendarPanel() {
 
   // Filtering
   const filteredRequests = useMemo(() => {
-    if (!filterDept) return requests;
-    return requests.filter((r) => r.employee?.department?.name === filterDept);
-  }, [requests, filterDept]);
+    let result = requests;
+    if (onlyMyLeaves && employeeId) {
+      result = result.filter((r) => r.employeeId === employeeId);
+    }
+    if (filterDept) {
+      result = result.filter((r) => r.employee?.department?.name === filterDept);
+    }
+    return result;
+  }, [requests, onlyMyLeaves, employeeId, filterDept]);
 
   // Navigation handlers
   const prevMonth = () => {
@@ -111,8 +120,21 @@ export default function CalendarPanel() {
           </div>
         </div>
 
-        {/* Filter Dropdown */}
-        <div className="flex items-center w-full sm:w-auto">
+        {/* Filter Dropdown & Checkbox */}
+        <div className="flex items-center gap-4 w-full sm:w-auto flex-wrap justify-end">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="onlyMyLeaves"
+              checked={onlyMyLeaves}
+              onChange={(e) => setOnlyMyLeaves(e.target.checked)}
+              className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
+            />
+            <label htmlFor="onlyMyLeaves" className="text-xs font-bold text-slate-700 select-none cursor-pointer">
+              Show only my leaves
+            </label>
+          </div>
+
           <select
             value={filterDept}
             onChange={(e) => setFilterDept(e.target.value)}

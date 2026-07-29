@@ -9,11 +9,6 @@ import { isLateArrival, parseBreakHistory, PRESENT_STATUSES, PRESENT_WITH_LATE_S
 import { InAppNotificationService } from "../notifications/in-app.service";
 import { EmailService } from "../notifications/email.service";
 
-// Ops-tier roles (OM/CRM/CEM/OE) are spec'd as "same as a regular employee" for
-// Attendance — they must not get org-wide visibility just because they hold the
-// broadly-granted READ_EMPLOYEES/ACCESS_CEM permissions.
-const OPS_TIER_LIMITED_ROLES = ['OM', 'CRM', 'CEM', 'OE'];
-
 @Injectable()
 export class AttendanceService {
   private readonly logger = new Logger(AttendanceService.name);
@@ -123,23 +118,8 @@ export class AttendanceService {
           shiftDate: dbRecord.date.toISOString() 
         };
         await this.redis.setJson(key, state, 60 * 60 * 24);
-      } else if (dbRecord && dbRecord.status === "ON_LEAVE") {
-        state = { state: "ON_LEAVE", startTime: 0, offset: 0, shiftDate: dbRecord.date.toISOString() };
       } else {
-        const approvedLeave = await this.prisma.leaveRequest.findFirst({
-          where: {
-            employeeId,
-            startDate: { lte: today },
-            endDate: { gte: today },
-            status: 'APPROVED',
-            isHalfDay: false
-          }
-        });
-        if (approvedLeave) {
-          state = { state: "ON_LEAVE", startTime: 0, offset: 0, shiftDate: today.toISOString() };
-        } else {
-          state = { state: "OUT", startTime: 0, offset: 0, shiftDate: null };
-        }
+        state = { state: "OUT", startTime: 0, offset: 0, shiftDate: null };
       }
     }
     return state;
@@ -267,12 +247,7 @@ export class AttendanceService {
           
           if (lockedRecords.length === 0) return;
           
-          let ph = lockedRecords[0].punchHistory;
-          if (typeof ph === 'string') {
-            try { ph = JSON.parse(ph); } catch { ph = []; }
-          }
-          if (!Array.isArray(ph)) ph = [];
-          
+          const ph = lockedRecords[0].punchHistory ? (lockedRecords[0].punchHistory as any[]) : [];
           ph.push({ action: "IN", time: new Date(now).toISOString() });
           
           await tx.attendanceRecord.update({
@@ -311,11 +286,7 @@ export class AttendanceService {
         let breakHistory: any[] = parseBreakHistory(lockedRecords[0].breakHistory);
         breakHistory.push({ start: new Date(now).toISOString(), end: null });
 
-        let punchHistory = lockedRecords[0].punchHistory;
-        if (typeof punchHistory === 'string') {
-          try { punchHistory = JSON.parse(punchHistory); } catch { punchHistory = []; }
-        }
-        if (!Array.isArray(punchHistory)) punchHistory = [];
+        let punchHistory = lockedRecords[0].punchHistory ? (lockedRecords[0].punchHistory as any[]) : [];
         punchHistory.push({ action: "BREAK", time: new Date(now).toISOString() });
 
         await tx.attendanceRecord.updateMany({
@@ -374,9 +345,7 @@ export class AttendanceService {
         
         if (state.offset < thresholdSeconds && finalStatus !== "WFH") {
           finalStatus = "EARLY_CHECKOUT";
-        } else if (approvedHalfDay && finalStatus !== "WFH") {
-          finalStatus = "HALF_DAY";
-        } else if (isLate && finalStatus !== "WFH") {
+        } else if (isLate && !approvedHalfDay && finalStatus !== "WFH") {
           finalStatus = "LATE";
         }
 
@@ -386,11 +355,7 @@ export class AttendanceService {
           workHoursDecimal = 9;
         }
 
-        let punchHistory = existingRecord?.punchHistory;
-        if (typeof punchHistory === 'string') {
-          try { punchHistory = JSON.parse(punchHistory); } catch { punchHistory = []; }
-        }
-        if (!Array.isArray(punchHistory)) punchHistory = [];
+        let punchHistory = existingRecord?.punchHistory ? (existingRecord.punchHistory as any[]) : [];
         punchHistory.push({ action: "OUT", time: new Date(now).toISOString() });
 
         await tx.attendanceRecord.upsert({
@@ -630,11 +595,7 @@ export class AttendanceService {
     };
   }
 
-  async getOrgReports(user?: any) {
-    if (user && OPS_TIER_LIMITED_ROLES.includes(user.role)) {
-      throw new ForbiddenException('Not authorized to view org-wide attendance reports');
-    }
-
+  async getOrgReports() {
     const today = this.getTodayShiftDate();
     const startOfMonth = new Date(today);
     startOfMonth.setUTCDate(1);
@@ -1019,18 +980,14 @@ export class AttendanceService {
   }
 
   async getAllLogs(query: any, user?: any) {
-    if (user && OPS_TIER_LIMITED_ROLES.includes(user.role)) {
-      throw new ForbiddenException('Not authorized to view attendance logs beyond your own');
-    }
-
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 20;
     const skip = (page - 1) * limit;
 
     const where: any = {};
-
+    
     // Filter to only direct reports if the user is a Team Lead/Manager without global admin permissions
-    const isTeamLeadOnly = user &&
+    const isTeamLeadOnly = user && 
       !['SUPER_ADMIN', 'CTO', 'CEO', 'HR', 'CHRO'].includes(user.role) &&
       ['TEAM_LEAD', 'MANAGER'].includes(user.role);
 
@@ -1103,12 +1060,8 @@ export class AttendanceService {
   }
 
   async exportAllLogs(query: any, user?: any) {
-    if (user && OPS_TIER_LIMITED_ROLES.includes(user.role)) {
-      throw new ForbiddenException('Not authorized to export attendance logs beyond your own');
-    }
-
     const where: any = {};
-    const isTeamLeadOnly = user &&
+    const isTeamLeadOnly = user && 
       !['SUPER_ADMIN', 'CTO', 'CEO', 'HR', 'CHRO'].includes(user.role) &&
       ['TEAM_LEAD', 'MANAGER'].includes(user.role);
 
@@ -1196,7 +1149,7 @@ export class AttendanceService {
   }
 
   async createRegularization(employeeId: string, dto: any) {
-    const request = await this.prisma.regularizationRequest.create({
+    return this.prisma.regularizationRequest.create({
       data: {
         employeeId,
         attendanceDate: new Date(dto.attendanceDate),
@@ -1205,55 +1158,6 @@ export class AttendanceService {
         attachmentName: dto.attachmentName,
       }
     });
-
-    // Notify Manager or HR/CEO
-    const employee = await this.prisma.employee.findUnique({
-      where: { id: employeeId },
-      select: { reportingManagerId: true, firstName: true, lastName: true }
-    });
-
-    const targetManagerId = employee?.reportingManagerId;
-
-    if (targetManagerId) {
-      const notification = await this.prisma.notification.create({
-        data: {
-          recipientId: targetManagerId,
-          title: "New Regularization Request",
-          body: `${employee?.firstName} ${employee?.lastName} has requested regularization for ${new Date(dto.attendanceDate).toLocaleDateString()}.`,
-          type: "APPROVAL_ALERT",
-          isRead: false,
-          data: { referenceId: request.id }
-        }
-      });
-      this.inApp.emitNotification(targetManagerId, notification);
-    } else {
-      // If no manager, we should notify HR or CEO (or roles defined)
-      const notifyRoles = ['HR', 'CEO'];
-      for (const role of notifyRoles) {
-        const users = await this.prisma.user.findMany({
-          where: { role: role as any, status: 'ACTIVE', employeeId: { not: null } },
-          select: { employeeId: true }
-        });
-        
-        for (const user of users) {
-          if (user.employeeId) {
-            const notification = await this.prisma.notification.create({
-              data: {
-                recipientId: user.employeeId,
-                title: "New Regularization Request",
-                body: `${employee?.firstName} ${employee?.lastName} has requested regularization for ${new Date(dto.attendanceDate).toLocaleDateString()}.`,
-                type: "APPROVAL_ALERT",
-                isRead: false,
-                data: { referenceId: request.id }
-              }
-            });
-            this.inApp.emitNotification(user.employeeId, notification);
-          }
-        }
-      }
-    }
-
-    return request;
   }
 
   async actionRegularization(id: string, action: "APPROVE" | "REJECT", currentUser: any) {
@@ -1266,10 +1170,6 @@ export class AttendanceService {
 
     if (!request) {
       throw new BadRequestException("Regularization request not found");
-    }
-
-    if (request.employeeId === currentUser.employeeId) {
-      throw new ForbiddenException("Cannot self-approve regularization request");
     }
 
     let approverRole: "MANAGER" | "HR" | null = null;
@@ -1582,10 +1482,6 @@ export class AttendanceService {
 
     if (!record) {
       throw new NotFoundException("Attendance record not found");
-    }
-
-    if (record.employeeId === managerId) {
-      throw new ForbiddenException("Cannot self-approve overtime");
     }
 
     if ((record as any).isOvertimeApproved) {
