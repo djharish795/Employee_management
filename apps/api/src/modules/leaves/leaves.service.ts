@@ -998,6 +998,31 @@ export class LeavesService {
               }
             });
           }
+
+          if (!leave.isHalfDay) {
+            const today = new Date();
+            today.setUTCHours(0, 0, 0, 0);
+            const start = new Date(leave.startDate);
+            start.setUTCHours(0, 0, 0, 0);
+            const end = new Date(leave.endDate);
+            end.setUTCHours(0, 0, 0, 0);
+            for (let d = new Date(start); d <= end && d <= today; d.setUTCDate(d.getUTCDate() + 1)) {
+              const dayOfWeek = d.getUTCDay();
+              if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                await tx.attendanceRecord.upsert({
+                  where: { employeeId_date: { employeeId: leave.employeeId, date: new Date(d) } },
+                  update: { status: 'ON_LEAVE' },
+                  create: {
+                    employeeId: leave.employeeId,
+                    date: new Date(d),
+                    status: 'ON_LEAVE',
+                    workHours: 0,
+                    isRegularized: false
+                  }
+                });
+              }
+            }
+          }
         });
 
         this.auditService.logApprove({
@@ -1052,6 +1077,31 @@ export class LeavesService {
                 status: 'PENDING'
               }
             });
+          }
+
+          if (!leave.isHalfDay) {
+            const today = new Date();
+            today.setUTCHours(0, 0, 0, 0);
+            const start = new Date(leave.startDate);
+            start.setUTCHours(0, 0, 0, 0);
+            const end = new Date(leave.endDate);
+            end.setUTCHours(0, 0, 0, 0);
+            for (let d = new Date(start); d <= end && d <= today; d.setUTCDate(d.getUTCDate() + 1)) {
+              const dayOfWeek = d.getUTCDay();
+              if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                await tx.attendanceRecord.upsert({
+                  where: { employeeId_date: { employeeId: leave.employeeId, date: new Date(d) } },
+                  update: { status: 'ON_LEAVE' },
+                  create: {
+                    employeeId: leave.employeeId,
+                    date: new Date(d),
+                    status: 'ON_LEAVE',
+                    workHours: 0,
+                    isRegularized: false
+                  }
+                });
+              }
+            }
           }
         }
       });

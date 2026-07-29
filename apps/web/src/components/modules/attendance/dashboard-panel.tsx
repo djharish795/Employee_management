@@ -769,7 +769,7 @@ export default function DashboardPanel() {
                       {/* Custom Tooltip */}
                       <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex flex-col items-center">
                         <div className="bg-slate-900 text-white text-[11px] font-medium px-2.5 py-1.5 rounded-md shadow-lg whitespace-nowrap">
-                          {dayLog ? `${dayLog.status === 'EARLY_CHECKOUT' ? 'EARLY CHECKOUT' : dayLog.status}: ${typeof dayLog.hoursWorked === 'number' ? dayLog.hoursWorked.toFixed(1) : dayLog.hoursWorked}h` : (isWeekend ? "Weekend (Off)" : "No Record")}
+                          {dayLog ? `${dayLog.status === 'EARLY_CHECKOUT' ? 'EARLY CHECKOUT' : dayLog.status === 'HALF_DAY' ? 'HALF DAY' : dayLog.status}: ${typeof dayLog.hoursWorked === 'number' ? dayLog.hoursWorked.toFixed(1) : dayLog.hoursWorked}h` : (isWeekend ? "Weekend (Off)" : "No Record")}
                         </div>
                         <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1"></div>
                       </div>

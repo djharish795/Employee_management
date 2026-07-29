@@ -28,7 +28,10 @@ export class AttendanceCronService {
       const today = new Date();
       today.setUTCHours(0, 0, 0, 0);
 
-      const activeEmployees = await this.prisma.employee.findMany({ where: { status: 'ACTIVE' } });
+      const activeEmployees = await this.prisma.employee.findMany({ 
+        where: { status: 'ACTIVE' },
+        include: { user: true }
+      });
       const approvedLeaves = await this.prisma.leaveRequest.findMany({
         where: {
           status: 'APPROVED',
@@ -72,6 +75,38 @@ export class AttendanceCronService {
       let markedLeaveCount = missingLeaveEmpIds.length;
 
       this.logger.log(`Marked ${markedLeaveCount} employees as ON_LEAVE.`);
+
+      // Handle ABSENT (No punches, no full-day leave)
+      const noShowEmployees = activeEmployees.filter(emp => 
+        emp.user?.role !== 'CEO' && 
+        emp.user?.role !== 'CTO' && 
+        !punchedInEmployeeIds.has(emp.id) && 
+        !leaveEmployeeIds.has(emp.id)
+      );
+
+      if (noShowEmployees.length > 0) {
+        const absentIds = noShowEmployees.map(e => e.id);
+        const { chunkArray } = await import('../../common/constants/db-batch.constants');
+        const chunks = chunkArray(absentIds);
+        
+        for (const chunk of chunks) {
+          await Promise.all(chunk.map(empId => 
+            this.prisma.attendanceRecord.upsert({
+              where: { employeeId_date: { employeeId: empId, date: today } },
+              update: { status: 'ABSENT' },
+              create: {
+                employeeId: empId,
+                date: today,
+                status: 'ABSENT',
+                workHours: 0,
+                isRegularized: false,
+                notes: 'System Auto-Mark: No show'
+              }
+            })
+          ));
+        }
+        this.logger.log(`Marked ${absentIds.length} employees as ABSENT.`);
+      }
 
       const openRecords = await this.prisma.attendanceRecord.findMany({
         where: { checkInTime: { not: null }, checkOutTime: null, date: today }
