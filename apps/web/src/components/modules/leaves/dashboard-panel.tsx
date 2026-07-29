@@ -150,7 +150,7 @@ export default function DashboardPanel() {
           <div className="relative z-10">
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Allocated (Yearly)</p>
             <p className={`text-3xl font-black mt-1 ${isLoading ? "text-slate-600" : "text-white"}`}>
-              {isLoading ? "..." : kpiQuery.data?.totalLeaves ? `${kpiQuery.data.totalLeaves} Days` : "--"}
+              {isLoading ? "..." : kpiQuery.data?.totalLeaves !== undefined ? `${kpiQuery.data.totalLeaves} Days` : "--"}
             </p>
             <p className="text-[11px] font-semibold text-slate-400 mt-1">Your entire yearly allowance</p>
           </div>

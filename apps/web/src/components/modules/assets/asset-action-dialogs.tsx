@@ -61,7 +61,7 @@ export function AssignAssetDialog({ asset, onClose, currentUserId = "current-use
               value={employeeId}
               onChange={(e) => setEmployeeId(e.target.value)}
               placeholder="e.g. EMP-1234"
-              className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 outline-none transition-all"
+              className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition-all"
             />
           </div>
           <div className="space-y-2">
@@ -71,7 +71,7 @@ export function AssignAssetDialog({ asset, onClose, currentUserId = "current-use
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Any specific assignment notes..."
               rows={2}
-              className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 outline-none transition-all resize-none"
+              className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition-all resize-none"
             />
           </div>
         </div>
@@ -85,7 +85,7 @@ export function AssignAssetDialog({ asset, onClose, currentUserId = "current-use
           <button
             onClick={() => assignMutation.mutate()}
             disabled={!employeeId || assignMutation.isPending}
-            className="px-4 py-2 text-sm font-bold text-white bg-violet-600 rounded-lg hover:bg-violet-700 disabled:opacity-50"
+            className="px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
           >
             {assignMutation.isPending ? "Assigning..." : "Assign"}
           </button>
@@ -132,7 +132,7 @@ export function ReturnAssetDialog({ asset, onClose }: ActionDialogProps) {
             <select
               value={condition}
               onChange={(e) => setCondition(e.target.value)}
-              className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 outline-none transition-all bg-white"
+              className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition-all bg-white"
             >
               <option value="EXCELLENT">Excellent</option>
               <option value="GOOD">Good</option>
@@ -152,7 +152,7 @@ export function ReturnAssetDialog({ asset, onClose }: ActionDialogProps) {
           <button
             onClick={() => returnMutation.mutate()}
             disabled={returnMutation.isPending}
-            className="px-4 py-2 text-sm font-bold text-white bg-violet-600 rounded-lg hover:bg-violet-700 disabled:opacity-50"
+            className="px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
           >
             {returnMutation.isPending ? "Processing..." : "Process Return"}
           </button>
@@ -300,7 +300,7 @@ export function FulfillRequestDialog({ request, onClose }: { request: any, onClo
               <select
                 value={selectedAssetId}
                 onChange={(e) => setSelectedAssetId(e.target.value)}
-                className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 outline-none transition-all bg-white"
+                className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition-all bg-white"
               >
                 <option value="">-- Do not assign right now --</option>
                 {availableAssets.map(a => (

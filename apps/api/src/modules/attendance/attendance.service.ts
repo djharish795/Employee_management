@@ -1149,7 +1149,7 @@ export class AttendanceService {
   }
 
   async createRegularization(employeeId: string, dto: any) {
-    return this.prisma.regularizationRequest.create({
+    const request = await this.prisma.regularizationRequest.create({
       data: {
         employeeId,
         attendanceDate: new Date(dto.attendanceDate),
@@ -1158,6 +1158,57 @@ export class AttendanceService {
         attachmentName: dto.attachmentName,
       }
     });
+
+    // Notify Manager or HR/CEO
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: { reportingManagerId: true, firstName: true, lastName: true }
+    });
+
+    const targetManagerId = employee?.reportingManagerId;
+
+    if (targetManagerId) {
+      const notification = await this.prisma.notification.create({
+        data: {
+          recipientId: targetManagerId,
+          title: "New Regularization Request",
+          body: `${employee?.firstName} ${employee?.lastName} has requested regularization for ${new Date(dto.attendanceDate).toLocaleDateString()}.`,
+          type: "APPROVAL_ALERT",
+          isRead: false,
+          data: { referenceId: request.id }
+        }
+      });
+      this.inApp.emitNotification(targetManagerId, notification);
+    } else {
+      // If no manager, we should notify HR or CEO (or roles defined)
+      const notifyRoles = ['HR', 'CEO'];
+      for (const role of notifyRoles) {
+        const users = await this.prisma.user.findMany({
+          where: { role: role as any, status: 'ACTIVE', employeeId: { not: null } },
+          select: { employeeId: true }
+        });
+        
+        for (const user of users) {
+          if (user.employeeId) {
+            const notification = await this.prisma.notification.create({
+              data: {
+                recipientId: user.employeeId,
+                title: "New Regularization Request",
+                body: `${employee?.firstName} ${employee?.lastName} has requested regularization for ${new Date(dto.attendanceDate).toLocaleDateString()}.`,
+                type: "APPROVAL_ALERT",
+                isRead: false,
+                data: { referenceId: request.id }
+              }
+            });
+            this.inApp.emitNotification(user.employeeId, notification);
+          }
+        }
+      }
+    }
+
+    this.inApp.broadcastEvent('attendance.regularization_updated', { employeeId });
+
+    return request;
   }
 
   async actionRegularization(id: string, action: "APPROVE" | "REJECT", currentUser: any) {
@@ -1198,6 +1249,21 @@ export class AttendanceService {
         { status: action, comments: `Actioned by Manager` }
       ).catch(e => this.logger.error("Failed to send regularization email", e));
       
+      // Notify employee
+      const notification = await this.prisma.notification.create({
+        data: {
+          recipientId: request.employeeId,
+          title: `Regularization ${action === "APPROVE" ? "Approved" : "Rejected"}`,
+          body: `Your regularization request for ${request.attendanceDate.toLocaleDateString()} has been ${action === "APPROVE" ? "approved" : "rejected"} by your manager.`,
+          type: "APPROVAL_ALERT",
+          isRead: false,
+          data: { referenceId: id }
+        }
+      });
+      this.inApp.emitNotification(request.employeeId, notification);
+      
+      this.inApp.broadcastEvent('attendance.regularization_updated', { employeeId: request.employeeId });
+
       return updatedReq;
     } else {
       const updatedReq = await this.prisma.regularizationRequest.update({
@@ -1259,6 +1325,21 @@ export class AttendanceService {
         "regularization_status",
         { status: action, comments: `Actioned by Admin` }
       ).catch(e => this.logger.error("Failed to send regularization email", e));
+
+      // Notify employee
+      const notification = await this.prisma.notification.create({
+        data: {
+          recipientId: request.employeeId,
+          title: `Regularization ${action === "APPROVE" ? "Approved" : "Rejected"}`,
+          body: `Your regularization request for ${request.attendanceDate.toLocaleDateString()} has been ${action === "APPROVE" ? "approved" : "rejected"} by HR/Admin.`,
+          type: "APPROVAL_ALERT",
+          isRead: false,
+          data: { referenceId: id }
+        }
+      });
+      this.inApp.emitNotification(request.employeeId, notification);
+
+      this.inApp.broadcastEvent('attendance.regularization_updated', { employeeId: request.employeeId });
 
       return updatedReq;
     }

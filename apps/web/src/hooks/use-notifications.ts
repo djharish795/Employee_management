@@ -52,6 +52,11 @@ export function useNotifications() {
         // Optional: also invalidate hr/dashboard stats if they are cached,
         // though attendanceLogs is the specific requirement for Module 6.
       });
+
+      socket.on("attendance.regularization_updated", () => {
+        queryClient.invalidateQueries({ queryKey: ["attendanceRegularizations"] });
+        queryClient.invalidateQueries({ queryKey: ["attendanceLogs"] });
+      });
     }
 
     return () => {

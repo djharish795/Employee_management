@@ -444,6 +444,11 @@ export class EmployeesService {
         delete empWithRels.consentLogsAsSubject;
         delete empWithRels.reviewsAsSubject;
         delete empWithRels.salaryStructures;
+        delete empWithRels.dateOfBirth;
+        delete empWithRels.gender;
+        delete empWithRels.maritalStatus;
+        delete empWithRels.nationality;
+        delete empWithRels.bloodGroup;
       }
     }
 

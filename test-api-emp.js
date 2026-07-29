@@ -13,8 +13,8 @@ async function main() {
     jti: 'test-jti'
   }, process.env.JWT_SECRET || 'secret');
 
-  console.log('Fetching /profile/me with token...');
-  const res = await fetch('http://localhost:3001/api/v1/profile/me', {
+  console.log('Fetching /employees/cmruovadm0005xw3rcacksujz with token...');
+  const res = await fetch('http://localhost:3001/api/v1/employees/cmruovadm0005xw3rcacksujz', {
     headers: { 'Authorization': `Bearer ${token}` }
   });
   

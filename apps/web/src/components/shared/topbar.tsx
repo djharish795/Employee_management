@@ -216,7 +216,7 @@ export function Topbar() {
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
-              if (pathname.startsWith('/tasks')) {
+              if (pathname.includes('/tasks')) {
                 setGlobalSearchQuery(e.target.value);
               }
               setIsSearchOpen(true);
@@ -234,7 +234,7 @@ export function Topbar() {
         </div>
 
         {/* Search Dropdown */}
-        {isSearchOpen && !pathname.startsWith('/tasks') && (query.length >= 1 || results.length > 0) && (
+        {isSearchOpen && !pathname.includes('/tasks') && (query.length >= 1 || results.length > 0) && (
           <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50 flex flex-col max-h-[60vh]">
             <div className="flex-1 overflow-y-auto p-2">
               {query.length >= 1 && !loading && results.length === 0 && (

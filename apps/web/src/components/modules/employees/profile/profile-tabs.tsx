@@ -226,7 +226,9 @@ function OverviewTab({ profile }: { profile: FullEmployeeProfile }) {
                   key={report.id}
                   className="flex items-center gap-2.5 p-2 bg-slate-50 rounded-lg border border-slate-100"
                 >
-                  <Image src={report.photoUrl} alt={report.name} className="w-8 h-8 rounded-full border border-slate-200 shadow-sm" fill style={{ objectFit: "cover" }} />
+                  <div className="relative w-8 h-8 rounded-full border border-slate-200 shadow-sm overflow-hidden flex-shrink-0">
+                    <Image src={report.photoUrl} alt={report.name} fill style={{ objectFit: "cover" }} />
+                  </div>
                   <div className="truncate">
                     <div className="text-xs font-bold text-slate-900 truncate">{report.name}</div>
                     <div className="text-[10px] font-semibold text-slate-400 truncate mt-0.5">{report.designation}</div>
