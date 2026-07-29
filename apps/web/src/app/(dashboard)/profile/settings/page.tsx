@@ -3,11 +3,15 @@ import toast from "react-hot-toast";
 import Image from "next/image";
 
 import React, { useEffect, useState } from 'react';
-import { Shield, User, Lock, Smartphone, Key, Settings as SettingsIcon, Loader2, Save, Eye, EyeOff, MapPin, Briefcase } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Shield, User, Lock, Smartphone, Key, Settings as SettingsIcon, Loader2, Save, Eye, EyeOff, MapPin, Briefcase, Edit3 } from 'lucide-react';
 import { fetchMyProfile, updateMyProfile, changePassword } from '@/lib/api/profile';
 import { useAuthStore } from '@/store/auth';
+import { usePermissions } from '@/hooks/use-permissions';
 
 export default function ProfileSettingsPage() {
+  const router = useRouter();
+  const { canManageEmployees, role } = usePermissions();
   const [activeTab, setActiveTab] = useState<'personal' | 'official' | 'contact' | 'security' | 'preferences'>('personal');
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -252,8 +256,22 @@ export default function ProfileSettingsPage() {
           {activeTab === 'official' && (
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Official Information <Lock className="inline w-4 h-4 text-slate-400" /></h2>
-              <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg p-4 mb-6 text-sm text-slate-600 dark:text-slate-400 font-medium transition-colors">
-                These fields are read-only. Please contact HR to request any changes.
+              <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg p-4 mb-6 text-sm text-slate-600 dark:text-slate-400 font-medium transition-colors flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <span>
+                  {["HR", "CHRO", "SUPER_ADMIN"].includes((role || "").toUpperCase())
+                    ? "As HR, you have full edit permissions to modify official employee details."
+                    : "These fields are read-only. Please contact HR to request any changes."}
+                </span>
+                {["HR", "CHRO", "SUPER_ADMIN"].includes((role || "").toUpperCase()) && (profile?.id || profile?.employeeId) && (
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/employees/${profile?.id || profile?.employeeId}/edit`)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-md text-xs font-bold shadow-sm transition-colors shrink-0"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    Edit Official Profile
+                  </button>
+                )}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>

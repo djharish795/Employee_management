@@ -11,6 +11,7 @@ import * as XLSX from "xlsx";
 import Image from "next/image";
 
 import { usePermissions } from "@/hooks/use-permissions";
+import { useAuthStore } from "@/store/auth";
 import { apiClient } from "@/lib/api/client";
 
 interface ProfileHeaderProps {
@@ -44,9 +45,16 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
   }, []);
 
   const { canManageEmployees, role } = usePermissions();
-  let canEdit = canManageEmployees;
-  
-  if (role === "CEO" && policy?.ceoCanEditEmployeeDetails) {
+  const myEmployeeId = useAuthStore((state) => state.employeeId);
+  const upperRole = (role || "").toUpperCase();
+
+  const isOwnProfile = Boolean(
+    myEmployeeId && (profile.id === myEmployeeId || profile.employeeId === myEmployeeId)
+  );
+
+  let canEdit = canManageEmployees || isOwnProfile || upperRole === "HR" || upperRole === "CHRO";
+
+  if (upperRole === "CEO" && policy?.ceoCanEditEmployeeDetails) {
     canEdit = true;
   }
   

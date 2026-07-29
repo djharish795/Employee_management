@@ -60,19 +60,19 @@ export default function EditEmployeePage() {
           const policy = policyRes.data;
 
           // Permission Check
-          let canEdit = canManageEmployees;
-          if (role === "CEO" && policy?.ceoCanEditEmployeeDetails) {
+          const upperRole = (role || "").toUpperCase();
+          const myEmployeeId = useAuthStore.getState().employeeId;
+          const isOwnProfile = Boolean(myEmployeeId && (data.employeeId === myEmployeeId || data.id === myEmployeeId));
+
+          let canEdit = canManageEmployees || isOwnProfile || upperRole === "HR" || upperRole === "CHRO";
+          if (upperRole === "CEO" && policy?.ceoCanEditEmployeeDetails) {
             canEdit = true;
           }
 
-          if (!canEdit && data.employeeId !== id && data.id !== id) { // assuming id could be employeeId or db id
-            // Check if they are trying to edit someone else
-            const myEmployeeId = useAuthStore.getState().employeeId;
-            if (data.id !== myEmployeeId) {
-              toast.error("You do not have permission to edit this profile.");
-              router.push(`/employees/${id}`);
-              return;
-            }
+          if (!canEdit) {
+            toast.error("You do not have permission to edit this profile.");
+            router.push(`/employees/${id}`);
+            return;
           }
 
           const formatted = {
