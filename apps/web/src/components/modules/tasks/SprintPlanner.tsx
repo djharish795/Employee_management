@@ -106,7 +106,7 @@ export function SprintPlanner({ projectId }: { projectId: string }) {
           <h2 className="text-lg font-bold text-gray-800">Sprints</h2>
           <button 
             onClick={handleCreateSprint}
-            className="px-3 py-1.5 text-sm bg-blue-600 text-white font-medium rounded hover:bg-blue-700"
+            className="px-3 py-1.5 text-sm bg-slate-900 text-white font-medium rounded hover:bg-slate-800"
           >
             + Create Sprint
           </button>

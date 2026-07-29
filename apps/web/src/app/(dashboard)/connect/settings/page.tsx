@@ -102,7 +102,7 @@ export default function ConnectSettingsPage() {
                 className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
                   settings.googleCalendarConnected 
                   ? "bg-slate-100 text-slate-600 hover:bg-slate-200" 
-                  : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
+                  : "bg-slate-900 text-white hover:bg-slate-800 shadow-sm"
                 }`}
               >
                 {settings.googleCalendarConnected ? "Disconnect" : "Connect"}

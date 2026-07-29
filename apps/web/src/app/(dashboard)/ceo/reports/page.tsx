@@ -50,8 +50,9 @@ export default function CEOReportsPage() {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          /* credentials: 'include' handled */
+          'Authorization': `Bearer ${accessToken}`
         },
+        credentials: 'include',
         body: JSON.stringify({ type, format })
       });
       if (!res.ok) throw new Error('Failed to generate report');

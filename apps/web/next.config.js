@@ -25,6 +25,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'api.dicebear.com' },
       { protocol: 'https', hostname: 'i.pravatar.cc' },
       { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'naprocs-ems-document-dev.s3.ap-south-1.amazonaws.com' },
     ],
   },
   async redirects() {

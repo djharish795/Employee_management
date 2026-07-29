@@ -12,10 +12,8 @@ import { RbacPermissions } from '../../common/rbac/rbac.config';
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
-  @RequiresPhase(2)
   @RequirePermissions(RbacPermissions.REPORTS_GENERATE)
   @Post('generate')
-
   @UseGuards(JwtAuthGuard, RbacGuard)
   @Permissions(Permission.READ_EMPLOYEES)
   async generateReport(

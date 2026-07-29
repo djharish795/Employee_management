@@ -73,7 +73,7 @@ export function ProjectTeamTab({ projectId }: ProjectTeamTabProps) {
         </div>
         <button
           onClick={() => setIsAddModalOpen(true)}
-          className="flex items-center space-x-2 px-4 py-2 bg-[#0052CC] text-white rounded-md hover:bg-[#0047B3] transition-colors font-medium text-sm"
+          className="flex items-center space-x-2 px-4 py-2 bg-slate-900 text-white rounded-md hover:bg-slate-800 transition-colors font-medium text-sm"
         >
           <UserPlus className="w-4 h-4" />
           <span>Add Member</span>
@@ -284,7 +284,7 @@ function AddProjectMemberModal({ projectId, onClose, onSuccess }: { projectId: s
             <button
               type="submit"
               disabled={loading || !selectedEmployeeId}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 flex items-center disabled:opacity-50"
             >
               {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Add Member

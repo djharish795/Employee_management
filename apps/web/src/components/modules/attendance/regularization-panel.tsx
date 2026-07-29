@@ -7,12 +7,13 @@ import { PlusCircle, FileText, CheckCircle2, XCircle, Clock, Trash2, ArrowRight 
 import { RegularizationRequest } from "@/types/attendance";
 
 interface RegularizationPanelProps {
-  activeRole: "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
+  activeRole?: "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
+  mode?: "personal" | "org";
 }
 
 import { fetchRegularizations, submitRegularization, actionRegularization } from "@/lib/api/attendance";
 
-export default function RegularizationPanel() {
+export default function RegularizationPanel({ mode = "personal" }: RegularizationPanelProps) {
   const { role } = usePermissions();
   const activeRole = role as any;
   const queryClient = useQueryClient();
@@ -89,7 +90,7 @@ export default function RegularizationPanel() {
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
           <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/30">
             <h3 className="text-sm font-bold text-slate-900">Correction Requests</h3>
-            {!showForm && !["CTO", "CEO", "SUPER_ADMIN"].includes(activeRole) && (
+            {mode !== "org" && !showForm && !["CTO", "CEO", "SUPER_ADMIN"].includes(activeRole) && (
               <button
                 onClick={() => setShowForm(true)}
                 className="flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-colors cursor-pointer"
@@ -104,7 +105,7 @@ export default function RegularizationPanel() {
             <div className="py-20 text-center text-slate-400">
               <FileText className="w-10 h-10 mx-auto mb-2 text-slate-300" />
               <h4 className="text-sm font-bold text-slate-700">No requests submitted</h4>
-              <p className="text-xs mt-1">Submit corrections using the form.</p>
+              {mode !== "org" && <p className="text-xs mt-1">Submit corrections using the form.</p>}
             </div>
           ) : (
             <>
@@ -263,7 +264,7 @@ export default function RegularizationPanel() {
 
       {/* Form Panel (Right) */}
       <div className="space-y-6">
-        {showForm && (
+        {mode !== "org" && showForm && (
           <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm space-y-4">
             <div className="flex justify-between items-center border-b border-slate-100 pb-2">
               <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide">Submit Regularization</h4>

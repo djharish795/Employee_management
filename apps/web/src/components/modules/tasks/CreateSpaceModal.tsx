@@ -103,7 +103,7 @@ export function CreateSpaceModal({ onClose, onProjectCreated }: CreateSpaceModal
             <button
               type="submit"
               disabled={isLoading || !name.trim()}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Create Space
