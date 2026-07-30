@@ -321,41 +321,39 @@ export const RbacRolePermissionsMapping: Record<RbacRoleType, RbacPermissionType
     RbacPermissions.PROJECTS_READ,
   ],
   // Fallback for new roles (to be filled in later phases)
-<<<<<<< Updated upstream
-  [RbacRoles.SUPER_ADMIN]: [
-    ...BASELINE_EMPLOYEE_PERMISSIONS, RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE, RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE, RbacPermissions.LEAVE_APPROVE, RbacPermissions.LEAVE_REJECT, RbacPermissions.AUDIT_READ, RbacPermissions.SETTINGS_VIEW, RbacPermissions.SETTINGS_MANAGE, RbacPermissions.DASHBOARD_VIEW, RbacPermissions.EMPLOYEES_READ, RbacPermissions.DEPARTMENTS_READ, RbacPermissions.REPORTS_READ, RbacPermissions.REPORTS_GENERATE, RbacPermissions.TASKS_READ, RbacPermissions.TASKS_CREATE, RbacPermissions.TASKS_ASSIGN, RbacPermissions.TASKS_UPDATE, RbacPermissions.TASKS_COMPLETE, RbacPermissions.PROJECTS_READ, RbacPermissions.PROJECTS_CREATE, RbacPermissions.PROJECTS_ASSIGN, RbacPermissions.PROJECTS_MANAGE],
+  [RbacRoles.SUPER_ADMIN]: [RbacPermissions.AUDIT_READ, RbacPermissions.SETTINGS_VIEW, RbacPermissions.SETTINGS_MANAGE, RbacPermissions.DASHBOARD_VIEW, RbacPermissions.EMPLOYEES_READ, RbacPermissions.DEPARTMENTS_READ, RbacPermissions.REPORTS_READ, RbacPermissions.REPORTS_GENERATE],
   [RbacRoles.CTO]: [
-    ...BASELINE_EMPLOYEE_PERMISSIONS, RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE, RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE, RbacPermissions.LEAVE_APPROVE, RbacPermissions.LEAVE_REJECT, RbacPermissions.DASHBOARD_VIEW, RbacPermissions.EMPLOYEES_READ, RbacPermissions.DEPARTMENTS_READ, RbacPermissions.REPORTS_READ, RbacPermissions.REPORTS_GENERATE, RbacPermissions.ASSETS_ALLOCATE, RbacPermissions.TASKS_READ, RbacPermissions.TASKS_CREATE, RbacPermissions.TASKS_ASSIGN, RbacPermissions.TASKS_UPDATE],
-  [RbacRoles.COO]: [
-    ...BASELINE_EMPLOYEE_PERMISSIONS, RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE, RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE, RbacPermissions.LEAVE_APPROVE, RbacPermissions.LEAVE_REJECT],
-  [RbacRoles.OPERATIONS_HEAD]: [
-    ...BASELINE_EMPLOYEE_PERMISSIONS, RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE, RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE],
+    RbacPermissions.DASHBOARD_VIEW, 
+    RbacPermissions.EMPLOYEES_READ, 
+    RbacPermissions.DEPARTMENTS_READ,
+    RbacPermissions.TASKS_READ,
+    RbacPermissions.TASKS_CREATE,
+    RbacPermissions.TASKS_ASSIGN,
+    RbacPermissions.TASKS_UPDATE,
+    RbacPermissions.AUDIT_READ,
+    RbacPermissions.ASSETS_READ,
+    RbacPermissions.LEAVE_READ,
+    RbacPermissions.LEAVE_APPROVE,
+    RbacPermissions.REPORTS_READ,
+    RbacPermissions.REPORTS_GENERATE
+  ],
+  [RbacRoles.COO]: [],
+  [RbacRoles.OPERATIONS_HEAD]: [],
   [RbacRoles.CHRO]: [
-    ...BASELINE_EMPLOYEE_PERMISSIONS, RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE, RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE, RbacPermissions.LEAVE_APPROVE, RbacPermissions.LEAVE_REJECT],
-  [RbacRoles.TEAM_LEAD]: [
-    ...BASELINE_EMPLOYEE_PERMISSIONS, RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE, RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE, RbacPermissions.LEAVE_APPROVE, RbacPermissions.LEAVE_REJECT, RbacPermissions.TASKS_READ, RbacPermissions.TASKS_CREATE, RbacPermissions.TASKS_ASSIGN, RbacPermissions.TASKS_UPDATE, RbacPermissions.TASKS_COMPLETE, RbacPermissions.PROJECTS_READ, RbacPermissions.PROJECTS_CREATE, RbacPermissions.PROJECTS_ASSIGN, RbacPermissions.PROJECTS_MANAGE],
-  [RbacRoles.TL]: [
-    ...BASELINE_EMPLOYEE_PERMISSIONS, RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE, RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE, RbacPermissions.LEAVE_APPROVE, RbacPermissions.LEAVE_REJECT, RbacPermissions.TASKS_READ, RbacPermissions.TASKS_CREATE, RbacPermissions.TASKS_ASSIGN, RbacPermissions.TASKS_UPDATE, RbacPermissions.TASKS_COMPLETE, RbacPermissions.PROJECTS_READ, RbacPermissions.PROJECTS_CREATE, RbacPermissions.PROJECTS_ASSIGN, RbacPermissions.PROJECTS_MANAGE],
-  [RbacRoles.QA]: [
-    ...BASELINE_EMPLOYEE_PERMISSIONS, RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE, RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE, RbacPermissions.TASKS_READ, RbacPermissions.TASKS_CREATE, RbacPermissions.TASKS_ASSIGN, RbacPermissions.TASKS_UPDATE, RbacPermissions.TASKS_COMPLETE, RbacPermissions.PROJECTS_READ],
-  [RbacRoles.COMPLIANCE_OFFICER]: [
-    ...BASELINE_EMPLOYEE_PERMISSIONS, RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE, RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE],
-  [RbacRoles.LEGAL]: [
-    ...BASELINE_EMPLOYEE_PERMISSIONS, RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE, RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE],
-  [RbacRoles.IT]: [
-    ...BASELINE_EMPLOYEE_PERMISSIONS, RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE, RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE],
-  [RbacRoles.FINANCE]: [
-    ...BASELINE_EMPLOYEE_PERMISSIONS, RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE, RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE],
-  [RbacRoles.OR]: [
-    ...BASELINE_EMPLOYEE_PERMISSIONS, RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE, RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE],
-  [RbacRoles.OPS]: [
-    ...BASELINE_EMPLOYEE_PERMISSIONS, RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE, RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE],
-  [RbacRoles.AR]: [
-    ...BASELINE_EMPLOYEE_PERMISSIONS, RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE, RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE],
-  [RbacRoles.ADMIN]: [
-    ...BASELINE_EMPLOYEE_PERMISSIONS, RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE, RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE],
-  [RbacRoles.TR]: [
-    ...BASELINE_EMPLOYEE_PERMISSIONS, RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE, RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE],
+    ...BASELINE_EMPLOYEE_PERMISSIONS, RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE, RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE, RbacPermissions.LEAVE_APPROVE, RbacPermissions.LEAVE_REJECT
+  ],
+  [RbacRoles.TEAM_LEAD]: [],
+  [RbacRoles.TL]: [],
+  [RbacRoles.QA]: [],
+  [RbacRoles.COMPLIANCE_OFFICER]: [],
+  [RbacRoles.LEGAL]: [],
+  [RbacRoles.IT]: [],
+  [RbacRoles.FINANCE]: [],
+  [RbacRoles.OR]: [],
+  [RbacRoles.OPS]: [],
+  [RbacRoles.AR]: [],
+  [RbacRoles.ADMIN]: [],
+  [RbacRoles.TR]: [],
   [RbacRoles.CEM]: [
     ...BASELINE_EMPLOYEE_PERMISSIONS,
     RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE,
@@ -377,38 +375,6 @@ export const RbacRolePermissionsMapping: Record<RbacRoleType, RbacPermissionType
     RbacPermissions.DASHBOARD_VIEW,
     RbacPermissions.REPORTS_READ, RbacPermissions.REPORTS_GENERATE,
   ],
-=======
-  [RbacRoles.SUPER_ADMIN]: [RbacPermissions.AUDIT_READ, RbacPermissions.SETTINGS_VIEW, RbacPermissions.SETTINGS_MANAGE, RbacPermissions.DASHBOARD_VIEW, RbacPermissions.EMPLOYEES_READ, RbacPermissions.DEPARTMENTS_READ, RbacPermissions.REPORTS_READ, RbacPermissions.REPORTS_GENERATE],
-  [RbacRoles.CTO]: [
-    RbacPermissions.DASHBOARD_VIEW,
-    RbacPermissions.EMPLOYEES_READ,
-    RbacPermissions.DEPARTMENTS_READ,
-    RbacPermissions.TASKS_READ,
-    RbacPermissions.TASKS_CREATE,
-    RbacPermissions.TASKS_ASSIGN,
-    RbacPermissions.TASKS_UPDATE,
-    RbacPermissions.AUDIT_READ,
-    RbacPermissions.ASSETS_READ,
-    RbacPermissions.LEAVE_READ,
-    RbacPermissions.LEAVE_APPROVE,
-    RbacPermissions.REPORTS_READ,
-    RbacPermissions.REPORTS_GENERATE
-  ],
-  [RbacRoles.COO]: [],
-  [RbacRoles.OPERATIONS_HEAD]: [],
-  [RbacRoles.TEAM_LEAD]: [],
-  [RbacRoles.TL]: [],
-  [RbacRoles.QA]: [],
-  [RbacRoles.COMPLIANCE_OFFICER]: [],
-  [RbacRoles.LEGAL]: [],
-  [RbacRoles.IT]: [],
-  [RbacRoles.FINANCE]: [],
-  [RbacRoles.OR]: [],
-  [RbacRoles.OPS]: [],
-  [RbacRoles.AR]: [],
-  [RbacRoles.ADMIN]: [],
-  [RbacRoles.TR]: [],
->>>>>>> Stashed changes
   [RbacRoles.OM]: [
     ...BASELINE_EMPLOYEE_PERMISSIONS,
     RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE, RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE,
