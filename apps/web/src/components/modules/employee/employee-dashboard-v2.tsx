@@ -109,12 +109,14 @@ export default function EmployeeDashboardV2() {
     queryKey: ["teamReports"],
     queryFn: () => apiClient.get('/work-reports/team').then(res => res.data),
     staleTime: 60_000,
+    enabled: isManagerial || isOperations,
   });
 
   const fieldWorkQuery = useQuery({
     queryKey: ["fieldWorkApprovals"],
     queryFn: fetchFieldWorkApprovals,
     staleTime: 60_000,
+    enabled: isManagerial || isOperations,
   });
 
   const pendingWorkflows = Array.isArray(tasksQuery.data) 

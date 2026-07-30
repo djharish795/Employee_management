@@ -20,7 +20,7 @@ import EarlyCheckoutModal from "@/components/shared/early-checkout-modal";
 export default function OmDashboardView() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { employeeId } = useAuthStore();
+  const { employeeId, role } = useAuthStore();
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
 
   // ── Today's attendance state ─────────────────────────────────
@@ -101,6 +101,15 @@ export default function OmDashboardView() {
   const fetchDashboardData = async () => {
     try {
       setIsRefreshing(true);
+      
+      const isManagerial = role === "MANAGER" || role === "OM" || role === "HR" || role === "HRE" || role === "CAM" || role === "CRM" || role === "CTO" || role === "CEO" || role === "SUPER_ADMIN";
+      
+      if (!isManagerial) {
+        setWorkReports([]);
+        setFieldRequests([]);
+        return;
+      }
+      
       // Fetch team's reports and field requests
       const [workRes, fieldRes] = await Promise.all([
         apiClient.get('/work-reports/team').catch(() => ({ data: { data: [] } })),
