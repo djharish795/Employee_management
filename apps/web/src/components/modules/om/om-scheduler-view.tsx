@@ -8,12 +8,29 @@ import {
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfMonth, isSameMonth, isSameDay, isBefore, startOfDay, parse } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { connectApi } from '@/lib/api/connect';
+import { apiClient } from '@/lib/api/client';
 import toast from 'react-hot-toast';
 
+import { useSearchParams } from 'next/navigation';
+
 export default function OmSchedulerView() {
+  const searchParams = useSearchParams();
+  const dateParam = searchParams.get('date');
+  
   const today = new Date();
-  const [currentDate, setCurrentDate] = useState(today);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentDate, setCurrentDate] = useState(() => {
+    if (dateParam) {
+      const parsed = new Date(dateParam);
+      if (!isNaN(parsed.getTime())) {
+        return parsed;
+      }
+    }
+    return today;
+  });
+  
+  const [isModalOpen, setIsModalOpen] = useState(() => {
+    return !!dateParam;
+  });
   
   const queryClient = useQueryClient();
 
@@ -22,6 +39,14 @@ export default function OmSchedulerView() {
     queryKey: ['meetings'],
     queryFn: connectApi.getMyMeetings
   });
+  
+  // Fetch all active employees
+  const { data: contactsResponse } = useQuery({
+    queryKey: ['all-employees'],
+    queryFn: () => apiClient.get('/employees?limit=1000').then(res => res.data?.data || res.data || [])
+  });
+  const contacts = Array.isArray(contactsResponse) ? contactsResponse : [];
+
   
   // The API might return { data: [...] } or just [...]
   const fetchedMeetings = response?.data || response || [];
@@ -34,6 +59,7 @@ export default function OmSchedulerView() {
       setNewTaskTitle('');
       setNewTaskTime('');
       setNewTaskDesc('');
+      setSelectedAssigneeId('');
       setIsModalOpen(false);
       toast.success("Meeting scheduled successfully");
     },
@@ -62,6 +88,13 @@ export default function OmSchedulerView() {
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskTime, setNewTaskTime] = useState('');
   const [newTaskDesc, setNewTaskDesc] = useState('');
+  const [selectedAssigneeId, setSelectedAssigneeId] = useState('');
+  
+  React.useEffect(() => {
+    if (contacts.length > 0 && !selectedAssigneeId) {
+      setSelectedAssigneeId(contacts[0].id);
+    }
+  }, [contacts, selectedAssigneeId]);
   
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(monthStart);
@@ -103,7 +136,8 @@ export default function OmSchedulerView() {
       description: newTaskDesc,
       startTime: startTime.toISOString(),
       endTime: endTime.toISOString(),
-      type: "ONE_ON_ONE"
+      type: "ONE_ON_ONE",
+      assigneeId: selectedAssigneeId
     });
   };
 
@@ -335,6 +369,22 @@ export default function OmSchedulerView() {
                 />
               </div>
               <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">With Contact</label>
+                <select 
+                  value={selectedAssigneeId}
+                  onChange={(e) => setSelectedAssigneeId(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-transparent text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium" 
+                  disabled={createMeetMutation.isPending}
+                >
+                  <option value="">Select contact...</option>
+                  {contacts.map((c: any) => (
+                    <option key={c.id} value={c.id}>
+                      {c.firstName} {c.lastName} ({c.designation?.title || c.department?.name || 'Contact'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Time</label>
                 <input 
                   type="time" 
@@ -366,7 +416,7 @@ export default function OmSchedulerView() {
               </button>
               <button 
                 onClick={handleSaveTask}
-                disabled={!newTaskTitle || createMeetMutation.isPending}
+                disabled={!newTaskTitle || !selectedAssigneeId || createMeetMutation.isPending}
                 className="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {createMeetMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
