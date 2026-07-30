@@ -29,7 +29,7 @@ const protectedRoutes = [
 ];
 
 // Ensure this matches the backend JWT secret
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-for-dev-12345';
+const JWT_SECRET = process.env.JWT_SECRET || 'wjzDFlB9Ib8n5hsQeJucCRSWxgmMiZ2aN4TPofrYXd6OVEptHGqy1kA0K3vLU7';
 const secretKey = new TextEncoder().encode(JWT_SECRET);
 
 export async function middleware(request: NextRequest) {

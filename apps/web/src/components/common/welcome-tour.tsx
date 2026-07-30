@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Joyride, EventData, STATUS, Step, TooltipRenderProps } from "react-joyride";
+import dynamic from "next/dynamic";
 import { useAuthStore } from "@/store/auth";
 import { useUiStore } from "@/store/ui";
+
+const Joyride = dynamic(() => import("react-joyride").then(mod => mod.Joyride), { ssr: false });
 import { 
   motion, AnimatePresence, Variants, 
   useMotionValue, useSpring, useTransform, useMotionTemplate 
@@ -52,7 +54,7 @@ const CustomTooltip = ({
   backProps,
   tooltipProps,
   isLastStep,
-}: TooltipRenderProps) => {
+}: any) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10, scale: 0.98 }}
@@ -194,9 +196,9 @@ export default function WelcomeTour() {
     }, 400); // wait for modal exit animation completely
   };
 
-  const handleJoyrideCallback = (data: EventData) => {
+  const handleJoyrideCallback = (data: any) => {
     const { status } = data;
-    const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
+    const finishedStatuses: string[] = ['finished', 'skipped'];
     if (finishedStatuses.includes(status)) {
       setRunTour(false);
       setWelcomeTourActive(false);
@@ -206,7 +208,7 @@ export default function WelcomeTour() {
     }
   };
 
-  const steps: Step[] = [
+  const steps: any[] = [
     {
       target: "body",
       content: (

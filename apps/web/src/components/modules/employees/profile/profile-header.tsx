@@ -150,7 +150,7 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
           >
             <div className={`relative w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center text-2xl sm:text-3xl font-bold border-4 border-white shadow-md overflow-hidden ${profile.avatarBg}`}>
               {displayPhotoUrl ? (
-                <Image src={displayPhotoUrl} alt={profile.name} className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
+                <img src={displayPhotoUrl} alt={profile.name} className="w-full h-full object-cover" />
               ) : (
                 <span>{profile.initials}</span>
               )}
