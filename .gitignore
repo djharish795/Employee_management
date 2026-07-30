@@ -12,7 +12,7 @@ packages/database/.env
 .DS_Store
 coverage/
 backup_today/
-*.tsbuildinfo
 
-# Tools
-.tools/
+# Local tools
+.tools/node20/pnpm.cmd
+.tools/node20/pnpm.ps1
