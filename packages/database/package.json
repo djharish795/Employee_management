@@ -11,6 +11,7 @@
     "push:dev": "dotenv -e ../../apps/api/.env -e ../../apps/api/.env.local -- prisma db push --accept-data-loss",
     "migrate:deploy": "dotenv -e ../../apps/api/.env -e ../../apps/api/.env.local -- prisma migrate deploy",
     "seed": "dotenv -e ../../apps/api/.env -e ../../apps/api/.env.local -- tsx prisma/seeds/seed.ts",
+    "seed:real": "dotenv -e ../../apps/api/.env -e ../../apps/api/.env.local -- tsx prisma/seeds/seed-real-data.ts",
     "seed:projects": "dotenv -e ../../apps/api/.env -e ../../apps/api/.env.local -- tsx scripts/seed-projects.ts",
     "studio": "cross-env NODE_OPTIONS=--max-old-space-size=8192 dotenv -e ../../apps/api/.env -e ../../apps/api/.env.local -- prisma studio"
   },

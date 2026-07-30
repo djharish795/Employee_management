@@ -224,8 +224,10 @@ export function CeoSidebar({ activeModule = 'dashboard' }: SidebarProps) {
   const storeRole = useAuthStore((state) => state.role);
   const [role, setRole] = useState(storeRole || 'EMPLOYEE');
 
-  const { data: teamWorkReports } = useSWR('/work-reports/team', fetcher, { refreshInterval: 60000 });
-  const { data: teamFieldReports } = useSWR('/field-work-requests/team', fetcher, { refreshInterval: 60000 });
+  const hasTeamAccess = hasPermission(Permission.APPROVE_FIELD_REQUESTS) || hasPermission(Permission.READ_EMPLOYEES);
+
+  const { data: teamWorkReports } = useSWR(hasTeamAccess ? '/work-reports/team' : null, fetcher, { refreshInterval: 60000 });
+  const { data: teamFieldReports } = useSWR(hasTeamAccess ? '/field-work-requests/team' : null, fetcher, { refreshInterval: 60000 });
 
   const pendingWorkReports = (teamWorkReports || []).filter((r: any) => r.status === 'PENDING').length;
   const pendingFieldReports = (teamFieldReports || []).filter((r: any) => r.status === 'PENDING').length;
