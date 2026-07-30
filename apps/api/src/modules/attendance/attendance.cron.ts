@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { Cron } from "@nestjs/schedule";
 import { PrismaService } from "../../prisma/prisma.service";
 import { RedisService } from "../../redis/redis.service";
+import { InAppNotificationService } from "../notifications/in-app.service";
 
 @Injectable()
 export class AttendanceCronService {
@@ -9,7 +10,8 @@ export class AttendanceCronService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly redis: RedisService
+    private readonly redis: RedisService,
+    private readonly inApp: InAppNotificationService
   ) {}
 
   @Cron("59 23 * * *", { timeZone: "Asia/Kolkata" })
@@ -21,6 +23,113 @@ export class AttendanceCronService {
   async forceAutoCheckout() {
     this.logger.log("Executing forced auto-checkout...");
     await this.processMidnightJob();
+  }
+
+  @Cron("0 19 * * *", { timeZone: "Asia/Kolkata" })
+  async autoCheckout1900() {
+    this.logger.log("Running 19:00 Auto-Checkout for active shifts...");
+    await this.process1900Checkout();
+  }
+
+  private async process1900Checkout() {
+    try {
+      const today = new Date();
+      // Ensure we only affect today's records
+      const isoDateStr = today.toISOString().split("T")[0]; 
+
+      // Find all employees currently IN or BREAK in Redis
+      const keys = await this.redis.getClient().keys("attendance_state:*");
+      for (const key of keys) {
+        const stateStr = await this.redis.getClient().get(key);
+        if (!stateStr) continue;
+        const state = JSON.parse(stateStr);
+
+        // If they are IN or BREAK and the shift date matches today's date prefix
+        if ((state.state === "IN" || state.state === "BREAK") && state.shiftDate && state.shiftDate.startsWith(isoDateStr)) {
+          const employeeId = key.split(":")[1];
+          const shiftDate = new Date(state.shiftDate);
+          
+          const record = await this.prisma.attendanceRecord.findUnique({
+            where: { employeeId_date: { employeeId, date: shiftDate } }
+          });
+
+          if (record && !record.checkOutTime) {
+            const checkoutTime = new Date(shiftDate);
+            checkoutTime.setUTCHours(13, 30, 0, 0); // 19:00 IST is 13:30 UTC
+
+            const now = checkoutTime.getTime();
+            let offset = state.offset;
+            
+            if (state.state === "IN" || state.state === "BREAK") {
+              const elapsed = Math.floor((now - state.startTime) / 1000);
+              offset += elapsed;
+            }
+
+            let workHoursDecimal = offset / 3600;
+
+            const approvedHalfDay = await this.prisma.leaveRequest.findFirst({
+              where: {
+                employeeId,
+                startDate: { lte: shiftDate },
+                endDate: { gte: shiftDate },
+                status: 'APPROVED',
+                isHalfDay: true
+              }
+            });
+            const thresholdSeconds = approvedHalfDay ? 16200 : 32400;
+
+            let finalStatus = record.status === "WFH" ? "WFH" : "PRESENT";
+            // Note: 19:00 is standard checkout, so it shouldn't be EARLY_CHECKOUT unless threshold missed.
+            if (offset < thresholdSeconds && finalStatus !== "WFH") {
+              finalStatus = "EARLY_CHECKOUT";
+            }
+
+            let punchHistory = record.punchHistory ? (record.punchHistory as any[]) : [];
+            punchHistory.push({ action: "OUT", time: checkoutTime.toISOString(), system: true });
+
+            let breakHistory = record.breakHistory ? (record.breakHistory as any[]) : [];
+            if (state.state === "BREAK" && record.currentBreakStartTime) {
+               if (breakHistory.length > 0 && breakHistory[breakHistory.length - 1].end === null) {
+                 breakHistory[breakHistory.length - 1].end = checkoutTime.toISOString();
+               }
+            }
+
+            await this.prisma.attendanceRecord.update({
+              where: { id: record.id },
+              data: {
+                checkOutTime: checkoutTime,
+                workHours: workHoursDecimal,
+                status: finalStatus as any,
+                punchHistory: punchHistory as any,
+                breakHistory: breakHistory as any,
+                currentBreakStartTime: null,
+                notes: (record.notes ? record.notes + "\n" : "") + "System Auto-Checkout at 7:00 PM."
+              }
+            });
+
+            state.state = "OUT";
+            state.startTime = checkoutTime.getTime();
+            state.offset = offset;
+            await this.redis.setJson(key, state, 60 * 60 * 24);
+
+            this.inApp.broadcastEvent('attendance.punched', { employeeId, type: "OUT" });
+            
+            // Notify user
+            await this.prisma.notification.create({
+              data: {
+                recipientId: employeeId,
+                title: "Shift Ended",
+                body: "You have been automatically checked out as your shift ended at 7:00 PM.",
+                type: "SYSTEM_ALERT"
+              }
+            });
+          }
+        }
+      }
+      this.logger.log("19:00 Auto-Checkout completed.");
+    } catch (err) {
+      this.logger.error("Failed 19:00 Auto-Checkout", err);
+    }
   }
 
   private async processMidnightJob() {

@@ -450,7 +450,7 @@ export class AttendanceService {
         date: { gte: startOfMonth },
         workHours: { not: null }
       },
-      select: { workHours: true, status: true },
+      select: { workHours: true, status: true, overtime: true, isOvertimeApproved: true },
     });
 
     let totalHours = 0;
@@ -461,6 +461,9 @@ export class AttendanceService {
     monthlyRecords.forEach(record => {
       if (record.workHours) {
         totalHours += Number(record.workHours);
+        if (record.isOvertimeApproved && record.overtime) {
+           totalHours += Number(record.overtime);
+        }
       }
       const statusStr = record.status as string;
       if ((PRESENT_WITH_LATE_STATUSES as readonly string[]).includes(statusStr)) {
@@ -514,9 +517,13 @@ export class AttendanceService {
     for (let d = new Date(startOfWeek); d <= endOfWeek; d.setUTCDate(d.getUTCDate() + 1)) {
       const isoDate = d.toISOString().split("T")[0];
       const record = weeklyRecords.find(r => r.date.toISOString().split("T")[0] === isoDate);
+      let hrs = record?.workHours ? Number(record.workHours) : 0;
+      if (record && record.isOvertimeApproved && record.overtime) {
+        hrs += Number(record.overtime);
+      }
       weeklyTrends.push({
         date: isoDate,
-        hours: record?.workHours ? Number(record.workHours) : 0,
+        hours: hrs,
       });
     }
 
@@ -593,6 +600,51 @@ export class AttendanceService {
       thisMonthDays: daysPresent,
       weeklyTrends
     };
+  }
+
+  async getPendingOvertime(managerId: string) {
+    if (!managerId) throw new BadRequestException("Manager ID is required");
+
+    return await this.prisma.attendanceRecord.findMany({
+      where: {
+        isOvertimeApproved: false,
+        overtime: { gt: 0 },
+        employee: { reportingManagerId: managerId }
+      },
+      include: {
+        employee: { select: { firstName: true, lastName: true, employeeId: true, photoUrl: true } }
+      },
+      orderBy: { date: 'desc' }
+    });
+  }
+
+  async approveOvertime(managerId: string, recordId: string, status: 'APPROVE' | 'REJECT') {
+    if (!managerId) throw new BadRequestException("Manager ID is required");
+
+    const record = await this.prisma.attendanceRecord.findUnique({
+      where: { id: recordId },
+      include: { employee: true }
+    });
+
+    if (!record) throw new NotFoundException("Record not found");
+    if (record.employee.reportingManagerId !== managerId) {
+       throw new ForbiddenException("You are not authorized to approve overtime for this employee.");
+    }
+
+    if (status === 'APPROVE') {
+      await this.prisma.attendanceRecord.update({
+        where: { id: recordId },
+        data: { isOvertimeApproved: true, overtimeApprovedById: managerId }
+      });
+      return { success: true, message: "Overtime approved successfully" };
+    } else {
+      // Reject: Set overtime to 0
+      await this.prisma.attendanceRecord.update({
+        where: { id: recordId },
+        data: { overtime: 0, isOvertimeApproved: false, overtimeApprovedById: managerId }
+      });
+      return { success: true, message: "Overtime rejected" };
+    }
   }
 
   async getOrgReports() {
@@ -1555,61 +1607,5 @@ export class AttendanceService {
     };
   }
 
-  async approveOvertime(recordId: string, managerId: string) {
-    const record = await this.prisma.attendanceRecord.findUnique({
-      where: { id: recordId },
-      include: { employee: true }
-    });
 
-    if (!record) {
-      throw new NotFoundException("Attendance record not found");
-    }
-
-    if ((record as any).isOvertimeApproved) {
-      throw new BadRequestException("Overtime is already approved for this record");
-    }
-
-    if (!record.overtime || Number(record.overtime) <= 0) {
-      throw new BadRequestException("No overtime recorded for this shift");
-    }
-
-    const manager = await this.prisma.employee.findUnique({ where: { id: managerId }, include: { user: true } });
-    if (!manager) {
-      throw new ForbiddenException("Invalid manager profile");
-    }
-
-    // Role-based validation
-    const isAdmin = ['HR', 'CHRO', 'CEO', 'SUPER_ADMIN'].includes(manager.user?.role || '');
-    const isDirectManager = record.employee.reportingManagerId === managerId;
-
-    if (!isAdmin && !isDirectManager) {
-      throw new ForbiddenException("Only the direct manager or an admin can approve overtime.");
-    }
-
-    const currentWorkHours = Number(record.workHours || 0);
-    const overtimeHours = Number(record.overtime);
-    const newWorkHours = currentWorkHours + overtimeHours;
-
-    const managerName = manager ? `${manager.firstName} ${manager.lastName}` : managerId;
-    
-    const newNote = `Overtime of ${overtimeHours} hours approved by ${managerName}.`;
-    const finalNotes = record.notes ? `${record.notes}\n${newNote}` : newNote;
-
-    const updatedRecord = await this.prisma.attendanceRecord.update({
-      where: { id: recordId },
-      data: {
-        isOvertimeApproved: true,
-        workHours: newWorkHours,
-        notes: finalNotes
-      } as any
-    });
-
-    this.inApp.broadcastEvent('attendance.overtime_approved', { 
-      employeeId: record.employeeId, 
-      date: record.date.toISOString(),
-      hours: overtimeHours
-    });
-
-    return updatedRecord;
-  }
 }

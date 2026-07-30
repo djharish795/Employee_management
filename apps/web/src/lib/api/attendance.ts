@@ -89,7 +89,12 @@ export const fetchTeamAttendanceView = async (dateStr?: string): Promise<any> =>
   return data;
 };
 
-export const approveOvertime = async (recordId: string): Promise<any> => {
-  const { data } = await apiClient.post(`/attendance/records/${recordId}/approve-overtime`);
+export const fetchPendingOvertime = async (): Promise<any> => {
+  const { data } = await apiClient.get(`/attendance/pending-overtime`);
+  return data;
+};
+
+export const approveOvertime = async (recordId: string, status: 'APPROVE' | 'REJECT'): Promise<any> => {
+  const { data } = await apiClient.post(`/attendance/records/${recordId}/approve-overtime`, { status });
   return data;
 };
