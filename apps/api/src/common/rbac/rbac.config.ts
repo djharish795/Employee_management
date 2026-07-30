@@ -164,6 +164,11 @@ export const RbacRoles = {
   ADMIN: 'ADMIN',
   TR: 'TR',
   OM: 'OM',
+
+  // CEM / CRM / OE portal roles
+  CEM: 'CEM',
+  CRM: 'CRM',
+  OE: 'OE',
 } as const;
 
 export type RbacRoleType = typeof RbacRoles[keyof typeof RbacRoles];
@@ -350,6 +355,27 @@ export const RbacRolePermissionsMapping: Record<RbacRoleType, RbacPermissionType
     ...BASELINE_EMPLOYEE_PERMISSIONS,RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE, RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE],
   [RbacRoles.TR]: [
     ...BASELINE_EMPLOYEE_PERMISSIONS,RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE, RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE],
+  [RbacRoles.CEM]: [
+    ...BASELINE_EMPLOYEE_PERMISSIONS,
+    RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE,
+    RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE,
+    RbacPermissions.DASHBOARD_VIEW,
+    RbacPermissions.REPORTS_READ, RbacPermissions.REPORTS_GENERATE,
+  ],
+  [RbacRoles.CRM]: [
+    ...BASELINE_EMPLOYEE_PERMISSIONS,
+    RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE,
+    RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE,
+    RbacPermissions.DASHBOARD_VIEW,
+    RbacPermissions.REPORTS_READ, RbacPermissions.REPORTS_GENERATE,
+  ],
+  [RbacRoles.OE]: [
+    ...BASELINE_EMPLOYEE_PERMISSIONS,
+    RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE,
+    RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE,
+    RbacPermissions.DASHBOARD_VIEW,
+    RbacPermissions.REPORTS_READ, RbacPermissions.REPORTS_GENERATE,
+  ],
   [RbacRoles.OM]: [
     ...BASELINE_EMPLOYEE_PERMISSIONS,
     RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE, RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE,
