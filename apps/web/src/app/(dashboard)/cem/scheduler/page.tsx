@@ -9,12 +9,14 @@ import { format, startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfM
 import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { connectApi } from '../../../../lib/api/connect';
-import toast from 'react-hot-toast';
+import { useAuthStore } from '@/store/auth';
+import toast, { Toaster } from 'react-hot-toast';
 
 export default function CamSchedulerPage() {
   const today = new Date();
   const [currentDate, setCurrentDate] = useState(today);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const employeeId = useAuthStore(state => state.employeeId);
   
   const queryClient = useQueryClient();
 
@@ -104,7 +106,8 @@ export default function CamSchedulerPage() {
       description: newTaskDesc,
       startTime: startTime.toISOString(),
       endTime: endTime.toISOString(),
-      type: "ONE_ON_ONE"
+      type: "ONE_ON_ONE",
+      assigneeId: employeeId ?? undefined,
     });
   };
 
@@ -133,6 +136,7 @@ export default function CamSchedulerPage() {
 
   return (
     <div className="p-6 md:p-8 max-w-[1600px] mx-auto animate-in fade-in duration-300">
+      <Toaster position="top-right" />
       
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">

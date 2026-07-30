@@ -396,14 +396,14 @@ export default function CemLeadWorkspacePage() {
                 key={l.id}
                 onClick={() => setSelectedLeadId(l.id)}
                 className={`p-4 cursor-pointer transition-all border-l-4 border-b border-slate-100 ${isSelected
-                    ? 'bg-indigo-50 border-l-indigo-600 pl-3.5'
-                    : 'hover:bg-slate-50 border-l-transparent'
+                  ? 'bg-indigo-50 border-l-indigo-600 pl-3.5'
+                  : 'hover:bg-slate-50 border-l-transparent'
                   }`}
               >
                 <div className="flex items-start justify-between">
                   <h4 className="text-xs font-black text-slate-900 truncate max-w-[170px]">{l.company}</h4>
                   <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border ${l.priority === 'CRITICAL' ? 'bg-rose-50 text-rose-600 border-rose-100' :
-                      'bg-indigo-50 text-indigo-600 border-indigo-100'
+                    'bg-indigo-50 text-indigo-600 border-indigo-100'
                     }`}>
                     {l.priority}
                   </span>
@@ -556,8 +556,8 @@ export default function CemLeadWorkspacePage() {
                     return (
                       <div key={label} className="flex flex-col items-center gap-2 relative z-10 w-24">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center border-4 border-white shadow-sm transition-all duration-300 text-xs ${isActive ? 'bg-indigo-600 text-white font-black ring-4 ring-indigo-100' :
-                            isCompleted ? 'bg-indigo-600 text-white font-bold' :
-                              'bg-slate-100 text-slate-400 font-semibold'
+                          isCompleted ? 'bg-indigo-600 text-white font-bold' :
+                            'bg-slate-100 text-slate-400 font-semibold'
                           }`}>
                           {isCompleted ? <Check className="w-3.5 h-3.5" /> : stepNum}
                         </div>
@@ -643,8 +643,8 @@ export default function CemLeadWorkspacePage() {
                                 {m.date} {m.time}
                               </span>
                               <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded border ${m.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                  m.status === 'SCHEDULED' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
-                                    'bg-slate-100 text-slate-600 border-slate-200'
+                                m.status === 'SCHEDULED' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                                  'bg-slate-100 text-slate-600 border-slate-200'
                                 }`}>
                                 {m.status}
                               </span>
