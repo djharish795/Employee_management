@@ -379,6 +379,10 @@ export const RbacRolePermissionsMapping: Record<RbacRoleType, RbacPermissionType
     ...BASELINE_EMPLOYEE_PERMISSIONS,
     RbacPermissions.PROFILE_READ, RbacPermissions.PROFILE_UPDATE, RbacPermissions.LEAVE_READ, RbacPermissions.LEAVE_CREATE,
     RbacPermissions.ASSETS_ALLOCATE,
+    RbacPermissions.TASKS_READ,
+    RbacPermissions.TASKS_CREATE,
+    RbacPermissions.TASKS_UPDATE,
+    RbacPermissions.TASKS_COMPLETE,
   ],
 };
 
