@@ -35,7 +35,8 @@ export default function OmReportsView() {
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [workReportFilter, setWorkReportFilter] = useState<string>('ALL');
+  const [fieldRequestFilter, setFieldRequestFilter] = useState<string>('ALL');
 
   const handleGenerateReport = async (type: string, format: 'PDF' | 'XLSX') => {
     setIsGenerating(true);
@@ -239,7 +240,7 @@ export default function OmReportsView() {
                   <DropdownMenuTrigger asChild>
                     <button className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors relative">
                       <Filter className="w-4 h-4" />
-                      {statusFilter !== 'ALL' && (
+                      {workReportFilter !== 'ALL' && (
                         <span className="absolute top-0 right-0 w-2 h-2 bg-indigo-500 rounded-full border border-white dark:border-slate-900"></span>
                       )}
                     </button>
@@ -247,23 +248,23 @@ export default function OmReportsView() {
                   <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800">
                     <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => setStatusFilter('ALL')} className="cursor-pointer">
-                      <span className={statusFilter === 'ALL' ? 'font-bold' : ''}>All Requests</span>
+                    <DropdownMenuItem onClick={() => setWorkReportFilter('ALL')} className="cursor-pointer">
+                      <span className={workReportFilter === 'ALL' ? 'font-bold' : ''}>All Reports</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setStatusFilter('DRAFT')} className="cursor-pointer">
-                      <span className={statusFilter === 'DRAFT' ? 'font-bold' : ''}>Drafts</span>
+                    <DropdownMenuItem onClick={() => setWorkReportFilter('DRAFT')} className="cursor-pointer">
+                      <span className={workReportFilter === 'DRAFT' ? 'font-bold' : ''}>Drafts</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setStatusFilter('PENDING')} className="cursor-pointer">
-                      <span className={statusFilter === 'PENDING' ? 'font-bold' : ''}>Under Review</span>
+                    <DropdownMenuItem onClick={() => setWorkReportFilter('PENDING')} className="cursor-pointer">
+                      <span className={workReportFilter === 'PENDING' ? 'font-bold' : ''}>Under Review</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setStatusFilter('APPROVED')} className="cursor-pointer">
-                      <span className={statusFilter === 'APPROVED' ? 'font-bold text-emerald-600' : 'text-emerald-600'}>Approved</span>
+                    <DropdownMenuItem onClick={() => setWorkReportFilter('APPROVED')} className="cursor-pointer">
+                      <span className={workReportFilter === 'APPROVED' ? 'font-bold text-emerald-600' : 'text-emerald-600'}>Approved</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setStatusFilter('REJECTED')} className="cursor-pointer">
-                      <span className={statusFilter === 'REJECTED' ? 'font-bold text-rose-600' : 'text-rose-600'}>Rejected</span>
+                    <DropdownMenuItem onClick={() => setWorkReportFilter('REJECTED')} className="cursor-pointer">
+                      <span className={workReportFilter === 'REJECTED' ? 'font-bold text-rose-600' : 'text-rose-600'}>Rejected</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setStatusFilter('CANCELLED')} className="cursor-pointer">
-                      <span className={statusFilter === 'CANCELLED' ? 'font-bold' : ''}>Cancelled</span>
+                    <DropdownMenuItem onClick={() => setWorkReportFilter('CANCELLED')} className="cursor-pointer">
+                      <span className={workReportFilter === 'CANCELLED' ? 'font-bold' : ''}>Cancelled</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -316,7 +317,7 @@ export default function OmReportsView() {
                     }
                     
                     const currentList = localRequests;
-                    const filteredList = statusFilter === 'ALL' ? currentList : currentList.filter(req => req.status === statusFilter);
+                    const filteredList = workReportFilter === 'ALL' ? currentList : currentList.filter(req => req.status === workReportFilter);
                     const workReportsList = filteredList.filter(req => req.type === 'WORK_REPORT');
 
                     if (workReportsList.length === 0) {
@@ -371,13 +372,13 @@ export default function OmReportsView() {
             
             {(() => {
               const currentList = localRequests;
-              const filteredList = statusFilter === 'ALL' ? currentList : currentList.filter(req => req.status === statusFilter);
+              const filteredList = workReportFilter === 'ALL' ? currentList : currentList.filter(req => req.status === workReportFilter);
               const workReportsList = filteredList.filter(req => req.type === 'WORK_REPORT');
 
               return !isDataLoading && workReportsList.length > 0 && (
                 <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
                   <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
-                    Showing {workReportsList.length} report{workReportsList.length !== 1 ? 's' : ''} {statusFilter !== 'ALL' && `(${statusFilter.toLowerCase()})`}
+                    Showing {workReportsList.length} report{workReportsList.length !== 1 ? 's' : ''} {workReportFilter !== 'ALL' && `(${workReportFilter.toLowerCase()})`}
                   </span>
                 </div>
               );
@@ -396,7 +397,7 @@ export default function OmReportsView() {
                   <DropdownMenuTrigger asChild>
                     <button className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors relative">
                       <Filter className="w-4 h-4" />
-                      {statusFilter !== 'ALL' && (
+                      {fieldRequestFilter !== 'ALL' && (
                         <span className="absolute top-0 right-0 w-2 h-2 bg-indigo-500 rounded-full border border-white dark:border-slate-900"></span>
                       )}
                     </button>
@@ -404,23 +405,23 @@ export default function OmReportsView() {
                   <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800">
                     <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => setStatusFilter('ALL')} className="cursor-pointer">
-                      <span className={statusFilter === 'ALL' ? 'font-bold' : ''}>All Requests</span>
+                    <DropdownMenuItem onClick={() => setFieldRequestFilter('ALL')} className="cursor-pointer">
+                      <span className={fieldRequestFilter === 'ALL' ? 'font-bold' : ''}>All Requests</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setStatusFilter('DRAFT')} className="cursor-pointer">
-                      <span className={statusFilter === 'DRAFT' ? 'font-bold' : ''}>Drafts</span>
+                    <DropdownMenuItem onClick={() => setFieldRequestFilter('DRAFT')} className="cursor-pointer">
+                      <span className={fieldRequestFilter === 'DRAFT' ? 'font-bold' : ''}>Drafts</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setStatusFilter('PENDING')} className="cursor-pointer">
-                      <span className={statusFilter === 'PENDING' ? 'font-bold' : ''}>Under Review</span>
+                    <DropdownMenuItem onClick={() => setFieldRequestFilter('PENDING')} className="cursor-pointer">
+                      <span className={fieldRequestFilter === 'PENDING' ? 'font-bold' : ''}>Under Review</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setStatusFilter('APPROVED')} className="cursor-pointer">
-                      <span className={statusFilter === 'APPROVED' ? 'font-bold text-emerald-600' : 'text-emerald-600'}>Approved</span>
+                    <DropdownMenuItem onClick={() => setFieldRequestFilter('APPROVED')} className="cursor-pointer">
+                      <span className={fieldRequestFilter === 'APPROVED' ? 'font-bold text-emerald-600' : 'text-emerald-600'}>Approved</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setStatusFilter('REJECTED')} className="cursor-pointer">
-                      <span className={statusFilter === 'REJECTED' ? 'font-bold text-rose-600' : 'text-rose-600'}>Rejected</span>
+                    <DropdownMenuItem onClick={() => setFieldRequestFilter('REJECTED')} className="cursor-pointer">
+                      <span className={fieldRequestFilter === 'REJECTED' ? 'font-bold text-rose-600' : 'text-rose-600'}>Rejected</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setStatusFilter('CANCELLED')} className="cursor-pointer">
-                      <span className={statusFilter === 'CANCELLED' ? 'font-bold' : ''}>Cancelled</span>
+                    <DropdownMenuItem onClick={() => setFieldRequestFilter('CANCELLED')} className="cursor-pointer">
+                      <span className={fieldRequestFilter === 'CANCELLED' ? 'font-bold' : ''}>Cancelled</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -473,7 +474,7 @@ export default function OmReportsView() {
                     }
                     
                     const currentList = localRequests;
-                    const filteredList = statusFilter === 'ALL' ? currentList : currentList.filter(req => req.status === statusFilter);
+                    const filteredList = fieldRequestFilter === 'ALL' ? currentList : currentList.filter(req => req.status === fieldRequestFilter);
                     const fieldRequestsList = filteredList.filter(req => req.type !== 'WORK_REPORT');
 
                     if (fieldRequestsList.length === 0) {
@@ -556,13 +557,13 @@ export default function OmReportsView() {
             
             {(() => {
               const currentList = localRequests;
-              const filteredList = statusFilter === 'ALL' ? currentList : currentList.filter(req => req.status === statusFilter);
+              const filteredList = fieldRequestFilter === 'ALL' ? currentList : currentList.filter(req => req.status === fieldRequestFilter);
               const fieldRequestsList = filteredList.filter(req => req.type !== 'WORK_REPORT');
 
               return !isDataLoading && fieldRequestsList.length > 0 && (
                 <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
                   <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
-                    Showing {fieldRequestsList.length} request{fieldRequestsList.length !== 1 ? 's' : ''} {statusFilter !== 'ALL' && `(${statusFilter.toLowerCase()})`}
+                    Showing {fieldRequestsList.length} request{fieldRequestsList.length !== 1 ? 's' : ''} {fieldRequestFilter !== 'ALL' && `(${fieldRequestFilter.toLowerCase()})`}
                   </span>
                 </div>
               );

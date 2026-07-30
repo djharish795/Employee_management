@@ -277,7 +277,7 @@ export default function OnboardingPage() {
                   <div className="text-center py-4 text-xs font-medium text-slate-500">No pending HR tasks!</div>
                 )}
               </div>
-              <Link href="/tasks" className="block w-full text-center text-xs font-bold text-slate-900 hover:text-slate-900 uppercase tracking-wider pt-2 border-t border-slate-100">
+              <Link href="/onboarding/tasks" className="block w-full text-center text-xs font-bold text-slate-900 hover:text-slate-900 uppercase tracking-wider pt-2 border-t border-slate-100">
                 View All Tasks
               </Link>
             </div>

@@ -196,15 +196,15 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
 
   const queryClient = useQueryClient();
   const approveMutation = useMutation({
-    mutationFn: (id: string) => approveOvertime(id, 'APPROVE'),
+    mutationFn: ({ id, status }: { id: string, status: 'APPROVE' | 'REJECT' }) => approveOvertime(id, status),
     onSuccess: () => {
-      toast.success("Overtime approved");
+      toast.success("Overtime action successful");
       queryClient.invalidateQueries({ queryKey: ["attendanceLogs"] });
       // Also invalidate teamAttendanceView to be safe if they use that too
       queryClient.invalidateQueries({ queryKey: ["teamAttendanceView"] });
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || "Failed to approve overtime");
+      toast.error(err?.response?.data?.message || "Failed to process overtime");
     }
   });
 
@@ -273,9 +273,8 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
 
   // Export to PDF Functionality
   const handleExportPDF = async () => {
-    let toastId: string | undefined;
     try {
-      toastId = toast.loading("Generating PDF...");
+      const toastId = toast.loading("Generating PDF...");
       
       let rawData: any[] = [];
       if (isOrgMode) {
@@ -406,7 +405,7 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
       toast.success("PDF exported successfully!", { id: toastId });
     } catch (e) {
       console.error("Export PDF failed", e);
-      toast.error("Failed to export PDF", { id: toastId });
+      toast.error("Failed to export PDF");
     }
   };
 
@@ -533,7 +532,7 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
                     key={(log as any).id || idx} 
                     log={log} 
                     isOrgMode={isOrgMode}
-                    onApprove={(id) => approveMutation.mutate(id)}
+                    onApprove={(id) => approveMutation.mutate({ id, status: 'APPROVE' })}
                     isApproving={approveMutation.isPending}
                   />
                 ))}

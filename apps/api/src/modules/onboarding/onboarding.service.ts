@@ -83,6 +83,21 @@ export class OnboardingService {
     };
   }
 
+  async getAllTasks(): Promise<any> {
+    return this.db.onboardingTask.findMany({
+      where: { 
+        assignedTo: 'HR', 
+        session: { stage: { notIn: [OnboardingStage.CANCELLED, OnboardingStage.COMPLETED] } }
+      },
+      include: {
+        session: {
+          include: { employee: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
   async initiateOnboarding(data: any, actor: any, ipAddress: string) {
     this.logger.log(`Initiating onboarding for ${data.firstName} ${data.lastName}`);
     

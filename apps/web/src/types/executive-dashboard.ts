@@ -24,4 +24,5 @@ export type QuickLinkType = {
   title: string;
   href: string;
   iconType: 'userPlus' | 'orgChart' | 'audit' | 'export' | 'users';
+  isLocked?: boolean;
 };

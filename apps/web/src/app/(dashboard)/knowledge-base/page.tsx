@@ -471,8 +471,8 @@ export default function KnowledgeBasePage() {
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Document File (PDF/DOCX)</label>
               {content ? (
-                <div className="text-xs text-slate-500 mb-2 p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between">
-                  <div className="flex items-center gap-2 truncate">
+                <div className="text-xs text-slate-500 mb-2 p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
                     <FileText className="w-4 h-4 text-slate-400 shrink-0" />
                     <span className="truncate font-medium">{fileName || content}</span>
                   </div>
@@ -482,7 +482,7 @@ export default function KnowledgeBasePage() {
                       setContent("");
                       setFileName("");
                     }}
-                    className="text-rose-600 hover:text-rose-800 font-bold text-xs"
+                    className="shrink-0 text-rose-600 hover:text-rose-800 font-bold text-xs"
                   >
                     Remove
                   </button>

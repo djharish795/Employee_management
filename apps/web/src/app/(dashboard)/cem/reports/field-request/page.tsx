@@ -1,5 +1,5 @@
 "use client";
-import toast from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
@@ -277,6 +277,7 @@ export default function FieldWorkRequestPage() {
     if (isSubmitting) return;
     const id = await saveRequest('Submitted');
     if (id) {
+      toast.success('Field work request submitted successfully!');
       setSubmittedId(id);
     }
   };
@@ -286,7 +287,8 @@ export default function FieldWorkRequestPage() {
     if (isSubmitting) return;
     const id = await saveRequest('Draft');
     if (id) {
-      router.push(`/${basePath}/reports`);
+      toast.success('Draft saved successfully!');
+      setTimeout(() => router.push(`/${basePath}/reports`), 800);
     }
   };
 
@@ -300,6 +302,7 @@ export default function FieldWorkRequestPage() {
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-72px)] bg-slate-50 dark:bg-slate-950 animate-in fade-in duration-300">
+      <Toaster position="top-right" />
       <div className="flex-1 p-6 md:p-8 max-w-[1200px] mx-auto w-full pb-28">
         
         {/* Navigation & Header */}
@@ -320,7 +323,7 @@ export default function FieldWorkRequestPage() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6 pb-28">
           
           {/* Card 1: Personnel Information */}
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
@@ -506,7 +509,7 @@ export default function FieldWorkRequestPage() {
           </div>
 
           {/* Card 4: Supporting Documents */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm mb-4">
             <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 mb-5 border-b border-slate-100 dark:border-slate-850 pb-3">
               <FileText className="w-4.5 h-4.5 text-slate-500" />
               Supporting Documents

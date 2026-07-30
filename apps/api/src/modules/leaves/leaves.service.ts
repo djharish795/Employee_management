@@ -181,30 +181,26 @@ export class LeavesService {
 
     const role = this.getRoleForEmployee(approver);
 
+    // FIX: Prisma's array_contains requires exact match, so [{"role": "OM"}] doesn't match [{"role": "OM", "status": "PENDING"}]
+    // Using raw SQL jsonb containment operator `@>` to correctly match partial objects inside the array.
+    const rawResult = await this.prisma.$queryRaw<{id: string}[]>`
+      SELECT id FROM "LeaveRequest"
+      WHERE status IN ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED')
+        AND (
+          "approvalQueue" @> ${`[{"approverId": "${approverId}"}]`}::jsonb
+          OR "approvalQueue" @> ${`[{"role": "${role}"}]`}::jsonb
+        )
+    `;
+    const ids = rawResult.map(r => r.id);
+
     const requests = await this.prisma.leaveRequest.findMany({
-      where: {
-        status: { in: ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'] },
-        OR: [
-          {
-            approvalQueue: {
-              array_contains: [{ approverId }]
-            }
-          },
-          {
-            approvalQueue: {
-              array_contains: [{ role }]
-            }
-          }
-        ]
-      },
+      where: { id: { in: ids } },
       include: { employee: true, leaveType: true }
     });
 
     return requests.filter(req => {
       const reqData = req as typeof req & { approvalQueue?: unknown, currentStep: number };
       if (!reqData.approvalQueue) return false;
-      const queue = reqData.approvalQueue as unknown as any[];
-
       return true;
     }).map(req => {
       const reqData = req as typeof req & { approvalQueue?: unknown, currentStep: number };
@@ -287,6 +283,15 @@ export class LeavesService {
     const role = this.getRoleForEmployee(employee);
     const policy = await this.prisma.orgPolicy.findFirst();
 
+    // Default to OM if reportingManagerId is missing
+    let actualManagerId = employee.reportingManagerId;
+    if (!actualManagerId) {
+      const omUser = await this.prisma.user.findFirst({ where: { role: 'OM' }, select: { employeeId: true } });
+      if (omUser && omUser.employeeId) {
+        actualManagerId = omUser.employeeId;
+      }
+    }
+
     // 1. Fetch from ApprovalMatrix
     const matrix = await this.prisma.approvalMatrix.findMany({
       where: { requesterRoleId: role, isEmergency },
@@ -341,8 +346,8 @@ export class LeavesService {
 
         if (teamLeadId && teamLeadId !== employee.id) {
           queue.push({ role: 'TL', status: 'PENDING', approverId: teamLeadId });
-        } else if (employee.reportingManagerId) {
-          queue.push({ role: 'MANAGER', status: 'PENDING', approverId: employee.reportingManagerId });
+        } else if (actualManagerId) {
+          queue.push({ role: 'MANAGER', status: 'PENDING', approverId: actualManagerId });
         }
         queue.push({ role: 'HRE', status: 'PENDING', approverId: employee.assignedHrId || undefined });
 
@@ -353,8 +358,8 @@ export class LeavesService {
 
       } else if (role === 'TL') {
         // Team Lead → Reporting Manager → HR
-        if (employee.reportingManagerId) {
-          queue.push({ role: 'MANAGER', status: 'PENDING', approverId: employee.reportingManagerId });
+        if (actualManagerId) {
+          queue.push({ role: 'MANAGER', status: 'PENDING', approverId: actualManagerId });
         }
         queue.push({ role: 'HRE', status: 'PENDING', approverId: employee.assignedHrId || undefined });
 
@@ -367,7 +372,7 @@ export class LeavesService {
         // Step 1: Operations Manager (their reportingManagerId or fallback to role)
         // Step 2: HR Executive
         // No project TL override — their lead IS the OM
-        queue.push({ role: 'OM', status: 'PENDING', approverId: employee.reportingManagerId || undefined });
+        queue.push({ role: 'OM', status: 'PENDING', approverId: actualManagerId || undefined });
         queue.push({ role: 'HRE', status: 'PENDING', approverId: employee.assignedHrId || undefined });
 
         // Emergency (< 24 hrs) → escalate to CEO as final step
@@ -377,8 +382,8 @@ export class LeavesService {
 
       } else if (role === 'HRE') {
         // HR Executive → Reporting Manager (HR Head / Director)
-        if (employee.reportingManagerId) {
-          queue.push({ role: 'MANAGER', status: 'PENDING', approverId: employee.reportingManagerId });
+        if (actualManagerId) {
+          queue.push({ role: 'MANAGER', status: 'PENDING', approverId: actualManagerId });
         }
 
       } else if (role !== 'CEO') {
@@ -397,8 +402,8 @@ export class LeavesService {
 
         if (teamLeadId && teamLeadId !== employee.id) {
           queue.push({ role: 'TL', status: 'PENDING', approverId: teamLeadId });
-        } else if (employee.reportingManagerId) {
-          queue.push({ role: 'MANAGER', status: 'PENDING', approverId: employee.reportingManagerId });
+        } else if (actualManagerId) {
+          queue.push({ role: 'MANAGER', status: 'PENDING', approverId: actualManagerId });
         }
         queue.push({ role: 'HRE', status: 'PENDING', approverId: employee.assignedHrId || undefined });
 

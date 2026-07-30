@@ -1,14 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-async function run() {
-  console.log("URL:", process.env.DATABASE_URL);
-  try {
-    const res = await prisma.attendanceRecord.findFirst();
-    console.log("Success:", res ? "Found record" : "No records");
-  } catch (e) {
-    console.error("FAIL:", e.message);
-  } finally {
-    await prisma.$disconnect();
-  }
+async function test() {
+  const e = await prisma.employee.findUnique({ where: { id: 'cmruoh6n0000djpd1a741bk5l' }, include: { user: true } });
+  console.log(e.user.role);
 }
-run();
+test().catch(console.error).finally(() => prisma.$disconnect());

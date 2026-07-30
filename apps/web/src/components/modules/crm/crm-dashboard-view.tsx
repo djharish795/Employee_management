@@ -110,7 +110,7 @@ export default function CrmDashboardView() {
         </div>
       </div>
 
-      <PersonalAttendanceWidget />
+      <PersonalAttendanceWidget hideCheckIn={true} />
 
       {/* KPI Cards Row — matching OM dashboard style */}
       <div id="tour-dashboard-stats" className="grid grid-cols-2 lg:grid-cols-4 gap-4">

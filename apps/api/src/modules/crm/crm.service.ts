@@ -29,12 +29,12 @@ export class CrmService {
 
     if (type === 'CLIENT') {
       const client = await this.prisma.clientLead.findUnique({ where: { id: entityId } });
-      if (client && client.assignedCrmId !== actorId && client.assignedCemId !== actorId) {
+      if (client && client.assignedCrmId !== actorId && client.assignedCemId !== actorId && client.leadOwner !== actorId) {
         throw new ForbiddenException("You do not have permission to modify this client.");
       }
     } else {
       const req = await this.prisma.requirement.findUnique({ where: { id: entityId }, include: { clientLead: true } });
-      if (req && req.assignedCrmId !== actorId && req.clientLead?.assignedCrmId !== actorId) {
+      if (req && req.assignedCrmId !== actorId && req.clientLead?.assignedCrmId !== actorId && req.clientLead?.leadOwner !== actorId) {
         throw new ForbiddenException("You do not have permission to modify this requirement.");
       }
     }

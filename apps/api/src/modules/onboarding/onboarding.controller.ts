@@ -21,6 +21,12 @@ export class OnboardingController {
     return this.onboardingService.getDashboardMetrics();
   }
 
+  @Get('tasks')
+  @Permissions(Permission.READ_EMPLOYEES)
+  getAllTasks(): Promise<any> {
+    return this.onboardingService.getAllTasks();
+  }
+
   @Post('initiate')
   @Permissions(Permission.WRITE_EMPLOYEES)
   initiateOnboarding(

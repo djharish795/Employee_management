@@ -151,7 +151,7 @@ export default function EditEmployeePage() {
           Back to Profile
         </button>
         <div className="text-sm font-bold text-slate-900">
-          Editing Employee: <span className="text-blue-600">{id}</span>
+          Editing Employee: <span className="text-slate-900">{id}</span>
         </div>
       </div>
 
@@ -192,7 +192,7 @@ export default function EditEmployeePage() {
             type="submit"
             form="onboarding-form"
             disabled={isSubmitting || isLoading}
-            className="flex items-center gap-2 h-10 px-6 bg-[#0052CC] hover:bg-[#0047B3] text-white rounded-md text-sm font-bold shadow-sm transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 h-10 px-6 bg-slate-900 hover:bg-slate-800 text-white rounded-md text-sm font-bold shadow-sm transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? 'Saving...' : (
               <>

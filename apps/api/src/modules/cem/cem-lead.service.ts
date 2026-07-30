@@ -73,7 +73,7 @@ export class CemLeadService {
     const updated = await this.prisma.cemLead.update({
       where: { id },
       data: { stage },
-      include: { followUps: true, meetings: true }
+      include: { followUps: true, meetings: true, assignedCem: true }
     });
 
     await this.auditService.logUpdate({
@@ -112,7 +112,7 @@ export class CemLeadService {
         qualificationScore: score,
         stage: newStage
       },
-      include: { followUps: true, meetings: true }
+      include: { followUps: true, meetings: true, assignedCem: true }
     });
 
     await this.auditService.logUpdate({
@@ -201,7 +201,7 @@ export class CemLeadService {
         qualificationStatus: 'AWAITING_HANDOFF',
         stage: 6
       },
-      include: { followUps: true, meetings: true }
+      include: { followUps: true, meetings: true, assignedCem: true }
     });
 
     await this.auditService.logUpdate({
@@ -222,7 +222,7 @@ export class CemLeadService {
     const updated = await this.prisma.cemLead.update({
       where: { id },
       data: { qualificationStatus: 'CANCELED' },
-      include: { followUps: true, meetings: true }
+      include: { followUps: true, meetings: true, assignedCem: true }
     });
 
     await this.auditService.logUpdate({
@@ -231,6 +231,31 @@ export class CemLeadService {
       actorId,
       oldValue: { qualificationStatus: lead.qualificationStatus },
       newValue: { qualificationStatus: 'CANCELED' }
+    });
+
+    return updated;
+  }
+
+  async updateStatus(id: string, status: string, actorId: string) {
+    const lead = await this.getLeadById(id);
+    if (!lead) throw new NotFoundException('Lead not found');
+
+    if (status !== 'CANCELED' && status !== 'ACTIVE') {
+      throw new BadRequestException('Invalid status value');
+    }
+
+    const updated = await this.prisma.cemLead.update({
+      where: { id },
+      data: { qualificationStatus: status },
+      include: { followUps: true, meetings: true, assignedCem: true }
+    });
+
+    await this.auditService.logUpdate({
+      moduleName: 'CEM_LEAD',
+      entityId: id,
+      actorId,
+      oldValue: { qualificationStatus: lead.qualificationStatus },
+      newValue: { qualificationStatus: status }
     });
 
     return updated;
@@ -255,12 +280,12 @@ export class CemLeadService {
     }
 
     const crmEmployee = await this.prisma.employee.findUnique({
-      where: { id: crmOwner },
+      where: { officialEmail: crmOwner },
       include: { user: true }
     });
 
     if (!crmEmployee) {
-      throw new BadRequestException('Invalid CRM owner ID provided');
+      throw new BadRequestException('Invalid CRM owner Email provided');
     }
 
     if (crmEmployee.user?.role !== 'CRM' && crmEmployee.user?.role !== 'OM' && crmEmployee.user?.role !== 'CEO') {
@@ -277,7 +302,8 @@ export class CemLeadService {
         priority: lead.priority || 'Medium',
         stage: 1,
         assignedCemId: lead.assignedCemId || null,
-        leadOwner: crmOwner,
+        assignedCrmId: crmEmployee.id,
+        leadOwner: crmEmployee.id,
         createdDate: new Date().toISOString(),
         updatedDate: new Date().toISOString(),
         sourceQuality: 3,
@@ -295,7 +321,7 @@ export class CemLeadService {
       where: { id },
       data: {
         qualificationStatus: 'HANDED_OVER',
-        assignedCrm: crmOwner
+        assignedCrm: crmEmployee.id
       },
       include: { assignedCem: true }
     });
@@ -305,7 +331,7 @@ export class CemLeadService {
       entityId: id,
       actorId: 'SYSTEM',
       oldValue: { qualificationStatus: lead.qualificationStatus, assignedCrm: lead.assignedCrm },
-      newValue: { qualificationStatus: 'HANDED_OVER', assignedCrm: crmOwner }
+      newValue: { qualificationStatus: 'HANDED_OVER', assignedCrm: crmEmployee.id }
     });
 
     return updated;

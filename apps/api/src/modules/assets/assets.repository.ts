@@ -604,17 +604,16 @@ export class AssetsRepository {
     });
 
     // 3. Fetch recent workflow approvals (Asset Requests)
-    const approvals = await this.prisma.workflowInstance.findMany({
+    const approvals = await this.prisma.assetRequest.findMany({
       where: {
-        workflow: { type: "ASSET_REQUEST" },
-        status: { in: ["PENDING", "APPROVED", "REJECTED"] },
-        initiatedById: employeeId ? employeeId : undefined,
+        status: { in: ["PENDING_OM_SELECTION", "PENDING_CEO_APPROVAL", "APPROVED", "REJECTED"] },
+        employeeId: employeeId ? employeeId : undefined,
       },
       take: limit,
       orderBy: { updatedAt: "desc" },
       include: {
-        initiatedBy: true,
-        workflow: true,
+        employee: true,
+        requester: true,
       },
     });
 
@@ -628,7 +627,7 @@ export class AssetsRepository {
         assetName: a.asset.name,
         assetTag: a.asset.assetTag,
         performedBy: a.assignedBy ? `${a.assignedBy.firstName} ${a.assignedBy.lastName}` : "System",
-        performedByAvatar: a.assignedBy ? `${process.env.AVATAR_API_URL}?seed=${a.assignedBy.firstName}` : "",
+        performedByAvatar: a.assignedBy ? `https://api.dicebear.com/7.x/notionists/svg?seed=${a.assignedBy.firstName}` : "",
         targetEmployee: a.employee ? `${a.employee.firstName} ${a.employee.lastName}` : null,
         timestamp: a.assignedAt.toISOString(),
       });
@@ -642,7 +641,7 @@ export class AssetsRepository {
         assetName: r.asset.name,
         assetTag: r.asset.assetTag,
         performedBy: r.employee ? `${r.employee.firstName} ${r.employee.lastName}` : "System",
-        performedByAvatar: r.employee ? `${process.env.AVATAR_API_URL}?seed=${r.employee.firstName}` : "",
+        performedByAvatar: r.employee ? `https://api.dicebear.com/7.x/notionists/svg?seed=${r.employee.firstName}` : "",
         targetEmployee: null,
         timestamp: r.returnedAt!.toISOString(),
       });
@@ -651,45 +650,35 @@ export class AssetsRepository {
     // Map Requests (Pending/Approved/Rejected)
     for (const app of approvals) {
       let actionLabel = "REQUESTED";
-      let performedByLabel = app.initiatedBy ? `${app.initiatedBy.firstName} ${app.initiatedBy.lastName}` : "System";
-      let targetLabel = app.initiatedBy ? `${app.initiatedBy.firstName} ${app.initiatedBy.lastName}` : null;
+      let performedByLabel = app.requester ? `${app.requester.firstName} ${app.requester.lastName}` : "System";
+      let targetLabel = app.employee ? `${app.employee.firstName} ${app.employee.lastName}` : null;
 
-      if (app.status === "PENDING") {
-        if (!isPrivilegedViewer) {
-          actionLabel = "REQUESTED";
-          targetLabel = "Waiting for Approval";
-          performedByLabel = app.initiatedBy ? `${app.initiatedBy.firstName} ${app.initiatedBy.lastName}` : "System";
-        } else if (app.currentStepIndex === 1) {
-          // If it was just created (updatedAt very close to createdAt), it was an auto-skip by OM
-          const timeDiff = new Date(app.updatedAt).getTime() - new Date(app.createdAt).getTime();
-          if (timeDiff < 1000) {
-            actionLabel = "REQUESTED";
-            targetLabel = "Sent to CEO";
-          } else {
-            actionLabel = "APPROVED";
-            performedByLabel = "Operations Manager";
-            targetLabel = "Sent to CEO";
-          }
-        }
+      if (app.status === "PENDING_OM_SELECTION") {
+        actionLabel = "REQUESTED";
+        targetLabel = "Waiting for OM Selection";
+      } else if (app.status === "PENDING_CEO_APPROVAL") {
+        actionLabel = "REQUESTED";
+        targetLabel = "Sent to CEO";
+        performedByLabel = "Operations Manager";
       } else if (app.status === "APPROVED") {
         actionLabel = "APPROVED";
         performedByLabel = "CEO / Admin";
       } else if (app.status === "REJECTED") {
         actionLabel = "REJECTED";
-        performedByLabel = app.currentStepIndex === 0 ? "Operations Manager" : "CEO / Admin";
+        performedByLabel = app.ceoApproverId ? "CEO / Admin" : "Operations Manager";
       }
 
       activity.push({
-        id: `app-${app.id}-${app.currentStepIndex}`, // add step index to make ID unique if state changes
+        id: `req-activity-${app.id}-${app.status}`,
         action: actionLabel,
         assetName: `Asset Request`,
         assetTag: `REQ-${app.id.slice(-5).toUpperCase()}`,
         performedBy: performedByLabel,
-        performedByAvatar: app.status === "PENDING" && app.initiatedBy 
-          ? `${process.env.AVATAR_API_URL}?seed=${app.initiatedBy.firstName}` 
+        performedByAvatar: app.requester 
+          ? `https://api.dicebear.com/7.x/notionists/svg?seed=${app.requester.firstName}` 
           : "",
         targetEmployee: targetLabel,
-        timestamp: app.status === "PENDING" && app.currentStepIndex === 0 ? app.createdAt.toISOString() : app.updatedAt.toISOString(),
+        timestamp: app.createdAt.toISOString(),
       });
     }
 

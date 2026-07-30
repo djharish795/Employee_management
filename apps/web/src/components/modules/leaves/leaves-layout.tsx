@@ -39,7 +39,7 @@ export default function LeavesLayout({ children }: LeavesLayoutProps) {
 
   const roleLabel: Record<LeavesRole, string> = {
     ADMIN: "Administrator",
-    HR: "HR & People Ops",
+    HR: "HR",
     CEO: "Executive",
     MANAGER: "Manager",
     EMPLOYEE: "Employee",

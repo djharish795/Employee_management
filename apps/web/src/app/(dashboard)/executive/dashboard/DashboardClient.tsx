@@ -24,8 +24,8 @@ import { QuickLinkType } from '@/types/executive-dashboard';
 const quickLinksData: QuickLinkType[] = [
   { id: '1', title: 'Executive Reports', href: '/ceo/reports', iconType: 'export' },
   { id: '2', title: 'Organisation Chart', href: '/ceo/organisation', iconType: 'orgChart' },
-  { id: '3', title: 'Succession Planning', href: '/ceo/succession-planning', iconType: 'users' },
-  { id: '4', title: 'Audit logs', href: '/admin/audit', iconType: 'audit' },
+  { id: '3', title: 'Succession Planning', href: '#', iconType: 'users', isLocked: true },
+  { id: '4', title: 'Audit logs', href: '/audit', iconType: 'audit' },
 ];
 
 export function DashboardClient() {

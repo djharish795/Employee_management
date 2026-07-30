@@ -70,6 +70,19 @@ export default function EmployeeDirectory() {
   // Removed accessToken as it is not persisted in Zustand and breaks react-query
   const { role } = usePermissions();
 
+  const filterRef = React.useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
+        setIsFilterOpen(false);
+      }
+    }
+    if (isFilterOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isFilterOpen]);
+
   const [debouncedSearch, setDebouncedSearch] = useState(filters.search);
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -183,8 +196,9 @@ export default function EmployeeDirectory() {
     },
   });
 
-  const handleAction = (action: EmployeeActionType, employeeId: string) => {
-    const employee = rawEmployees.find(e => e.id === employeeId);
+  const handleAction = (action: EmployeeActionType, empOrId: any) => {
+    const employeeId = typeof empOrId === 'string' ? empOrId : empOrId?.id;
+    const employee = typeof empOrId === 'string' ? rawEmployees.find(e => e.id === empOrId) : empOrId;
     if (!employee) return;
 
     if (action === "view-documents" || action === "download-pdf") {
@@ -407,7 +421,7 @@ export default function EmployeeDirectory() {
               employeeId={row.original.id}
               employeeName={row.original.name}
               status={row.original.status}
-              onAction={handleAction}
+              onAction={(action, id) => handleAction(action, row.original)}
             />
           </div>
         ),
@@ -472,7 +486,7 @@ export default function EmployeeDirectory() {
               />
             </div>
             {/* Filter Button */}
-            <div className="relative">
+            <div className="relative" ref={filterRef}>
               <button
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
                 className="flex items-center justify-center h-10 px-4 gap-2 bg-white border border-slate-300 text-slate-700 font-bold text-sm rounded-lg hover:bg-slate-50 shadow-sm transition-colors"
@@ -637,6 +651,9 @@ export default function EmployeeDirectory() {
         isOpen={actionModalState.isOpen}
         onClose={() => setActionModalState({ isOpen: false, type: null, employee: null })}
         onSuccess={handleActionSuccess}
+        departments={departmentsData?.data || []}
+        designations={designationsData?.data || []}
+        managers={rawEmployees}
       />
     </div>
   );

@@ -276,7 +276,8 @@ export default function CrmWorkspaceView() {
 
   const filteredAccounts = accounts.filter(acc => {
     if (filterHealth === 'ALL') return true;
-    return acc.health === filterHealth;
+    const health = acc.clientHealth || acc.health || 'ON TRACK';
+    return health === filterHealth;
   });
 
   if (isLoading && accounts.length === 0) {
@@ -344,12 +345,20 @@ export default function CrmWorkspaceView() {
               >
                 <div className="flex items-start justify-between">
                   <h4 className="text-xs font-bold text-slate-900 truncate max-w-[170px]">{acc.company}</h4>
-                  <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border ${
-                    acc.health === 'ON TRACK' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                    'bg-amber-50 text-amber-700 border-amber-200'
-                  }`}>
-                    {acc.health || 'ON TRACK'}
-                  </span>
+                  {(() => {
+                    const health = acc.clientHealth || acc.health || 'ON TRACK';
+                    let badgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
+                    if (health === 'ON TRACK') {
+                      badgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                    } else if (health === 'CLOSED WON' || health === 'CLOSED' || acc.stage === 7) {
+                      badgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+                    }
+                    return (
+                      <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border ${badgeClass}`}>
+                        {acc.stage === 7 ? 'CLOSED WON' : health}
+                      </span>
+                    );
+                  })()}
                 </div>
                 
                 <p className="text-[10px] font-semibold text-slate-500 mt-1 truncate">{acc.industry}</p>
@@ -410,9 +419,9 @@ export default function CrmWorkspaceView() {
                 ) : (
                   <button 
                     onClick={handleStageAdvance}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold transition-all shadow-sm"
+                    className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition-all shadow-sm"
                   >
-                    Advance Lifecycle Stage &gt;
+                    Next Step <ChevronRight className="w-4 h-4" />
                   </button>
                 )}
               </div>

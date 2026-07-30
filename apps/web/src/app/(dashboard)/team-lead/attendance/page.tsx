@@ -2,8 +2,8 @@
 
 import React, { useState } from "react";
 import { Calendar as CalendarIcon, CheckCircle2, Clock, CalendarX, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchTeamAttendanceView, approveOvertime } from "@/lib/api/attendance";
+import { useQuery } from "@tanstack/react-query";
+import { fetchTeamAttendanceView } from "@/lib/api/attendance";
 import { toast } from "react-hot-toast";
 import { format, subDays, addDays } from "date-fns";
 import { PendingOvertimeTable } from "@/components/modules/team-lead/pending-overtime-table";
@@ -14,18 +14,6 @@ export default function TeamAttendancePage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['teamAttendanceView', format(selectedDate, "yyyy-MM-dd")],
     queryFn: () => fetchTeamAttendanceView(format(selectedDate, "yyyy-MM-dd"))
-  });
-
-  const queryClient = useQueryClient();
-  const approveMutation = useMutation({
-    mutationFn: (id: string) => approveOvertime(id, 'APPROVE'),
-    onSuccess: () => {
-      toast.success("Overtime approved successfully");
-      queryClient.invalidateQueries({ queryKey: ['teamAttendanceView'] });
-    },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message || "Failed to approve overtime");
-    }
   });
 
   const handlePrevDay = () => setSelectedDate(prev => subDays(prev, 1));

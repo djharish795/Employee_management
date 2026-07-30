@@ -57,8 +57,38 @@ export class AuditRepository {
     });
   }
 
-  async getRecentEvents(limit: number, offset: number) {
+  async getRecentEvents(limit: number, offset: number, filters?: { module?: string; status?: string; actorId?: string; search?: string }) {
+    const where: any = {};
+    if (filters?.module) where.resource = filters.module;
+    if (filters?.actorId) where.actorId = filters.actorId;
+    
+    if (filters?.status === "FAILED") {
+      where.OR = [
+        { action: { contains: "FAILED" } },
+        { action: { contains: "ERROR" } }
+      ];
+    } else if (filters?.status === "SUCCESS") {
+      where.AND = [
+        { action: { not: { contains: "FAILED" } } },
+        { action: { not: { contains: "ERROR" } } },
+        { action: { not: { contains: "WARNING" } } }
+      ];
+    } else if (filters?.status === "WARNING") {
+      where.action = { contains: "WARNING" };
+    }
+
+    if (filters?.search) {
+      where.OR = [
+        ...(where.OR || []),
+        { action: { contains: filters.search, mode: "insensitive" } },
+        { resourceId: { contains: filters.search, mode: "insensitive" } },
+        { actor: { preferredName: { contains: filters.search, mode: "insensitive" } } },
+        { actor: { personalEmail: { contains: filters.search, mode: "insensitive" } } }
+      ];
+    }
+
     return this.prisma.auditLog.findMany({
+      where,
       take: limit,
       skip: offset,
       orderBy: { performedAt: "desc" },
