@@ -8,6 +8,8 @@ export interface AttendanceLog {
   totalBreakSeconds?: number;
   breakHistory?: Array<{ start: string; end: string | null }>;
   punchHistory?: Array<{ action: "IN" | "OUT" | "BREAK"; time: string }>;
+  overtime?: number;
+  isOvertimeApproved?: boolean;
 }
 
 export interface RegularizationRequest {

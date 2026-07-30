@@ -202,7 +202,27 @@ export class AttendanceService {
       const isReturnFromBreak = state.state === "BREAK";
       if (isReturnFromBreak) {
         const breakElapsed = Math.floor((now - state.startTime) / 1000);
-        // Do NOT add breakElapsed to state.offset! Break time should not be counted as work hours.
+        
+        // Add break time to work hours (client rule: breaks are paid/included)
+        const shiftDateObj = state.shiftDate ? new Date(state.shiftDate) : today;
+        const boundaryTime = new Date(shiftDateObj);
+        boundaryTime.setUTCHours(13, 30, 0, 0); // 19:00 IST
+        const boundary = boundaryTime.getTime();
+
+        let regularSeconds = 0;
+        let overtimeSeconds = 0;
+
+        if (state.startTime >= boundary) {
+          overtimeSeconds = breakElapsed;
+        } else if (now <= boundary) {
+          regularSeconds = breakElapsed;
+        } else {
+          regularSeconds = Math.floor((boundary - state.startTime) / 1000);
+          overtimeSeconds = Math.floor((now - boundary) / 1000);
+        }
+
+        state.offset = (state.offset || 0) + regularSeconds;
+        state.overtimeOffset = (state.overtimeOffset || 0) + overtimeSeconds;
 
         const record = await this.prisma.attendanceRecord.findUnique({
           where: { employeeId_date: { employeeId, date: shiftDate } }
@@ -272,7 +292,10 @@ export class AttendanceService {
           
           await tx.attendanceRecord.update({
             where: { employeeId_date: { employeeId, date: shiftDate } },
-            data: { punchHistory: ph as any } as any
+            data: { 
+              punchHistory: ph as any,
+              checkOutTime: null
+            } as any
           });
         });
       }
@@ -283,9 +306,30 @@ export class AttendanceService {
 
     if (dto.action === "BREAK") {
       if (state.state !== "IN") throw new BadRequestException("Must be punched in to take a break");
+      if (now - state.startTime < 60000) throw new BadRequestException("Please wait at least a minute between punches");
 
       const elapsed = Math.floor((now - state.startTime) / 1000);
-      state.offset += elapsed;
+      
+      const shiftDateObj = state.shiftDate ? new Date(state.shiftDate) : today;
+      const boundaryTime = new Date(shiftDateObj);
+      boundaryTime.setUTCHours(13, 30, 0, 0); // 19:00 IST
+      const boundary = boundaryTime.getTime();
+
+      let regularSeconds = 0;
+      let overtimeSeconds = 0;
+
+      if (state.startTime >= boundary) {
+        overtimeSeconds = elapsed;
+      } else if (now <= boundary) {
+        regularSeconds = elapsed;
+      } else {
+        regularSeconds = Math.floor((boundary - state.startTime) / 1000);
+        overtimeSeconds = Math.floor((now - boundary) / 1000);
+      }
+
+      state.offset = (state.offset || 0) + regularSeconds;
+      state.overtimeOffset = (state.overtimeOffset || 0) + overtimeSeconds;
+
       state.state = "BREAK";
       state.startTime = now;
       await this.redis.setJson(key, state, 60 * 60 * 24);
@@ -321,10 +365,30 @@ export class AttendanceService {
 
     if (dto.action === "OUT") {
       if (state.state === "OUT") throw new BadRequestException("Already punched out");
+      if (now - state.startTime < 60000) throw new BadRequestException("Please wait at least a minute between punches");
 
       if (state.state === "IN" || state.state === "BREAK") {
         const elapsed = Math.floor((now - state.startTime) / 1000);
-        state.offset += elapsed;
+        
+        const shiftDateObj = state.shiftDate ? new Date(state.shiftDate) : today;
+        const boundaryTime = new Date(shiftDateObj);
+        boundaryTime.setUTCHours(13, 30, 0, 0); // 19:00 IST
+        const boundary = boundaryTime.getTime();
+
+        let regularSeconds = 0;
+        let overtimeSeconds = 0;
+
+        if (state.startTime >= boundary) {
+          overtimeSeconds = elapsed;
+        } else if (now <= boundary) {
+          regularSeconds = elapsed;
+        } else {
+          regularSeconds = Math.floor((boundary - state.startTime) / 1000);
+          overtimeSeconds = Math.floor((now - boundary) / 1000);
+        }
+
+        state.offset = (state.offset || 0) + regularSeconds;
+        state.overtimeOffset = (state.overtimeOffset || 0) + overtimeSeconds;
       }
 
       const shiftDate = state.shiftDate ? new Date(state.shiftDate) : today;
@@ -347,7 +411,7 @@ export class AttendanceService {
         const checkInTime = existingRecord?.checkInTime || new Date(state.startTime);
         const isLate = isLateArrival(checkInTime);
 
-        let workHoursDecimal = state.offset / 3600;
+        let workHoursDecimal = (state.offset || 0) / 3600;
 
         const approvedHalfDay = await tx.leaveRequest.findFirst({
           where: {
@@ -369,11 +433,7 @@ export class AttendanceService {
           finalStatus = "LATE";
         }
 
-        let overtimeDecimal = 0;
-        if (state.offset > 32400) {
-          overtimeDecimal = (state.offset - 32400) / 3600;
-          workHoursDecimal = 9;
-        }
+        let overtimeDecimal = (state.overtimeOffset || 0) / 3600;
 
         let punchHistory = existingRecord?.punchHistory ? (existingRecord.punchHistory as any[]) : [];
         punchHistory.push({ action: "OUT", time: new Date(now).toISOString() });
@@ -625,11 +685,32 @@ export class AttendanceService {
   async getPendingOvertime(managerId: string) {
     if (!managerId) throw new BadRequestException("Manager ID is required");
 
+    const approver = await this.prisma.employee.findUnique({
+      where: { id: managerId },
+      include: { user: true }
+    });
+    if (!approver || !approver.user) return [];
+
+    const approverRole = approver.user.role;
+    let allowedEmpRoles: any[] = [];
+    
+    if (['CEO', 'SUPER_ADMIN'].includes(approverRole)) {
+      allowedEmpRoles = ['CEO', 'SUPER_ADMIN', 'OM', 'CTO', 'CHRO', 'COO', 'OPERATIONS_HEAD'];
+    } else if (approverRole === 'TEAM_LEAD' || (approverRole as any) === 'TL') {
+      allowedEmpRoles = ['TR', 'TS', 'EMPLOYEE'];
+    } else if (approverRole === 'OM') {
+      allowedEmpRoles = ['CRM', 'CEM', 'OE', 'HR', 'TEAM_LEAD', 'TL'];
+    } else if (approverRole === 'CTO') {
+      allowedEmpRoles = ['OM'];
+    }
+
+    if (allowedEmpRoles.length === 0) return [];
+
     return await this.prisma.attendanceRecord.findMany({
       where: {
         isOvertimeApproved: false,
         overtime: { gt: 0 },
-        employee: { reportingManagerId: managerId }
+        employee: { user: { role: { in: allowedEmpRoles } } }
       },
       include: {
         employee: { select: { firstName: true, lastName: true, employeeId: true, photoUrl: true } }
@@ -643,12 +724,38 @@ export class AttendanceService {
 
     const record = await this.prisma.attendanceRecord.findUnique({
       where: { id: recordId },
-      include: { employee: true }
+      include: { employee: { include: { user: true } } }
     });
 
     if (!record) throw new NotFoundException("Record not found");
-    if (record.employee.reportingManagerId !== managerId) {
-       throw new ForbiddenException("You are not authorized to approve overtime for this employee.");
+
+    const approver = await this.prisma.employee.findUnique({
+      where: { id: managerId },
+      include: { user: true }
+    });
+    
+    if (!approver || !approver.user) {
+      throw new ForbiddenException("Invalid approver");
+    }
+
+    const approverRole = approver.user.role;
+    const empRole = record.employee.user.role;
+    
+    let isAuthorized = false;
+    if (['CEO', 'SUPER_ADMIN'].includes(approverRole)) {
+       if (['CEO', 'SUPER_ADMIN', 'OM', 'CTO', 'CHRO', 'COO', 'OPERATIONS_HEAD'].includes(empRole as any)) {
+         isAuthorized = true;
+       }
+    } else if (['TR', 'TS', 'EMPLOYEE'].includes(empRole as any) && (approverRole === 'TEAM_LEAD' || (approverRole as any) === 'TL')) {
+       isAuthorized = true;
+    } else if (['CRM', 'CEM', 'OE', 'HR', 'TEAM_LEAD', 'TL'].includes(empRole as any) && approverRole === 'OM') {
+       isAuthorized = true;
+    } else if (empRole === 'OM' && approverRole === 'CTO') {
+       isAuthorized = true;
+    }
+
+    if (!isAuthorized) {
+       throw new ForbiddenException("You are not authorized to approve overtime for this employee based on role hierarchy.");
     }
 
     if (status === 'APPROVE') {

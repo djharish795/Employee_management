@@ -138,13 +138,13 @@ export class AttendanceController {
   }
 
   @Get("pending-overtime")
-  @Permissions(Permission.READ_TEAM_PROFILES)
+  @Permissions(Permission.READ_OWN_PROFILE)
   async getPendingOvertime(@CurrentUser() user: any) {
     return this.attendanceService.getPendingOvertime(user.employeeId);
   }
 
   @Post("records/:id/approve-overtime")
-  @Permissions(Permission.READ_TEAM_PROFILES)
+  @Permissions(Permission.READ_OWN_PROFILE)
   async approveOvertime(
     @CurrentUser() user: any,
     @Param('id') id: string,

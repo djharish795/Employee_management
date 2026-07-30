@@ -98,8 +98,8 @@ export function PersonalAttendanceWidget({ hideCheckIn = false }: { hideCheckIn?
       />
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 sm:mb-8">
         {/* Today's Status */}
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm flex flex-col justify-between transition-colors">
-          <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Today's Status</p>
+        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-sm flex flex-col justify-between transition-colors">
+          <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Today's Status</p>
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
@@ -137,8 +137,8 @@ export function PersonalAttendanceWidget({ hideCheckIn = false }: { hideCheckIn?
         </div>
 
         {/* Leave Balance */}
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm flex flex-col justify-between transition-colors">
-          <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Leave Balance</p>
+        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-sm flex flex-col justify-between transition-colors">
+          <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Leave Balance</p>
           <div className="flex items-baseline gap-1.5">
             {leaveKpiQuery.isLoading ? (
               <div className="h-9 w-16 bg-slate-200 dark:bg-slate-800 animate-pulse rounded-md mb-1"></div>
@@ -150,8 +150,8 @@ export function PersonalAttendanceWidget({ hideCheckIn = false }: { hideCheckIn?
         </div>
 
         {/* Assets Assigned */}
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm flex flex-col justify-between transition-colors">
-          <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Assets Assigned</p>
+        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-sm flex flex-col justify-between transition-colors">
+          <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Assets Assigned</p>
           <div className="flex items-baseline gap-1.5">
             {assetsQuery.isLoading ? (
               <div className="h-9 w-12 bg-slate-200 dark:bg-slate-800 animate-pulse rounded-md mb-1"></div>
@@ -163,8 +163,8 @@ export function PersonalAttendanceWidget({ hideCheckIn = false }: { hideCheckIn?
         </div>
 
         {/* Goals This Quarter */}
-        <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/50 p-5 rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden transition-colors">
-          <div className="flex justify-between items-start mb-3">
+        <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/50 p-4 rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden transition-colors">
+          <div className="flex justify-between items-start mb-2">
             <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Goals This Quarter</p>
             {!PHASE_2_ENABLED && <Lock className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600" />}
           </div>

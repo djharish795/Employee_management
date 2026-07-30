@@ -15,7 +15,7 @@ export function usePermissions() {
   ].includes(role);
   
   const canManageLeaves = ["SUPER_ADMIN", "CEO", "CTO", "HR", "CHRO", "MANAGER", "TEAM_LEAD", "OM", "CRM"].includes(role);
-  const canManageCompliance = ["SUPER_ADMIN", "CEO", "HR", "CHRO"].includes(role);
+  const canManageCompliance = ["SUPER_ADMIN", "HR", "CHRO"].includes(role);
   const canManageSettings = hasPermission(Permission.ACCESS_SETTINGS);
   const canManageOrg = ["SUPER_ADMIN", "HR", "CHRO"].includes(role);
 

@@ -119,7 +119,7 @@ export function AssetFormSheet({ open, onOpenChange, initialAsset }: AssetFormSh
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition-all"
+              className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 outline-none transition-all"
               placeholder="e.g. MacBook Pro 16"
             />
           </div>
@@ -130,7 +130,7 @@ export function AssetFormSheet({ open, onOpenChange, initialAsset }: AssetFormSh
               required
               value={form.assetTag}
               onChange={(e) => setForm({ ...form, assetTag: e.target.value })}
-              className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition-all"
+              className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 outline-none transition-all"
               placeholder="e.g. AST-2023-001"
             />
           </div>
@@ -140,7 +140,7 @@ export function AssetFormSheet({ open, onOpenChange, initialAsset }: AssetFormSh
             <select
               value={form.category}
               onChange={(e) => setForm({ ...form, category: e.target.value as AssetCategory })}
-              className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition-all bg-white"
+              className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 outline-none transition-all bg-white"
             >
               {CATEGORY_OPTIONS.map((c) => (
                 <option key={c.value} value={c.value}>{c.label}</option>
@@ -154,7 +154,7 @@ export function AssetFormSheet({ open, onOpenChange, initialAsset }: AssetFormSh
               <input
                 value={form.brand}
                 onChange={(e) => setForm({ ...form, brand: e.target.value })}
-                className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+                className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
                 placeholder="e.g. Apple"
               />
             </div>
@@ -163,7 +163,7 @@ export function AssetFormSheet({ open, onOpenChange, initialAsset }: AssetFormSh
               <input
                 value={form.model}
                 onChange={(e) => setForm({ ...form, model: e.target.value })}
-                className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+                className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
                 placeholder="e.g. M2 Max"
               />
             </div>
@@ -174,7 +174,7 @@ export function AssetFormSheet({ open, onOpenChange, initialAsset }: AssetFormSh
             <input
               value={form.serialNumber}
               onChange={(e) => setForm({ ...form, serialNumber: e.target.value })}
-              className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+              className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
               placeholder="e.g. C02X..."
             />
           </div>
@@ -186,7 +186,7 @@ export function AssetFormSheet({ open, onOpenChange, initialAsset }: AssetFormSh
                 type="number"
                 value={form.purchaseCost}
                 onChange={(e) => setForm({ ...form, purchaseCost: e.target.value })}
-                className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+                className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
                 placeholder="0"
               />
             </div>
@@ -196,7 +196,7 @@ export function AssetFormSheet({ open, onOpenChange, initialAsset }: AssetFormSh
                 type="date"
                 value={form.purchaseDate}
                 onChange={(e) => setForm({ ...form, purchaseDate: e.target.value })}
-                className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 bg-white"
+                className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 bg-white"
               />
             </div>
           </div>
@@ -207,7 +207,7 @@ export function AssetFormSheet({ open, onOpenChange, initialAsset }: AssetFormSh
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
               rows={2}
-              className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 resize-none"
+              className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 resize-none"
               placeholder="Optional notes..."
             />
           </div>
@@ -223,7 +223,7 @@ export function AssetFormSheet({ open, onOpenChange, initialAsset }: AssetFormSh
             <button
               type="submit"
               disabled={createMutation.isPending}
-              className="px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="px-4 py-2 text-sm font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm"
             >
               {createMutation.isPending ? "Saving..." : isEditing ? "Save Changes" : "Add Asset"}
             </button>

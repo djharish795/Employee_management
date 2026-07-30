@@ -133,11 +133,11 @@ export default function CEOReportsPage() {
               onClick={() => setActiveTab('VDR')}
               className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
                 activeTab === 'VDR' 
-                  ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/20' 
+                  ? 'bg-white text-slate-900 shadow-sm' 
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              <ShieldAlert className="w-4 h-4" />
+              <ShieldAlert className={`w-4 h-4 ${activeTab === 'VDR' ? 'text-rose-500' : 'text-slate-400'}`} />
               VDR Vaults
             </button>
           </div>

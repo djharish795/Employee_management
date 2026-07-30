@@ -140,7 +140,7 @@ export default function OeDashboardView() {
         </div>
       </div>
 
-      <PersonalAttendanceWidget />
+      <PersonalAttendanceWidget hideCheckIn={true} />
 
       {/* KPI Cards Row using exact Executive Dashboard new UI design */}
       <div id="tour-dashboard-stats" className="mt-6 mb-6">

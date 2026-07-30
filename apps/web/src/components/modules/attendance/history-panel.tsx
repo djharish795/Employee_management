@@ -103,11 +103,11 @@ const MemoizedHistoryRow = memo(({ log, isOrgMode, onApprove, isApproving }: { l
           {log.overtime && Number(log.overtime) > 0 ? (
             log.isOvertimeApproved ? (
               <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
-                +{log.overtime}h
+                +{formatDecimalHoursToHMS(log.overtime)}
               </span>
             ) : isOrgMode && onApprove ? (
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-amber-600">{log.overtime}h</span>
+                <span className="text-[10px] font-bold text-amber-600">+{formatDecimalHoursToHMS(log.overtime)}</span>
                 <button 
                   onClick={() => onApprove(log.id)}
                   disabled={isApproving}
@@ -117,7 +117,7 @@ const MemoizedHistoryRow = memo(({ log, isOrgMode, onApprove, isApproving }: { l
                 </button>
               </div>
             ) : (
-              <span className="text-[10px] font-bold text-amber-600">{log.overtime}h Pending</span>
+              <span className="text-[10px] font-bold text-amber-600">+{formatDecimalHoursToHMS(log.overtime)} Pending</span>
             )
           ) : (
             <span className="text-slate-300">-</span>
@@ -147,7 +147,12 @@ const MemoizedHistoryRow = memo(({ log, isOrgMode, onApprove, isApproving }: { l
                    });
                    if (currentIn) pairs.push({ in: currentIn, out: null });
                    
-                   return pairs.map((pair, i) => (
+                   return pairs.filter(pair => {
+                     if (!pair.out) return true;
+                     const t1 = new Date(pair.in).getTime();
+                     const t2 = new Date(pair.out).getTime();
+                     return (t2 - t1) > 60000;
+                   }).map((pair, i) => (
                      <div key={i} className="flex items-center gap-4 text-xs font-mono bg-slate-50 px-3 py-2 rounded-md border border-slate-100">
                        <div className="flex flex-col">
                          <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Check In</span>
@@ -214,11 +219,31 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
   const logs = useMemo(() => {
     return rawLogs.map((log) => {
       const formattedDate = new Date(log.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-      const checkIns = log.punchHistory?.filter((p: any) => p.action === 'IN').map((p: any) => formatTimeValue(p.time)) || [];
-      const checkOuts = log.punchHistory?.filter((p: any) => p.action === 'OUT').map((p: any) => formatTimeValue(p.time)) || [];
+      const checkIns = log.punchHistory?.filter((p: any) => p.action === 'IN') || [];
+      const checkOuts = log.punchHistory?.filter((p: any) => p.action === 'OUT') || [];
 
-      const formattedCheckIn = checkIns.length > 0 ? checkIns[0] : formatTimeValue(log.checkIn);
-      const formattedCheckOut = checkOuts.length > 0 ? checkOuts[checkOuts.length - 1] : formatTimeValue(log.checkOut);
+      let formattedCheckIn = checkIns.length > 0 ? formatTimeValue(checkIns[0].time) : formatTimeValue(log.checkIn);
+      let validCheckOut = checkOuts.length > 0 ? checkOuts[checkOuts.length - 1].time : log.checkOut;
+      
+      if (checkIns.length > 0 && checkOuts.length > 0) {
+        for (let i = checkOuts.length - 1; i >= 0; i--) {
+          const outTime = new Date(checkOuts[i].time).getTime();
+          const inTime = checkIns[i] ? new Date(checkIns[i].time).getTime() : 0;
+          if (outTime - inTime > 60000) {
+            validCheckOut = checkOuts[i].time;
+            break;
+          }
+        }
+      }
+      let formattedCheckOut = formatTimeValue(validCheckOut);
+      
+      if (log.punchHistory && log.punchHistory.length > 0) {
+        const lastPunch = log.punchHistory[log.punchHistory.length - 1];
+        if (lastPunch.action === 'IN') {
+           formattedCheckOut = "—";
+        }
+      }
+
       const formattedHours = typeof log.hoursWorked === 'number' ? formatDecimalHoursToHMS(log.hoursWorked) : log.hoursWorked;
       
       // Calculate formatted break

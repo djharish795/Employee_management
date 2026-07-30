@@ -58,11 +58,12 @@ export class AttendanceCronService {
             checkoutTime.setUTCHours(13, 30, 0, 0); // 19:00 IST is 13:30 UTC
 
             const now = checkoutTime.getTime();
-            let offset = state.offset;
+            let offset = state.offset || 0;
+            let overtimeOffset = state.overtimeOffset || 0;
             
             if (state.state === "IN" || state.state === "BREAK") {
               const elapsed = Math.floor((now - state.startTime) / 1000);
-              offset += elapsed;
+              offset += elapsed; // Both IN and BREAK count towards work hours
             }
 
             let workHoursDecimal = offset / 3600;
@@ -110,6 +111,7 @@ export class AttendanceCronService {
             state.state = "OUT";
             state.startTime = checkoutTime.getTime();
             state.offset = offset;
+            state.overtimeOffset = overtimeOffset;
             await this.redis.setJson(key, state, 60 * 60 * 24);
 
             this.inApp.broadcastEvent('attendance.punched', { employeeId, type: "OUT" });

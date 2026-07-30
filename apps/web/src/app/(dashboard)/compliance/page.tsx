@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Search, ChevronRight, ShieldCheck, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth';
+import { usePermissions } from '@/hooks/use-permissions';
 import { apiClient } from '@/lib/api/client';
 import { AddConsentModal } from '@/components/modules/compliance/add-consent-modal';
 import { Trash2 } from 'lucide-react';
@@ -12,6 +13,7 @@ import Image from "next/image";
 export default function ComplianceDashboardPage() {
   const [isAddConsentOpen, setIsAddConsentOpen] = useState(false);
   const queryClient = useQueryClient();
+  const { canManageCompliance } = usePermissions();
 
   // Queries
   const { data: dashboardStats } = useQuery({
@@ -148,14 +150,16 @@ export default function ComplianceDashboardPage() {
                           {!log.revokedAt ? (
                             <div className="flex items-center justify-end gap-2">
                               <span className="px-2.5 py-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 rounded border border-emerald-100">Active</span>
-                              <button 
-                                onClick={() => handleRevokeConsent(log.id)}
-                                disabled={revokeConsentMutation.isPending}
-                                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors disabled:opacity-50"
-                                title="Revoke Consent"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              {canManageCompliance && (
+                                <button 
+                                  onClick={() => handleRevokeConsent(log.id)}
+                                  disabled={revokeConsentMutation.isPending}
+                                  className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors disabled:opacity-50"
+                                  title="Revoke Consent"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </div>
                           ) : (
                             <span className="px-2.5 py-1 text-[10px] font-bold text-rose-700 bg-rose-50 rounded border border-rose-100">Revoked</span>
@@ -168,14 +172,16 @@ export default function ComplianceDashboardPage() {
               </table>
             </div>
 
-            <div className="p-4 border-t border-slate-100 mt-auto">
-              <button 
-                onClick={() => setIsAddConsentOpen(true)}
-                className="w-full py-2.5 bg-white border border-blue-200 text-blue-600 font-bold text-xs rounded-lg hover:bg-blue-50 transition-colors"
-              >
-                Add consent record
-              </button>
-            </div>
+            {canManageCompliance && (
+              <div className="p-4 border-t border-slate-100 mt-auto">
+                <button 
+                  onClick={() => setIsAddConsentOpen(true)}
+                  className="w-full py-2.5 bg-white border border-blue-200 text-blue-600 font-bold text-xs rounded-lg hover:bg-blue-50 transition-colors"
+                >
+                  Add consent record
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Column 2: Data Erasure Requests */}
@@ -221,7 +227,7 @@ export default function ComplianceDashboardPage() {
                         {req.status}
                       </span>
                     </div>
-                    {req.status === 'PENDING' && (
+                    {req.status === 'PENDING' && canManageCompliance && (
                       <div className="grid grid-cols-2 gap-2 mt-4">
                         <button 
                           onClick={() => handleProcessErasure(req.id, "APPROVE")}

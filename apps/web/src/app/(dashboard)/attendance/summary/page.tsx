@@ -8,6 +8,7 @@ import { fetchSummaryToday } from '@/lib/api/attendance';
 import HistoryPanel from "@/components/modules/attendance/history-panel";
 import ReportsPanel from "@/components/modules/attendance/reports-panel";
 import RegularizationPanel from "@/components/modules/attendance/regularization-panel";
+import { PendingOvertimeTable } from "@/components/modules/team-lead/pending-overtime-table";
 
 // ─── Interfaces (No Hardcoded Mock Data) ─────────────────────────────────────────
 interface AttendanceMetrics {
@@ -54,8 +55,8 @@ export default function AttendanceSummaryPage() {
   // New interactive states
   const searchParams = useSearchParams();
   const [listTab, setListTab] = useState<'exceptions' | 'present'>('exceptions');
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'logs' | 'regularization'>(
-    (searchParams.get('tab') as 'overview' | 'analytics' | 'logs' | 'regularization') || 'overview'
+  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'logs' | 'regularization' | 'overtime'>(
+    (searchParams.get('tab') as 'overview' | 'analytics' | 'logs' | 'regularization' | 'overtime') || 'overview'
   );
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedDept, setSelectedDept] = useState('all');
@@ -190,6 +191,12 @@ export default function AttendanceSummaryPage() {
             className={`pb-4 text-sm font-bold border-b-2 transition-all ${activeTab === 'regularization' ? 'border-slate-900 dark:border-white text-slate-900 dark:text-white' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
           >
             Regularization
+          </button>
+          <button
+            onClick={() => setActiveTab('overtime')}
+            className={`pb-4 text-sm font-bold border-b-2 transition-all ${activeTab === 'overtime' ? 'border-slate-900 dark:border-white text-slate-900 dark:text-white' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+          >
+            Overtime Approvals
           </button>
         </div>
       </div>
@@ -465,6 +472,14 @@ export default function AttendanceSummaryPage() {
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Team Regularization Requests</h3>
             <RegularizationPanel mode="org" />
+          </div>
+        )}
+
+        {activeTab === 'overtime' && (
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Pending Overtime Approvals</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Review and manage overtime requests for your organization.</p>
+            <PendingOvertimeTable />
           </div>
         )}
 

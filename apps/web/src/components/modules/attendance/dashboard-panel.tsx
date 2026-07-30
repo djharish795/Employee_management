@@ -22,7 +22,7 @@ const formatDecimalHoursToHMS = (hoursDecimal: number): string => {
   const hrs = Math.floor(totalSeconds / 3600);
   const mins = Math.floor((totalSeconds % 3600) / 60);
   const secs = totalSeconds % 60;
-  
+
   const parts = [];
   if (hrs > 0) parts.push(`${hrs}h`);
   if (mins > 0) parts.push(`${mins}m`);
@@ -59,7 +59,7 @@ export default function DashboardPanel() {
   const isManagerRole = ["MANAGER", "CTO", "CEO", "CHRO", "SUPER_ADMIN", "ADMIN"].includes(activeRole);
   const isHrRole = ["HR", "CHRO", "ADMIN", "SUPER_ADMIN"].includes(activeRole);
 
-  const pendingRequests = regularizations.filter(req => 
+  const pendingRequests = regularizations.filter(req =>
     req.employeeId !== employeeId && (
       (isManagerRole && req.managerStatus === "PENDING") ||
       (isHrRole && req.hrStatus === "PENDING")
@@ -241,9 +241,9 @@ export default function DashboardPanel() {
       } else {
         const expectedOut = checkInTime + shiftMs;
         events.push({
-          type: "CHECK_OUT",
+          type: "EXPECTED_CHECK_OUT",
           timestamp: expectedOut,
-          label: "Check-Out",
+          label: "Expected Check-Out",
           displayTime: new Date(expectedOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           position: 100, // Force to end of timeline
         });
@@ -254,8 +254,8 @@ export default function DashboardPanel() {
     return events.sort((a, b) => {
       if (a.type === "CHECK_IN") return -1;
       if (b.type === "CHECK_IN") return 1;
-      if (a.type === "CHECK_OUT") return 1;
-      if (b.type === "CHECK_OUT") return -1;
+      if (a.type === "CHECK_OUT" || a.type === "EXPECTED_CHECK_OUT") return 1;
+      if (b.type === "CHECK_OUT" || b.type === "EXPECTED_CHECK_OUT") return -1;
       return a.timestamp - b.timestamp;
     });
   }, [todayLog, statusData, punchState]);
@@ -475,6 +475,9 @@ export default function DashboardPanel() {
                   } else if (ev.type === "CHECK_OUT") {
                     bgColor = "bg-emerald-500";
                     ringColor = "ring-emerald-50";
+                  } else if (ev.type === "EXPECTED_CHECK_OUT") {
+                    bgColor = "bg-slate-300";
+                    ringColor = "ring-slate-50";
                   }
 
                   const isBreak = ev.type.includes("BREAK");
@@ -630,11 +633,24 @@ export default function DashboardPanel() {
                   else if (log.status === "WFH") badge = "text-slate-900 bg-slate-100 border border-slate-200";
 
                   const formattedDate = new Date(log.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-                  const checkIns = log.punchHistory?.filter((p: any) => p.action === 'IN').map((p: any) => new Date(p.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })) || [];
-                  const checkOuts = log.punchHistory?.filter((p: any) => p.action === 'OUT').map((p: any) => new Date(p.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })) || [];
-                  
-                  const formattedCheckIn = checkIns.length > 0 ? checkIns[0] : (log.checkIn ? new Date(log.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—");
-                  const formattedCheckOut = checkOuts.length > 0 ? checkOuts[checkOuts.length - 1] : (log.checkOut ? new Date(log.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—");
+                  const checkIns = log.punchHistory?.filter((p: any) => p.action === 'IN').map((p: any) => new Date(p.time)) || [];
+                  const checkOuts = log.punchHistory?.filter((p: any) => p.action === 'OUT').map((p: any) => new Date(p.time)) || [];
+
+                  // Filter out 0-minute splits to get real checkout time
+                  let validCheckOut = checkOuts.length > 0 ? checkOuts[checkOuts.length - 1] : (log.checkOut ? new Date(log.checkOut) : null);
+                  if (checkIns.length > 0 && checkOuts.length > 0) {
+                    for (let i = checkOuts.length - 1; i >= 0; i--) {
+                      const outTime = checkOuts[i].getTime();
+                      const inTime = checkIns[i]?.getTime() || 0;
+                      if (outTime - inTime > 60000) { // Valid split > 1 min
+                        validCheckOut = checkOuts[i];
+                        break;
+                      }
+                    }
+                  }
+
+                  const formattedCheckIn = checkIns.length > 0 ? checkIns[0].toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (log.checkIn ? new Date(log.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—");
+                  const formattedCheckOut = validCheckOut ? validCheckOut.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
                   const formattedHours = typeof log.hoursWorked === 'number' ? formatDecimalHoursToHMS(log.hoursWorked) : log.hoursWorked;
 
                   let formattedBreak = "—";
@@ -654,7 +670,14 @@ export default function DashboardPanel() {
                       <td className="px-5 py-3 font-bold text-slate-900">{formattedDate}</td>
                       <td className="px-5 py-3 font-mono">{formattedCheckIn}</td>
                       <td className="px-5 py-3 font-mono">{formattedCheckOut}</td>
-                      <td className="px-5 py-3 font-bold">{formattedHours}</td>
+                      <td className="px-5 py-3 font-bold">
+                        {formattedHours}
+                        {log.overtime > 0 && (
+                          <span className={`ml-2 px-1.5 py-0.5 text-[9px] font-bold rounded uppercase ${log.isOvertimeApproved ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                            +{formatDecimalHoursToHMS(log.overtime)} {log.isOvertimeApproved ? '' : '(Pending)'}
+                          </span>
+                        )}
+                      </td>
                       <td className="px-5 py-3 font-bold text-amber-600">{formattedBreak}</td>
                       <td className="px-5 py-3">
                         <span className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase ${badge}`}>{log.status}</span>
@@ -750,7 +773,7 @@ export default function DashboardPanel() {
 
                   const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
                   const isWeekend = new Date(year, month, day).getDay() === 0 || new Date(year, month, day).getDay() === 6;
-                  
+
                   if (isToday) {
                     bgClass = "bg-slate-900 text-white font-bold shadow-sm ring-2 ring-slate-200 ring-offset-1 hover:bg-slate-800";
                   } else if (isWeekend && !dayLog) {

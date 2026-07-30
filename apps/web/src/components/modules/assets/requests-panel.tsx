@@ -1,7 +1,7 @@
 "use client";
 
 import { usePermissions } from "@/hooks/use-permissions";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -92,6 +92,11 @@ export default function RequestsPanel() {
   });
   const isHRUser = isAdmin || activeRole === "HR";
   const [requestToFulfill, setRequestToFulfill] = useState<AssetRequest | null>(null);
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { data: rawRequests = [], isLoading } = useQuery({
     queryKey: ["assetRequests", viewScope],
@@ -188,6 +193,10 @@ export default function RequestsPanel() {
   };
 
   const pendingCount = requests.filter((r) => r.status === "PENDING").length;
+
+  if (!mounted) {
+    return null; // Prevent hydration mismatch before role is available from localStorage
+  }
 
   return (
     <div className="space-y-5">
@@ -422,7 +431,7 @@ export default function RequestsPanel() {
                     <div className="flex flex-wrap gap-3 mt-2.5">
                       <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400">
                         <Package className="w-3 h-3" />
-                        {req.assetCategory.replace(/_/g, " ")}
+                        {String(req.assetCategory || "OTHER").replace(/_/g, " ")}
                       </div>
                       <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400">
                         <Clock className="w-3 h-3" />

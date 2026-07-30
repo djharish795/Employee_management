@@ -190,7 +190,7 @@ export default function OrgDashboardPanel() {
               <p className="text-xs font-semibold text-slate-500 mb-4">
                 Recent changes requiring attention
               </p>
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
                 {stats.notifications && stats.notifications.length > 0 ? (
                   stats.notifications.map((notif: any, idx: number) => (
                     <div

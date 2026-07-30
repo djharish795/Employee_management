@@ -242,25 +242,27 @@ export default function ReportingPanel() {
             <h3 className="text-sm font-bold text-slate-900">Direct Reports</h3>
             <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">{directReports.length}</span>
           </div>
-          <div className="p-5 space-y-4">
-            {directReports.length === 0 ? (
-              <div className="text-xs font-medium text-slate-500 text-center py-4">No direct reports</div>
-            ) : (
-              directReports.map((report) => (
-                <div key={report.id} onClick={() => handleSelect(report.id)} className="flex items-center gap-3 p-2 -mx-2 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
-                  <div className={`relative w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold flex-shrink-0 border border-slate-200 ${report.avatarBg || 'bg-slate-100 text-slate-700'}`}>
-                    {getAvatarContent(report)}
+          <div className="p-5">
+            <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2">
+              {directReports.length === 0 ? (
+                <div className="text-xs font-medium text-slate-500 text-center py-4">No direct reports</div>
+              ) : (
+                directReports.map((report) => (
+                  <div key={report.id} onClick={() => handleSelect(report.id)} className="flex items-center gap-3 p-2 -mx-2 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+                    <div className={`relative w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold flex-shrink-0 border border-slate-200 ${report.avatarBg || 'bg-slate-100 text-slate-700'}`}>
+                      {getAvatarContent(report)}
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-900">{report.name}</div>
+                      <div className="text-[10px] font-medium text-slate-500 mt-0.5">{report.designation}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-900">{report.name}</div>
-                    <div className="text-[10px] font-medium text-slate-500 mt-0.5">{report.designation}</div>
-                  </div>
-                </div>
-              ))
-            )}
+                ))
+              )}
+            </div>
 
             {directReports.length > 0 && (
-              <Link href="/org-chart/hierarchy" className="w-full flex justify-center py-2 border border-dashed border-slate-300 rounded-lg text-xs font-bold text-slate-500 hover:text-indigo-600 hover:border-indigo-300 transition-colors mt-2">
+              <Link href="/org-chart/hierarchy" className="w-full flex justify-center py-2 border border-dashed border-slate-300 rounded-lg text-xs font-bold text-slate-500 hover:text-indigo-600 hover:border-indigo-300 transition-colors mt-4">
                 View Entire Sub-tree
               </Link>
             )}

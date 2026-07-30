@@ -26,7 +26,8 @@ export function Topbar() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const pathname = usePathname();
@@ -80,20 +81,10 @@ export function Topbar() {
   lastKnownRef.current.photoUrl = displayPhotoUrl;
 
   const handleLogout = () => {
-    setIsDropdownOpen(false);
+    setIsProfileOpen(false);
     clearSession();
     window.location.href = '/login';
   };
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   // --- Search Logic ---
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -315,7 +306,7 @@ export function Topbar() {
       {/* Right Actions */}
       <div className="flex items-center gap-3 sm:gap-6 ml-auto">
         <div className="flex items-center gap-2 sm:gap-4 text-slate-600 dark:text-slate-400">
-          <DropdownMenu>
+          <DropdownMenu open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
             <DropdownMenuTrigger asChild>
               <button className="relative hover:text-slate-900 dark:hover:text-white transition-colors focus:outline-none">
                 <Bell className="w-5 h-5" />
@@ -368,7 +359,7 @@ export function Topbar() {
                 )}
               </div>
               <div className="p-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
-                <Link href="/notifications" onClick={() => setIsDropdownOpen(false)} className="block w-full text-center py-2 text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+                <Link href="/notifications" onClick={() => setIsNotificationsOpen(false)} className="block w-full text-center py-2 text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
                   View all notifications
                 </Link>
               </div>
@@ -380,7 +371,7 @@ export function Topbar() {
         <div className="w-px h-8 bg-slate-200 dark:bg-slate-800 transition-colors" />
 
       {/* Profile with Dropdown */}
-      <DropdownMenu>
+      <DropdownMenu open={isProfileOpen} onOpenChange={setIsProfileOpen}>
         <DropdownMenuTrigger asChild>
           <div id="tour-profile-menu" className="flex items-center gap-2 sm:gap-3 cursor-pointer group outline-none">
             {/* Hide text name on mobile, show only avatar */}

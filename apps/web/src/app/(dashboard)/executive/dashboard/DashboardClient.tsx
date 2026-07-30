@@ -125,7 +125,7 @@ export function DashboardClient() {
       </div>
 
       {/* Personal Attendance Check-in/Check-out */}
-      <PersonalAttendanceWidget />
+      <PersonalAttendanceWidget hideCheckIn />
 
       {/* KPI Grid (Top Row) — 1 col mobile, 2 tablet, 4 desktop */}
       <div id="tour-dashboard-stats" className="mb-6">

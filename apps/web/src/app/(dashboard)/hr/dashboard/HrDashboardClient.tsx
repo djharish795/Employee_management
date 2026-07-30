@@ -226,7 +226,7 @@ export default function HrDashboardPage() {
         </DialogContent>
       </Dialog>
 
-      <PersonalAttendanceWidget />
+      <PersonalAttendanceWidget hideCheckIn={true} />
 
       {/* KPI Cards Row */}
       <div id="tour-dashboard-stats" className="grid grid-cols-2 lg:grid-cols-7 gap-4 mb-6">

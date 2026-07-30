@@ -16,25 +16,25 @@ const icons: Record<string, any> = {
 
 export function KpiGrid({ metrics }: { metrics: KpiMetric[] }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-${Math.max(3, Math.min(4, metrics.length))} gap-4`}>
       {metrics.map((metric) => {
         const Icon = icons[metric.iconType] || Activity;
         return (
           <Card key={metric.id} className="relative overflow-hidden border-slate-200/70 shadow-sm hover:shadow-xl shadow-slate-200/50 hover:-translate-y-1 transition-all duration-300 bg-white/80 backdrop-blur-md">
             {/* Decorative background shape */}
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-gradient-to-br from-blue-50 to-indigo-50/20 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-blue-50 to-indigo-50/20 rounded-full blur-2xl pointer-events-none" />
             
-            <CardContent className="p-6 relative z-10">
+            <CardContent className="p-5 relative z-10">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-[13px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                  <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
                     {metric.title}
                   </p>
-                  <h3 className="text-[32px] leading-tight font-extrabold text-slate-900 tracking-tight">{metric.value}</h3>
-                  <p className="text-[13px] mt-1 text-slate-500 font-medium">{metric.subtext}</p>
+                  <h3 className="text-2xl leading-tight font-bold text-slate-900 tracking-tight">{metric.value}</h3>
+                  <p className="text-[11px] mt-1 text-slate-500 font-medium">{metric.subtext}</p>
                 </div>
-                <div className="p-3.5 bg-blue-50 rounded-xl border border-blue-100/50">
-                  <Icon className="w-5 h-5 text-blue-600" />
+                <div className="p-2.5 bg-blue-50 rounded-xl border border-blue-100/50">
+                  <Icon className="w-4 h-4 text-blue-600" />
                 </div>
               </div>
             </CardContent>

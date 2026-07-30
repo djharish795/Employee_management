@@ -4,7 +4,7 @@ import React from "react";
 import { usePermissions } from "@/hooks/use-permissions";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, History, CheckSquare, BarChart3 } from "lucide-react";
+import { LayoutDashboard, History, CheckSquare, BarChart3, Clock } from "lucide-react";
 
 type AttendanceRole = "ADMIN" | "HR" | "CEO" | "MANAGER" | "EMPLOYEE";
 
@@ -25,6 +25,11 @@ export default function AttendanceLayout({ children }: AttendanceLayoutProps) {
       { title: "History", href: "/attendance/history", icon: History },
       { title: "Regularization", href: "/attendance/regularization", icon: CheckSquare },
     ];
+
+    // Team Leads have this in Team Workspace. CEO/CTO/HR will have this in Attendance Summary.
+    if (["OM", "SUPER_ADMIN", "ADMIN", "IT"].includes(activeRole)) {
+      items.push({ title: "Overtime Approvals", href: "/attendance/overtime", icon: Clock });
+    }
 
     return items;
   }, [activeRole]);

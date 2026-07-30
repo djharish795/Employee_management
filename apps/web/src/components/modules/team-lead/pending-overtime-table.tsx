@@ -45,7 +45,13 @@ export function PendingOvertimeTable() {
   }
 
   if (!pendingRequests || pendingRequests.length === 0) {
-    return null; // Don't show anything if there are no pending requests
+    return (
+      <div className="bg-white border border-slate-200 rounded-xl p-12 shadow-sm flex flex-col items-center justify-center text-center">
+        <CheckCircle2 className="w-12 h-12 text-slate-300 mb-4" />
+        <h3 className="text-lg font-bold text-slate-900">All Caught Up!</h3>
+        <p className="text-slate-500 mt-1 max-w-sm">There are no pending overtime requests requiring your approval at this time.</p>
+      </div>
+    );
   }
 
   return (
