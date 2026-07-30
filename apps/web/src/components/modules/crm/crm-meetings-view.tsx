@@ -14,7 +14,6 @@ import { crmApi } from '@/lib/api/crm';
 
 export default function CrmMeetingsView() {
   const [meetings, setMeetings] = useState<any[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterDate, setFilterDate] = useState('');
   const [filterClient, setFilterClient] = useState('All');
@@ -23,13 +22,8 @@ export default function CrmMeetingsView() {
   const fetchClientsAndMeetings = async () => {
     try {
       setIsLoading(true);
-      const [clientsRes, meetingsRes] = await Promise.all([
-        crmApi.getClients(),
-        crmApi.getMeetings()
-      ]);
-      const clientsData = clientsRes.data?.data || clientsRes.data || [];
+      const meetingsRes = await crmApi.getMeetings();
       const meetingsData = meetingsRes.data?.data || meetingsRes.data || [];
-      setClients(Array.isArray(clientsData) ? clientsData : []);
       setMeetings(Array.isArray(meetingsData) ? meetingsData : []);
     } catch (error) {
       toast.error('Network error loading CRM meetings');
@@ -41,6 +35,15 @@ export default function CrmMeetingsView() {
   useEffect(() => {
     fetchClientsAndMeetings();
   }, []);
+
+  // Derive unique client names from meetings currently loaded
+  const uniqueLeads = Array.from(
+    new Map(
+      meetings
+        .filter(m => m.leadId || m.leadName || m.client)
+        .map(m => [m.leadId ?? m.leadName ?? m.client, { id: m.leadId ?? m.leadName ?? m.client, name: m.leadName || m.client || m.leadId }])
+    ).values()
+  );
 
   const filteredMeetings = meetings.filter(m => {
     let matches = true;
@@ -60,7 +63,7 @@ export default function CrmMeetingsView() {
     const rows = filteredMeetings.map((m: any) => [
       `"${m.date || ''}"`,
       `"${m.time || ''}"`,
-      `"${clients.find(c => c.id === m.leadId)?.company || 'Unknown Client'}"`,
+      `"${m.leadName || m.client || 'Unknown Client'}"`,
       `"${m.type || 'General'}"`,
       `"${m.status || 'SCHEDULED'}"`,
       `"${m.meetLink || ''}"`
@@ -122,8 +125,8 @@ export default function CrmMeetingsView() {
             className="w-full h-10 px-3 py-2 border border-slate-200 rounded-lg bg-white text-slate-700 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="All">All Clients</option>
-            {clients.map(c => (
-              <option key={c.id} value={c.id}>{c.company}</option>
+            {uniqueLeads.map(lead => (
+              <option key={lead.id} value={lead.id}>{lead.name}</option>
             ))}
           </select>
         </div>

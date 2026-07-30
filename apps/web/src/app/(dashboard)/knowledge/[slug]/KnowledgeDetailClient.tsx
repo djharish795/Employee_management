@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { KnowledgeDoc, knowledgeApi } from "@/lib/api/knowledge";
+import { fetchMyProfile } from "@/lib/api/profile";
 import { apiClient } from "@/lib/api/client";
 import { Loader2, ArrowLeft, CheckCircle, AlertTriangle, FileText } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { useAuthStore } from "@/store/auth";
 
 export function KnowledgeDetailClient({ slug }: { slug: string }) {
   const router = useRouter();
@@ -17,21 +18,17 @@ export function KnowledgeDetailClient({ slug }: { slug: string }) {
   const [isSigning, setIsSigning] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   
-  const accessToken = useAuthStore((state) => state.accessToken);
-  const [userName, setUserName] = useState("");
-  
-  useEffect(() => {
-    if (accessToken) {
-      try {
-        const payload = JSON.parse(atob(accessToken.split('.')[1]));
-        if (payload.email) {
-          let name = payload.email.split('@')[0];
-          name = name.split('.').map((part: string) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
-          setUserName(name);
-        }
-      } catch (e) {}
-    }
-  }, [accessToken]);
+  // Use the same query key as the Topbar so this hits React Query cache instantly
+  const { data: profileData } = useQuery({
+    queryKey: ["myProfile"],
+    queryFn: fetchMyProfile,
+    staleTime: 60 * 1000,
+  });
+
+  const profile = profileData?.data || profileData;
+  const userName = profile?.firstName
+    ? [profile.firstName, profile.lastName].filter(Boolean).join(' ')
+    : "";
 
   useEffect(() => {
     knowledgeApi.getBySlug(slug)
@@ -265,6 +262,13 @@ export function KnowledgeDetailClient({ slug }: { slug: string }) {
 
                 <div className="flex flex-col gap-2 max-w-sm">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Confirm Your Identity</label>
+                  
+                  {/* Prominent hint showing exactly what to type */}
+                  <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+                    <span className="text-xs text-amber-700 font-medium flex-shrink-0">Type exactly:</span>
+                    <span className="text-sm font-bold text-amber-900 tracking-wide select-all">{userName || "(loading…)"}</span>
+                  </div>
+
                   <div className="relative">
                     <input 
                       type="text" 
@@ -274,7 +278,6 @@ export function KnowledgeDetailClient({ slug }: { slug: string }) {
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder-slate-300 font-medium text-slate-900"
                     />
                   </div>
-                  <p className="text-xs text-slate-500 mt-1 mb-2">Please type exactly: <span className="font-bold text-slate-700">{userName}</span></p>
                   <button
                     onClick={handleSignClick}
                     disabled={isSigning || signature !== userName || userName === ""}

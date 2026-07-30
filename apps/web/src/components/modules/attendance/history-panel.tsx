@@ -196,15 +196,15 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
 
   const queryClient = useQueryClient();
   const approveMutation = useMutation({
-    mutationFn: approveOvertime,
+    mutationFn: ({ id, status }: { id: string, status: 'APPROVE' | 'REJECT' }) => approveOvertime(id, status),
     onSuccess: () => {
-      toast.success("Overtime approved");
+      toast.success("Overtime action successful");
       queryClient.invalidateQueries({ queryKey: ["attendanceLogs"] });
       // Also invalidate teamAttendanceView to be safe if they use that too
       queryClient.invalidateQueries({ queryKey: ["teamAttendanceView"] });
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || "Failed to approve overtime");
+      toast.error(err?.response?.data?.message || "Failed to process overtime");
     }
   });
 
@@ -532,7 +532,7 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
                     key={(log as any).id || idx} 
                     log={log} 
                     isOrgMode={isOrgMode}
-                    onApprove={(id) => approveMutation.mutate(id)}
+                    onApprove={(id) => approveMutation.mutate({ id, status: 'APPROVE' })}
                     isApproving={approveMutation.isPending}
                   />
                 ))}
