@@ -678,7 +678,7 @@ export default function CemLeadWorkspacePage() {
                     </div>
 
                     <div className="space-y-3 pt-2">
-                      <label
+                      <div
                         onClick={() => handleToggleBANT('budgetConfirmed')}
                         className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 cursor-pointer transition-colors"
                       >
@@ -687,9 +687,9 @@ export default function CemLeadWorkspacePage() {
                           <div className="text-xs font-bold text-slate-900">Budget Confirmed</div>
                           <div className="text-[10px] text-slate-500">Financial allocation verified</div>
                         </div>
-                      </label>
+                      </div>
 
-                      <label
+                      <div
                         onClick={() => handleToggleBANT('authorityIdentified')}
                         className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 cursor-pointer transition-colors"
                       >
@@ -698,9 +698,9 @@ export default function CemLeadWorkspacePage() {
                           <div className="text-xs font-bold text-slate-900">Authority Identified</div>
                           <div className="text-[10px] text-slate-500">Decision maker point of contact</div>
                         </div>
-                      </label>
+                      </div>
 
-                      <label
+                      <div
                         onClick={() => handleToggleBANT('needValidated')}
                         className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 cursor-pointer transition-colors"
                       >
@@ -709,9 +709,9 @@ export default function CemLeadWorkspacePage() {
                           <div className="text-xs font-bold text-slate-900">Need Validated</div>
                           <div className="text-[10px] text-slate-500">Business pain point confirmed</div>
                         </div>
-                      </label>
+                      </div>
 
-                      <label
+                      <div
                         onClick={() => handleToggleBANT('timelineEstablished')}
                         className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 cursor-pointer transition-colors"
                       >
@@ -720,7 +720,7 @@ export default function CemLeadWorkspacePage() {
                           <div className="text-xs font-bold text-slate-900">Timeline Established</div>
                           <div className="text-[10px] text-slate-500">Target deployment date set</div>
                         </div>
-                      </label>
+                      </div>
                     </div>
                   </div>
 
