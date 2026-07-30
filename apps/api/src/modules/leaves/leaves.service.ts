@@ -26,37 +26,97 @@ export class LeavesService {
 
   async getLeavesKPI(employeeId: string): Promise<unknown> {
     const currentYear = new Date().getFullYear();
-    const balances = await this.prisma.leaveBalance.findMany({
+    let balances = await this.prisma.leaveBalance.findMany({
       where: { employeeId, year: currentYear },
       include: { leaveType: true }
     });
+
+    const currentMonth = new Date().getMonth();
+    const policyStart = currentMonth >= 5 ? new Date(currentYear, 5, 1) : new Date(currentYear - 1, 5, 1);
+    
+    // Auto-initialize if missing
+    if (balances.length === 0) {
+      const employee = await this.prisma.employee.findUnique({
+        where: { id: employeeId }
+      });
+      
+      if (employee) {
+        const joiningDate = employee.joiningDate || employee.createdAt;
+        let proratedMonths = 12;
+        
+        if (joiningDate > policyStart) {
+          let missed = (joiningDate.getFullYear() - policyStart.getFullYear()) * 12 + joiningDate.getMonth() - policyStart.getMonth();
+          proratedMonths = Math.max(0, 12 - missed);
+        }
+
+        const leaveTypes = await this.prisma.leaveType.findMany();
+        const newBalances = leaveTypes.map(lt => {
+          let allocated = 0;
+          if (lt.code === 'CL_FULL') allocated = proratedMonths; // 1 per month
+          else if (lt.code === 'CL_HALF') allocated = Math.ceil(proratedMonths / 2); // 6 per year
+          else if (lt.code === 'OPTIONAL') allocated = Math.ceil(proratedMonths / 6); // 2 per year
+          else if (lt.code === 'SL' || lt.code === 'SICK') allocated = 10;
+          
+          return {
+            employeeId,
+            leaveTypeId: lt.id,
+            year: currentYear,
+            allocated,
+            carriedOver: 0,
+            used: 0,
+            pending: 0
+          };
+        });
+        
+        if (newBalances.length > 0) {
+          await this.prisma.leaveBalance.createMany({ data: newBalances, skipDuplicates: true });
+          balances = await this.prisma.leaveBalance.findMany({
+            where: { employeeId, year: currentYear },
+            include: { leaveType: true }
+          });
+        }
+      }
+    }
 
     let yearlyTotal = 0;
     let accruedTotal = 0;
     let totalUsed = 0;
     let totalPending = 0;
 
-    const currentMonth = new Date().getMonth();
-    const policyMonth = currentMonth >= 5 ? currentMonth - 5 + 1 : currentMonth + 7 + 1; // Policy year starts in June
+    const employee = await this.prisma.employee.findUnique({ where: { id: employeeId } });
+    let activePolicyMonth = currentMonth >= 5 ? currentMonth - 5 + 1 : currentMonth + 7 + 1; // Default
+    
+    if (employee) {
+      const joiningDate = employee.joiningDate || employee.createdAt;
+      const now = new Date(currentYear, currentMonth, 1);
+      if (joiningDate > policyStart) {
+        let diff = (now.getFullYear() - joiningDate.getFullYear()) * 12 + now.getMonth() - joiningDate.getMonth();
+        activePolicyMonth = Math.max(1, diff + 1);
+      }
+    }
 
     const adjustedBalances = balances.map(b => {
       let actualAllocated = Number(b.allocated);
 
       if (b.leaveType.code === 'CL_FULL') {
-        actualAllocated = Math.min(Number(b.allocated), policyMonth);
+        actualAllocated = Math.min(Number(b.allocated), activePolicyMonth);
       } else if (b.leaveType.code === 'CL_HALF') {
         // Half days do not carry forward. Limit is always past used + 0.5 for the current month
         actualAllocated = Number(b.used) + 0.5;
       }
 
       let staticYearly = Number(b.allocated);
-      if (b.leaveType.code === 'CL_FULL') staticYearly = 12;
-      else if (b.leaveType.code === 'CL_HALF') staticYearly = 6;
-      else if (b.leaveType.code === 'OPTIONAL') staticYearly = 2;
+      if (b.leaveType.maxDaysPerYear !== null && b.leaveType.maxDaysPerYear !== undefined) {
+        staticYearly = Number(b.leaveType.maxDaysPerYear);
+      } else {
+        if (b.leaveType.code === 'CL_FULL') staticYearly = 12;
+        else if (b.leaveType.code === 'CL_HALF') staticYearly = 6;
+        else if (b.leaveType.code === 'OPTIONAL') staticYearly = 2;
+      }
 
       return {
         ...b,
-        yearlyAllocated: staticYearly, // Force exact policy limits for the yearly total (12 + 6 + 2 = 20)
+        yearlyAllocated: staticYearly, 
         allocated: actualAllocated,
         carriedOver: Number(b.carriedOver),
         used: Number(b.used),

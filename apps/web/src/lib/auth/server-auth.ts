@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { jwtVerify } from 'jose';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-for-dev-12345';
+const JWT_SECRET = process.env.JWT_SECRET || 'wjzDFlB9Ib8n5hsQeJucCRSWxgmMiZ2aN4TPofrYXd6OVEptHGqy1kA0K3vLU7';
 const secretKey = new TextEncoder().encode(JWT_SECRET);
 
 /**
