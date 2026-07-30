@@ -38,6 +38,7 @@ ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
 
 # Build the web project and its dependencies
 # Assuming next.config.js has output: "standalone"
+ENV BUILD_STANDALONE=true
 RUN pnpm turbo run build --filter=web...
 
 # 3. Create the production runner image

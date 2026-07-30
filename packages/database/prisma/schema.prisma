@@ -69,6 +69,7 @@ model Employee {
   assetsHeld                 Asset[]                    @relation("CurrentAssetHolder")
   attendanceRecords          AttendanceRecord[]
   regularizedAttendances     AttendanceRecord[]         @relation("AttendanceRegularizer")
+  approvedOvertimes          AttendanceRecord[]         @relation("OvertimeApprover")
   attritionRiskScores        AttritionRiskScore[]
   auditLogEntries            AuditLog[]
   cemLeads                   CemLead[]                  @relation("CemLeadOwner")
@@ -331,8 +332,10 @@ model AttendanceRecord {
   updatedAt             DateTime         @updatedAt
   workHours             Decimal?         @db.Decimal(5, 2)
   isOvertimeApproved    Boolean          @default(false)
+  overtimeApprovedById  String?
   employee              Employee         @relation(fields: [employeeId], references: [id])
   regularizedBy         Employee?        @relation("AttendanceRegularizer", fields: [regularizedById], references: [id])
+  overtimeApprovedBy    Employee?        @relation("OvertimeApprover", fields: [overtimeApprovedById], references: [id])
 
   @@unique([employeeId, date])
   @@index([employeeId, date])

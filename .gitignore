@@ -13,3 +13,6 @@ packages/database/.env
 coverage/
 backup_today/
 *.tsbuildinfo
+
+# Tools
+.tools/
