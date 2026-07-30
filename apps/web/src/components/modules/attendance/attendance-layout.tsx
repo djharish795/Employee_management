@@ -31,7 +31,7 @@ export default function AttendanceLayout({ children }: AttendanceLayoutProps) {
 
   const roleLabel: Record<AttendanceRole, string> = {
     ADMIN: "Administrator",
-    HR: "HR & People Ops",
+    HR: "HR",
     CEO: "Executive",
     MANAGER: "Manager",
     EMPLOYEE: "Employee",

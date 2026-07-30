@@ -15,10 +15,17 @@ export class AuditController {
   @RequirePermissions(RbacPermissions.AUDIT_READ)
   @Get("events")
   @Permissions(Permission.READ_AUDIT)
-  async getRecentEvents(@Query("limit") limit?: string, @Query("offset") offset?: string) {
+  async getRecentEvents(
+    @Query("limit") limit?: string, 
+    @Query("offset") offset?: string,
+    @Query("module") module?: string,
+    @Query("status") status?: string,
+    @Query("actorId") actorId?: string,
+    @Query("search") search?: string
+  ) {
     const parsedLimit = limit ? parseInt(limit, 10) : 50;
     const parsedOffset = offset ? parseInt(offset, 10) : 0;
-    return this.auditService.getRecentEvents(parsedLimit, parsedOffset);
+    return this.auditService.getRecentEvents(parsedLimit, parsedOffset, { module, status, actorId, search });
   }
 
   @Get("metrics")

@@ -350,7 +350,7 @@ export default function DashboardPanel() {
 
                   return (
                     <div key={idx} className="flex items-center gap-3">
-                      <div className="text-xs font-bold text-slate-700 w-24 flex-shrink-0">
+                      <div className="text-xs font-bold text-slate-700 w-32 truncate flex-shrink-0" title={label}>
                         {label}
                       </div>
                       <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">

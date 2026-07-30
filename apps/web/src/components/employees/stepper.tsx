@@ -18,7 +18,7 @@ export function Stepper({ steps, activeStep, onStepClick }: StepperProps) {
           
           {/* Active Progress Line */}
           <div 
-            className="absolute top-4 left-0 h-0.5 bg-blue-600 transition-all duration-500 ease-in-out -z-0" 
+            className="absolute top-4 left-0 h-0.5 bg-slate-900 transition-all duration-500 ease-in-out -z-0" 
             style={{ width: `${((activeStep - 1) / (steps.length - 1)) * 100}%` }}
           />
           
@@ -34,15 +34,15 @@ export function Stepper({ steps, activeStep, onStepClick }: StepperProps) {
               >
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
                   isActive 
-                    ? 'bg-[#0052CC] text-white shadow-[0_0_0_4px_rgba(0,82,204,0.1)]' 
+                    ? 'bg-slate-900 text-white shadow-[0_0_0_4px_rgba(15,23,42,0.1)]' 
                     : isCompleted
-                      ? 'bg-white border border-blue-600 text-blue-600'
+                      ? 'bg-white border border-slate-900 text-slate-900'
                       : 'bg-white border border-slate-300 text-slate-400'
                 }`}>
                   {isCompleted ? <Check className="w-4 h-4" /> : step.num}
                 </div>
                 <span className={`text-xs font-bold whitespace-nowrap absolute top-10 ${
-                  isActive ? 'text-slate-900' : isCompleted ? 'text-blue-600' : 'text-slate-400'
+                  isActive ? 'text-slate-900' : isCompleted ? 'text-slate-900' : 'text-slate-400'
                 }`}>
                   {step.title}
                 </span>

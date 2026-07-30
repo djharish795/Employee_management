@@ -11,85 +11,15 @@ import {
   Search, Filter, Download, ChevronLeft, ChevronRight, SlidersHorizontal, ArrowUpDown
 } from "lucide-react";
 import { AuditRole, AuditEvent } from "@/types/audit";
+import { useQuery } from "@tanstack/react-query";
+import { fetchAuditEvents } from "@/lib/api/audit";
+import { Loader2 } from "lucide-react";
 
 interface EventsExplorerPanelProps {
 
 }
 
-const ALL_MOCK_EVENTS: AuditEvent[] = [
-  {
-    id: "LOG-9921",
-    timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-    actor: { id: "EMP-101", name: "Lokesh Kumar", email: "lokesh@naprocs.com", role: "CTO" },
-    action: "PERMISSION_GRANTED",
-    module: "AUTH",
-    target: { id: "EMP-105", name: "Arjun Mehta", type: "USER" },
-    status: "SUCCESS",
-    ipAddress: "10.0.0.42",
-    userAgent: "Mozilla/5.0 (Macintosh)",
-    location: "Hyderabad, IN"
-  },
-  {
-    id: "LOG-9920",
-    timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    actor: { id: "SYS", name: "System", email: "system@naprocs.com", role: "SYSTEM" },
-    action: "LOGIN_FAILED",
-    module: "AUTH",
-    status: "FAILED",
-    ipAddress: "192.168.1.45",
-    userAgent: "Unknown/Script",
-    location: "Unknown"
-  },
-  {
-    id: "LOG-9919",
-    timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    actor: { id: "EMP-102", name: "Tejesh Kumar", email: "tejesh@naprocs.com", role: "HR_DIRECTOR" },
-    action: "DEPARTMENT_CREATED",
-    module: "ORG",
-    target: { id: "DEPT-AI", name: "AI Innovations", type: "DEPARTMENT" },
-    status: "SUCCESS",
-    ipAddress: "10.0.0.12",
-    userAgent: "Mozilla/5.0 (Windows NT 10.0)",
-    location: "Hyderabad, IN"
-  },
-  {
-    id: "LOG-9918",
-    timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-    actor: { id: "EMP-104", name: "Sarah Q.", email: "sarah.q@naprocs.com", role: "VP_SALES" },
-    action: "DATA_EXPORTED",
-    module: "EMPLOYEES",
-    target: { id: "REP-44", name: "Q3 Headcount Report", type: "REPORT" },
-    status: "WARNING",
-    ipAddress: "76.104.22.1",
-    userAgent: "Mozilla/5.0 (Macintosh)",
-    location: "San Francisco, US"
-  },
-  {
-    id: "LOG-9917",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-    actor: { id: "EMP-105", name: "Arjun Mehta", email: "arjun.m@naprocs.com", role: "EMPLOYEE" },
-    action: "LEAVE_APPROVED",
-    module: "LEAVES",
-    target: { id: "LV-1002", name: "Arjun Mehta (Sick Leave)", type: "SYSTEM" },
-    status: "SUCCESS",
-    ipAddress: "10.0.0.88",
-    userAgent: "Mozilla/5.0 (Macintosh)",
-    location: "Bangalore, IN"
-  },
-  {
-    id: "LOG-9916",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-    actor: { id: "EMP-108", name: "Priya Menon", email: "priya.m@naprocs.com", role: "HR_BP" },
-    action: "PROFILE_UPDATED",
-    module: "EMPLOYEES",
-    target: { id: "EMP-106", name: "Anita M.", type: "USER" },
-    details: "Updated Designation to Sr. Frontend Developer",
-    status: "SUCCESS",
-    ipAddress: "10.0.0.15",
-    userAgent: "Mozilla/5.0 (Windows NT 10.0)",
-    location: "Hyderabad, IN"
-  }
-];
+// Mock events removed in favor of real API data
 
 export default function EventsExplorerPanel() {
   const { role } = usePermissions();
@@ -98,20 +28,26 @@ export default function EventsExplorerPanel() {
   const [moduleFilter, setModuleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
+  const { data: rawEvents, isLoading } = useQuery<AuditEvent[]>({
+    queryKey: ["auditEvents", moduleFilter, statusFilter, globalFilter],
+    queryFn: () => fetchAuditEvents(500, 0, { 
+      module: moduleFilter || undefined, 
+      status: statusFilter || undefined,
+      search: globalFilter || undefined 
+    }),
+  });
+
   const filteredData = useMemo(() => {
-    let data = [...ALL_MOCK_EVENTS];
+    if (!rawEvents) return [];
+    let data = [...rawEvents];
 
     // Role-based visibility
     if (activeRole === "HR") {
       data = data.filter(d => ["EMPLOYEES", "ORG", "LEAVES", "ATTENDANCE"].includes(d.module));
     }
 
-    // UI Filters
-    if (moduleFilter) data = data.filter(d => d.module === moduleFilter);
-    if (statusFilter) data = data.filter(d => d.status === statusFilter);
-
     return data;
-  }, [activeRole, moduleFilter, statusFilter]);
+  }, [rawEvents, activeRole]);
 
   const columns = useMemo<ColumnDef<AuditEvent>[]>(() => [
     {
@@ -266,7 +202,7 @@ export default function EventsExplorerPanel() {
           </button>
         </div>
 
-        <button className="flex items-center gap-2 h-9 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm">
+        <button className="flex items-center gap-2 h-9 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition-colors shadow-sm">
           <Download className="w-3.5 h-3.5" /> Export Logs
         </button>
       </div>
@@ -286,7 +222,15 @@ export default function EventsExplorerPanel() {
             ))}
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {table.getRowModel().rows.length > 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan={columns.length} className="p-8 text-center text-sm font-medium text-slate-500">
+                  <div className="flex justify-center items-center gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin" /> Loading events...
+                  </div>
+                </td>
+              </tr>
+            ) : table.getRowModel().rows.length > 0 ? (
               table.getRowModel().rows.map(row => (
                 <tr key={row.id} className="hover:bg-slate-50/80 transition-colors">
                   {row.getVisibleCells().map(cell => (

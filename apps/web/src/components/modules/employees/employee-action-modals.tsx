@@ -145,7 +145,7 @@ export function EmployeeActionModals({ actionType, employee, isOpen, onClose, on
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <UserCheck className="w-5 h-5 text-blue-500" />
+              <UserCheck className="w-5 h-5 text-slate-900" />
               Assign Manager
             </DialogTitle>
             <DialogDescription className="text-xs font-medium text-slate-500">
@@ -173,7 +173,7 @@ export function EmployeeActionModals({ actionType, employee, isOpen, onClose, on
             </div>
             <DialogFooter className="pt-4">
               <button type="button" onClick={handleClose} className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50">Cancel</button>
-              <button type="submit" className="px-4 py-2 rounded-lg bg-blue-600 text-sm font-bold text-white hover:bg-blue-700">Assign Manager</button>
+              <button type="submit" className="px-4 py-2 rounded-lg bg-slate-900 text-sm font-bold text-white hover:bg-slate-800">Assign Manager</button>
             </DialogFooter>
           </form>
         </DialogContent>

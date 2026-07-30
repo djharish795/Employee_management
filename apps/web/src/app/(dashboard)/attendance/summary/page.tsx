@@ -142,7 +142,7 @@ export default function AttendanceSummaryPage() {
   };
 
   return (
-    <div className="flex flex-col h-full font-sans bg-slate-50 dark:bg-slate-900 overflow-y-auto transition-colors">
+    <div className="flex flex-col h-full font-sans bg-slate-50 dark:bg-slate-900 overflow-y-auto transition-colors outline-none focus:outline-none">
 
       {/* Top Header */}
       <div className="bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 px-8 pt-6 flex flex-col gap-6 shadow-sm transition-colors">
