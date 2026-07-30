@@ -302,6 +302,7 @@ export class CemLeadService {
         priority: lead.priority || 'Medium',
         stage: 1,
         assignedCemId: lead.assignedCemId || null,
+        assignedCrmId: crmEmployee.id,
         leadOwner: crmEmployee.id,
         createdDate: new Date().toISOString(),
         updatedDate: new Date().toISOString(),
