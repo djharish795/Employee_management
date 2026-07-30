@@ -18,7 +18,7 @@ export default function TeamAttendancePage() {
 
   const queryClient = useQueryClient();
   const approveMutation = useMutation({
-    mutationFn: approveOvertime,
+    mutationFn: (id: string) => approveOvertime(id, 'APPROVE'),
     onSuccess: () => {
       toast.success("Overtime approved successfully");
       queryClient.invalidateQueries({ queryKey: ['teamAttendanceView'] });

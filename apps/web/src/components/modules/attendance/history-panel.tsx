@@ -196,7 +196,7 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
 
   const queryClient = useQueryClient();
   const approveMutation = useMutation({
-    mutationFn: approveOvertime,
+    mutationFn: (id: string) => approveOvertime(id, 'APPROVE'),
     onSuccess: () => {
       toast.success("Overtime approved");
       queryClient.invalidateQueries({ queryKey: ["attendanceLogs"] });
@@ -273,8 +273,9 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
 
   // Export to PDF Functionality
   const handleExportPDF = async () => {
+    let toastId: string | undefined;
     try {
-      const toastId = toast.loading("Generating PDF...");
+      toastId = toast.loading("Generating PDF...");
       
       let rawData: any[] = [];
       if (isOrgMode) {
@@ -405,7 +406,7 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
       toast.success("PDF exported successfully!", { id: toastId });
     } catch (e) {
       console.error("Export PDF failed", e);
-      toast.error("Failed to export PDF");
+      toast.error("Failed to export PDF", { id: toastId });
     }
   };
 

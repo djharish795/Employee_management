@@ -46,25 +46,27 @@ export default function HrDashboardPage() {
   });
 
   const handleApprove = async (id: string) => {
+    let toastId: string | undefined;
     try {
-      const toastId = toast.loading("Approving leave request...");
+      toastId = toast.loading("Approving leave request...");
       await apiClient.post(`/leaves/${id}/approve`, { approverId: employeeId });
       queryClient.invalidateQueries({ queryKey: ['hr-overview'] });
       toast.success("Leave request approved", { id: toastId });
     } catch (e: any) { 
-      toast.error(e?.response?.data?.message || "Failed to approve leave request");
+      toast.error(e?.response?.data?.message || "Failed to approve leave request", { id: toastId });
       console.error(e); 
     }
   };
 
   const handleReject = async (id: string) => {
+    let toastId: string | undefined;
     try {
-      const toastId = toast.loading("Rejecting leave request...");
+      toastId = toast.loading("Rejecting leave request...");
       await apiClient.post(`/leaves/${id}/reject`, { approverId: employeeId, reason: 'Rejected by HR' });
       queryClient.invalidateQueries({ queryKey: ['hr-overview'] });
       toast.success("Leave request rejected", { id: toastId });
     } catch (e: any) { 
-      toast.error(e?.response?.data?.message || "Failed to reject leave request");
+      toast.error(e?.response?.data?.message || "Failed to reject leave request", { id: toastId });
       console.error(e); 
     }
   };
