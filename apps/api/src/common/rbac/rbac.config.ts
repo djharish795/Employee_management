@@ -303,7 +303,6 @@ export const RbacRolePermissionsMapping: Record<RbacRoleType, RbacPermissionType
   [RbacRoles.CTO]: [],
   [RbacRoles.COO]: [],
   [RbacRoles.OPERATIONS_HEAD]: [],
-  [RbacRoles.CHRO]: [],
   [RbacRoles.TEAM_LEAD]: [],
   [RbacRoles.TL]: [],
   [RbacRoles.QA]: [],
