@@ -27,6 +27,13 @@ import {
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
+const formatTimeInput = (value: string) => {
+  const clean = value.replace(/\D/g, '').slice(0, 4);
+  if (clean.length === 0) return '';
+  if (clean.length <= 2) return clean;
+  return `${clean.slice(0, 2)}:${clean.slice(2)}`;
+};
+
 interface FollowUpLog {
   id: string;
   date: string;
@@ -864,7 +871,7 @@ export default function CemLeadWorkspacePage() {
                     <input
                       type="text"
                       value={nextActionTime}
-                      onChange={(e) => setNextActionTime(e.target.value)}
+                      onChange={(e) => setNextActionTime(formatTimeInput(e.target.value))}
                       className="w-full border border-slate-300 rounded p-2 text-slate-900 focus:outline-none"
                       placeholder="05:30"
                     />
@@ -955,7 +962,7 @@ export default function CemLeadWorkspacePage() {
                     <input
                       type="text"
                       value={meetingTime}
-                      onChange={(e) => setMeetingTime(e.target.value)}
+                      onChange={(e) => setMeetingTime(formatTimeInput(e.target.value))}
                       className="w-full border border-slate-300 rounded p-2 text-slate-900 focus:outline-none"
                       placeholder="05:30"
                       required
