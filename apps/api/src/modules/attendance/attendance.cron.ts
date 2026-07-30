@@ -185,7 +185,13 @@ export class AttendanceCronService {
 
       this.logger.log(`Marked ${markedLeaveCount} employees as ON_LEAVE.`);
 
-      // Handle ABSENT (No punches, no full-day leave)
+      // Handle ABSENT (No punches, no full-day leave) or HOLIDAY
+      const isHoliday = await this.prisma.companyHoliday.findFirst({
+        where: { date: today }
+      });
+      const noShowStatus = isHoliday ? 'HOLIDAY' : 'ABSENT';
+      const noShowNotes = isHoliday ? 'System Auto-Mark: Company Holiday' : 'System Auto-Mark: No show';
+
       const noShowEmployees = activeEmployees.filter(emp => 
         emp.user?.role !== 'CEO' && 
         emp.user?.role !== 'CTO' && 
@@ -202,14 +208,14 @@ export class AttendanceCronService {
           await Promise.all(chunk.map(empId => 
             this.prisma.attendanceRecord.upsert({
               where: { employeeId_date: { employeeId: empId, date: today } },
-              update: { status: 'ABSENT' },
+              update: { status: noShowStatus as any },
               create: {
                 employeeId: empId,
                 date: today,
-                status: 'ABSENT',
+                status: noShowStatus as any,
                 workHours: 0,
                 isRegularized: false,
-                notes: 'System Auto-Mark: No show'
+                notes: noShowNotes
               }
             })
           ));

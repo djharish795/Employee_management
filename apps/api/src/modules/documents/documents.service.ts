@@ -90,6 +90,16 @@ export class DocumentsService {
   async generateDownloadUrl(objectKey: string, user?: any): Promise<string> {
     if (!objectKey) return "";
 
+    // If objectKey is an external URL, return it directly
+    if (objectKey.startsWith("http://") || objectKey.startsWith("https://")) {
+      return objectKey;
+    }
+
+    // If objectKey contains raw HTML content, return a formatted data URL
+    if (objectKey.trim().startsWith("<")) {
+      return `data:text/html;charset=utf-8,${encodeURIComponent(objectKey)}`;
+    }
+
     if (user) {
       const isGlobalReader = RbacGroups.HR_OR_SUPER_ADMIN.includes(user.role as any) || user.role === 'CRM' || user.role === 'CEM';
       if (!isGlobalReader) {

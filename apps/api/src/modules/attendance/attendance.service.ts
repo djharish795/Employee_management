@@ -119,7 +119,27 @@ export class AttendanceService {
         };
         await this.redis.setJson(key, state, 60 * 60 * 24);
       } else {
-        state = { state: "OUT", startTime: 0, offset: 0, shiftDate: null };
+        const approvedLeave = await this.prisma.leaveRequest.findFirst({
+          where: {
+            employeeId,
+            startDate: { lte: today },
+            endDate: { gte: today },
+            status: 'APPROVED',
+            isHalfDay: false
+          }
+        });
+        if (approvedLeave) {
+          state = { state: "ON_LEAVE", startTime: 0, offset: 0, shiftDate: today.toISOString() };
+        } else {
+          const holiday = await this.prisma.companyHoliday.findFirst({
+            where: { date: today }
+          });
+          if (holiday) {
+            state = { state: "HOLIDAY", startTime: 0, offset: 0, shiftDate: today.toISOString() };
+          } else {
+            state = { state: "OUT", startTime: 0, offset: 0, shiftDate: null };
+          }
+        }
       }
     }
     return state;

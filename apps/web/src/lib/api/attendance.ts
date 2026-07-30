@@ -1,7 +1,7 @@
 import { apiClient } from "./client";
 import { AttendanceLog, AttendanceKPIs, OrgReportsResponse, RegularizationRequest } from "@/types/attendance";
 
-export const fetchTodayStatus = async (): Promise<{ state: "IN" | "BREAK" | "OUT", startTime: number, offset: number }> => {
+export const fetchTodayStatus = async (): Promise<{ state: "IN" | "BREAK" | "OUT" | "HOLIDAY" | "ON_LEAVE", startTime: number, offset: number }> => {
   const { data } = await apiClient.get("/attendance/today");
   return data;
 };

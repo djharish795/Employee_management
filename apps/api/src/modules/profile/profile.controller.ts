@@ -8,8 +8,6 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { AuditInterceptor } from '../../common/interceptors/audit.interceptor';
-import { RequirePermissions } from '../../common/rbac/require-permissions.decorator';
-import { RbacPermissions } from '../../common/rbac/rbac.config';
 
 @Controller('profile')
 @UseGuards(JwtAuthGuard, RbacGuard)
@@ -17,7 +15,9 @@ import { RbacPermissions } from '../../common/rbac/rbac.config';
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) { }
 
-  @RequirePermissions(RbacPermissions.PROFILE_READ)
+  // READ_OWN_PROFILE is universally granted to all authenticated roles by RbacService.
+  // @RequirePermissions(RbacPermissions.PROFILE_READ) was removed — PROFILE_READ is not
+  // yet mapped in RbacRolePermissionsMapping which caused a V2 permission check failure (403).
   @Get('me')
   @Permissions(Permission.READ_OWN_PROFILE)
   getMyProfile(@CurrentUser() user: any): Promise<any> {

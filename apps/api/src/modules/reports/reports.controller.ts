@@ -56,8 +56,8 @@ export class ReportsController {
     @Body('expiresInHours') expiresInHours: number,
     @Req() req: any
   ) {
-    if (req.user?.role !== 'CEO' && req.user?.role !== 'SUPER_ADMIN') {
-      throw new ForbiddenException("Only CEO or Super Admin can generate VDRs");
+    if (!['CEO', 'SUPER_ADMIN', 'HR', 'CHRO'].includes(req.user?.role)) {
+      throw new ForbiddenException("Only HR, CHRO, CEO, or Super Admin can generate VDRs");
     }
     const employeeId = req.user?.employeeId;
     return this.reportsService.generateVdr(payload, expiresInHours, employeeId);

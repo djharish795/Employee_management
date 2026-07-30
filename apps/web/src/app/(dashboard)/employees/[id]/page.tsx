@@ -20,29 +20,52 @@ export default function EmployeeProfilePage() {
   // React Query Fetch Details matching route ID parameter
   const { data: profile, isLoading, error } = useQuery<FullEmployeeProfile>({
     queryKey: ["employeeProfile", id],
+    enabled: Boolean(id && id !== "[id]"),
+    staleTime: 5 * 60 * 1000, // 5 minutes cache — prevents 1-2s background refetch cache wipe
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    retry: false,
     queryFn: async () => {
       try {
-        const { data: empData } = await apiClient.get(`/employees/${id}`);
+        const res = await apiClient.get(`/employees/${id}`);
+        const empData = res.data?.data || res.data;
+
+        if (!empData || (!empData.id && !empData.employeeId)) {
+          throw new Error("Employee details payload is empty or invalid");
+        }
+
+        const formatDate = (val: any) => {
+          if (!val) return "N/A";
+          const d = new Date(val);
+          return isNaN(d.getTime()) ? "N/A" : d.toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' });
+        };
+
+        const formatTime = (val: any) => {
+          if (!val) return "--:--";
+          const d = new Date(val);
+          return isNaN(d.getTime()) ? "--:--" : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        };
 
         const emp: Employee = {
-          id: empData.id,
-          employeeId: empData.employeeId,
-          name: `${empData.firstName || ""} ${empData.lastName || ""}`.trim(),
-          email: empData.officialEmail,
-          photoUrl: empData.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${empData.firstName}`,
-          initials: `${empData.firstName?.[0] || ""}${empData.lastName?.[0] || ""}`.toUpperCase(),
+          id: empData.id || empData.employeeId,
+          employeeId: empData.employeeId || empData.id,
+          name: `${empData.firstName || ""} ${empData.lastName || ""}`.trim() || empData.officialEmail || "Employee",
+          email: empData.officialEmail || empData.personalEmail || "N/A",
+          photoUrl: empData.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${empData.firstName || 'User'}`,
+          initials: `${empData.firstName?.[0] || ""}${empData.lastName?.[0] || ""}`.toUpperCase() || "EMP",
           avatarBg: "bg-blue-100 text-blue-600",
           department: empData.department?.name || empData.departmentId || "Unassigned",
           designation: empData.designation?.title || empData.designationId || "Unassigned",
           status: empData.status || "ACTIVE",
-          joinedDate: new Date(empData.createdAt).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }),
+          joinedDate: formatDate(empData.createdAt),
           location: empData.workLocation || "India",
         };
 
         const fullProfile: FullEmployeeProfile = {
           ...emp,
           personalInfo: {
-            dateOfBirth: empData.dateOfBirth ? new Date(empData.dateOfBirth).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }) : "Not specified",
+            dateOfBirth: formatDate(empData.dateOfBirth),
             gender: empData.gender || "Not specified",
             maritalStatus: empData.maritalStatus || "Not specified",
             nationality: empData.nationality || "Indian",
@@ -50,7 +73,7 @@ export default function EmployeeProfilePage() {
           },
           contactInfo: {
             mobile: empData.phone || "Not provided",
-            workEmail: empData.officialEmail,
+            workEmail: empData.officialEmail || "Not provided",
             personalEmail: empData.personalEmail || "Not provided",
             currentAddress: empData.currentAddress ? (typeof empData.currentAddress === 'object' ? JSON.stringify(empData.currentAddress) : empData.currentAddress) : "Not specified",
           },
@@ -61,9 +84,9 @@ export default function EmployeeProfilePage() {
           },
           directReports: (empData.subordinates || []).map((sub: any) => ({
             id: sub.employeeId || sub.id,
-            name: `${sub.firstName} ${sub.lastName}`.trim(),
+            name: `${sub.firstName || ""} ${sub.lastName || ""}`.trim() || "Subordinate",
             designation: sub.designation?.title || "Unassigned",
-            photoUrl: sub.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${sub.firstName}`,
+            photoUrl: sub.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${sub.firstName || 'User'}`,
           })),
           careerMilestones: [
             {
@@ -75,9 +98,9 @@ export default function EmployeeProfilePage() {
             }
           ],
           attendanceRecords: (empData.attendanceRecords || []).map((att: any) => ({
-            date: new Date(att.date).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }),
-            checkIn: att.checkInTime ? new Date(att.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--:--",
-            checkOut: att.checkOutTime ? new Date(att.checkOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--:--",
+            date: formatDate(att.date),
+            checkIn: formatTime(att.checkInTime),
+            checkOut: formatTime(att.checkOutTime),
             duration: att.workHours ? `${att.workHours}h` : "0h",
             status: att.status || "PRESENT",
             remarks: att.notes || "Recorded via system.",
@@ -91,14 +114,14 @@ export default function EmployeeProfilePage() {
           leaveRequests: (empData.leaveRequestsMade || []).map((lr: any) => ({
             id: lr.id,
             type: lr.leaveType?.name || "LEAVE",
-            startDate: new Date(lr.startDate).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }),
-            endDate: new Date(lr.endDate).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }),
+            startDate: formatDate(lr.startDate),
+            endDate: formatDate(lr.endDate),
             days: Number(lr.totalDays) || 0,
             status: lr.status || "PENDING",
           })),
           assignedAssets: (empData.assetsHeld || []).map((ast: any) => ({
-            id: ast.assetTag,
-            name: ast.name,
+            id: ast.assetTag || ast.id,
+            name: ast.name || "Asset",
             category: ast.category || "PERIPHERAL",
             serialNo: ast.serialNumber || "N/A",
             assignedDate: "Assigned",
@@ -108,8 +131,8 @@ export default function EmployeeProfilePage() {
           identityDocuments: [],
           complianceRecords: (empData.consentLogsAsSubject || []).map((log: any) => ({
             id: log.id,
-            policyName: log.purpose,
-            acknowledgedAt: new Date(log.consentedAt).toLocaleString("en-GB", { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+            policyName: log.purpose || "Compliance Policy",
+            acknowledgedAt: formatDate(log.consentedAt),
             status: "COMPLIANT",
           })),
           timelineEvents: [],
@@ -122,7 +145,6 @@ export default function EmployeeProfilePage() {
         throw err;
       }
     },
-    retry: false,
   });
 
   return (
@@ -140,7 +162,7 @@ export default function EmployeeProfilePage() {
         </div>
 
         {/* Loading Skeletons */}
-        {isLoading && (
+        {isLoading && !profile && (
           <div className="space-y-6 animate-pulse">
             {/* Header Skeleton */}
             <div className="bg-white border border-slate-200 rounded-2xl p-6 h-36" />
@@ -153,7 +175,7 @@ export default function EmployeeProfilePage() {
         )}
 
         {/* Error State */}
-        {error && (
+        {error && !profile && (
           <div className="py-20 flex flex-col items-center justify-center text-center max-w-md mx-auto">
 
             <div className="w-12 h-12 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center border border-rose-100 shadow-sm mb-4">
@@ -175,8 +197,8 @@ export default function EmployeeProfilePage() {
           </div>
         )}
 
-        {/* Profile Content */}
-        {!isLoading && profile && (
+        {/* Profile Content - Persistent once loaded */}
+        {profile && (
           <>
             <ProfileHeader
               profile={profile}

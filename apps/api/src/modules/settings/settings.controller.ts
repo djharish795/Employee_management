@@ -34,9 +34,8 @@ export class SettingsController {
     return this.settingsService.getHealth();
   }
 
-  @RequirePermissions(RbacPermissions.SETTINGS_VIEW)
   @Get('policy')
-  @Permissions(Permission.ACCESS_SETTINGS)
+  @Permissions(Permission.READ_OWN_PROFILE)
   getPolicy() {
     return this.settingsService.getOrgPolicy();
   }

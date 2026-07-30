@@ -1,11 +1,11 @@
 const path = require('path');
 
-const isProd = process.env.NODE_ENV === 'production';
+const isStandalone = process.env.BUILD_STANDALONE === 'true';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: isProd ? 'standalone' : undefined,
-  ...(isProd && {
+  ...(isStandalone && {
+    output: 'standalone',
     experimental: {
       outputFileTracingRoot: path.join(__dirname, '../../'),
     },
