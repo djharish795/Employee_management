@@ -116,21 +116,6 @@ export function PersonalAttendanceWidget() {
                     : 'No punch recorded today'))}
               </p>
             </div>
-            <button 
-              onClick={handlePunch}
-              disabled={punchMutation.isPending}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg text-sm font-semibold hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors disabled:opacity-50"
-            >
-              {punchMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : todayState === "BREAK" ? (
-                <><Coffee className="w-4 h-4" /> End break</>
-              ) : isPunchedIn ? (
-                <><LogOut className="w-4 h-4" /> Check out</>
-              ) : (
-                <><Clock className="w-4 h-4" /> Check in</>
-              )}
-            </button>
           </div>
         </div>
 
