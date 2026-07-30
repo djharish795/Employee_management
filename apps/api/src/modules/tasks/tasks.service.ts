@@ -33,7 +33,7 @@ export class TasksService {
     
     if (!emp) throw new ForbiddenException("Employee not found");
     
-    const isTechnicalDepartment = ['ENG', 'TECH', 'QA'].includes(emp.department?.code || '');
+    const isTechnicalDepartment = ['DEV', 'QA', 'TECH', 'ENG'].includes(emp.department?.code || '');
     const hasProjectAssignment = emp.projectAssignments.length > 0;
     
     if (!isTechnicalDepartment && !hasProjectAssignment && !['CEO', 'CTO', 'DM', 'SPM', 'PM', 'TL', 'OM'].includes(user.role)) {

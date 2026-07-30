@@ -52,10 +52,10 @@ export class LeavesService {
         const leaveTypes = await this.prisma.leaveType.findMany();
         const newBalances = leaveTypes.map(lt => {
           let allocated = 0;
-          if (lt.code === 'CL_FULL') allocated = proratedMonths; // 1 per month
-          else if (lt.code === 'CL_HALF') allocated = Math.ceil(proratedMonths / 2); // 6 per year
-          else if (lt.code === 'OPTIONAL') allocated = Math.ceil(proratedMonths / 6); // 2 per year
-          else if (lt.code === 'SL' || lt.code === 'SICK') allocated = 10;
+          if (lt.code === 'CL') allocated = proratedMonths; // 1 per month
+          else if (false /* unused CL_HALF branch */) allocated = Math.ceil(proratedMonths / 2); // 6 per year
+          else if (lt.code === 'FL') allocated = Math.ceil(proratedMonths / 6); // 2 per year
+          else if (lt.code === 'SL' || lt.code === 'SL') allocated = 10;
           
           return {
             employeeId,
@@ -98,9 +98,9 @@ export class LeavesService {
     const adjustedBalances = balances.map(b => {
       let actualAllocated = Number(b.allocated);
 
-      if (b.leaveType.code === 'CL_FULL') {
+      if (b.leaveType.code === 'CL') {
         actualAllocated = Math.min(Number(b.allocated), activePolicyMonth);
-      } else if (b.leaveType.code === 'CL_HALF') {
+      } else if (false /* half days don't have separate balance */) {
         // Half days do not carry forward. Limit is always past used + 0.5 for the current month
         actualAllocated = Number(b.used) + 0.5;
       }
@@ -109,9 +109,9 @@ export class LeavesService {
       if (b.leaveType.maxDaysPerYear !== null && b.leaveType.maxDaysPerYear !== undefined) {
         staticYearly = Number(b.leaveType.maxDaysPerYear);
       } else {
-        if (b.leaveType.code === 'CL_FULL') staticYearly = 12;
-        else if (b.leaveType.code === 'CL_HALF') staticYearly = 6;
-        else if (b.leaveType.code === 'OPTIONAL') staticYearly = 2;
+        if (b.leaveType.code === 'CL') staticYearly = 12;
+        else if (false /* half days don't have separate balance */) staticYearly = 6;
+        else if (b.leaveType.code === 'FL') staticYearly = 2;
       }
 
       return {
@@ -124,10 +124,10 @@ export class LeavesService {
       };
     });
 
-    const hasSickLeave = balances.some(b => b.leaveType.code === 'SL' || b.leaveType.code === 'SICK');
+    const hasSickLeave = balances.some(b => b.leaveType.code === 'SL' || b.leaveType.code === 'SL');
     if (!hasSickLeave) {
       const sickLeaveType = await this.prisma.leaveType.findFirst({
-        where: { code: { in: ['SL', 'SICK'] } }
+        where: { code: { in: ['SL', 'SL'] } }
       });
       if (sickLeaveType) {
         adjustedBalances.push({
@@ -146,7 +146,7 @@ export class LeavesService {
     }
 
     adjustedBalances.forEach(b => {
-      if (['CL_FULL', 'CL_HALF', 'OPTIONAL'].includes(b.leaveType.code)) {
+      if (['CL', 'CL_HALF_UNUSED', 'FL'].includes(b.leaveType.code)) {
         yearlyTotal += b.yearlyAllocated;
         accruedTotal += b.allocated + b.carriedOver;
         totalUsed += b.used;
@@ -465,8 +465,13 @@ export class LeavesService {
 
     if (!employee) throw new NotFoundException('Employee not found');
 
+    const mappedIds = data.leaveTypeIds.map((t: string) => 
+      t === 'CL' || t === 'CL_HALF_UNUSED' ? 'CL' : 
+      t === 'FL' ? 'FL' : 
+      t === 'SL' ? 'SL' : t
+    );
     const leaveTypes = await this.prisma.leaveType.findMany({
-      where: { code: { in: data.leaveTypeIds } }
+      where: { code: { in: mappedIds } }
     });
 
     if (!leaveTypes.length) throw new NotFoundException('Leave types not found');
@@ -494,7 +499,7 @@ export class LeavesService {
     }
 
     const durationDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    const isSickLeave = leaveTypes.some(lt => ['SL', 'SICK'].includes(lt.code));
+    const isSickLeave = leaveTypes.some(lt => ['SL', 'SL'].includes(lt.code));
     if (isSickLeave && durationDays > 3 && (!data.attachmentUrl || data.attachmentUrl.trim() === '')) {
       throw new BadRequestException('A medical certificate (attachment) is required for sick leave exceeding 3 consecutive days.');
     }
@@ -545,8 +550,8 @@ export class LeavesService {
       throw new BadRequestException('The selected date range contains only non-working days (weekends or holidays).');
     }
 
-    const hasHalfDay = leaveTypes.some(lt => lt.code === 'CL_HALF');
-    const hasFullDay = leaveTypes.some(lt => lt.code !== 'CL_HALF');
+    const hasHalfDay = data.isHalfDay;
+    const hasFullDay = !data.isHalfDay;
 
     if (hasHalfDay && !hasFullDay && totalWorkingDays > 1) {
       throw new BadRequestException('Half day leave can only be applied for a single date');
@@ -556,7 +561,7 @@ export class LeavesService {
     const createdLeaves = [];
 
     for (const leaveType of leaveTypes) {
-      if (leaveType.code === 'MATERNITY') {
+      if (leaveType.code === 'ML') {
         if (employee.gender !== 'FEMALE') {
           throw new BadRequestException('Maternity leave is only applicable for female employees.');
         }
@@ -567,11 +572,11 @@ export class LeavesService {
 
       if (leaveType.code.startsWith('CL') && noticeHours < 24) {
         isEmergency = true;
-      } else if (leaveType.code === 'OPTIONAL' && noticeHours < (7 * 24)) {
+      } else if (leaveType.code === 'FL' && noticeHours < (7 * 24)) {
         throw new BadRequestException('Optional holidays require at least 7 days prior notice.');
       }
 
-      if ((leaveType.code === 'SL' || leaveType.code === 'SICK') && !data.attachmentUrl) {
+      if ((leaveType.code === 'SL' || leaveType.code === 'SL') && !data.attachmentUrl) {
         const windowStart = new Date(startDate);
         windowStart.setDate(windowStart.getDate() - 21);
         const windowEnd = new Date(endDate);
@@ -649,7 +654,7 @@ export class LeavesService {
 
       let daysForThisType = totalWorkingDays;
       if (hasHalfDay) {
-        if (leaveType.code === 'CL_HALF') {
+        if ((leaveType.code === 'CL' && data.isHalfDay)) {
           daysForThisType = 0.5;
         } else {
           daysForThisType = totalWorkingDays - 0.5;
@@ -684,7 +689,7 @@ export class LeavesService {
               employeeId: employee.id,
               leaveTypeId: leaveType.id,
               year: currentYear,
-              allocated: (leaveType.code === 'SL' || leaveType.code === 'SICK') ? 10 : 0,
+              allocated: (leaveType.code === 'SL' || leaveType.code === 'SL') ? 10 : 0,
               carriedOver: 0,
               pending: 0,
               used: 0
@@ -696,18 +701,18 @@ export class LeavesService {
         let unpaidDays = 0;
 
         let available = 0;
-        if (leaveType.code === 'CL_FULL') {
+        if (leaveType.code === 'CL') {
           const currentMonth = startDate.getUTCMonth();
           const policyMonth = currentMonth >= 5 ? currentMonth - 5 + 1 : currentMonth + 7 + 1;
           const accruedLimit = Math.min(Number(balance.allocated), policyMonth);
           available = Math.max(0, accruedLimit + Number(balance.carriedOver) - Number(balance.used) - Number(balance.pending));
-        } else if (leaveType.code === 'CL_HALF') {
+        } else if ((leaveType.code === 'CL' && data.isHalfDay)) {
           available = 0.5; // Strictly max 1 half-day per month. Reset every month.
         } else {
           available = Math.max(0, Number(balance.allocated) + Number(balance.carriedOver) - Number(balance.used) - Number(balance.pending));
         }
 
-        if (leaveType.code === 'CL_FULL' || leaveType.code === 'CL_HALF') {
+        if (leaveType.code === 'CL' || (leaveType.code === 'CL' && data.isHalfDay)) {
           const applicablePaidDays = Math.min(daysForThisType, available);
           paidDays = applicablePaidDays;
           unpaidDays = daysForThisType - applicablePaidDays;
@@ -726,7 +731,7 @@ export class LeavesService {
           });
 
           const alreadyPaidThisMonth = Number(monthlyLeaves._sum.paidDays || 0);
-          const defaultMax = leaveType.code === 'CL_HALF' ? 0.5 : 3;
+          const defaultMax = (leaveType.code === 'CL' && data.isHalfDay) ? 0.5 : 3;
           const maxPaidAllowedThisMonth = (leaveType as any).maxPaidPerMonth ? Number((leaveType as any).maxPaidPerMonth) : defaultMax;
           const remainingPaidAllowedThisMonth = Math.max(0, maxPaidAllowedThisMonth - alreadyPaidThisMonth);
 
@@ -745,7 +750,7 @@ export class LeavesService {
         let isReqHalfDay = false;
 
         if (hasHalfDay && hasFullDay) {
-          if (leaveType.code === 'CL_HALF') {
+          if ((leaveType.code === 'CL' && data.isHalfDay)) {
             if (data.halfDaySession === 'LAST_DAY') {
               reqStartDate = new Date(endDate);
             } else {
@@ -759,7 +764,7 @@ export class LeavesService {
               reqStartDate.setDate(reqStartDate.getDate() + 1);
             }
           }
-        } else if (leaveType.code === 'CL_HALF') {
+        } else if ((leaveType.code === 'CL' && data.isHalfDay)) {
           isReqHalfDay = true;
         }
 
@@ -848,8 +853,13 @@ export class LeavesService {
 
     if (!employee) throw new NotFoundException('Employee not found');
 
+    const mappedIds = data.leaveTypeIds.map((t: string) => 
+      t === 'CL' || t === 'CL_HALF_UNUSED' ? 'CL' : 
+      t === 'FL' ? 'FL' : 
+      t === 'SL' ? 'SL' : t
+    );
     const leaveTypes = await this.prisma.leaveType.findMany({
-      where: { code: { in: data.leaveTypeIds } }
+      where: { code: { in: mappedIds } }
     });
 
     if (!leaveTypes.length) throw new NotFoundException('Leave types not found');
@@ -876,8 +886,8 @@ export class LeavesService {
       return { totalDays: 0, paidDays: 0, unpaidDays: 0, deductionAmount: 0 };
     }
 
-    const hasHalfDay = leaveTypes.some(lt => lt.code === 'CL_HALF');
-    const hasFullDay = leaveTypes.some(lt => lt.code !== 'CL_HALF');
+    const hasHalfDay = data.isHalfDay;
+    const hasFullDay = !data.isHalfDay;
 
     let totalPaid = 0;
     let totalUnpaid = 0;
@@ -888,7 +898,7 @@ export class LeavesService {
     for (const leaveType of leaveTypes) {
       let daysForThisType = totalWorkingDays;
       if (hasHalfDay) {
-        if (leaveType.code === 'CL_HALF') {
+        if ((leaveType.code === 'CL' && data.isHalfDay)) {
           daysForThisType = 0.5;
         } else {
           daysForThisType = totalWorkingDays - 0.5;
@@ -912,21 +922,21 @@ export class LeavesService {
 
       let available = 0;
       if (balance) {
-        if (leaveType.code === 'CL_FULL') {
+        if (leaveType.code === 'CL') {
           const currentMonth = startDate.getUTCMonth();
           const policyMonth = currentMonth >= 5 ? currentMonth - 5 + 1 : currentMonth + 7 + 1;
           const accruedLimit = Math.min(Number(balance.allocated), policyMonth);
           available = Math.max(0, accruedLimit + Number(balance.carriedOver) - Number(balance.used) - Number(balance.pending));
-        } else if (leaveType.code === 'CL_HALF') {
+        } else if ((leaveType.code === 'CL' && data.isHalfDay)) {
           available = 0.5; // Strictly max 1 half-day per month. Reset every month.
         } else {
           available = Math.max(0, Number(balance.allocated) + Number(balance.carriedOver) - Number(balance.used) - Number(balance.pending));
         }
-      } else if (leaveType.code === 'SL' || leaveType.code === 'SICK') {
+      } else if (leaveType.code === 'SL' || leaveType.code === 'SL') {
         available = 10; // Virtual initialization for the preview API
       }
 
-      if (leaveType.code === 'CL_FULL' || leaveType.code === 'CL_HALF') {
+      if (leaveType.code === 'CL' || (leaveType.code === 'CL' && data.isHalfDay)) {
         const applicablePaidDays = Math.min(daysForThisType, available);
 
         const startOfMonth = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), 1));
@@ -1402,7 +1412,7 @@ export class LeavesService {
 
     for (const emp of employees) {
       for (const lt of leaveTypes) {
-        if (lt.code === 'CL_FULL') {
+        if (lt.code === 'CL') {
           const existing = balanceMap.get(`${emp.id}-${lt.id}`);
           if (existing && Number(existing.allocated) >= policyMonth) continue; // Skip if already accrued
 
@@ -1427,7 +1437,7 @@ export class LeavesService {
               used: 0
             }
           }));
-        } else if (lt.code === 'CL_HALF') {
+        } else if (false /* unused CL_HALF branch */) {
           ops.push(this.prisma.leaveBalance.upsert({
             where: {
               employeeId_leaveTypeId_year: {
@@ -1483,7 +1493,7 @@ export class LeavesService {
     const previousBalances = await this.prisma.leaveBalance.findMany({
       where: {
         year: previousYear,
-        leaveType: { code: { in: ['CL_FULL', 'SL', 'SICK'] } }
+        leaveType: { code: { in: ['CL', 'SL', 'SL'] } }
       },
       include: { leaveType: true }
     });
@@ -1491,7 +1501,7 @@ export class LeavesService {
     const ops: any[] = [];
 
     for (const pb of previousBalances) {
-      if (pb.leaveType.code === 'CL_FULL') {
+      if (pb.leaveType.code === 'CL') {
         const remaining = Number(pb.allocated) + Number(pb.carriedOver) - Number(pb.used) - Number(pb.pending);
         if (remaining > 0) {
           // Max 7 days carry forward
@@ -1519,7 +1529,7 @@ export class LeavesService {
             }
           }));
         }
-      } else if (pb.leaveType.code === 'SL' || pb.leaveType.code === 'SICK') {
+      } else if (pb.leaveType.code === 'SL' || pb.leaveType.code === 'SL') {
         // Sick Leave resets to flat 10 every year, no carry forward.
         ops.push(this.prisma.leaveBalance.upsert({
           where: {
@@ -1608,7 +1618,7 @@ export class LeavesService {
     });
 
     return requests.map((r: any) => {
-      const isSensitive = ['MATERNITY', 'PATERNITY', 'SL', 'SICK', 'BEREAVEMENT'].includes(r.leaveType?.code);
+      const isSensitive = ['ML', 'PATERNITY', 'SL', 'SL', 'BEREAVEMENT'].includes(r.leaveType?.code);
       const shouldMask = role !== 'HR' && isSensitive;
       
       const maskedLeaveType = shouldMask ? { ...r.leaveType, name: 'Approved Leave', code: 'LEAVE' } : r.leaveType;
