@@ -40,9 +40,7 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated }: TaskD
               const projRes = await apiClient.get(`/projects/${localTask.projectId}`);
               if (projRes.data?.assignments) {
                 const projEmployees = projRes.data.assignments.map((a: any) => a.employee);
-                const projEmpIds = new Set(projEmployees.map((e: any) => e.id));
-                const otherEmployees = allEmployees.filter((e: any) => !projEmpIds.has(e.id));
-                allEmployees = [...projEmployees, ...otherEmployees];
+                allEmployees = projEmployees;
               }
             } catch (err) {
               console.error('Failed to fetch project members', err);
@@ -117,10 +115,12 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated }: TaskD
     setIsSubmitting(true);
     try {
       const newComment = await tasksApi.addComment(localTask.id, commentContent, commentCategory);
-      setLocalTask((prev) => prev ? {
-        ...prev,
-        comments: [...(prev.comments || []), newComment]
-      } : null);
+      const updatedTask = {
+        ...localTask,
+        comments: [...(localTask.comments || []), newComment]
+      };
+      setLocalTask(updatedTask);
+      onTaskUpdated(updatedTask);
       setCommentContent("");
       toast.success("Comment added");
     } catch (error: any) {
@@ -135,10 +135,12 @@ export function TaskDetailsModal({ isOpen, onClose, task, onTaskUpdated }: TaskD
     setIsSubmitting(true);
     try {
       const newAction = await tasksApi.addAction(localTask.id, actionType, actionNotes);
-      setLocalTask((prev) => prev ? {
-        ...prev,
-        actions: [...(prev.actions || []), newAction]
-      } : null);
+      const updatedTask = {
+        ...localTask,
+        actions: [...(localTask.actions || []), newAction]
+      };
+      setLocalTask(updatedTask);
+      onTaskUpdated(updatedTask);
       setActionType("");
       setActionNotes("");
       toast.success("Action recorded");
