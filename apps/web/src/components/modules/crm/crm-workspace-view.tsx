@@ -410,9 +410,9 @@ export default function CrmWorkspaceView() {
                 ) : (
                   <button 
                     onClick={handleStageAdvance}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold transition-all shadow-sm"
+                    className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition-all shadow-sm"
                   >
-                    Advance Lifecycle Stage &gt;
+                    Next Step <ChevronRight className="w-4 h-4" />
                   </button>
                 )}
               </div>
