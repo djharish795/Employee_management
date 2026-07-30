@@ -60,7 +60,12 @@ export default function EditEmployeePage() {
           const policy = policyRes.data;
 
           // Permission Check
-          const upperRole = (role || "").toUpperCase();
+          const rawRole = useAuthStore.getState().role;
+          if (!rawRole) {
+            // Wait for hydration or authentication state
+            return;
+          }
+          const upperRole = rawRole.toUpperCase();
           const myEmployeeId = useAuthStore.getState().employeeId;
           const isOwnProfile = Boolean(myEmployeeId && (data.employeeId === myEmployeeId || data.id === myEmployeeId));
 

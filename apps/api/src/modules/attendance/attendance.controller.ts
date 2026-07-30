@@ -137,15 +137,20 @@ export class AttendanceController {
     return this.attendanceService.actionRegularization(id, dto.action, user);
   }
 
+  @Get("pending-overtime")
+  @Permissions(Permission.READ_TEAM_PROFILES)
+  async getPendingOvertime(@CurrentUser() user: any) {
+    return this.attendanceService.getPendingOvertime(user.employeeId);
+  }
+
   @Post("records/:id/approve-overtime")
-  @Permissions(Permission.READ_OWN_PROFILE)
+  @Permissions(Permission.READ_TEAM_PROFILES)
   async approveOvertime(
     @CurrentUser() user: any,
-    @Param('id') id: string
+    @Param('id') id: string,
+    @Body('status') status: 'APPROVE' | 'REJECT'
   ) {
-    // Basic RBAC check can be added here or in service.
-    // Assuming team leads and admins have access based on the UI flow.
-    return this.attendanceService.approveOvertime(id, user.employeeId);
+    return this.attendanceService.approveOvertime(user.employeeId, id, status);
   }
 }
 

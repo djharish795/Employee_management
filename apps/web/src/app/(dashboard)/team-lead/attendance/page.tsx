@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchTeamAttendanceView, approveOvertime } from "@/lib/api/attendance";
 import { toast } from "react-hot-toast";
 import { format, subDays, addDays } from "date-fns";
+import { PendingOvertimeTable } from "@/components/modules/team-lead/pending-overtime-table";
 
 export default function TeamAttendancePage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -137,6 +138,8 @@ export default function TeamAttendancePage() {
           </div>
         ) : (
           <>
+            <PendingOvertimeTable />
+
             {/* Real-time Status Table */}
             <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
               <div className="p-5 border-b border-slate-100">
@@ -185,18 +188,9 @@ export default function TeamAttendancePage() {
                                 Approved (+{member.overtime}h)
                               </span>
                             ) : (
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-amber-600">
-                                  {member.overtime}h pending
-                                </span>
-                                <button 
-                                  onClick={() => approveMutation.mutate(member.recordId)}
-                                  disabled={approveMutation.isPending}
-                                  className="text-[10px] font-bold bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                                >
-                                  Approve
-                                </button>
-                              </div>
+                              <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100">
+                                Pending (+{member.overtime}h)
+                              </span>
                             )
                           ) : (
                             <span className="text-xs text-slate-400">-</span>

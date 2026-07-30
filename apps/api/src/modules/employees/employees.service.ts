@@ -359,7 +359,7 @@ export class EmployeesService {
   }
 
   async getEmployeeById(id: string, currentUser?: any): Promise<Employee> {
-    const employee = await this.prisma.employee.findUnique({
+    let employee = await this.prisma.employee.findUnique({
       where: { id },
       include: {
         department: {
@@ -390,6 +390,40 @@ export class EmployeesService {
         }
       }
     });
+
+    if (!employee) {
+      employee = await this.prisma.employee.findFirst({
+        where: { employeeId: id },
+        include: {
+          department: {
+            select: { id: true, name: true, code: true }
+          },
+          designation: {
+            select: { id: true, title: true }
+          },
+          subordinates: {
+            select: { id: true, employeeId: true, firstName: true, lastName: true, photoUrl: true, designation: { select: { title: true } } }
+          },
+          attendanceRecords: {
+            orderBy: { date: 'desc' },
+            take: 10
+          },
+          leaveBalances: {
+            include: { leaveType: true }
+          },
+          leaveRequestsMade: {
+            orderBy: { appliedAt: 'desc' },
+            take: 5,
+            include: { leaveType: true }
+          },
+          assetsHeld: true,
+          consentLogsAsSubject: {
+            orderBy: { consentedAt: 'desc' },
+            take: 5
+          }
+        }
+      });
+    }
 
     if (!employee) {
       throw new NotFoundException(`Employee with ID ${id} not found.`);

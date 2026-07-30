@@ -160,42 +160,80 @@ export function KnowledgeDetailClient({ slug }: { slug: string }) {
               </div>
             </div>
           )}
-          {viewUrlLoading ? (
-            <div className="flex flex-col items-center justify-center py-20 text-slate-500">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-2" />
-              <span>Loading document...</span>
-            </div>
-          ) : viewUrl ? (
-            <div className="w-full h-[600px] border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-              {doc.content.toLowerCase().endsWith(".pdf") ? (
-                <iframe
-                  src={viewUrl}
-                  className="w-full h-full border-0"
-                  title={doc.title}
-                />
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-slate-50">
-                  <FileText className="w-16 h-16 text-slate-400" />
-                  <div className="text-center">
-                    <p className="text-sm font-bold text-slate-800">Word Document (DOCX)</p>
-                    <p className="text-xs text-slate-500 mt-1">This format cannot be previewed directly in the browser.</p>
+          {(() => {
+            const isHtml = doc.content.trim().startsWith("<") || doc.content.includes("<h1>") || doc.content.includes("<p>");
+            if (isHtml) {
+              return (
+                <div className="w-full bg-slate-50/50 border border-slate-200 rounded-2xl p-8 shadow-sm text-slate-800 space-y-4">
+                  <div 
+                    className="prose max-w-none text-slate-700 leading-relaxed [&>h1]:text-2xl [&>h1]:font-bold [&>h1]:text-slate-900 [&>h1]:mb-4 [&>p]:mb-3 [&>ul]:list-disc [&>ul]:pl-5 [&>ul]:mb-3"
+                    dangerouslySetInnerHTML={{ __html: doc.content }}
+                  />
+                  <div className="pt-6 border-t border-slate-200 flex justify-end">
+                    <button
+                      onClick={() => {
+                        const win = window.open('', '_blank');
+                        if (win) {
+                          win.document.write(`<html><head><title>${doc.title}</title><style>body{font-family:sans-serif;padding:40px;line-height:1.6;}</style></head><body>${doc.content}</body></html>`);
+                          win.document.close();
+                          win.print();
+                        }
+                      }}
+                      className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold text-xs shadow transition-colors flex items-center gap-2"
+                    >
+                      <FileText className="w-4 h-4" />
+                      Print / Export Document
+                    </button>
                   </div>
-                  <a
-                    href={viewUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold text-sm shadow transition-colors flex items-center gap-2"
-                  >
-                    Download & View Document
-                  </a>
                 </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-10 text-rose-500">
-              Failed to load document view URL.
-            </div>
-          )}
+              );
+            }
+
+            if (viewUrlLoading) {
+              return (
+                <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-2" />
+                  <span>Loading document...</span>
+                </div>
+              );
+            }
+
+            if (viewUrl) {
+              return (
+                <div className="w-full h-[600px] border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                  {doc.content.toLowerCase().endsWith(".pdf") ? (
+                    <iframe
+                      src={viewUrl}
+                      className="w-full h-full border-0"
+                      title={doc.title}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-slate-50">
+                      <FileText className="w-16 h-16 text-slate-400" />
+                      <div className="text-center">
+                        <p className="text-sm font-bold text-slate-800">Attachment File</p>
+                        <p className="text-xs text-slate-500 mt-1">Click below to open or download the attached document.</p>
+                      </div>
+                      <a
+                        href={viewUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold text-sm shadow transition-colors flex items-center gap-2"
+                      >
+                        Download & View Document
+                      </a>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            return (
+              <div className="text-center py-10 text-rose-500 font-medium">
+                Failed to load document view URL.
+              </div>
+            );
+          })()}
         </div>
 
         {/* E-Signature Box */}

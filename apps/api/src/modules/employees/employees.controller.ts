@@ -83,6 +83,13 @@ export class EmployeesController {
     return this.employeesService.getEmployees(params, user);
   }
 
+  @RequirePermissions(RbacPermissions.EMPLOYEES_READ)
+  @Get("team")
+  @Permissions(Permission.READ_EMPLOYEES, Permission.READ_TEAM_PROFILES, Permission.READ_OWN_PROFILE)
+  getTeam(@Query() params: EmployeeFilterDto, @CurrentUser() user: any): Promise<PaginatedResult<EmployeeResponseDto>> {
+    return this.employeesService.getEmployees(params, user);
+  }
+
   @Get("cto-team")
   @Permissions(Permission.READ_EMPLOYEES, Permission.READ_TEAM_PROFILES)
   getCtoTeam(): Promise<any> {
