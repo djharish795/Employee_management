@@ -331,8 +331,36 @@ export class TasksService {
     // Use proper typing but default to COMMENT
     const validCategory = ["QUESTION", "COMMENT", "BUG", "IMPROVEMENT"].includes(category) ? category as any : "COMMENT";
     
-    // We need to pass the category to the repository method. Wait, let me modify repository first.
-    // I'll just pass it down and modify the repo method next.
+    // Parse @mentions (e.g. @john.doe@naprocs.in) and validate before saving
+    const mentionRegex = /@([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/g;
+    const matches = [...content.matchAll(mentionRegex)];
+    let mentionedEmployees: any[] = [];
+    
+    if (matches.length > 0) {
+      const emails = matches.map(m => m[1].toLowerCase());
+      mentionedEmployees = await this.prisma.employee.findMany({
+        where: { officialEmail: { in: emails } }
+      });
+
+      if (task.projectId) {
+        const assignments = await this.prisma.projectAssignment.findMany({
+          where: { 
+            projectId: task.projectId,
+            employeeId: { in: mentionedEmployees.map(e => e.id) },
+            releasedAt: null
+          }
+        });
+        const assignedIds = new Set(assignments.map(a => a.employeeId));
+        
+        for (const emp of mentionedEmployees) {
+          if (!assignedIds.has(emp.id)) {
+            throw new BadRequestException(`Cannot mention ${emp.firstName} ${emp.lastName} as they are not assigned to this project.`);
+          }
+        }
+      }
+    }
+    
+    // Save the comment
     const comment = await this.tasksRepo.addComment(taskId, authorId, content, validCategory);
     
     // Notify assignee if someone else commented
@@ -345,24 +373,15 @@ export class TasksService {
       );
     }
 
-    // Parse @mentions (e.g. @john.doe@naprocs.in)
-    const mentionRegex = /@([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/g;
-    const matches = [...content.matchAll(mentionRegex)];
-    if (matches.length > 0) {
-      const emails = matches.map(m => m[1].toLowerCase());
-      const mentionedEmployees = await this.prisma.employee.findMany({
-        where: { officialEmail: { in: emails } }
-      });
-
-      for (const emp of mentionedEmployees) {
-        if (emp.id !== authorId && emp.id !== task.assigneeId) {
-          await this.notificationsService.createNotification(
-            emp.id,
-            "You were mentioned in a task",
-            `You were mentioned in a comment on task: ${task.title}`,
-            NotificationType.SYSTEM_ALERT
-          );
-        }
+    // Send mention notifications
+    for (const emp of mentionedEmployees) {
+      if (emp.id !== authorId && emp.id !== task.assigneeId) {
+        await this.notificationsService.createNotification(
+          emp.id,
+          "You were mentioned in a task",
+          `You were mentioned in a comment on task: ${task.title}`,
+          NotificationType.SYSTEM_ALERT
+        );
       }
     }
 
