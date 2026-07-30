@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, Inbox, CalendarDays, Settings } from "lucide-react";
+import { Toaster } from "react-hot-toast";
 
 export default function ConnectLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -17,6 +18,7 @@ export default function ConnectLayout({ children }: { children: React.ReactNode 
 
   return (
     <div className="flex flex-col h-full bg-slate-50 font-sans">
+      <Toaster position="top-right" />
       <div className="p-8 max-w-[1400px] mx-auto w-full flex-1 flex flex-col gap-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-5 bg-white/40 p-4 rounded-xl backdrop-blur-sm shadow-sm">

@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { 
-  CalendarDays, 
-  Plus, 
-  Download, 
+import {
+  CalendarDays,
+  Plus,
+  Download,
   Phone,
   RefreshCw,
   Video
@@ -44,7 +44,6 @@ export default function CrmMeetingsView() {
         .map(m => [m.leadId ?? m.leadName ?? m.client, { id: m.leadId ?? m.leadName ?? m.client, name: m.leadName || m.client || m.leadId }])
     ).values()
   );
-
   const filteredMeetings = meetings.filter(m => {
     let matches = true;
     if (filterDate && m.date !== filterDate) matches = false;
@@ -72,7 +71,7 @@ export default function CrmMeetingsView() {
     const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    
+
     const link = document.createElement("a");
     link.href = url;
     link.download = `crm_meetings_schedule_${new Date().toISOString().split('T')[0]}.csv`;
@@ -97,7 +96,7 @@ export default function CrmMeetingsView() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={handleExport}
             className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
           >
@@ -110,7 +109,7 @@ export default function CrmMeetingsView() {
       <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
         <div>
           <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Meeting Date</label>
-          <input 
+          <input
             type="date"
             value={filterDate}
             onChange={(e) => setFilterDate(e.target.value)}
