@@ -40,7 +40,8 @@ export default function DepartmentsPanel() {
     queryFn: fetchDepartments,
   });
 
-  const departments: DepartmentNode[] = rawDepartments?.map((d: any) => ({
+  const departmentsList = Array.isArray(rawDepartments) ? rawDepartments : (rawDepartments?.data || []);
+  const departments: DepartmentNode[] = departmentsList.map((d: any) => ({
     id: d.id,
     name: d.name,
     headId: d.headId || null,
@@ -60,7 +61,7 @@ export default function DepartmentsPanel() {
         {/* Header Actions */}
         <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-slate-100 text-slate-700 rounded-lg flex items-center justify-center">
               <Building2 className="w-5 h-5" />
             </div>
             <div>
@@ -70,7 +71,7 @@ export default function DepartmentsPanel() {
           </div>
 
           {canManage && (
-            <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors">
+            <button className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg shadow-sm transition-colors">
               <Plus className="w-4 h-4" /> Add Department
             </button>
           )}

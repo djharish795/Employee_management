@@ -133,8 +133,8 @@ export class AuditService {
   }
 
 
-  async getRecentEvents(limit: number = 50, offset: number = 0) {
-    const events = await this.auditRepository.getRecentEvents(limit, offset);
+  async getRecentEvents(limit: number = 50, offset: number = 0, filters?: { module?: string; status?: string; actorId?: string; search?: string }) {
+    const events = await this.auditRepository.getRecentEvents(limit, offset, filters);
 
     return events.map((e) => ({
       id: e.id,

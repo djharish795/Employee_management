@@ -14,6 +14,7 @@ interface DashboardPanelProps {
 
 import { fetchAuditEvents, fetchAuditMetrics } from "@/lib/api/audit";
 import { Loader2 } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function AuditDashboardPanel() {
   const { role } = usePermissions();
@@ -31,6 +32,43 @@ export default function AuditDashboardPanel() {
     queryFn: () => fetchAuditEvents(50, 0),
     refetchInterval: 10000,
   });
+
+  const handleGenerateReport = () => {
+    if (!events || events.length === 0) {
+      toast.error("No events available to generate report.");
+      return;
+    }
+    
+    toast.loading("Generating compliance report...", { id: "report" });
+    
+    // Simulate generation delay
+    setTimeout(() => {
+      const headers = ["ID", "Timestamp", "Actor", "Action", "Module", "Target", "Status"];
+      const csvContent = [
+        headers.join(","),
+        ...events.map(e => [
+          e.id,
+          e.timestamp,
+          e.actor?.name || 'System',
+          e.action,
+          e.module,
+          e.target?.name || 'N/A',
+          e.status
+        ].map(v => `"${v}"`).join(","))
+      ].join("\n");
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `compliance_report_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success("Compliance report downloaded successfully", { id: "report" });
+    }, 1500);
+  };
 
   if (isLoadingKPIs) {
     return (
@@ -206,7 +244,10 @@ export default function AuditDashboardPanel() {
                 </div>
               </Link>
 
-              <button className="flex items-center gap-3 p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-lg transition-colors shadow-sm text-left">
+              <button 
+                onClick={handleGenerateReport}
+                className="flex items-center gap-3 p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-lg transition-colors shadow-sm text-left w-full"
+              >
                 <div className="w-8 h-8 bg-white rounded-md flex items-center justify-center border border-slate-200 shadow-sm">
                   <FileText className="w-4 h-4" />
                 </div>

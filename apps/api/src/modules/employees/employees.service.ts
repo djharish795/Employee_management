@@ -911,6 +911,11 @@ export class EmployeesService {
     const employees = await this.prisma.employee.findMany({
       where: {
         status: 'ACTIVE',
+        department: {
+          name: {
+            in: ['Engineering', 'Technology', 'IT', 'Product', 'QA', 'Architecture']
+          }
+        }
       },
       include: {
         department: true,

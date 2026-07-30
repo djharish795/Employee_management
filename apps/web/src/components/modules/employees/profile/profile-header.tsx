@@ -13,6 +13,8 @@ import Image from "next/image";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useAuthStore } from "@/store/auth";
 import { apiClient } from "@/lib/api/client";
+import { RequestAssetDialog } from "./request-asset-dialog";
+import { AssignAssetToEmployeeDialog } from "./assign-asset-to-employee-dialog";
 
 interface ProfileHeaderProps {
   profile: FullEmployeeProfile;
@@ -26,6 +28,10 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
   const [policy, setPolicy] = useState<any>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
+
+  // Dialog states
+  const [isRequestAssetDialogOpen, setIsRequestAssetDialogOpen] = useState(false);
+  const [isAssignAssetDialogOpen, setIsAssignAssetDialogOpen] = useState(false);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -58,7 +64,8 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
     canEdit = true;
   }
   
-  const canAssignAssets = canManageEmployees;
+  const canRequestAsset = upperRole === "HR";
+  const canAssignAssets = upperRole === "IT" || upperRole === "SUPER ADMIN" || upperRole === "CEO" || upperRole === "OM";
   const canGenerateReport = canManageEmployees;
 
   // Handle photo file selection — shows local preview (actual upload will be wired by backend team)
@@ -232,7 +239,7 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48 bg-white z-[100] border-slate-200 shadow-xl rounded-xl">
-                <DropdownMenuItem onClick={handleDownloadPDF} className="cursor-pointer font-semibold text-xs py-2 hover:bg-slate-50 outline-none">
+                <DropdownMenuItem onClick={handleDownloadPDF} className="cursor-pointer font-semibold text-xs py-2 hover:bg-slate-50 outline-none border border-transparent hover:border-slate-200 transition-all duration-200">
                   <div className="flex items-center gap-2">
                     <div className="w-5 h-5 rounded-full bg-red-50 flex items-center justify-center text-red-600">
                       <FileText className="w-3 h-3" />
@@ -240,7 +247,7 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
                     Download as PDF
                   </div>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleDownloadExcel} className="cursor-pointer font-semibold text-xs py-2 hover:bg-slate-50 outline-none">
+                <DropdownMenuItem onClick={handleDownloadExcel} className="cursor-pointer font-semibold text-xs py-2 hover:bg-slate-50 outline-none border border-transparent hover:border-slate-200 transition-all duration-200">
                   <div className="flex items-center gap-2">
                     <div className="w-5 h-5 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
                       <FileSpreadsheet className="w-3 h-3" />
@@ -251,15 +258,31 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
               </DropdownMenuContent>
             </DropdownMenu>
 
+            {canRequestAsset && (
+              <button 
+                onClick={() => setIsRequestAssetDialogOpen(true)}
+                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-sm transition-colors whitespace-nowrap"
+              >
+                <Monitor className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>Request Asset</span>
+              </button>
+            )}
+            
             {canAssignAssets && (
-              <button className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-sm transition-colors whitespace-nowrap">
+              <button 
+                onClick={() => setIsAssignAssetDialogOpen(true)}
+                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-sm transition-colors whitespace-nowrap"
+              >
                 <Monitor className="w-3.5 h-3.5 flex-shrink-0" />
                 <span>Assign Asset</span>
               </button>
             )}
 
             {canGenerateReport && (
-              <button className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-sm transition-colors whitespace-nowrap">
+              <button 
+                onClick={handleDownloadPDF}
+                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-sm transition-colors whitespace-nowrap"
+              >
                 <FileSpreadsheet className="w-3.5 h-3.5 flex-shrink-0" />
                 <span>Report</span>
               </button>
@@ -277,6 +300,22 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
           </div>
         </div>
       </div>
+
+      {isRequestAssetDialogOpen && (
+        <RequestAssetDialog
+          employeeId={profile.id}
+          employeeName={profile.name}
+          onClose={() => setIsRequestAssetDialogOpen(false)}
+        />
+      )}
+
+      {isAssignAssetDialogOpen && (
+        <AssignAssetToEmployeeDialog
+          employeeId={profile.id}
+          employeeName={profile.name}
+          onClose={() => setIsAssignAssetDialogOpen(false)}
+        />
+      )}
     </div>
   );
 }
