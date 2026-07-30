@@ -654,14 +654,14 @@ export class AttendanceService {
     if (status === 'APPROVE') {
       await this.prisma.attendanceRecord.update({
         where: { id: recordId },
-        data: { isOvertimeApproved: true, overtimeApprovedById: managerId }
+        data: { isOvertimeApproved: true, overtimeApprovedById: managerId } as any
       });
       return { success: true, message: "Overtime approved successfully" };
     } else {
       // Reject: Set overtime to 0
       await this.prisma.attendanceRecord.update({
         where: { id: recordId },
-        data: { overtime: 0, isOvertimeApproved: false, overtimeApprovedById: managerId }
+        data: { overtime: 0, isOvertimeApproved: false, overtimeApprovedById: managerId } as any
       });
       return { success: true, message: "Overtime rejected" };
     }

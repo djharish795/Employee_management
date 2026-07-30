@@ -85,6 +85,12 @@ export class CemLeadController {
     return this.service.cancelLead(id, actorId);
   }
 
+  @Put(':id/status')
+  @Permissions(Permission.ACCESS_CEM)
+  async updateStatus(@Param('id') id: string, @Body() body: { status: string }, @Req() req: any) {
+    const actorId = req.user?.employeeId || req.user?.id;
+    return this.service.updateStatus(id, body.status, actorId);
+  }
 
   @Post(':id/confirm-handoff')
   @Permissions(Permission.ACCESS_CEM)

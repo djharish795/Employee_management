@@ -96,7 +96,7 @@ export default function CemDashboardPanel() {
         </div>
       </div>
 
-      <PersonalAttendanceWidget />
+      <PersonalAttendanceWidget hideCheckIn={true} />
 
       {/* KPI Cards Row — matching OM/CRM dashboard style */}
       <div id="tour-dashboard-stats" className="grid grid-cols-2 lg:grid-cols-5 gap-4">

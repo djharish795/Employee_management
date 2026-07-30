@@ -27,6 +27,13 @@ import toast, { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
 import { apiClient } from '@/lib/api/client';
 
+const formatTimeInput = (value: string) => {
+  const clean = value.replace(/\D/g, '').slice(0, 4);
+  if (clean.length === 0) return '';
+  if (clean.length <= 2) return clean;
+  return `${clean.slice(0, 2)}:${clean.slice(2)}`;
+};
+
 interface FollowUp {
   id: string;
   leadName: string;
@@ -623,7 +630,7 @@ export default function FollowUpHubPage() {
                     <input
                       type="text"
                       value={newTime}
-                      onChange={(e) => setNewTime(e.target.value)}
+                      onChange={(e) => setNewTime(formatTimeInput(e.target.value))}
                       className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-transparent text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 font-semibold"
                       placeholder="05:30"
                       required

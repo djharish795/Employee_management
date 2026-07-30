@@ -98,12 +98,10 @@ export const assetsApi = {
   },
 
   createRequest: async (payload: {
-    category: string;
-    description: string;
-    justification: string;
-    priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
-    requestType?: string;
-    targetEmployeeId?: string;
+    employeeId: string;
+    type: "ONBOARDING" | "OFFBOARDING" | "GENERAL";
+    requestedItems?: any;
+    reason?: string;
   }) => {
     const { data } = await apiClient.post(`${BASE}/requests`, payload);
     return data.data ?? data;

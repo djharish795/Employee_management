@@ -6,6 +6,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { assetsApi } from "@/lib/api/assets";
+import { useAuthStore } from "@/store/auth";
+import { toast } from "react-hot-toast";
 import {
   Plus,
   Clock,
@@ -67,6 +69,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 const STORAGE_KEY = "naprocs_asset_requests"; // kept for legacy cleanup only
 
 export default function RequestsPanel() {
+  const currentEmployeeId = useAuthStore((state) => state.employeeId);
   const { role } = usePermissions();
   const activeRole = role as any;
   const queryClient = useQueryClient();
@@ -100,6 +103,14 @@ export default function RequestsPanel() {
   const requests: AssetRequest[] = useMemo(() => {
     return rawRequests.map((r: any) => {
       const meta = r.metadata ?? {};
+      const priorityMatch = r.reason?.match(/\[Priority:\s*(\w+)\]/);
+      const priority = (priorityMatch ? priorityMatch[1] : (meta.priority ?? "MEDIUM")) as AssetRequest["priority"];
+      const cleanReason = r.reason ? r.reason.replace(/\[Priority:\s*\w+\]\s*/, "") : "";
+
+      const assetCategory = (Array.isArray(r.requestedItems) && r.requestedItems.length > 0
+        ? r.requestedItems[0]
+        : (meta.category ?? "OTHER")) as AssetCategory;
+
       return {
         id: r.id,
         initiatorId: r.requester?.id || r.initiatedById,
@@ -115,10 +126,10 @@ export default function RequestsPanel() {
           ? `https://api.dicebear.com/7.x/notionists/svg?seed=${(r.requester || r.initiatedBy).firstName}`
           : "",
         department: r.employee?.department?.name ?? r.initiatedBy?.department?.name ?? "",
-        assetCategory: (meta.category ?? "OTHER") as AssetCategory,
-        description: r.reason || meta.description || `Request for ${r.employee?.firstName || 'Employee'}`,
-        justification: r.reason || meta.justification || (Array.isArray(r.requestedItems) ? r.requestedItems.join(", ") : ""),
-        priority: (meta.priority ?? "MEDIUM") as AssetRequest["priority"],
+        assetCategory,
+        description: cleanReason || meta.description || `Request for ${r.employee?.firstName || 'Employee'}`,
+        justification: cleanReason || meta.justification || (Array.isArray(r.requestedItems) ? r.requestedItems.join(", ") : ""),
+        priority,
         status: r.status as AssetRequest["status"],
         requestDate: new Date(r.createdAt).toLocaleDateString("en-IN", {
           day: "numeric", month: "short", year: "numeric",
@@ -137,18 +148,20 @@ export default function RequestsPanel() {
 
   const submitMutation = useMutation({
     mutationFn: (payload: { 
-      category: AssetCategory; 
-      description: string; 
-      justification: string; 
-      priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
-      requestType?: "GENERAL" | "ONBOARDING" | "OFFBOARDING";
-      targetEmployeeId?: string;
+      employeeId: string;
+      type: "ONBOARDING" | "OFFBOARDING" | "GENERAL";
+      requestedItems?: any;
+      reason?: string;
     }) => assetsApi.createRequest(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assetRequests"] });
       setShowForm(false);
       setForm({ description: "", assetCategory: "LAPTOP", justification: "", priority: "MEDIUM", requestType: "GENERAL", targetEmployeeId: "" });
+      toast.success("Asset request submitted successfully!");
     },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || "Failed to submit asset request");
+    }
   });
 
   const respondMutation = useMutation({
@@ -161,13 +174,16 @@ export default function RequestsPanel() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const resolvedEmployeeId = form.requestType === "GENERAL" ? currentEmployeeId : form.targetEmployeeId;
+    if (!resolvedEmployeeId) {
+      toast.error("Employee ID is required");
+      return;
+    }
     submitMutation.mutate({
-      category: form.assetCategory,
-      description: form.description,
-      justification: form.justification,
-      priority: form.priority,
-      requestType: form.requestType,
-      targetEmployeeId: form.targetEmployeeId || undefined,
+      employeeId: resolvedEmployeeId,
+      type: form.requestType,
+      requestedItems: [form.assetCategory],
+      reason: `[Priority: ${form.priority}] ${form.description} (Justification: ${form.justification})`,
     });
   };
 

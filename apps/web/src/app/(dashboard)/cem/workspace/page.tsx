@@ -27,6 +27,13 @@ import {
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
+const formatTimeInput = (value: string) => {
+  const clean = value.replace(/\D/g, '').slice(0, 4);
+  if (clean.length === 0) return '';
+  if (clean.length <= 2) return clean;
+  return `${clean.slice(0, 2)}:${clean.slice(2)}`;
+};
+
 interface FollowUpLog {
   id: string;
   date: string;
@@ -389,14 +396,14 @@ export default function CemLeadWorkspacePage() {
                 key={l.id}
                 onClick={() => setSelectedLeadId(l.id)}
                 className={`p-4 cursor-pointer transition-all border-l-4 border-b border-slate-100 ${isSelected
-                    ? 'bg-indigo-50 border-l-indigo-600 pl-3.5'
-                    : 'hover:bg-slate-50 border-l-transparent'
+                  ? 'bg-indigo-50 border-l-indigo-600 pl-3.5'
+                  : 'hover:bg-slate-50 border-l-transparent'
                   }`}
               >
                 <div className="flex items-start justify-between">
                   <h4 className="text-xs font-black text-slate-900 truncate max-w-[170px]">{l.company}</h4>
                   <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border ${l.priority === 'CRITICAL' ? 'bg-rose-50 text-rose-600 border-rose-100' :
-                      'bg-indigo-50 text-indigo-600 border-indigo-100'
+                    'bg-indigo-50 text-indigo-600 border-indigo-100'
                     }`}>
                     {l.priority}
                   </span>
@@ -549,8 +556,8 @@ export default function CemLeadWorkspacePage() {
                     return (
                       <div key={label} className="flex flex-col items-center gap-2 relative z-10 w-24">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center border-4 border-white shadow-sm transition-all duration-300 text-xs ${isActive ? 'bg-indigo-600 text-white font-black ring-4 ring-indigo-100' :
-                            isCompleted ? 'bg-indigo-600 text-white font-bold' :
-                              'bg-slate-100 text-slate-400 font-semibold'
+                          isCompleted ? 'bg-indigo-600 text-white font-bold' :
+                            'bg-slate-100 text-slate-400 font-semibold'
                           }`}>
                           {isCompleted ? <Check className="w-3.5 h-3.5" /> : stepNum}
                         </div>
@@ -636,8 +643,8 @@ export default function CemLeadWorkspacePage() {
                                 {m.date} {m.time}
                               </span>
                               <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded border ${m.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                  m.status === 'SCHEDULED' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
-                                    'bg-slate-100 text-slate-600 border-slate-200'
+                                m.status === 'SCHEDULED' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                                  'bg-slate-100 text-slate-600 border-slate-200'
                                 }`}>
                                 {m.status}
                               </span>
@@ -671,7 +678,7 @@ export default function CemLeadWorkspacePage() {
                     </div>
 
                     <div className="space-y-3 pt-2">
-                      <label
+                      <div
                         onClick={() => handleToggleBANT('budgetConfirmed')}
                         className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 cursor-pointer transition-colors"
                       >
@@ -680,9 +687,9 @@ export default function CemLeadWorkspacePage() {
                           <div className="text-xs font-bold text-slate-900">Budget Confirmed</div>
                           <div className="text-[10px] text-slate-500">Financial allocation verified</div>
                         </div>
-                      </label>
+                      </div>
 
-                      <label
+                      <div
                         onClick={() => handleToggleBANT('authorityIdentified')}
                         className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 cursor-pointer transition-colors"
                       >
@@ -691,9 +698,9 @@ export default function CemLeadWorkspacePage() {
                           <div className="text-xs font-bold text-slate-900">Authority Identified</div>
                           <div className="text-[10px] text-slate-500">Decision maker point of contact</div>
                         </div>
-                      </label>
+                      </div>
 
-                      <label
+                      <div
                         onClick={() => handleToggleBANT('needValidated')}
                         className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 cursor-pointer transition-colors"
                       >
@@ -702,9 +709,9 @@ export default function CemLeadWorkspacePage() {
                           <div className="text-xs font-bold text-slate-900">Need Validated</div>
                           <div className="text-[10px] text-slate-500">Business pain point confirmed</div>
                         </div>
-                      </label>
+                      </div>
 
-                      <label
+                      <div
                         onClick={() => handleToggleBANT('timelineEstablished')}
                         className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 cursor-pointer transition-colors"
                       >
@@ -713,7 +720,7 @@ export default function CemLeadWorkspacePage() {
                           <div className="text-xs font-bold text-slate-900">Timeline Established</div>
                           <div className="text-[10px] text-slate-500">Target deployment date set</div>
                         </div>
-                      </label>
+                      </div>
                     </div>
                   </div>
 
@@ -864,7 +871,7 @@ export default function CemLeadWorkspacePage() {
                     <input
                       type="text"
                       value={nextActionTime}
-                      onChange={(e) => setNextActionTime(e.target.value)}
+                      onChange={(e) => setNextActionTime(formatTimeInput(e.target.value))}
                       className="w-full border border-slate-300 rounded p-2 text-slate-900 focus:outline-none"
                       placeholder="05:30"
                     />
@@ -955,7 +962,7 @@ export default function CemLeadWorkspacePage() {
                     <input
                       type="text"
                       value={meetingTime}
-                      onChange={(e) => setMeetingTime(e.target.value)}
+                      onChange={(e) => setMeetingTime(formatTimeInput(e.target.value))}
                       className="w-full border border-slate-300 rounded p-2 text-slate-900 focus:outline-none"
                       placeholder="05:30"
                       required
