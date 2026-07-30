@@ -102,7 +102,7 @@ export default function AssetsLayout({ children }: AssetsLayoutProps) {
               
               let activeStyle = "bg-white text-slate-900 shadow-sm";
               if (isActive && item.isSpecial) {
-                activeStyle = "bg-violet-50 text-violet-700 shadow-sm border border-violet-200";
+                activeStyle = "bg-blue-50 text-blue-700 shadow-sm border border-blue-200";
               }
               
               return (

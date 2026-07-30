@@ -27,7 +27,7 @@ export class WorkReportsController {
   }
 
   @Get('team')
-  @Permissions(Permission.APPROVE_FIELD_REQUESTS)
+  @Permissions(Permission.APPROVE_FIELD_REQUESTS, Permission.READ_EMPLOYEES)
   async getTeamReports(@Req() req: any) {
     const reviewerId = req.user?.employeeId;
     const role = req.user?.role;

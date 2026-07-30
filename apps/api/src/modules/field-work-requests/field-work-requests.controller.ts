@@ -37,7 +37,7 @@ export class FieldWorkRequestsController {
   }
 
   @Get("team")
-  @Permissions(Permission.APPROVE_FIELD_REQUESTS)
+  @Permissions(Permission.APPROVE_FIELD_REQUESTS, Permission.READ_EMPLOYEES)
   async getTeamApprovals(@Req() req: any) {
     const employeeId = req.user?.employeeId;
     const role = req.user?.role;

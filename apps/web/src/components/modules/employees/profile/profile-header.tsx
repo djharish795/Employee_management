@@ -148,9 +148,9 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
             onClick={() => canEdit && photoInputRef.current?.click()}
             title={canEdit ? "Change profile photo" : undefined}
           >
-            <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center text-2xl sm:text-3xl font-bold border-4 border-white shadow-md overflow-hidden ${profile.avatarBg}`}>
+            <div className={`relative w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center text-2xl sm:text-3xl font-bold border-4 border-white shadow-md overflow-hidden ${profile.avatarBg}`}>
               {displayPhotoUrl ? (
-                <Image src={displayPhotoUrl} alt={profile.name} className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
+                <img src={displayPhotoUrl} alt={profile.name} className="w-full h-full object-cover" />
               ) : (
                 <span>{profile.initials}</span>
               )}
@@ -206,8 +206,10 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
               {profile.manager && (
                 <div className="flex items-center gap-2">
                   <span className="text-slate-400">Reporting to:</span>
-                  <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 border border-slate-100 rounded-md">
-                    <Image src={profile.manager.photoUrl} alt={profile.manager.name} className="w-4 h-4 rounded-full" fill style={{ objectFit: "cover" }} />
+                  <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 border border-slate-100 rounded-md relative z-10">
+                    <div className="relative w-4 h-4 overflow-hidden rounded-full flex-shrink-0">
+                      <Image src={profile.manager.photoUrl} alt={profile.manager.name} fill style={{ objectFit: "cover" }} />
+                    </div>
                     <span className="text-slate-700 font-bold text-[11px]">{profile.manager.name}</span>
                   </div>
                 </div>

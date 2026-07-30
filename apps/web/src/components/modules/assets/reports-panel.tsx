@@ -30,7 +30,7 @@ const MONTHLY_ADDITIONS = [
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
-  LAPTOP: "bg-violet-600",
+  LAPTOP: "bg-blue-600",
   DESKTOP: "bg-blue-500",
   MONITOR: "bg-slate-700",
   MOBILE_DEVICE: "bg-emerald-500",
@@ -157,7 +157,7 @@ export default function ReportsPanel() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <div className="w-9 h-9 bg-violet-50 text-violet-600 rounded-xl flex items-center justify-center">
+            <div className="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
               <Package className="w-4.5 h-4.5" />
             </div>
             <TrendingUp className="w-4 h-4 text-emerald-500" />
@@ -253,7 +253,7 @@ export default function ReportsPanel() {
                 </div>
                 <div className="w-full bg-slate-100 rounded-t-lg h-32 flex items-end">
                   <div
-                    className="w-full rounded-t-lg bg-gradient-to-t from-violet-600 to-indigo-400 transition-all duration-500 hover:from-violet-700 hover:to-indigo-500"
+                    className="w-full rounded-t-lg bg-gradient-to-t from-blue-600 to-indigo-400 transition-all duration-500 hover:from-blue-700 hover:to-indigo-500"
                     style={{ height: `${Math.round((item.count / maxAdditionCount) * 100)}%` }}
                   />
                 </div>

@@ -155,7 +155,7 @@ export default function InventoryPanel() {
             placeholder="Search assets, tags, employees…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 text-sm font-medium bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all"
+            className="w-full pl-9 pr-4 py-2.5 text-sm font-medium bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
           />
         </div>
 
@@ -165,7 +165,7 @@ export default function InventoryPanel() {
             onClick={() => setShowFilters((v) => !v)}
             className={`flex items-center gap-2 px-3.5 py-2.5 border text-xs font-bold rounded-lg transition-all ${
               showFilters
-                ? "bg-violet-50 border-violet-200 text-violet-700"
+                ? "bg-blue-50 border-blue-200 text-blue-700"
                 : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
             }`}
           >
@@ -175,7 +175,7 @@ export default function InventoryPanel() {
           {canEdit && (
             <button
               onClick={() => setIsAddSheetOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
+              className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
             >
               <Plus className="w-3.5 h-3.5" />
               Add Asset
@@ -193,7 +193,7 @@ export default function InventoryPanel() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as AssetStatus | "ALL")}
-                className="appearance-none pl-3 pr-8 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-violet-400 cursor-pointer"
+                className="appearance-none pl-3 pr-8 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-blue-400 cursor-pointer"
               >
                 <option value="ALL">All Statuses</option>
                 {ALL_STATUSES.map((s) => (
@@ -211,7 +211,7 @@ export default function InventoryPanel() {
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value as AssetCategory | "ALL")}
-                className="appearance-none pl-3 pr-8 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-violet-400 cursor-pointer"
+                className="appearance-none pl-3 pr-8 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-blue-400 cursor-pointer"
               >
                 <option value="ALL">All Categories</option>
                 {ALL_CATEGORIES.map((c) => (
@@ -241,7 +241,7 @@ export default function InventoryPanel() {
         </span>
         <div className="flex gap-2">
           {(statusFilter !== "ALL" || categoryFilter !== "ALL" || search) && (
-            <span className="px-2 py-0.5 bg-violet-50 border border-violet-100 text-violet-700 text-[10px] font-bold rounded-full">
+            <span className="px-2 py-0.5 bg-blue-50 border border-blue-100 text-blue-700 text-[10px] font-bold rounded-full">
               Filtered
             </span>
           )}
@@ -272,7 +272,7 @@ export default function InventoryPanel() {
                     {/* Asset */}
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-violet-50 text-violet-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
                           <Icon className="w-4 h-4" />
                         </div>
                         <div>
@@ -329,7 +329,7 @@ export default function InventoryPanel() {
                       <td className="px-5 py-3.5">
                         <div className="flex items-center justify-end gap-1.5">
                           <button 
-                            className="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-md transition-colors" 
+                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" 
                             title="View"
                             onClick={() => setAssetToView(asset)}
                           >

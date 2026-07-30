@@ -215,7 +215,7 @@ export default function RequestsPanel() {
           {(isEmployee || isHRUser || viewScope === "MY") && (
             <button
               onClick={() => setShowForm((v) => !v)}
-              className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
             >
               <Plus className="w-3.5 h-3.5" />
               New Request
@@ -226,9 +226,9 @@ export default function RequestsPanel() {
 
       {/* Request Form */}
       {showForm && (
-        <div className="bg-white border border-violet-200 rounded-xl p-6 shadow-sm">
+        <div className="bg-white border border-blue-200 rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-5">
-            <div className="w-8 h-8 bg-violet-50 text-violet-600 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
               <Package className="w-4 h-4" />
             </div>
             <div>
@@ -248,7 +248,7 @@ export default function RequestsPanel() {
                       <select
                         value={form.requestType}
                         onChange={(e) => setForm((f) => ({ ...f, requestType: e.target.value as any }))}
-                        className="w-full appearance-none pl-3 pr-8 py-2.5 text-sm font-medium bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all"
+                        className="w-full appearance-none pl-3 pr-8 py-2.5 text-sm font-medium bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
                       >
                         <option value="REGULAR">General (For Myself)</option>
                         <option value="ONBOARDING">Onboarding (New Hire)</option>
@@ -267,7 +267,7 @@ export default function RequestsPanel() {
                         value={form.targetEmployeeId}
                         onChange={(e) => setForm((f) => ({ ...f, targetEmployeeId: e.target.value }))}
                         placeholder="Employee ID (e.g. EMP123)"
-                        className="w-full px-3.5 py-2.5 text-sm font-medium bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all"
+                        className="w-full px-3.5 py-2.5 text-sm font-medium bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
                         required
                       />
                     </div>
@@ -283,7 +283,7 @@ export default function RequestsPanel() {
                   <select
                     value={form.assetCategory}
                     onChange={(e) => setForm((f) => ({ ...f, assetCategory: e.target.value as AssetCategory }))}
-                    className="w-full appearance-none pl-3 pr-8 py-2.5 text-sm font-medium bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all"
+                    className="w-full appearance-none pl-3 pr-8 py-2.5 text-sm font-medium bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
                     required
                   >
                     {CATEGORY_OPTIONS.map((opt) => (
@@ -302,7 +302,7 @@ export default function RequestsPanel() {
                   <select
                     value={form.priority}
                     onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value as typeof form.priority }))}
-                    className="w-full appearance-none pl-3 pr-8 py-2.5 text-sm font-medium bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all"
+                    className="w-full appearance-none pl-3 pr-8 py-2.5 text-sm font-medium bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
                   >
                     <option value="LOW">Low</option>
                     <option value="MEDIUM">Medium</option>
@@ -323,7 +323,7 @@ export default function RequestsPanel() {
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 placeholder="e.g. Dual monitor setup for design work"
-                className="w-full px-3.5 py-2.5 text-sm font-medium bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all"
+                className="w-full px-3.5 py-2.5 text-sm font-medium bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
                 required
               />
             </div>
@@ -337,7 +337,7 @@ export default function RequestsPanel() {
                 onChange={(e) => setForm((f) => ({ ...f, justification: e.target.value }))}
                 placeholder="Explain why this asset is needed for your work…"
                 rows={3}
-                className="w-full px-3.5 py-2.5 text-sm font-medium bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all resize-none"
+                className="w-full px-3.5 py-2.5 text-sm font-medium bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all resize-none"
                 required
               />
             </div>
@@ -352,7 +352,7 @@ export default function RequestsPanel() {
               <button
                 type="submit"
                 disabled={submitMutation.isPending}
-                className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm disabled:opacity-60"
+                className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition-colors shadow-sm disabled:opacity-60"
               >
                 <Send className="w-3.5 h-3.5" />
                 {submitMutation.isPending ? "Submitting…" : "Submit Request"}
