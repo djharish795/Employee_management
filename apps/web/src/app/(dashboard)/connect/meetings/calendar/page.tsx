@@ -12,6 +12,8 @@ import { connectApi } from "@/lib/api/connect";
 import { MeetingDetailsModal } from "@/components/modules/connect/calendar/MeetingDetailsModal";
 import { useRouter } from "next/navigation";
 
+import { useAuthStore } from "@/store/auth";
+
 const locales = {
   "en-US": enUS,
 };
@@ -26,6 +28,7 @@ const localizer = dateFnsLocalizer({
 
 export default function FullCalendarPage() {
   const router = useRouter();
+  const role = useAuthStore((state) => state.role);
   const [events, setEvents] = useState<any[]>([]);
   const [view, setView] = useState<View>(Views.MONTH);
   const [date, setDate] = useState(new Date());
@@ -57,9 +60,13 @@ export default function FullCalendarPage() {
   };
 
   const handleSelectSlot = (slotInfo: any) => {
-    // Navigate to booking page with prefilled date
-    // Actually our booking page is `/connect` booking-wizard. We can just redirect to `/connect`
-    router.push(`/connect?date=${slotInfo.start.toISOString()}`);
+    const r = role?.toLowerCase();
+    const allowedSchedulerRoles = ['oe', 'om', 'cem', 'crm'];
+    if (r && allowedSchedulerRoles.includes(r)) {
+      router.push(`/${r}/scheduler?date=${slotInfo.start.toISOString()}`);
+    } else {
+      router.push(`/connect?date=${slotInfo.start.toISOString()}`);
+    }
   };
 
   const eventStyleGetter = (event: any) => {

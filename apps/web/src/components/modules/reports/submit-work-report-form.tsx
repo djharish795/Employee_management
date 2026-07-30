@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Send, FileText, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Send, FileText, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { PremiumDashboardLayout, PremiumCard } from '@/components/shared/premium-dashboard';
 import { apiClient } from '@/lib/api/client';
 import toast from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
 export function SubmitWorkReportForm() {
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -45,15 +47,23 @@ export function SubmitWorkReportForm() {
           </div>
           <h2 className="text-2xl font-bold text-slate-900 mb-2">Report Submitted Successfully</h2>
           <p className="text-slate-500 mb-8">Your Operations Manager has been notified and will review your submission shortly.</p>
-          <button 
-            onClick={() => {
-              setSubmitted(false);
-              setFormData({ ...formData, title: '', content: '' });
-            }}
-            className="px-6 py-2.5 bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:bg-slate-800 dark:hover:bg-slate-100 font-bold rounded-lg transition-colors"
-          >
-            Submit Another Report
-          </button>
+          <div className="flex gap-4">
+            <button 
+              onClick={() => {
+                setSubmitted(false);
+                setFormData({ ...formData, title: '', content: '' });
+              }}
+              className="px-6 py-2.5 bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:bg-slate-800 dark:hover:bg-slate-100 font-bold rounded-lg transition-colors text-sm shadow-sm"
+            >
+              Submit Another Report
+            </button>
+            <button 
+              onClick={() => router.back()}
+              className="px-6 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-lg transition-colors text-sm shadow-sm"
+            >
+              View Work Reports
+            </button>
+          </div>
         </PremiumCard>
       </PremiumDashboardLayout>
     );
@@ -61,9 +71,19 @@ export function SubmitWorkReportForm() {
 
   return (
     <PremiumDashboardLayout className="p-0 bg-transparent min-h-0 space-y-6 max-w-4xl mx-auto w-full">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Submit Work Report</h1>
-        <p className="text-sm font-medium text-slate-500 mt-1">Log your daily progress, weekly updates, or incident reports.</p>
+      <div className="flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors w-fit group"
+        >
+          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+          Back to Work Reports
+        </button>
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Submit Work Report</h1>
+          <p className="text-sm font-medium text-slate-500 mt-1">Log your daily progress, weekly updates, or incident reports.</p>
+        </div>
       </div>
 
       <PremiumCard className="p-0 overflow-hidden border border-slate-200">

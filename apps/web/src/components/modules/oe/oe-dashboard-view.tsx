@@ -55,7 +55,49 @@ export default function OeDashboardView() {
     fetchDashboardData();
   }, []);
 
-  const handleExport = () => toast.success("Activity summary exported successfully.");
+  const handleExport = async () => {
+    try {
+      if (!workReports.length && !fieldRequests.length) {
+        toast.error("No data available to export.");
+        return;
+      }
+      
+      const { utils, writeFile } = await import('xlsx');
+      
+      const rows: any[] = [];
+      
+      workReports.forEach(r => {
+        const date = new Date(r.submittedAt || r.createdAt).toLocaleDateString();
+        rows.push({
+          Type: 'Work Report',
+          Status: r.status,
+          Date: date,
+          Details: r.title || ''
+        });
+      });
+      
+      fieldRequests.forEach(r => {
+        const date = new Date(r.date || r.createdAt).toLocaleDateString();
+        rows.push({
+          Type: 'Field Request',
+          Status: r.status,
+          Date: date,
+          Details: r.destination || ''
+        });
+      });
+      
+      const worksheet = utils.json_to_sheet(rows);
+      const workbook = utils.book_new();
+      utils.book_append_sheet(workbook, worksheet, "Activity Summary");
+      
+      writeFile(workbook, `OE_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+      
+      toast.success("Activity summary exported successfully.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to export data.");
+    }
+  };
 
   // Current formatted date
   const todayFormatted = new Date().toLocaleDateString('en-US', {
@@ -81,7 +123,6 @@ export default function OeDashboardView() {
 
   return (
     <PremiumDashboardLayout className="flex flex-col">
-      <Toaster position="top-right" />
       
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
