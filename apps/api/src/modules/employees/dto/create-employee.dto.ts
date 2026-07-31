@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   Matches,
+  MaxLength,
 } from "class-validator";
 import { EmployeeType, Gender, MaritalStatus } from "@naprocs/types";
 
@@ -129,6 +130,7 @@ export class CreateEmployeeDto {
   // Added for Access Control
   @IsString()
   @IsOptional()
+  @MaxLength(100)
   password?: string;
 
   @IsString()

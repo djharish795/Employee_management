@@ -141,7 +141,7 @@ export class AttendanceCronService {
 
       const activeEmployees = await this.prisma.employee.findMany({ 
         where: { status: 'ACTIVE' },
-        include: { user: true }
+        select: { id: true, user: { select: { role: true } } }
       });
       const approvedLeaves = await this.prisma.leaveRequest.findMany({
         where: {
