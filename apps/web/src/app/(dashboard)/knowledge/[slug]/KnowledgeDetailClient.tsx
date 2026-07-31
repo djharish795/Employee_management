@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import DOMPurify from "dompurify";
 import { useQuery } from "@tanstack/react-query";
 import { KnowledgeDoc, knowledgeApi } from "@/lib/api/knowledge";
 import { fetchMyProfile } from "@/lib/api/profile";
@@ -164,7 +165,7 @@ export function KnowledgeDetailClient({ slug }: { slug: string }) {
                 <div className="w-full bg-slate-50/50 border border-slate-200 rounded-2xl p-8 shadow-sm text-slate-800 space-y-4">
                   <div 
                     className="prose max-w-none text-slate-700 leading-relaxed [&>h1]:text-2xl [&>h1]:font-bold [&>h1]:text-slate-900 [&>h1]:mb-4 [&>p]:mb-3 [&>ul]:list-disc [&>ul]:pl-5 [&>ul]:mb-3"
-                    dangerouslySetInnerHTML={{ __html: doc.content }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(doc.content) }}
                   />
                   <div className="pt-6 border-t border-slate-200 flex justify-end">
                     <button
