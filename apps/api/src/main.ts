@@ -16,6 +16,9 @@ process.on('unhandledRejection', (reason, promise) => {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  
+  // EMS-SECURITY: Trust the Cloudflare/ALB reverse proxy to read the correct X-Forwarded-For IP
+  app.getHttpAdapter().getInstance().set('trust proxy', true);
   app.enableShutdownHooks();
   app.use(cookieParser());
 

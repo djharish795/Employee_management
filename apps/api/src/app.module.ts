@@ -6,6 +6,7 @@ import { IpWhitelistGuard } from "./common/guards/ip-whitelist.guard";
 import { PiiMaskingInterceptor } from "./common/interceptors/pii-masking.interceptor";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
+import { CustomThrottlerGuard } from "./common/guards/custom-throttler.guard";
 import { ScheduleModule } from "@nestjs/schedule";
 import { BullModule } from "@nestjs/bullmq";
 import { RedisService } from "./redis/redis.service";
@@ -126,7 +127,7 @@ import { WorkReportsModule } from "./modules/work-reports/work-reports.module";
     },
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: CustomThrottlerGuard,
     },
     {
       provide: APP_GUARD,
