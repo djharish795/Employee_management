@@ -62,44 +62,50 @@ export class EmailService implements OnModuleInit {
   }
 
   async sendEmail(to: string, subject: string, templateName: string, context: any) {
-    const policy = await this.prisma.orgPolicy.findFirst();
-    if (policy && !policy.emailNotificationsEnabled) {
-      this.logger.log(`[BLOCKED BY POLICY] Email delivery is disabled. Would have sent to ${to} (Template: ${templateName})`);
-      return;
-    }
-
-    let compiledHtml = "";
-    
-    try {
-      // Use our new React Email rendering package
-      compiledHtml = await renderEmailHtml(templateName, context);
-    } catch (err) {
-      this.logger.error(`React Email rendering failed for template ${templateName}`, err);
-      compiledHtml = `<p><strong>Template:</strong> ${templateName}</p><pre>${JSON.stringify(context, null, 2)}</pre>`;
-    }
-
-    if (this.transporter) {
-      try {
-        const info = await this.transporter.sendMail({
-          from: `"Naprocs EMS" <${process.env.AWS_SES_FROM_EMAIL || 'noreply@naprocs.in'}>`,
-          to,
-          subject,
-          text: `Template: ${templateName}\n\nContext:\n${JSON.stringify(context, null, 2)}`,
-          html: compiledHtml,
-        });
-        
-        if (process.env.NODE_ENV === "development") {
-          this.logger.log(`[TEST EMAIL SENT] To: ${to} | Subject: ${subject}`);
-          this.logger.log(`[VIEW EMAIL HERE]: ${nodemailer.getTestMessageUrl(info)}`);
-        } else {
-          this.logger.log(`[EMAIL SENT] To: ${to} | Subject: ${subject}`);
-        }
-      } catch (err) {
-        this.logger.error(`Failed to send email to ${to}`, err);
+    // Fire-and-forget: offload heavy React rendering and AWS SES networking to the background
+    // This prevents the main Node.js event loop from freezing and returns a lightning fast 200 OK to the user
+    Promise.resolve().then(async () => {
+      const policy = await this.prisma.orgPolicy.findFirst();
+      if (policy && !policy.emailNotificationsEnabled) {
+        this.logger.log(`[BLOCKED BY POLICY] Email delivery is disabled. Would have sent to ${to} (Template: ${templateName})`);
+        return;
       }
-    } else {
-      this.logger.log(`[MOCK EMAIL] Sending to ${to} | Subject: ${subject} | Template: ${templateName}`);
-    }
+
+      let compiledHtml = "";
+      
+      try {
+        // Use our new React Email rendering package
+        compiledHtml = await renderEmailHtml(templateName, context);
+      } catch (err) {
+        this.logger.error(`React Email rendering failed for template ${templateName}`, err);
+        compiledHtml = `<p><strong>Template:</strong> ${templateName}</p><pre>${JSON.stringify(context, null, 2)}</pre>`;
+      }
+
+      if (this.transporter) {
+        try {
+          const info = await this.transporter.sendMail({
+            from: `"Naprocs EMS" <${process.env.AWS_SES_FROM_EMAIL || 'noreply@naprocs.in'}>`,
+            to,
+            subject,
+            text: `Template: ${templateName}\n\nContext:\n${JSON.stringify(context, null, 2)}`,
+            html: compiledHtml,
+          });
+          
+          if (process.env.NODE_ENV === "development") {
+            this.logger.log(`[TEST EMAIL SENT] To: ${to} | Subject: ${subject}`);
+            this.logger.log(`[VIEW EMAIL HERE]: ${nodemailer.getTestMessageUrl(info)}`);
+          } else {
+            this.logger.log(`[EMAIL SENT] To: ${to} | Subject: ${subject}`);
+          }
+        } catch (err) {
+          this.logger.error(`Failed to send email to ${to}`, err);
+        }
+      } else {
+        this.logger.log(`[MOCK EMAIL] Sending to ${to} | Subject: ${subject} | Template: ${templateName}`);
+      }
+    }).catch(err => {
+      this.logger.error(`Background email task failed fatally for ${to}`, err);
+    });
   }
 }
 

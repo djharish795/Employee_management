@@ -31,8 +31,8 @@ async function bootstrap() {
     credentials: true,
   });
 
-  app.use(json({ limit: '50mb' }));
-  app.use(urlencoded({ extended: true, limit: '50mb' }));
+  app.use(json({ limit: '5mb' }));
+  app.use(urlencoded({ extended: true, limit: '5mb' }));
 
   // EMS-SECURITY: Prevent browser cache stealing and framework profiling
   app.use(helmet({
