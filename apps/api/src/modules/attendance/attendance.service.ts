@@ -300,7 +300,7 @@ export class AttendanceService {
         });
       }
 
-      this.inApp.broadcastEvent('attendance.punched', { employeeId, type: dto.action });
+      this.inApp.emitToUser(employeeId, 'attendance.punched', { employeeId, type: dto.action });
       return state;
     }
 
@@ -359,7 +359,7 @@ export class AttendanceService {
         });
       });
 
-      this.inApp.broadcastEvent('attendance.punched', { employeeId, type: dto.action });
+      this.inApp.emitToUser(employeeId, 'attendance.punched', { employeeId, type: dto.action });
       return state;
     }
 

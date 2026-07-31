@@ -121,4 +121,14 @@ export class InAppNotificationService implements OnGatewayConnection, OnGatewayD
     this.server.emit(event, payload);
     this.logger.debug(`Broadcasted event ${event}`);
   }
+
+  /**
+   * Pushes a real-time event to a specific employee's connected clients.
+   * This prevents global broadcast storms (N^2 api request issue).
+   */
+  emitToUser(employeeId: string, event: string, payload: any) {
+    // We intentionally bypass the orgPolicy DB check here to prevent DB spam during high-volume sync events
+    this.server.to(`employee_${employeeId}`).emit(event, payload);
+    this.logger.debug(`Emitted private event ${event} to employee_${employeeId}`);
+  }
 }
