@@ -133,15 +133,13 @@ async function main() {
   console.log('📅 [3/9] Seeding Leave Types...');
 
   const leaveTypes = [
-    { code: 'EL', name: 'Earned Leave', maxDaysPerYear: 18, isPaidLeave: true, isCarryForwardAllowed: true, maxCarryForwardDays: 15, requiresDocumentAbove: null, isActive: true },
-    { code: 'SL', name: 'Sick Leave', maxDaysPerYear: 12, isPaidLeave: true, isCarryForwardAllowed: false, maxCarryForwardDays: null, requiresDocumentAbove: 3, isActive: true },
-    { code: 'CL', name: 'Casual Leave', maxDaysPerYear: 12, isPaidLeave: true, isCarryForwardAllowed: true, maxCarryForwardDays: 7, requiresDocumentAbove: null, isActive: true },
-    { code: 'ML', name: 'Maternity Leave', maxDaysPerYear: 182, isPaidLeave: true, isCarryForwardAllowed: false, maxCarryForwardDays: null, requiresDocumentAbove: 1, isActive: true },
-    { code: 'PL', name: 'Paternity Leave', maxDaysPerYear: 15, isPaidLeave: true, isCarryForwardAllowed: false, maxCarryForwardDays: null, requiresDocumentAbove: null, isActive: true },
+    { code: 'CL', name: 'Casual Leave (Full Day)', maxDaysPerYear: 12, isPaidLeave: true, isCarryForwardAllowed: true, maxCarryForwardDays: 7, requiresDocumentAbove: null, isActive: true },
+    { code: 'CL_HALF', name: 'Casual Leave (Half Day)', maxDaysPerYear: 6, isPaidLeave: true, isCarryForwardAllowed: false, maxCarryForwardDays: null, requiresDocumentAbove: null, isActive: true },
+    { code: 'SL', name: 'Sick Leave', maxDaysPerYear: 12, isPaidLeave: true, isCarryForwardAllowed: true, maxCarryForwardDays: 7, requiresDocumentAbove: 3, isActive: true }, // SL uses CL balance
+    { code: 'OPTIONAL', name: 'Optional Holiday', maxDaysPerYear: 2, isPaidLeave: true, isCarryForwardAllowed: false, maxCarryForwardDays: null, requiresDocumentAbove: null, isActive: true },
+    { code: 'WFH', name: 'Work From Home', maxDaysPerYear: 12, isPaidLeave: true, isCarryForwardAllowed: false, maxCarryForwardDays: null, requiresDocumentAbove: null, isActive: true },
     { code: 'LOP', name: 'Loss of Pay', maxDaysPerYear: 365, isPaidLeave: false, isCarryForwardAllowed: false, maxCarryForwardDays: null, requiresDocumentAbove: null, isActive: true },
-    { code: 'COMP', name: 'Compensatory Off', maxDaysPerYear: 10, isPaidLeave: true, isCarryForwardAllowed: true, maxCarryForwardDays: 5, requiresDocumentAbove: null, isActive: true },
-    { code: 'BL', name: 'Bereavement Leave', maxDaysPerYear: 5, isPaidLeave: true, isCarryForwardAllowed: false, maxCarryForwardDays: null, requiresDocumentAbove: 1, isActive: true },
-    { code: 'FL', name: 'Floater / Festival Leave', maxDaysPerYear: 3, isPaidLeave: true, isCarryForwardAllowed: false, maxCarryForwardDays: null, requiresDocumentAbove: null, isActive: true },
+    { code: 'ML', name: 'Maternity Leave', maxDaysPerYear: 182, isPaidLeave: true, isCarryForwardAllowed: false, maxCarryForwardDays: null, requiresDocumentAbove: 1, isActive: true },
   ];
 
   const leaveTypeMap: Record<string, string> = {}; // code -> id

@@ -454,6 +454,26 @@ export class EmployeesService {
       delete (employee as any).documents;
     }
 
+    // Inject Virtual SL for profile display and remove physical SL
+    if (employee.leaveBalances) {
+      const filteredBalances = employee.leaveBalances.filter((b: any) => b.leaveType?.code !== 'SL');
+      const clBalance = filteredBalances.find((b: any) => b.leaveType?.code === 'CL');
+      
+      if (clBalance) {
+        // Find the SL leave type to get its name/id
+        const slBalanceObj = employee.leaveBalances.find((b: any) => b.leaveType?.code === 'SL');
+        if (slBalanceObj) {
+          filteredBalances.push({
+            ...clBalance,
+            id: 'virtual-sl',
+            leaveTypeId: slBalanceObj.leaveTypeId,
+            leaveType: slBalanceObj.leaveType
+          });
+        }
+      }
+      employee.leaveBalances = filteredBalances;
+    }
+
     const empWithRels = employee as any;
 
     if (currentUser && currentUser.role) {
@@ -911,9 +931,10 @@ export class EmployeesService {
     const employees = await this.prisma.employee.findMany({
       where: {
         status: 'ACTIVE',
+        firstName: { not: 'Vacant' },
         department: {
           name: {
-            in: ['Engineering', 'Technology', 'IT', 'Product', 'QA', 'Architecture']
+            in: ['Engineering', 'Technology', 'IT', 'Product', 'QA', 'Architecture', 'Software Development', 'Quality Assurance']
           }
         }
       },
@@ -932,7 +953,7 @@ export class EmployeesService {
       orderBy: { firstName: 'asc' }
     });
 
-    const engineers = employees.map(e => {
+    let engineers = employees.map(e => {
       // Calculate real experience (tenure in years)
       let experience = 0;
       if (e.joiningDate) {
@@ -943,15 +964,17 @@ export class EmployeesService {
 
       // Determine subteam based on designation or default
       const title = (e.designation?.title || '').toLowerCase();
-      const deptName = e.department?.name || 'Unassigned';
+      const deptName = (e.department?.name || 'Unassigned').toLowerCase();
 
-      let subTeam = deptName;
-      if (deptName.toLowerCase().includes('eng')) {
+      let subTeam = e.department?.name || 'Unassigned';
+      if (deptName.includes('eng') || deptName.includes('software') || deptName.includes('tech')) {
         if (title.includes('front')) subTeam = 'Frontend';
+        else if (title.includes('full stack') || title.includes('fullstack')) subTeam = 'Full Stack';
         else if (title.includes('devops')) subTeam = 'DevOps';
-        else if (title.includes('qa') || title.includes('test')) subTeam = 'QA';
+        else if (title.includes('qa') || title.includes('test') || title.includes('quality')) subTeam = 'QA';
         else if (title.includes('mobile') || title.includes('ios') || title.includes('android')) subTeam = 'Mobile';
         else if (title.includes('architect')) subTeam = 'Architecture';
+        else if (title.includes('ai') || title.includes('automation')) subTeam = 'AI Automation';
         else subTeam = 'Backend';
       }
 
@@ -969,6 +992,12 @@ export class EmployeesService {
           role: pa.projectRole
         })).filter(p => p.id)
       };
+    });
+
+    // Exclude executives/heads from the assignable bench
+    engineers = engineers.filter(e => {
+      const title = e.designation.toLowerCase();
+      return !title.includes('chief') && !title.includes('cto') && !title.includes('ceo') && !title.includes('head');
     });
 
     return {

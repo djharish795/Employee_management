@@ -162,10 +162,10 @@ async function main() {
   // ──────────────────────────────────────────────────────────────────────────
   console.log('📊 [2/3] Updating Real Leave Balances from Sheet 21...');
 
-  // Fetch CL and FL leave type IDs
+  // Fetch CL and OPTIONAL leave type IDs
   const clType = await prisma.leaveType.findUnique({ where: { code: 'CL' } });
-  const flType = await prisma.leaveType.findUnique({ where: { code: 'FL' } });
-  if (!clType || !flType) throw new Error('CL or FL leave type not found');
+  const optType = await prisma.leaveType.findUnique({ where: { code: 'OPTIONAL' } });
+  if (!clType || !optType) throw new Error('CL or OPTIONAL leave type not found');
 
   type LeaveBalanceEntry = {
     empId: string;         // employee real ID (NAP/...)
@@ -213,18 +213,18 @@ async function main() {
     // Update CL balance
     await prisma.leaveBalance.upsert({
       where: { employeeId_leaveTypeId_year: { employeeId: dbId, leaveTypeId: clType.id, year: 2026 } },
-      update: { allocated: 18, used: b.clUsed, carriedOver: b.clCarry, pending: 0 },
-      create: { employeeId: dbId, leaveTypeId: clType.id, year: 2026, allocated: 18, used: b.clUsed, carriedOver: b.clCarry, pending: 0 },
+      update: { allocated: 12, used: b.clUsed, carriedOver: b.clCarry, pending: 0 },
+      create: { employeeId: dbId, leaveTypeId: clType.id, year: 2026, allocated: 12, used: b.clUsed, carriedOver: b.clCarry, pending: 0 },
     });
 
-    // Update FL balance
+    // Update OPTIONAL balance
     await prisma.leaveBalance.upsert({
-      where: { employeeId_leaveTypeId_year: { employeeId: dbId, leaveTypeId: flType.id, year: 2026 } },
+      where: { employeeId_leaveTypeId_year: { employeeId: dbId, leaveTypeId: optType.id, year: 2026 } },
       update: { allocated: 2, used: b.flUsed, carriedOver: b.flCarry, pending: 0 },
-      create: { employeeId: dbId, leaveTypeId: flType.id, year: 2026, allocated: 2, used: b.flUsed, carriedOver: b.flCarry, pending: 0 },
+      create: { employeeId: dbId, leaveTypeId: optType.id, year: 2026, allocated: 2, used: b.flUsed, carriedOver: b.flCarry, pending: 0 },
     });
 
-    console.log(`   ✓ ${b.empId} — CL used:${b.clUsed} carry:${b.clCarry} | FL used:${b.flUsed} carry:${b.flCarry}`);
+    console.log(`   ✓ ${b.empId} — CL used:${b.clUsed} carry:${b.clCarry} | OPTIONAL used:${b.flUsed} carry:${b.flCarry}`);
     balanceCount++;
   }
   console.log(`   ✓ ${balanceCount} employees' leave balances updated.\n`);

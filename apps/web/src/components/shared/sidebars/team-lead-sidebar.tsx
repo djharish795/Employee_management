@@ -52,7 +52,7 @@ export function TeamLeadSidebar() {
     
     apiClient.get('/profile/me').then(res => {
       const deptCode = res.data?.department?.code || '';
-      const isTechnical = ['ENG', 'TECH', 'QA'].includes(deptCode);
+      const isTechnical = ['DEV', 'ENG', 'TECH', 'QA'].includes(deptCode);
       const hasProjectAssignment = res.data?.user?.hasProjectAssignment;
       
       const role = useAuthStore.getState().role;

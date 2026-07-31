@@ -53,7 +53,8 @@ export class ProjectsService {
         ...(isAdmin ? {} : {
           assignments: {
             some: {
-              employeeId: user?.employeeId
+              employeeId: user?.employeeId,
+              releasedAt: null
             }
           }
         })

@@ -9,23 +9,29 @@ export class DepartmentsService {
     const departments = await this.prisma.department.findMany({
       include: {
         head: true,
-        _count: {
-          select: { employees: { where: { status: 'ACTIVE' } } }
+        employees: {
+          where: { status: 'ACTIVE' },
+          select: { firstName: true }
         }
       }
     });
 
     const totalDepartments = departments.length;
     let totalHeadcount = 0;
+    let totalVacant = 0;
     let largestDepartment = '';
     let largestDepartmentCount = 0;
 
     const formattedDepartments = departments.map((dept: any, index: number) => {
-      const count = dept._count.employees;
-      totalHeadcount += count;
+      const activeEmployees = dept.employees || [];
+      const filledCount = activeEmployees.filter((e: any) => e.firstName !== 'Vacant').length;
+      const vacantCount = activeEmployees.filter((e: any) => e.firstName === 'Vacant').length;
 
-      if (count > largestDepartmentCount) {
-        largestDepartmentCount = count;
+      totalHeadcount += filledCount;
+      totalVacant += vacantCount;
+
+      if (filledCount > largestDepartmentCount) {
+        largestDepartmentCount = filledCount;
         largestDepartment = dept.name;
       }
 
@@ -46,10 +52,11 @@ export class DepartmentsService {
         headName,
         headInitials,
         headColor,
-        count,
+        count: filledCount,
+        vacantCount,
         // Mocking growth logic
-        growth: count > 0 ? '+5%' : '0%',
-        growthType: count > 0 ? 'growing' : 'stable'
+        growth: filledCount > 0 ? '+5%' : '0%',
+        growthType: filledCount > 0 ? 'growing' : 'stable'
       };
     });
 
@@ -79,6 +86,7 @@ export class DepartmentsService {
       summary: {
         totalDepartments,
         totalHeadcount,
+        totalVacant,
         largestDepartment,
         largestDepartmentCount,
         avgDepartmentSize

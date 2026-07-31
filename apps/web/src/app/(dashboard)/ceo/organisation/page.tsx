@@ -68,7 +68,7 @@ export default function CEOOrganisationPage() {
         </div>
 
         {/* Top Metric Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
           <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
             <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">DEPARTMENTS</h4>
             <div className="text-4xl font-extrabold text-slate-900">{summary.totalDepartments}</div>
@@ -76,6 +76,10 @@ export default function CEOOrganisationPage() {
           <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
             <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">TOTAL HEADCOUNT</h4>
             <div className="text-4xl font-extrabold text-slate-900">{summary.totalHeadcount}</div>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">VACANT ROLES</h4>
+            <div className="text-4xl font-extrabold text-slate-400">{summary.totalVacant}</div>
           </div>
           <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
             <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">LARGEST DEPARTMENT</h4>
@@ -97,6 +101,7 @@ export default function CEOOrganisationPage() {
                   <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">DEPARTMENT</th>
                   <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">HEAD</th>
                   <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">HEADCOUNT</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">VACANCIES</th>
                   <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">GROWTH (VS LY)</th>
                   <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right flex items-center justify-end gap-1.5">
                     MONTHLY COST <Lock className="w-3 h-3" />
@@ -116,6 +121,7 @@ export default function CEOOrganisationPage() {
                       </div>
                     </td>
                     <td className="px-6 py-5 text-sm font-medium text-slate-700 text-center">{dept.count}</td>
+                    <td className="px-6 py-5 text-sm font-medium text-slate-500 text-center">{dept.vacantCount}</td>
                     <td className="px-6 py-5 text-center">
                       {dept.growthType === 'growing' ? (
                         <span className="inline-flex items-center gap-2">

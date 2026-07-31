@@ -24,17 +24,16 @@ export class LeavesService {
     private readonly notificationsService: NotificationsService
   ) { }
 
-  async getLeavesKPI(employeeId: string): Promise<unknown> {
+    async getLeavesKPI(employeeId: string): Promise<any> {
     const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth();
+    const policyStart = new Date(currentYear, 5, 1); // June 1st
+
     let balances = await this.prisma.leaveBalance.findMany({
       where: { employeeId, year: currentYear },
       include: { leaveType: true }
     });
 
-    const currentMonth = new Date().getMonth();
-    const policyStart = currentMonth >= 5 ? new Date(currentYear, 5, 1) : new Date(currentYear - 1, 5, 1);
-    
-    // Auto-initialize if missing
     if (balances.length === 0) {
       const employee = await this.prisma.employee.findUnique({
         where: { id: employeeId }
@@ -49,14 +48,17 @@ export class LeavesService {
           proratedMonths = Math.max(0, 12 - missed);
         }
 
-        const leaveTypes = await this.prisma.leaveType.findMany();
+        const leaveTypes = await this.prisma.leaveType.findMany({
+          where: { code: { in: ['CL', 'CL_HALF', 'OPTIONAL', 'WFH', 'LOP', 'ML'] } }
+        });
         const newBalances = leaveTypes.map(lt => {
           let allocated = 0;
-          if (lt.code === 'CL') allocated = proratedMonths; // 1 per month
-          else if (false /* unused CL_HALF branch */) allocated = Math.ceil(proratedMonths / 2); // 6 per year
-          else if (lt.code === 'FL') allocated = Math.ceil(proratedMonths / 6); // 2 per year
-          else if (lt.code === 'SL' || lt.code === 'SL') allocated = 10;
-          
+          if (lt.code === 'CL') allocated = proratedMonths;
+          else if (lt.code === 'CL_HALF') allocated = proratedMonths * 0.5;
+          else if (lt.code === 'OPTIONAL') allocated = 2;
+          else if (lt.code === 'WFH') allocated = proratedMonths;
+          else if (lt.code === 'ML') allocated = 182;
+
           return {
             employeeId,
             leaveTypeId: lt.id,
@@ -95,24 +97,39 @@ export class LeavesService {
       }
     }
 
-    const adjustedBalances = balances.map(b => {
+    // Calculate how many CL_HALF were used THIS month
+    let currentMonthHalfDaysUsed = 0;
+    const clHalfType = await this.prisma.leaveType.findUnique({ where: { code: 'CL_HALF' } });
+    if (clHalfType) {
+      const currentMonthStart = new Date(currentYear, currentMonth, 1);
+      const currentMonthEnd = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
+      const requests = await this.prisma.leaveRequest.aggregate({
+        _sum: { paidDays: true },
+        where: {
+          employeeId,
+          leaveTypeId: clHalfType.id,
+          status: { in: ['APPROVED', 'PENDING'] },
+          startDate: { gte: currentMonthStart, lte: currentMonthEnd }
+        }
+      });
+      currentMonthHalfDaysUsed = Number(requests._sum.paidDays || 0);
+    }
+
+    const filteredBalances = balances.filter(b => b.leaveType.code !== 'SL');
+
+    const adjustedBalances = filteredBalances.map(b => {
       let actualAllocated = Number(b.allocated);
 
       if (b.leaveType.code === 'CL') {
         actualAllocated = Math.min(Number(b.allocated), activePolicyMonth);
-      } else if (false /* half days don't have separate balance */) {
-        // Half days do not carry forward. Limit is always past used + 0.5 for the current month
-        actualAllocated = Number(b.used) + 0.5;
+      } else if (b.leaveType.code === 'CL_HALF') {
+        // Enforce strict non-cumulative monthly 0.5 day logic
+        actualAllocated = Number(b.used) + Number(b.pending) + Math.max(0, 0.5 - currentMonthHalfDaysUsed);
+      } else if (b.leaveType.code === 'WFH') {
+        actualAllocated = activePolicyMonth;
       }
 
-      let staticYearly = Number(b.allocated);
-      if (b.leaveType.maxDaysPerYear !== null && b.leaveType.maxDaysPerYear !== undefined) {
-        staticYearly = Number(b.leaveType.maxDaysPerYear);
-      } else {
-        if (b.leaveType.code === 'CL') staticYearly = 12;
-        else if (false /* half days don't have separate balance */) staticYearly = 6;
-        else if (b.leaveType.code === 'FL') staticYearly = 2;
-      }
+      let staticYearly = Number(b.leaveType.maxDaysPerYear || 0);
 
       return {
         ...b,
@@ -124,29 +141,28 @@ export class LeavesService {
       };
     });
 
-    const hasSickLeave = balances.some(b => b.leaveType.code === 'SL' || b.leaveType.code === 'SL');
-    if (!hasSickLeave) {
-      const sickLeaveType = await this.prisma.leaveType.findFirst({
-        where: { code: { in: ['SL', 'SL'] } }
-      });
-      if (sickLeaveType) {
+    // Handle SL by creating a virtual balance identical to CL
+    const clBalance = adjustedBalances.find(b => b.leaveType.code === 'CL');
+    if (clBalance) {
+      const slType = await this.prisma.leaveType.findUnique({ where: { code: 'SL' } });
+      if (slType) {
         adjustedBalances.push({
           id: 'virtual-sl',
           employeeId: employeeId,
-          leaveTypeId: sickLeaveType.id,
+          leaveTypeId: slType.id,
           year: currentYear,
-          allocated: 10,
-          carriedOver: 0,
-          used: 0,
-          pending: 0,
-          yearlyAllocated: 10,
-          leaveType: sickLeaveType
+          allocated: clBalance.allocated,
+          carriedOver: clBalance.carriedOver,
+          used: clBalance.used,
+          pending: clBalance.pending,
+          yearlyAllocated: clBalance.yearlyAllocated,
+          leaveType: slType
         } as any);
       }
     }
 
     adjustedBalances.forEach(b => {
-      if (['CL', 'CL_HALF_UNUSED', 'FL'].includes(b.leaveType.code)) {
+      if (['CL', 'OPTIONAL', 'CL_HALF'].includes(b.leaveType.code)) {
         yearlyTotal += b.yearlyAllocated;
         accruedTotal += b.allocated + b.carriedOver;
         totalUsed += b.used;
@@ -154,17 +170,30 @@ export class LeavesService {
       }
     });
 
+    const currentMonthStart = new Date(currentYear, 0, 1);
+    const currentMonthEnd = new Date(currentYear, 11, 31, 23, 59, 59);
+    const unpaidAgg = await this.prisma.leaveRequest.aggregate({
+      _sum: { unpaidDays: true },
+      where: {
+        employeeId,
+        status: { in: ['APPROVED'] },
+        startDate: { gte: currentMonthStart, lte: currentMonthEnd }
+      }
+    });
+    const totalUnpaid = Number(unpaidAgg._sum.unpaidDays || 0);
+
     return {
       totalLeaves: yearlyTotal,
       accruedLeaves: accruedTotal,
       usedLeaves: totalUsed,
+      usedUnpaidLeaves: totalUnpaid,
       pendingLeaves: totalPending,
       availableLeaves: Math.max(0, accruedTotal - totalUsed),
       details: adjustedBalances
     };
   }
 
-  async getApprovals(approverId: string): Promise<unknown> {
+async getApprovals(approverId: string): Promise<unknown> {
     const approver = await this.prisma.employee.findUnique({
       where: { id: approverId },
       include: { 
@@ -653,8 +682,8 @@ export class LeavesService {
       let approvalQueue = await this.determineQueue(employee, isEmergency);
 
       let daysForThisType = totalWorkingDays;
-      if (hasHalfDay) {
-        if ((leaveType.code === 'CL' && data.isHalfDay)) {
+      if (leaveType.code === 'CL_HALF' || data.isHalfDay) {
+        if (leaveType.code === 'CL_HALF') {
           daysForThisType = 0.5;
         } else {
           daysForThisType = totalWorkingDays - 0.5;
@@ -673,11 +702,17 @@ export class LeavesService {
           FOR UPDATE
         `;
 
+        let targetLeaveTypeId = leaveType.id;
+        if (leaveType.code === 'SL') {
+          const clType = await tx.leaveType.findUnique({ where: { code: 'CL' } });
+          if (clType) targetLeaveTypeId = clType.id;
+        }
+
         let balance = await tx.leaveBalance.findUnique({
           where: {
             employeeId_leaveTypeId_year: {
               employeeId: employee.id,
-              leaveTypeId: leaveType.id,
+              leaveTypeId: targetLeaveTypeId,
               year: currentYear
             }
           }
@@ -687,9 +722,9 @@ export class LeavesService {
           balance = await tx.leaveBalance.create({
             data: {
               employeeId: employee.id,
-              leaveTypeId: leaveType.id,
+              leaveTypeId: targetLeaveTypeId,
               year: currentYear,
-              allocated: (leaveType.code === 'SL' || leaveType.code === 'SL') ? 10 : 0,
+              allocated: 0,
               carriedOver: 0,
               pending: 0,
               used: 0
@@ -701,44 +736,41 @@ export class LeavesService {
         let unpaidDays = 0;
 
         let available = 0;
-        if (leaveType.code === 'CL') {
+        if (leaveType.code === 'CL' || leaveType.code === 'SL') {
           const currentMonth = startDate.getUTCMonth();
           const policyMonth = currentMonth >= 5 ? currentMonth - 5 + 1 : currentMonth + 7 + 1;
           const accruedLimit = Math.min(Number(balance.allocated), policyMonth);
           available = Math.max(0, accruedLimit + Number(balance.carriedOver) - Number(balance.used) - Number(balance.pending));
-        } else if ((leaveType.code === 'CL' && data.isHalfDay)) {
-          available = 0.5; // Strictly max 1 half-day per month. Reset every month.
+        } else if (leaveType.code === 'CL_HALF') {
+          const currentMonth = startDate.getUTCMonth();
+          const policyMonth = currentMonth >= 5 ? currentMonth - 5 + 1 : currentMonth + 7 + 1;
+          const accruedLimit = policyMonth * 0.5;
+          available = Math.max(0, accruedLimit - Number(balance.used) - Number(balance.pending));
+        } else if (leaveType.code === 'WFH') {
+          const currentMonth = startDate.getUTCMonth();
+          const policyMonth = currentMonth >= 5 ? currentMonth - 5 + 1 : currentMonth + 7 + 1;
+          const accruedLimit = policyMonth;
+          available = Math.max(0, accruedLimit - Number(balance.used) - Number(balance.pending));
         } else {
           available = Math.max(0, Number(balance.allocated) + Number(balance.carriedOver) - Number(balance.used) - Number(balance.pending));
         }
 
-        if (leaveType.code === 'CL' || (leaveType.code === 'CL' && data.isHalfDay)) {
+        if (leaveType.code === 'CL' || leaveType.code === 'SL') {
           const applicablePaidDays = Math.min(daysForThisType, available);
           paidDays = applicablePaidDays;
-          unpaidDays = daysForThisType - applicablePaidDays;
-
-          const startOfMonth = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), 1));
-          const endOfMonth = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth() + 1, 0));
-
-          const monthlyLeaves = await tx.leaveRequest.aggregate({
-            where: {
-              employeeId: employee.id,
-              leaveTypeId: leaveType.id,
-              status: { notIn: ['REJECTED', 'CANCELLED'] },
-              startDate: { gte: startOfMonth, lte: endOfMonth }
-            },
-            _sum: { paidDays: true }
-          });
-
-          const alreadyPaidThisMonth = Number(monthlyLeaves._sum.paidDays || 0);
-          const defaultMax = (leaveType.code === 'CL' && data.isHalfDay) ? 0.5 : 3;
-          const maxPaidAllowedThisMonth = (leaveType as any).maxPaidPerMonth ? Number((leaveType as any).maxPaidPerMonth) : defaultMax;
-          const remainingPaidAllowedThisMonth = Math.max(0, maxPaidAllowedThisMonth - alreadyPaidThisMonth);
-
-          paidDays = Math.min(applicablePaidDays, remainingPaidAllowedThisMonth);
+          
+          // Continuous constraint: max 3 paid days. Anything beyond 3 is unpaid (LOP).
+          if (paidDays > 3) {
+            paidDays = 3;
+          }
+          
+          unpaidDays = daysForThisType - paidDays;
+        } else if (leaveType.code === 'CL_HALF') {
+          const applicablePaidDays = Math.min(daysForThisType, available);
+          paidDays = applicablePaidDays;
           unpaidDays = daysForThisType - paidDays;
         } else {
-          if (available < daysForThisType) {
+          if (available < daysForThisType && leaveType.code !== 'LOP') {
             throw new BadRequestException(`Insufficient leave balance for ${leaveType.name}. You have ${available} days available.`);
           }
           paidDays = daysForThisType;
@@ -750,7 +782,7 @@ export class LeavesService {
         let isReqHalfDay = false;
 
         if (hasHalfDay && hasFullDay) {
-          if ((leaveType.code === 'CL' && data.isHalfDay)) {
+          if (leaveType.code === 'CL_HALF') {
             if (data.halfDaySession === 'LAST_DAY') {
               reqStartDate = new Date(endDate);
             } else {
@@ -764,7 +796,7 @@ export class LeavesService {
               reqStartDate.setDate(reqStartDate.getDate() + 1);
             }
           }
-        } else if ((leaveType.code === 'CL' && data.isHalfDay)) {
+        } else if (leaveType.code === 'CL_HALF' || data.isHalfDay) {
           isReqHalfDay = true;
         }
 

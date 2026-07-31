@@ -53,7 +53,14 @@ export class TasksService {
   }
 
   async getMyTasks(user: any): Promise<any> {
-    await this.validateTaskScreenAccess(user);
+    try {
+      await this.validateTaskScreenAccess(user);
+    } catch (e) {
+      if (e instanceof ForbiddenException) {
+        return [];
+      }
+      throw e;
+    }
     const isTrTs = ['TR', 'TS', 'TRAINEE', 'TECHNICAL_SUPPORT'].includes(user.role);
     return this.tasksRepo.findTasksByEmployee(user.employeeId, isTrTs);
   }

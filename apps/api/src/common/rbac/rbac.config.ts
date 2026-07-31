@@ -192,6 +192,9 @@ const BASELINE_EMPLOYEE_PERMISSIONS: RbacPermissionType[] = [
   RbacPermissions.DOCUMENTS_READ,
   RbacPermissions.CONNECT_READ,
   RbacPermissions.CONNECT_MANAGE,
+  RbacPermissions.TASKS_READ,
+  RbacPermissions.TASKS_CREATE,
+  RbacPermissions.TASKS_UPDATE,
 ];
 
 export const RbacRolePermissionsMapping: Record<RbacRoleType, RbacPermissionType[]> = {
@@ -384,7 +387,20 @@ export const RbacRolePermissionsMapping: Record<RbacRoleType, RbacPermissionType
     RbacPermissions.PROJECTS_ASSIGN,
     RbacPermissions.PROJECTS_MANAGE,
   ],
-  [RbacRoles.QA]: [],
+  [RbacRoles.QA]: [
+    ...BASELINE_EMPLOYEE_PERMISSIONS,
+    RbacPermissions.PROFILE_READ,
+    RbacPermissions.PROFILE_UPDATE,
+    RbacPermissions.LEAVE_READ,
+    RbacPermissions.LEAVE_CREATE,
+    RbacPermissions.EMPLOYEES_READ,
+    RbacPermissions.DASHBOARD_VIEW,
+    RbacPermissions.TASKS_READ,
+    RbacPermissions.TASKS_CREATE,
+    RbacPermissions.TASKS_UPDATE,
+    RbacPermissions.TASKS_COMPLETE,
+    RbacPermissions.PROJECTS_READ,
+  ],
   [RbacRoles.COMPLIANCE_OFFICER]: [],
   [RbacRoles.LEGAL]: [],
   [RbacRoles.IT]: [],

@@ -69,12 +69,11 @@ export default function DashboardPanel() {
     const isPaidDefined = details.length > 0 && details[0].leaveType.isPaidLeave !== undefined;
 
     const usedPaid = details
+      .filter(d => d.id !== 'virtual-sl')
       .filter(d => isPaidDefined ? d.leaveType.isPaidLeave : d.leaveType.code !== "LOP")
       .reduce((sum, d) => sum + Number(d.used), 0);
 
-    const usedUnpaid = details
-      .filter(d => isPaidDefined ? d.leaveType.isPaidLeave === false : d.leaveType.code === "LOP")
-      .reduce((sum, d) => sum + Number(d.used), 0);
+    const usedUnpaid = (kpiQuery.data as any).usedUnpaidLeaves || 0;
 
     return {
       available: availableLeaves,
@@ -190,7 +189,7 @@ export default function DashboardPanel() {
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Full-Day Available</p>
               <p className={`text-xl font-bold mt-1 ${isLoading ? "text-slate-300" : "text-emerald-600"}`}>
                 {isLoading ? "..." : kpiQuery.data ? (() => {
-                  const clFull = kpiQuery.data.details.find((d: any) => d.leaveType.code === "CL_FULL");
+                  const clFull = kpiQuery.data.details.find((d: any) => d.leaveType.code === "CL");
                   if (!clFull) return "0 Days";
                   const available = Number(clFull.allocated) + Number(clFull.carriedOver) - Number(clFull.used) - Number(clFull.pending);
                   return `${available} Days`;
@@ -198,7 +197,7 @@ export default function DashboardPanel() {
               </p>
               <p className="text-[10px] font-semibold text-slate-500 mt-1">
                 {isLoading ? "..." : (() => {
-                  const clFull = kpiQuery.data?.details.find((d: any) => d.leaveType.code === "CL_FULL");
+                  const clFull = kpiQuery.data?.details.find((d: any) => d.leaveType.code === "CL");
                   if (!clFull) return "Ready for time-off";
                   const yearly = Number(clFull.yearlyAllocated) || 0;
                   const currentAllocated = Number(clFull.allocated) || 0;
@@ -219,7 +218,13 @@ export default function DashboardPanel() {
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Half-Day Available</p>
               <p className={`text-xl font-bold mt-1 ${isLoading ? "text-slate-300" : "text-indigo-600"}`}>
-                {isLoading ? "..." : halfDayBalance ? `${halfDayBalance.available} Days` : "--"}
+                {isLoading ? "..." : (() => {
+                  if (!kpiQuery.data) return "--";
+                  const clHalf = kpiQuery.data.details.find((d: any) => d.leaveType.code === "CL_HALF");
+                  if (!clHalf) return "0 Days";
+                  const avail = Number(clHalf.allocated) + Number(clHalf.carriedOver) - Number(clHalf.used) - Number(clHalf.pending);
+                  return `${avail % 1 === 0 ? avail : avail.toFixed(1)} Days`;
+                })()}
               </p>
               <p className="text-[10px] font-semibold text-slate-500 mt-1">
                 {isLoading ? "..." : (() => {
@@ -250,7 +255,7 @@ export default function DashboardPanel() {
                   const opt = kpiQuery.data.details.find((d: any) => d.leaveType.code === "OPTIONAL");
                   if (!opt) return "0 Days";
                   const avail = Number(opt.allocated) + Number(opt.carriedOver) - Number(opt.used) - Number(opt.pending);
-                  return `${avail} Days`;
+                  return `${avail % 1 === 0 ? avail : avail.toFixed(1)} Days`;
                 })()}
               </p>
               <p className="text-[10px] font-semibold text-slate-500 mt-1">Available holidays</p>
@@ -267,7 +272,7 @@ export default function DashboardPanel() {
             <div>
               <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Pending Approval</p>
               <p className={`text-xl font-bold mt-1 ${isLoading ? "text-amber-300" : "text-amber-600"}`}>
-                {isLoading ? "..." : kpi ? `${kpi.pending} Days` : "--"}
+                {isLoading ? "..." : kpi ? `${kpi.pending % 1 === 0 ? kpi.pending : kpi.pending.toFixed(1)} Days` : "--"}
               </p>
               <p className="text-[10px] font-semibold text-amber-700/70 mt-1">Locks available balance</p>
             </div>
@@ -285,14 +290,14 @@ export default function DashboardPanel() {
               <div className="flex items-center gap-4 mt-1">
                 <div>
                   <p className={`text-xl font-bold ${isLoading ? "text-slate-300" : "text-emerald-600"}`}>
-                    {isLoading ? "..." : kpi ? `${kpi.usedPaid} Days` : "--"}
+                    {isLoading ? "..." : kpi ? `${kpi.usedPaid % 1 === 0 ? kpi.usedPaid : kpi.usedPaid.toFixed(1)} Days` : "--"}
                   </p>
                   <p className="text-[10px] font-semibold text-slate-500 mt-0.5">Paid Leave</p>
                 </div>
                 <div className="w-px h-8 bg-slate-200"></div>
                 <div>
                   <p className={`text-xl font-bold ${isLoading ? "text-slate-300" : "text-rose-600"}`}>
-                    {isLoading ? "..." : kpi ? `${kpi.usedUnpaid} Days` : "--"}
+                    {isLoading ? "..." : kpi ? `${kpi.usedUnpaid % 1 === 0 ? kpi.usedUnpaid : kpi.usedUnpaid.toFixed(1)} Days` : "--"}
                   </p>
                   <p className="text-[10px] font-semibold text-slate-500 mt-0.5">Unpaid Leave</p>
                 </div>
@@ -467,9 +472,9 @@ export default function DashboardPanel() {
                         <div className="flex items-center justify-between mb-1.5">
                           <p className="text-xs font-bold text-slate-800">{b.leaveType?.name}</p>
                           <div className="flex items-center gap-3 text-[10px] font-bold text-slate-500">
-                            <span className="text-emerald-600">{available} avail</span>
+                            <span className="text-emerald-600">{available % 1 === 0 ? available : available.toFixed(1)} avail</span>
                             <span className="text-slate-400">/</span>
-                            <span>{allocated} total</span>
+                            <span>{b.yearlyAllocated} total</span>
                           </div>
                         </div>
                         <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">

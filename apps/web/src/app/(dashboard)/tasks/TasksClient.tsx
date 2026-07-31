@@ -23,7 +23,7 @@ export function TasksClient({ mode = "INDIVIDUAL" }: TasksClientProps) {
   const [selectedProject, setSelectedProject] = useState<string>("MY_TASKS");
   const [activeTab, setActiveTab] = useState<"SUMMARY" | "LIST" | "BOARD" | "TEAM">("BOARD");
   const [loading, setLoading] = useState(true);
-  const [accessDenied, setAccessDenied] = useState(false);
+  const [accessDeniedError, setAccessDeniedError] = useState<string | null>(null);
   
   // For Modals
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -104,9 +104,9 @@ export function TasksClient({ mode = "INDIVIDUAL" }: TasksClientProps) {
           }
         }
       } catch (err: any) {
-        console.error(err);
+        console.error("TasksClient fetchInitialData error:", err);
         if (err?.response?.status === 403) {
-          setAccessDenied(true);
+          setAccessDeniedError(err.config?.url || "Unknown URL");
         }
       } finally {
         setLoading(false);
@@ -146,15 +146,22 @@ export function TasksClient({ mode = "INDIVIDUAL" }: TasksClientProps) {
     ? (globalFilter === "OPEN" ? "My open work items" : globalFilter === "DONE" ? "Done work items" : "All work items")
     : projects.find(p => p.id === selectedProject)?.name || "Workspace";
 
-  if (accessDenied) {
+  if (accessDeniedError) {
+    const isProjectSpecific = accessDeniedError.includes("/tasks/project/");
+    
     return (
       <div className="flex flex-col items-center justify-center h-full bg-slate-50 text-slate-500 space-y-4">
         <AlertCircle className="w-12 h-12 text-slate-400" />
         <h2 className="text-xl font-bold text-slate-700">Access Restricted</h2>
         <p className="text-sm max-w-md text-center">
-          The Tasks module is strictly reserved for the QA and Technical Departments. 
-          If you believe this is an error, please contact your administrator.
+          {isProjectSpecific 
+            ? "You do not have permission to view tasks for this specific project. You may have been released from it, or you are not a manager."
+            : "The Tasks module is strictly reserved for the QA and Technical Departments. If you believe this is an error, please contact your administrator."
+          }
         </p>
+        <div className="mt-4 p-4 bg-red-50 text-red-600 rounded text-xs break-all">
+          <strong>Debug Info:</strong> 403 Forbidden on <code>{accessDeniedError}</code>
+        </div>
       </div>
     );
   }

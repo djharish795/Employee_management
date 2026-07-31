@@ -29,6 +29,19 @@ export default function EmployeeProfilePage() {
     queryFn: async () => {
       try {
         const res = await apiClient.get(`/employees/${id}`);
+        // Helper to safely parse Prisma Decimal objects if they leak to the frontend
+        const parseDecimal = (val: any) => {
+          if (val === null || val === undefined) return 0;
+          if (typeof val === 'number') return val;
+          if (typeof val === 'string') return Number(val);
+          // Prisma Decimal object structure { d: [1, 5], e: 0, s: 1 }
+          if (typeof val === 'object' && val !== null && 'd' in val) {
+            const strVal = val.d.join('');
+            return val.s * Number(strVal) * Math.pow(10, val.e - strVal.length + 1);
+          }
+          return Number(val) || 0;
+        };
+
         const empData = res.data?.data || res.data;
 
         if (!empData || (!empData.id && !empData.employeeId)) {
@@ -107,16 +120,16 @@ export default function EmployeeProfilePage() {
           })),
           leaveBalances: (empData.leaveBalances || []).map((lb: any) => ({
             type: lb.leaveType?.name || "LEAVE",
-            allocated: Number(lb.allocated) || 0,
-            used: Number(lb.used) || 0,
-            available: (Number(lb.allocated) + Number(lb.carriedOver)) - Number(lb.used) || 0,
+            allocated: parseDecimal(lb.allocated),
+            used: parseDecimal(lb.used),
+            available: (parseDecimal(lb.allocated) + parseDecimal(lb.carriedOver)) - parseDecimal(lb.used) || 0,
           })),
           leaveRequests: (empData.leaveRequestsMade || []).map((lr: any) => ({
             id: lr.id,
             type: lr.leaveType?.name || "LEAVE",
             startDate: formatDate(lr.startDate),
             endDate: formatDate(lr.endDate),
-            days: Number(lr.totalDays) || 0,
+            days: parseDecimal(lr.totalDays),
             status: lr.status || "PENDING",
           })),
           assignedAssets: (empData.assetsHeld || []).map((ast: any) => ({
