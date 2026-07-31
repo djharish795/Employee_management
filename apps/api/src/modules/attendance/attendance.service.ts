@@ -517,22 +517,63 @@ export class AttendanceService {
     const startOfMonth = new Date(today);
     startOfMonth.setUTCDate(1);
 
-    // 1. Present Today
-    const todayRecord = await this.prisma.attendanceRecord.findUnique({
-      where: { employeeId_date: { employeeId, date: today } },
-    });
+    // Calculate Weekly Bounds (ISO Week: Mon-Sun)
+    const currentDayOfWeek = today.getUTCDay();
+    const daysSinceMonday = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1;
+    const startOfWeek = new Date(today);
+    startOfWeek.setUTCDate(today.getUTCDate() - daysSinceMonday);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setUTCDate(startOfWeek.getUTCDate() + 6);
+
+    // === DATABASE BATCH FETCH (Concurrent) ===
+    // Prevents database connection starvation during high traffic spikes
+    const [
+      todayRecord,
+      monthlyRecords,
+      holidaysAndLeaves,
+      weeklyRecords,
+      weeklyLeaves
+    ] = await Promise.all([
+      this.prisma.attendanceRecord.findUnique({
+        where: { employeeId_date: { employeeId, date: today } },
+      }),
+      this.prisma.attendanceRecord.findMany({
+        where: {
+          employeeId,
+          date: { gte: startOfMonth },
+          workHours: { not: null }
+        },
+        select: { workHours: true, status: true, overtime: true, isOvertimeApproved: true },
+      }),
+      this.prisma.attendanceRecord.count({
+        where: {
+          employeeId,
+          date: { gte: startOfMonth, lte: today },
+          status: { in: ["ON_LEAVE", "HOLIDAY"] }
+        }
+      }),
+      this.prisma.attendanceRecord.findMany({
+        where: {
+          employeeId,
+          date: { gte: startOfWeek, lte: endOfWeek }
+        },
+        orderBy: { date: "asc" }
+      }),
+      this.prisma.leaveRequest.findMany({
+        where: {
+          employeeId,
+          status: "APPROVED",
+          startDate: { lte: endOfWeek },
+          endDate: { gte: startOfWeek }
+        },
+        include: { leaveType: true }
+      })
+    ]);
+
+    // === 1. Present Today ===
     const presentToday = todayRecord && (PRESENT_STATUSES as readonly string[]).includes(todayRecord.status) ? 1 : 0;
 
-    // 2. Avg Work Hours this month
-    const monthlyRecords = await this.prisma.attendanceRecord.findMany({
-      where: {
-        employeeId,
-        date: { gte: startOfMonth },
-        workHours: { not: null }
-      },
-      select: { workHours: true, status: true, overtime: true, isOvertimeApproved: true },
-    });
-
+    // === 2. Avg Work Hours this month ===
     let totalHours = 0;
     let daysPresent = 0;
     let lateArrivals = 0;
@@ -555,7 +596,7 @@ export class AttendanceService {
 
     const avgHoursWorked = monthlyRecords.length > 0 ? (totalHours / monthlyRecords.length) : 0;
 
-    // 3. Attendance Rate (Exclude weekends, ON_LEAVE, HOLIDAY)
+    // === 3. Attendance Rate (Exclude weekends, ON_LEAVE, HOLIDAY) ===
     let workingDaysSoFar = 0;
     for (let d = new Date(startOfMonth); d <= today; d.setUTCDate(d.getUTCDate() + 1)) {
       const dayOfWeek = d.getUTCDay();
@@ -564,35 +605,12 @@ export class AttendanceService {
       }
     }
 
-    const holidaysAndLeaves = await this.prisma.attendanceRecord.count({
-      where: {
-        employeeId,
-        date: { gte: startOfMonth, lte: today },
-        status: { in: ["ON_LEAVE", "HOLIDAY"] }
-      }
-    });
-
     let totalWorkingDays = workingDaysSoFar - holidaysAndLeaves;
     if (totalWorkingDays <= 0) totalWorkingDays = 1; // Prevent division by zero
 
     const attendanceRate = Math.min(100, (daysPresent / totalWorkingDays) * 100);
 
-    // 4. Weekly Trends (ISO Week: Mon-Sun)
-    const currentDayOfWeek = today.getUTCDay();
-    const daysSinceMonday = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1;
-    const startOfWeek = new Date(today);
-    startOfWeek.setUTCDate(today.getUTCDate() - daysSinceMonday);
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setUTCDate(startOfWeek.getUTCDate() + 6);
-
-    const weeklyRecords = await this.prisma.attendanceRecord.findMany({
-      where: {
-        employeeId,
-        date: { gte: startOfWeek, lte: endOfWeek }
-      },
-      orderBy: { date: "asc" }
-    });
-
+    // === 4. Weekly Trends (ISO Week: Mon-Sun) ===
     const weeklyTrends = [];
     for (let d = new Date(startOfWeek); d <= endOfWeek; d.setUTCDate(d.getUTCDate() + 1)) {
       const isoDate = d.toISOString().split("T")[0];
@@ -609,16 +627,6 @@ export class AttendanceService {
 
     // Calculate this week hours
     const thisWeekHours = weeklyTrends.reduce((sum, day) => sum + day.hours, 0);
-    // Fetch leaves for the week
-    const weeklyLeaves = await this.prisma.leaveRequest.findMany({
-      where: {
-        employeeId,
-        status: "APPROVED",
-        startDate: { lte: endOfWeek },
-        endDate: { gte: startOfWeek }
-      },
-      include: { leaveType: true }
-    });
 
     // Chronological allocation of paid days
     const paidLeaveDates = new Set<string>();

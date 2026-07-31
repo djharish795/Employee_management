@@ -114,7 +114,7 @@ export class AttendanceCronService {
             state.overtimeOffset = overtimeOffset;
             await this.redis.setJson(key, state, 60 * 60 * 24);
 
-            this.inApp.broadcastEvent('attendance.punched', { employeeId, type: "OUT" });
+            this.inApp.emitToUser(employeeId, 'attendance.punched', { employeeId, type: "OUT" });
             
             // Notify user
             await this.prisma.notification.create({
