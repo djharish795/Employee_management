@@ -274,49 +274,69 @@ export class WorkflowEngineService {
   async processTimeouts() {
     this.logger.log("Checking for expired workflow steps...");
 
-    const pendingInstances = await this.prisma.workflowInstance.findMany({
-      where: { status: "PENDING" },
-      include: { workflow: true }
-    });
-
+    let lastId: string | undefined = undefined;
+    const CHUNK_SIZE = 500;
+    let hasMore = true;
+    let processedCount = 0;
     const now = new Date();
 
-    for (const instance of pendingInstances) {
-      const steps = instance.workflow.steps as any[];
-      const currentStep = steps[instance.currentStepIndex];
+    while (hasMore) {
+      const pendingInstances = await this.prisma.workflowInstance.findMany({
+        where: { 
+          status: "PENDING",
+          ...(lastId ? { id: { gt: lastId } } : {})
+        },
+        include: { workflow: true },
+        take: CHUNK_SIZE,
+        orderBy: { id: 'asc' }
+      });
 
-      if (!currentStep.timeoutHours) continue;
+      if (pendingInstances.length === 0) {
+        hasMore = false;
+        break;
+      }
+      
+      lastId = pendingInstances[pendingInstances.length - 1].id;
 
-      const lastUpdate = instance.updatedAt;
-      const hoursSinceUpdate = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
+      for (const instance of pendingInstances) {
+        const steps = instance.workflow.steps as any[];
+        const currentStep = steps[instance.currentStepIndex];
 
-      if (hoursSinceUpdate >= currentStep.timeoutHours) {
-        this.logger.log(`Workflow ${instance.id} step ${instance.currentStepIndex} timed out.`);
+        if (!currentStep.timeoutHours) continue;
 
-        if (currentStep.onTimeout === "AUTO_APPROVE") {
-          await this.processApproval(instance.id, "APPROVE", "SYSTEM", "Auto-approved due to timeout");
-        } else if (currentStep.onTimeout === "REJECT") {
-          await this.processApproval(instance.id, "REJECT", "SYSTEM", "Rejected due to timeout");
-        } else if (currentStep.onTimeout === "ESCALATE_HR") {
-          await this.auditService.createLog({
-            action: "WORKFLOW_ESCALATED",
-            actorId: "SYSTEM",
-            resource: "WorkflowInstance",
-            resourceId: instance.id,
-            newValue: { reason: "Timeout reached", escalatedTo: "HR" }
-          });
-          // Notify HR
-          const hrUsers = await this.prisma.user.findMany({
-            where: { role: RbacRoles.HR },
-            include: { employee: true }
-          });
-          const hrEmails = hrUsers.map(u => u.employee?.officialEmail).filter(Boolean);
-          if (hrEmails.length > 0) {
-            await this.emailService.sendEmail(hrEmails[0] as string, `Workflow Escalated: ${instance.resourceType}`, 'workflow_escalation', { workflowId: instance.id });
+        const lastUpdate = instance.updatedAt;
+        const hoursSinceUpdate = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
+
+        if (hoursSinceUpdate >= currentStep.timeoutHours) {
+          this.logger.log(`Workflow ${instance.id} step ${instance.currentStepIndex} timed out.`);
+
+          if (currentStep.onTimeout === "AUTO_APPROVE") {
+            await this.processApproval(instance.id, "APPROVE", "SYSTEM", "Auto-approved due to timeout");
+          } else if (currentStep.onTimeout === "REJECT") {
+            await this.processApproval(instance.id, "REJECT", "SYSTEM", "Rejected due to timeout");
+          } else if (currentStep.onTimeout === "ESCALATE_HR") {
+            await this.auditService.createLog({
+              action: "WORKFLOW_ESCALATED",
+              actorId: "SYSTEM",
+              resource: "WorkflowInstance",
+              resourceId: instance.id,
+              newValue: { reason: "Timeout reached", escalatedTo: "HR" }
+            });
+            // Notify HR
+            const hrUsers = await this.prisma.user.findMany({
+              where: { role: RbacRoles.HR },
+              include: { employee: true }
+            });
+            const hrEmails = hrUsers.map(u => u.employee?.officialEmail).filter(Boolean);
+            if (hrEmails.length > 0) {
+              await this.emailService.sendEmail(hrEmails[0] as string, `Workflow Escalated: ${instance.resourceType}`, 'workflow_escalation', { workflowId: instance.id });
+            }
           }
+          processedCount++;
         }
       }
     }
+    this.logger.log(`Timeout processing completed. Handled ${processedCount} expired workflows.`);
   }
 
   private async executeRejectionHook(instance: any, reason?: string) {

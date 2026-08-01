@@ -45,7 +45,13 @@ export class DocumentsService {
     }
 
     try {
-      const fileExtension = fileName.split(".").pop() || "bin";
+      const extensionMap: Record<string, string> = {
+        'application/pdf': 'pdf',
+        'image/jpeg': 'jpg',
+        'image/png': 'png',
+        'image/webp': 'webp'
+      };
+      const fileExtension = extensionMap[contentType];
       const objectKey = `onboarding/${uuidv4()}.${fileExtension}`;
 
       // Enforce file size (0 to 5MB) and exact content type
@@ -109,13 +115,61 @@ export class DocumentsService {
         });
 
         if (!isKnowledgeDoc) {
-          // Enforce IDOR check: Verify the objectKey exists somewhere in this user's profile
+          // Strict IDOR Check: Verify the objectKey is explicitly linked to authorized fields
+          let isAuthorized = false;
+
           const employee = await this.prisma.employee.findUnique({ where: { id: user.employeeId } });
           if (!employee) throw new ForbiddenException("Employee not found");
           
-          const profileStr = JSON.stringify(employee);
-          if (!profileStr.includes(objectKey)) {
-            // It might be in their assignments or requests
+          if (employee.photoUrl === objectKey || employee.digitalSignatureUrl === objectKey) {
+            isAuthorized = true;
+          }
+
+          if (!isAuthorized && employee.documents) {
+            try {
+              const docs = typeof employee.documents === 'string' ? JSON.parse(employee.documents) : employee.documents;
+              const searchJsonValues = (obj: any): boolean => {
+                if (typeof obj === 'string') return obj === objectKey;
+                if (typeof obj === 'object' && obj !== null) {
+                  return Object.values(obj).some(v => searchJsonValues(v));
+                }
+                return false;
+              };
+              if (searchJsonValues(docs)) isAuthorized = true;
+            } catch (e) {}
+          }
+
+          if (!isAuthorized) {
+            const fieldwork = await this.prisma.fieldWorkRequest.findFirst({
+              where: { employeeId: user.employeeId, objectKey }
+            });
+            if (fieldwork) isAuthorized = true;
+          }
+
+          if (!isAuthorized) {
+            const leave = await this.prisma.leaveRequest.findFirst({
+              where: { employeeId: user.employeeId, attachmentUrl: objectKey }
+            });
+            if (leave) isAuthorized = true;
+          }
+
+          if (!isAuthorized) {
+            const payslip = await this.prisma.payrollLineItem.findFirst({
+              where: { employeeId: user.employeeId, payslipUrl: objectKey }
+            });
+            if (payslip) isAuthorized = true;
+          }
+
+          // @ts-ignore - Catching dynamically generated Prisma models
+          if (!isAuthorized && this.prisma.reimbursement) {
+            // @ts-ignore
+            const reimbursement = await this.prisma.reimbursement.findFirst({
+              where: { employeeId: user.employeeId, receiptUrl: objectKey }
+            });
+            if (reimbursement) isAuthorized = true;
+          }
+
+          if (!isAuthorized) {
             throw new ForbiddenException("You are not authorized to view this document");
           }
         }
@@ -155,7 +209,13 @@ export class DocumentsService {
     }
 
     try {
-      const fileExtension = file.originalname.split(".").pop() || "bin";
+      const extensionMap: Record<string, string> = {
+        'application/pdf': 'pdf',
+        'image/jpeg': 'jpg',
+        'image/png': 'png',
+        'image/webp': 'webp'
+      };
+      const fileExtension = extensionMap[file.mimetype];
       const objectKey = `onboarding/${uuidv4()}.${fileExtension}`;
       let bufferToUpload = file.buffer;
 
