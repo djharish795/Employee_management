@@ -4,6 +4,8 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import { json, urlencoded } from "express";
 import { AppModule } from "./app.module";
+import { PayloadEncryptionInterceptor } from "./common/interceptors/payload-encryption.interceptor";
+import { PayloadDecryptionMiddleware } from "./common/middlewares/payload-decryption.middleware";
 
 // Prevent node process from crashing due to Redis / VPN drops
 process.on('uncaughtException', (err) => {
@@ -33,6 +35,11 @@ async function bootstrap() {
 
   app.use(json({ limit: '5mb' }));
   app.use(urlencoded({ extended: true, limit: '5mb' }));
+
+  const decryptionMiddleware = new PayloadDecryptionMiddleware();
+  app.use(decryptionMiddleware.use.bind(decryptionMiddleware));
+
+  app.useGlobalInterceptors(new PayloadEncryptionInterceptor());
 
   // EMS-SECURITY: Prevent browser cache stealing and framework profiling
   app.use(helmet({
