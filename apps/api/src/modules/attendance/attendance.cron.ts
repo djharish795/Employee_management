@@ -139,36 +139,61 @@ export class AttendanceCronService {
       const today = new Date();
       today.setUTCHours(0, 0, 0, 0);
 
-      const activeEmployees = await this.prisma.employee.findMany({ 
-        where: { status: 'ACTIVE' },
-        select: { id: true, user: { select: { role: true } } }
-      });
-      const approvedLeaves = await this.prisma.leaveRequest.findMany({
-        where: {
-          status: 'APPROVED',
-          isHalfDay: false,
-          startDate: { lte: today },
-          endDate: { gte: today }
-        }
-      });
-      
-      const leaveEmployeeIds = new Set(approvedLeaves.map(l => l.employeeId));
-
-      const todayRecords = await this.prisma.attendanceRecord.findMany({
+      const isHoliday = await this.prisma.companyHoliday.findFirst({
         where: { date: today }
       });
-      const punchedInEmployeeIds = new Set(todayRecords.map(r => r.employeeId));
+      const noShowStatus = isHoliday ? 'HOLIDAY' : 'ABSENT';
+      const noShowNotes = isHoliday ? 'System Auto-Mark: Company Holiday' : 'System Auto-Mark: No show';
 
-      const missingLeaveEmpIds = activeEmployees
-        .filter(emp => !punchedInEmployeeIds.has(emp.id) && leaveEmployeeIds.has(emp.id))
-        .map(emp => emp.id);
+      let lastId: string | undefined = undefined;
+      const CHUNK_SIZE = 500;
+      let hasMore = true;
+      let totalAbsent = 0;
+      let totalLeave = 0;
 
-      if (missingLeaveEmpIds.length > 0) {
-        const { chunkArray } = await import('../../common/constants/db-batch.constants');
-        const chunks = chunkArray(missingLeaveEmpIds);
+      while (hasMore) {
+        const batch = await this.prisma.employee.findMany({
+          where: { status: 'ACTIVE' },
+          select: { id: true, user: { select: { role: true } } },
+          take: CHUNK_SIZE,
+          skip: lastId ? 1 : 0,
+          cursor: lastId ? { id: lastId } : undefined,
+          orderBy: { id: 'asc' }
+        });
+
+        if (batch.length === 0) {
+          hasMore = false;
+          break;
+        }
         
-        for (const chunk of chunks) {
-          await Promise.all(chunk.map(empId => 
+        lastId = batch[batch.length - 1].id;
+        const batchIds = batch.map(e => e.id);
+
+        const approvedLeaves = await this.prisma.leaveRequest.findMany({
+          where: {
+            employeeId: { in: batchIds },
+            status: 'APPROVED',
+            isHalfDay: false,
+            startDate: { lte: today },
+            endDate: { gte: today }
+          }
+        });
+        const leaveEmployeeIds = new Set(approvedLeaves.map(l => l.employeeId));
+
+        const todayRecords = await this.prisma.attendanceRecord.findMany({
+          where: {
+            employeeId: { in: batchIds },
+            date: today
+          }
+        });
+        const punchedInEmployeeIds = new Set(todayRecords.map(r => r.employeeId));
+
+        const missingLeaveEmpIds = batch
+          .filter(emp => !punchedInEmployeeIds.has(emp.id) && leaveEmployeeIds.has(emp.id))
+          .map(emp => emp.id);
+
+        if (missingLeaveEmpIds.length > 0) {
+          await Promise.all(missingLeaveEmpIds.map(empId => 
             this.prisma.attendanceRecord.upsert({
               where: { employeeId_date: { employeeId: empId, date: today } },
               update: { status: 'ON_LEAVE' },
@@ -181,33 +206,19 @@ export class AttendanceCronService {
               }
             })
           ));
+          totalLeave += missingLeaveEmpIds.length;
         }
-      }
-      let markedLeaveCount = missingLeaveEmpIds.length;
 
-      this.logger.log(`Marked ${markedLeaveCount} employees as ON_LEAVE.`);
+        const noShowEmployees = batch.filter(emp => 
+          emp.user?.role !== 'CEO' && 
+          emp.user?.role !== 'CTO' && 
+          !punchedInEmployeeIds.has(emp.id) && 
+          !leaveEmployeeIds.has(emp.id)
+        );
 
-      // Handle ABSENT (No punches, no full-day leave) or HOLIDAY
-      const isHoliday = await this.prisma.companyHoliday.findFirst({
-        where: { date: today }
-      });
-      const noShowStatus = isHoliday ? 'HOLIDAY' : 'ABSENT';
-      const noShowNotes = isHoliday ? 'System Auto-Mark: Company Holiday' : 'System Auto-Mark: No show';
-
-      const noShowEmployees = activeEmployees.filter(emp => 
-        emp.user?.role !== 'CEO' && 
-        emp.user?.role !== 'CTO' && 
-        !punchedInEmployeeIds.has(emp.id) && 
-        !leaveEmployeeIds.has(emp.id)
-      );
-
-      if (noShowEmployees.length > 0) {
-        const absentIds = noShowEmployees.map(e => e.id);
-        const { chunkArray } = await import('../../common/constants/db-batch.constants');
-        const chunks = chunkArray(absentIds);
-        
-        for (const chunk of chunks) {
-          await Promise.all(chunk.map(empId => 
+        if (noShowEmployees.length > 0) {
+          const absentIds = noShowEmployees.map(e => e.id);
+          await Promise.all(absentIds.map(empId => 
             this.prisma.attendanceRecord.upsert({
               where: { employeeId_date: { employeeId: empId, date: today } },
               update: { status: noShowStatus as any },
@@ -221,19 +232,35 @@ export class AttendanceCronService {
               }
             })
           ));
+          totalAbsent += absentIds.length;
         }
-        this.logger.log(`Marked ${absentIds.length} employees as ABSENT.`);
       }
 
-      const openRecords = await this.prisma.attendanceRecord.findMany({
-        where: { checkInTime: { not: null }, checkOutTime: null, date: today }
-      });
+      this.logger.log(`Marked ${totalLeave} employees as ON_LEAVE.`);
+      this.logger.log(`Marked ${totalAbsent} employees as ABSENT.`);
 
-      const { chunkArray } = await import('../../common/constants/db-batch.constants');
-      const recordChunks = chunkArray(openRecords);
+      // Auto-Checkout Open Records
+      let lastRecordId: string | undefined = undefined;
+      let hasMoreRecords = true;
+      let totalCheckedOut = 0;
 
-      for (const chunk of recordChunks) {
-        await Promise.all(chunk.map(async (record) => {
+      while (hasMoreRecords) {
+        const recordBatch = await this.prisma.attendanceRecord.findMany({
+          where: { checkInTime: { not: null }, checkOutTime: null, date: today },
+          take: CHUNK_SIZE,
+          skip: lastRecordId ? 1 : 0,
+          cursor: lastRecordId ? { id: lastRecordId } : undefined,
+          orderBy: { id: 'asc' }
+        });
+
+        if (recordBatch.length === 0) {
+          hasMoreRecords = false;
+          break;
+        }
+
+        lastRecordId = recordBatch[recordBatch.length - 1].id;
+
+        await Promise.all(recordBatch.map(async (record) => {
           const midnight = new Date(record.date);
           midnight.setUTCHours(23, 59, 59, 999);
           const checkInTime = record.checkInTime!.getTime();
@@ -253,8 +280,9 @@ export class AttendanceCronService {
           const redisKey = `attendance_state:${record.employeeId}`;
           await this.redis.del(redisKey);
         }));
+        totalCheckedOut += recordBatch.length;
       }
-      this.logger.log(`Auto-checked out ${openRecords.length} employees.`);
+      this.logger.log(`Auto-checked out ${totalCheckedOut} employees.`);
       this.logger.log("Midnight job completed.");
     } catch (error) {
       this.logger.error("Failed to run midnight job", error);

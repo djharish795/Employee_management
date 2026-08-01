@@ -10,7 +10,7 @@ import { PayloadDecryptionMiddleware } from "./common/middlewares/payload-decryp
 // Prevent node process from crashing due to Redis / VPN drops
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
-  process.exit(1);
+  // Removing process.exit(1) allows the server to survive momentary network drops
 });
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
