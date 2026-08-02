@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { getMasterAdminToken, clearMasterAdminToken } from '@/components/master-admin/MasterAdminEntryPoint';
 import { 
   Activity, Database, ShieldAlert, Users, 
-  TerminalSquare, Shield, AlertTriangle, MonitorPlay, History, Smartphone,
+  SquareTerminal, Shield, AlertTriangle, Monitor, History, Smartphone,
   CheckCircle2, Key, Unlock, Lock, UserX, Search, X
 } from 'lucide-react';
 import { PremiumCard } from '@/components/shared/premium-dashboard'; // if it exists, otherwise just raw tailwind
@@ -264,13 +264,15 @@ function ObservatoryContent() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <TerminalSquare className="w-7 h-7 text-red-500" />
+            <SquareTerminal className="w-7 h-7 text-red-500" />
             {activeTab === 'live' && 'Live Telemetry'}
             {activeTab === 'analytics' && 'Historical Analytics & Traffic'}
             {activeTab === 'anomalies' && 'Anomaly Radar'}
             {activeTab === 'audit' && 'Deep Audit Logs'}
             {activeTab === 'crewbase' && 'Crewbase Core Control'}
             {activeTab === 'security' && 'Security Operations Center'}
+            {activeTab === 'health' && 'System Health Radar'}
+            {activeTab === 'tracer' && 'Global Network Tracer'}
           </h1>
           <p className="text-sm text-slate-500 mt-1">Master Administrator God-Mode Interface</p>
         </div>
@@ -462,7 +464,7 @@ function ObservatoryContent() {
                 return name.includes(search) || email.includes(search) || ip.includes(search) || page.includes(search);
               }).length === 0 ? (
                 <div className="text-center py-16 text-slate-500 flex flex-col items-center">
-                  <MonitorPlay className="w-12 h-12 mb-4 text-slate-300" />
+                  <Monitor className="w-12 h-12 mb-4 text-slate-300" />
                   <p>No telemetry streams match your filters or no employees are active.</p>
                 </div>
               ) : (
@@ -538,7 +540,7 @@ function ObservatoryContent() {
                             {/* Device Box */}
                             <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-100 dark:border-slate-800">
                               <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                                <MonitorPlay className="w-3 h-3" /> System Environment
+                                <Monitor className="w-3 h-3" /> System Environment
                               </div>
                               <div className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">
                                 {u.deviceData?.hardwareStr || `${u.deviceData?.browser || 'Unknown'} on ${u.deviceData?.os || 'Unknown OS'}`}
@@ -552,7 +554,7 @@ function ObservatoryContent() {
                             <div className="col-span-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-100 dark:border-slate-800 flex items-center justify-between">
                               <div>
                                 <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                                  <TerminalSquare className="w-3 h-3" /> Current Module Context
+                                  <SquareTerminal className="w-3 h-3" /> Current Module Context
                                 </div>
                                 <div className="text-sm font-medium text-slate-900 dark:text-white truncate max-w-[200px] sm:max-w-xs">
                                   {u.page || '/'}
@@ -913,6 +915,36 @@ function ObservatoryContent() {
               ))}
             </div>
           )}
+
+
+          {/* NETWORK TRACER TAB */}
+          {activeTab === 'tracer' && (
+            <div className="overflow-x-auto bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 border-b border-slate-200 dark:border-slate-800">
+                  <tr>
+                    <th className="px-6 py-4 font-semibold uppercase text-[11px] tracking-wider">Time</th>
+                    <th className="px-6 py-4 font-semibold uppercase text-[11px] tracking-wider">Method</th>
+                    <th className="px-6 py-4 font-semibold uppercase text-[11px] tracking-wider">Endpoint</th>
+                    <th className="px-6 py-4 font-semibold uppercase text-[11px] tracking-wider">Duration</th>
+                    <th className="px-6 py-4 font-semibold uppercase text-[11px] tracking-wider">IP</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                  {networkTraces.length === 0 && <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-500">No traces captured yet. Waiting for traffic...</td></tr>}
+                  {networkTraces.map((trace, i) => (
+                    <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
+                      <td className="px-6 py-4 font-mono text-xs text-slate-500">{new Date(trace.timestamp).toLocaleTimeString()}</td>
+                      <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">{trace.method}</td>
+                      <td className="px-6 py-4 font-mono text-indigo-600 dark:text-indigo-400 text-xs">{trace.url}</td>
+                      <td className="px-6 py-4 text-xs font-mono">{trace.duration}ms</td>
+                      <td className="px-6 py-4 font-mono text-xs text-slate-500">{trace.ip}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
           
         </div>
       )}
@@ -942,7 +974,7 @@ function ObservatoryContent() {
                       onClick={() => setKillSwitchAction({ userId: selectedEmployeeForDive.user.id, action: 'HIJACK_REDIRECT', title: 'Force Redirect Browser', endpoint: `/hijack/${selectedEmployeeForDive.id}`, method: 'POST', body: { type: 'REDIRECT', url: '/master-auth' } })}
                       className="px-3 py-1.5 text-xs font-bold bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg shadow-sm flex items-center gap-1 transition-colors"
                     >
-                      <TerminalSquare className="w-3 h-3" /> Redirect
+                      <SquareTerminal className="w-3 h-3" /> Redirect
                     </button>
                     <button 
                       onClick={() => setKillSwitchAction({ userId: selectedEmployeeForDive.user.id, action: 'HIJACK_LOCKOUT', title: 'Remote Screen Lockout', endpoint: `/hijack/${selectedEmployeeForDive.id}`, method: 'POST', body: { type: 'LOCKOUT' } })}
@@ -992,7 +1024,7 @@ function ObservatoryContent() {
                     <div key={i} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
                       
                       <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white dark:border-slate-900 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
-                        {item.action === 'VIEW' ? <MonitorPlay className="w-4 h-4" /> : <Activity className="w-4 h-4" />}
+                        {item.action === 'VIEW' ? <Monitor className="w-4 h-4" /> : <Activity className="w-4 h-4" />}
                       </div>
                       
                       <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
