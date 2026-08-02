@@ -33,7 +33,7 @@ export class AttendanceService {
     const parts = formatter.formatToParts(now);
     const dateObj: any = {};
     for (const part of parts) dateObj[part.type] = part.value;
-    
+
     // Create a pseudo-UTC date locked to the Indian calendar date to fix .getUTCDay() KPI loops
     const isoString = `${dateObj.year}-${dateObj.month}-${dateObj.day}T00:00:00.000Z`;
     return new Date(isoString);
@@ -111,11 +111,11 @@ export class AttendanceService {
 
         await this.redis.setJson(key, state, 60 * 60 * 24);
       } else if (dbRecord && dbRecord.checkOutTime) {
-        state = { 
-          state: "OUT", 
-          startTime: dbRecord.checkOutTime.getTime(), 
-          offset: dbRecord.workHours ? Math.round(Number(dbRecord.workHours) * 3600) : 0, 
-          shiftDate: dbRecord.date.toISOString() 
+        state = {
+          state: "OUT",
+          startTime: dbRecord.checkOutTime.getTime(),
+          offset: dbRecord.workHours ? Math.round(Number(dbRecord.workHours) * 3600) : 0,
+          shiftDate: dbRecord.date.toISOString()
         };
         await this.redis.setJson(key, state, 60 * 60 * 24);
       } else {
@@ -165,211 +165,151 @@ export class AttendanceService {
     try {
       const key = this.getRedisKey(employeeId);
       let state = await this.getState(employeeId);
-    const now = Date.now();
-    const today = this.getTodayShiftDate();
+      const now = Date.now();
+      const today = this.getTodayShiftDate();
 
-    if (dto.action === "IN") {
-      if (state.state === "IN") throw new BadRequestException("Already punched in");
+      if (dto.action === "IN") {
+        if (state.state === "IN") throw new BadRequestException("Already punched in");
 
-      const istTime = toZonedTime(now, 'Asia/Kolkata');
-      if (istTime.getHours() < 10) {
-        throw new BadRequestException("Check-in is not allowed before 10:00 AM.");
-      }
-
-      const overlappingLeave = await this.prisma.leaveRequest.findFirst({
-        where: {
-          employeeId,
-          startDate: { lte: today },
-          endDate: { gte: today },
-          status: 'APPROVED',
-          isHalfDay: false
-        }
-      });
-
-      if (overlappingLeave) {
-        throw new BadRequestException("Cannot check in on an approved full-day leave.");
-      }
-
-      const isFirstPunch = state.state === "OUT" && state.offset === 0;
-
-      // Persist active shift date context to survive midnight crossovers
-      if (isFirstPunch || !state.shiftDate) {
-        state.shiftDate = today.toISOString();
-      }
-
-      const shiftDate = new Date(state.shiftDate);
-
-      const isReturnFromBreak = state.state === "BREAK";
-      if (isReturnFromBreak) {
-        const breakElapsed = Math.floor((now - state.startTime) / 1000);
-        
-        // Add break time to work hours (client rule: breaks are paid/included)
-        const shiftDateObj = state.shiftDate ? new Date(state.shiftDate) : today;
-        const boundaryTime = new Date(shiftDateObj);
-        boundaryTime.setUTCHours(13, 30, 0, 0); // 19:00 IST
-        const boundary = boundaryTime.getTime();
-
-        let regularSeconds = 0;
-        let overtimeSeconds = 0;
-
-        if (state.startTime >= boundary) {
-          overtimeSeconds = breakElapsed;
-        } else if (now <= boundary) {
-          regularSeconds = breakElapsed;
-        } else {
-          regularSeconds = Math.floor((boundary - state.startTime) / 1000);
-          overtimeSeconds = Math.floor((now - boundary) / 1000);
+        const istTime = toZonedTime(now, 'Asia/Kolkata');
+        if (istTime.getHours() < 10) {
+          throw new BadRequestException("Check-in is not allowed before 10:00 AM.");
         }
 
-        state.offset = (state.offset || 0) + regularSeconds;
-        state.overtimeOffset = (state.overtimeOffset || 0) + overtimeSeconds;
-
-        const record = await this.prisma.attendanceRecord.findUnique({
-          where: { employeeId_date: { employeeId, date: shiftDate } }
-        });
-
-        let breakHistory: any[] = parseBreakHistory(record ? (record as any).breakHistory : null);
-
-        if (breakHistory.length > 0 && breakHistory[breakHistory.length - 1].end === null) {
-          breakHistory[breakHistory.length - 1].end = new Date(now).toISOString();
-        } else {
-          breakHistory.push({ start: new Date(state.startTime).toISOString(), end: new Date(now).toISOString() });
-        }
-
-        await this.prisma.attendanceRecord.updateMany({
-          where: { employeeId, date: shiftDate, currentBreakStartTime: { not: null } },
-          data: {
-            totalBreakSeconds: { increment: breakElapsed },
-            currentBreakStartTime: null,
-            breakHistory: breakHistory as any
-          } as any
-        });
-      }
-
-      state.state = "IN";
-      state.startTime = now;
-      await this.redis.setJson(key, state, 60 * 60 * 24); // 24 hours
-
-      let initialStatus = "PRESENT";
-      if (isFirstPunch) {
-        const checkInTime = new Date(now);
-        if (isLateArrival(checkInTime)) {
-          initialStatus = "LATE";
-        }
-      }
-
-      if (isFirstPunch) {
-        // Upsert first punch. Update block explicitly omits checkInTime to prevent overwriting
-        // original checkIn on subsequent Redis-flushed false first punches.
-        await this.prisma.attendanceRecord.upsert({
-          where: { employeeId_date: { employeeId, date: shiftDate } },
-          update: { status: initialStatus as any, checkInIp: ipAddress },
-          create: {
+        const overlappingLeave = await this.prisma.leaveRequest.findFirst({
+          where: {
             employeeId,
-            date: shiftDate,
-            checkInTime: new Date(now),
-            status: initialStatus as any,
-            isRegularized: false,
-            checkInIp: ipAddress,
-            workHours: 0,
-            punchHistory: [{ action: "IN", time: new Date(now).toISOString() }] as any,
-          } as any,
+            startDate: { lte: today },
+            endDate: { gte: today },
+            status: 'APPROVED',
+            isHalfDay: false
+          }
         });
-      } else {
-        await this.prisma.$transaction(async (tx) => {
-          const lockedRecords = await tx.$queryRaw<any[]>`
+
+        if (overlappingLeave) {
+          throw new BadRequestException("Cannot check in on an approved full-day leave.");
+        }
+
+        const isFirstPunch = state.state === "OUT" && state.offset === 0;
+
+        // Persist active shift date context to survive midnight crossovers
+        if (isFirstPunch || !state.shiftDate) {
+          state.shiftDate = today.toISOString();
+        }
+
+        const shiftDate = new Date(state.shiftDate);
+
+        const isReturnFromBreak = state.state === "BREAK";
+        if (isReturnFromBreak) {
+          const breakElapsed = Math.floor((now - state.startTime) / 1000);
+
+          // Add break time to work hours (client rule: breaks are paid/included)
+          const shiftDateObj = state.shiftDate ? new Date(state.shiftDate) : today;
+          const boundaryTime = new Date(shiftDateObj);
+          boundaryTime.setUTCHours(13, 30, 0, 0); // 19:00 IST
+          const boundary = boundaryTime.getTime();
+
+          let regularSeconds = 0;
+          let overtimeSeconds = 0;
+
+          if (state.startTime >= boundary) {
+            overtimeSeconds = breakElapsed;
+          } else if (now <= boundary) {
+            regularSeconds = breakElapsed;
+          } else {
+            regularSeconds = Math.floor((boundary - state.startTime) / 1000);
+            overtimeSeconds = Math.floor((now - boundary) / 1000);
+          }
+
+          state.offset = (state.offset || 0) + regularSeconds;
+          state.overtimeOffset = (state.overtimeOffset || 0) + overtimeSeconds;
+
+          const record = await this.prisma.attendanceRecord.findUnique({
+            where: { employeeId_date: { employeeId, date: shiftDate } }
+          });
+
+          let breakHistory: any[] = parseBreakHistory(record ? (record as any).breakHistory : null);
+
+          if (breakHistory.length > 0 && breakHistory[breakHistory.length - 1].end === null) {
+            breakHistory[breakHistory.length - 1].end = new Date(now).toISOString();
+          } else {
+            breakHistory.push({ start: new Date(state.startTime).toISOString(), end: new Date(now).toISOString() });
+          }
+
+          await this.prisma.attendanceRecord.updateMany({
+            where: { employeeId, date: shiftDate, currentBreakStartTime: { not: null } },
+            data: {
+              totalBreakSeconds: { increment: breakElapsed },
+              currentBreakStartTime: null,
+              breakHistory: breakHistory as any
+            } as any
+          });
+        }
+
+        state.state = "IN";
+        state.startTime = now;
+        await this.redis.setJson(key, state, 60 * 60 * 24); // 24 hours
+
+        let initialStatus = "PRESENT";
+        if (isFirstPunch) {
+          const checkInTime = new Date(now);
+          if (isLateArrival(checkInTime)) {
+            initialStatus = "LATE";
+          }
+        }
+
+        if (isFirstPunch) {
+          // Upsert first punch. Update block explicitly omits checkInTime to prevent overwriting
+          // original checkIn on subsequent Redis-flushed false first punches.
+          await this.prisma.attendanceRecord.upsert({
+            where: { employeeId_date: { employeeId, date: shiftDate } },
+            update: { status: initialStatus as any, checkInIp: ipAddress },
+            create: {
+              employeeId,
+              date: shiftDate,
+              checkInTime: new Date(now),
+              status: initialStatus as any,
+              isRegularized: false,
+              checkInIp: ipAddress,
+              workHours: 0,
+              punchHistory: [{ action: "IN", time: new Date(now).toISOString() }] as any,
+            } as any,
+          });
+        } else {
+          await this.prisma.$transaction(async (tx) => {
+            const lockedRecords = await tx.$queryRaw<any[]>`
             SELECT "punchHistory" 
             FROM "attendance_records" 
             WHERE "employeeId" = ${employeeId} 
               AND "date" = ${shiftDate}::date
             FOR UPDATE
           `;
-          
-          if (lockedRecords.length === 0) return;
-          
-          const ph = lockedRecords[0].punchHistory ? (lockedRecords[0].punchHistory as any[]) : [];
-          ph.push({ action: "IN", time: new Date(now).toISOString() });
-          
-          await tx.attendanceRecord.update({
-            where: { employeeId_date: { employeeId, date: shiftDate } },
-            data: { 
-              punchHistory: ph as any,
-              checkOutTime: null
-            } as any
+
+            if (lockedRecords.length === 0) return;
+
+            const ph = lockedRecords[0].punchHistory ? (lockedRecords[0].punchHistory as any[]) : [];
+            ph.push({ action: "IN", time: new Date(now).toISOString() });
+
+            await tx.attendanceRecord.update({
+              where: { employeeId_date: { employeeId, date: shiftDate } },
+              data: {
+                punchHistory: ph as any,
+                checkOutTime: null
+              } as any
+            });
           });
-        });
+        }
+
+        this.inApp.emitToUser(employeeId, 'attendance.punched', { employeeId, type: dto.action });
+        return state;
       }
 
-      this.inApp.emitToUser(employeeId, 'attendance.punched', { employeeId, type: dto.action });
-      return state;
-    }
+      if (dto.action === "BREAK") {
+        if (state.state !== "IN") throw new BadRequestException("Must be punched in to take a break");
+        if (now - state.startTime < 60000) throw new BadRequestException("Please wait at least a minute between punches");
 
-    if (dto.action === "BREAK") {
-      if (state.state !== "IN") throw new BadRequestException("Must be punched in to take a break");
-      if (now - state.startTime < 60000) throw new BadRequestException("Please wait at least a minute between punches");
-
-      const elapsed = Math.floor((now - state.startTime) / 1000);
-      
-      const shiftDateObj = state.shiftDate ? new Date(state.shiftDate) : today;
-      const boundaryTime = new Date(shiftDateObj);
-      boundaryTime.setUTCHours(13, 30, 0, 0); // 19:00 IST
-      const boundary = boundaryTime.getTime();
-
-      let regularSeconds = 0;
-      let overtimeSeconds = 0;
-
-      if (state.startTime >= boundary) {
-        overtimeSeconds = elapsed;
-      } else if (now <= boundary) {
-        regularSeconds = elapsed;
-      } else {
-        regularSeconds = Math.floor((boundary - state.startTime) / 1000);
-        overtimeSeconds = Math.floor((now - boundary) / 1000);
-      }
-
-      state.offset = (state.offset || 0) + regularSeconds;
-      state.overtimeOffset = (state.overtimeOffset || 0) + overtimeSeconds;
-
-      state.state = "BREAK";
-      state.startTime = now;
-      await this.redis.setJson(key, state, 60 * 60 * 24);
-
-      const shiftDate = state.shiftDate ? new Date(state.shiftDate) : today;
-
-      await this.prisma.$transaction(async (tx) => {
-        const lockedRecords = await tx.$queryRaw<any[]>`
-          SELECT "breakHistory", "punchHistory" 
-          FROM "attendance_records" 
-          WHERE "employeeId" = ${employeeId} 
-            AND "date" = ${shiftDate}::date
-          FOR UPDATE
-        `;
-
-        if (lockedRecords.length === 0) return;
-
-        let breakHistory: any[] = parseBreakHistory(lockedRecords[0].breakHistory);
-        breakHistory.push({ start: new Date(now).toISOString(), end: null });
-
-        let punchHistory = lockedRecords[0].punchHistory ? (lockedRecords[0].punchHistory as any[]) : [];
-        punchHistory.push({ action: "BREAK", time: new Date(now).toISOString() });
-
-        await tx.attendanceRecord.updateMany({
-          where: { employeeId, date: shiftDate, currentBreakStartTime: null },
-          data: { currentBreakStartTime: new Date(now), breakHistory: breakHistory as any, punchHistory: punchHistory as any } as any
-        });
-      });
-
-      this.inApp.emitToUser(employeeId, 'attendance.punched', { employeeId, type: dto.action });
-      return state;
-    }
-
-    if (dto.action === "OUT") {
-      if (state.state === "OUT") throw new BadRequestException("Already punched out");
-      if (now - state.startTime < 60000) throw new BadRequestException("Please wait at least a minute between punches");
-
-      if (state.state === "IN" || state.state === "BREAK") {
         const elapsed = Math.floor((now - state.startTime) / 1000);
-        
+
         const shiftDateObj = state.shiftDate ? new Date(state.shiftDate) : today;
         const boundaryTime = new Date(shiftDateObj);
         boundaryTime.setUTCHours(13, 30, 0, 0); // 19:00 IST
@@ -389,16 +329,76 @@ export class AttendanceService {
 
         state.offset = (state.offset || 0) + regularSeconds;
         state.overtimeOffset = (state.overtimeOffset || 0) + overtimeSeconds;
+
+        state.state = "BREAK";
+        state.startTime = now;
+        await this.redis.setJson(key, state, 60 * 60 * 24);
+
+        const shiftDate = state.shiftDate ? new Date(state.shiftDate) : today;
+
+        await this.prisma.$transaction(async (tx) => {
+          const lockedRecords = await tx.$queryRaw<any[]>`
+          SELECT "breakHistory", "punchHistory" 
+          FROM "attendance_records" 
+          WHERE "employeeId" = ${employeeId} 
+            AND "date" = ${shiftDate}::date
+          FOR UPDATE
+        `;
+
+          if (lockedRecords.length === 0) return;
+
+          let breakHistory: any[] = parseBreakHistory(lockedRecords[0].breakHistory);
+          breakHistory.push({ start: new Date(now).toISOString(), end: null });
+
+          let punchHistory = lockedRecords[0].punchHistory ? (lockedRecords[0].punchHistory as any[]) : [];
+          punchHistory.push({ action: "BREAK", time: new Date(now).toISOString() });
+
+          await tx.attendanceRecord.updateMany({
+            where: { employeeId, date: shiftDate, currentBreakStartTime: null },
+            data: { currentBreakStartTime: new Date(now), breakHistory: breakHistory as any, punchHistory: punchHistory as any } as any
+          });
+        });
+
+        this.inApp.emitToUser(employeeId, 'attendance.punched', { employeeId, type: dto.action });
+        return state;
       }
 
-      const shiftDate = state.shiftDate ? new Date(state.shiftDate) : today;
+      if (dto.action === "OUT") {
+        if (state.state === "OUT") throw new BadRequestException("Already punched out");
+        if (now - state.startTime < 60000) throw new BadRequestException("Please wait at least a minute between punches");
 
-      state.state = "OUT";
-      state.startTime = now;
-      await this.redis.setJson(key, state, 60 * 60 * 24);
+        if (state.state === "IN" || state.state === "BREAK") {
+          const elapsed = Math.floor((now - state.startTime) / 1000);
 
-      await this.prisma.$transaction(async (tx) => {
-        const lockedRecords = await tx.$queryRaw<any[]>`
+          const shiftDateObj = state.shiftDate ? new Date(state.shiftDate) : today;
+          const boundaryTime = new Date(shiftDateObj);
+          boundaryTime.setUTCHours(13, 30, 0, 0); // 19:00 IST
+          const boundary = boundaryTime.getTime();
+
+          let regularSeconds = 0;
+          let overtimeSeconds = 0;
+
+          if (state.startTime >= boundary) {
+            overtimeSeconds = elapsed;
+          } else if (now <= boundary) {
+            regularSeconds = elapsed;
+          } else {
+            regularSeconds = Math.floor((boundary - state.startTime) / 1000);
+            overtimeSeconds = Math.floor((now - boundary) / 1000);
+          }
+
+          state.offset = (state.offset || 0) + regularSeconds;
+          state.overtimeOffset = (state.overtimeOffset || 0) + overtimeSeconds;
+        }
+
+        const shiftDate = state.shiftDate ? new Date(state.shiftDate) : today;
+
+        state.state = "OUT";
+        state.startTime = now;
+        await this.redis.setJson(key, state, 60 * 60 * 24);
+
+        await this.prisma.$transaction(async (tx) => {
+          const lockedRecords = await tx.$queryRaw<any[]>`
           SELECT "punchHistory", "status", "checkInTime"
           FROM "attendance_records" 
           WHERE "employeeId" = ${employeeId} 
@@ -406,67 +406,67 @@ export class AttendanceService {
           FOR UPDATE
         `;
 
-        const existingRecord = lockedRecords.length > 0 ? lockedRecords[0] : null;
-        
-        const checkInTime = existingRecord?.checkInTime || new Date(state.startTime);
-        const isLate = isLateArrival(checkInTime);
+          const existingRecord = lockedRecords.length > 0 ? lockedRecords[0] : null;
 
-        let workHoursDecimal = (state.offset || 0) / 3600;
+          const checkInTime = existingRecord?.checkInTime || new Date(state.startTime);
+          const isLate = isLateArrival(checkInTime);
 
-        const approvedHalfDay = await tx.leaveRequest.findFirst({
-          where: {
-            employeeId,
-            startDate: { lte: shiftDate },
-            endDate: { gte: shiftDate },
-            status: 'APPROVED',
-            isHalfDay: true
+          let workHoursDecimal = (state.offset || 0) / 3600;
+
+          const approvedHalfDay = await tx.leaveRequest.findFirst({
+            where: {
+              employeeId,
+              startDate: { lte: shiftDate },
+              endDate: { gte: shiftDate },
+              status: 'APPROVED',
+              isHalfDay: true
+            }
+          });
+
+          const thresholdSeconds = approvedHalfDay ? 16200 : 32400; // 4.5 hours or 9 hours
+
+          let finalStatus = existingRecord?.status === "WFH" ? "WFH" : "PRESENT";
+
+          if (state.offset < thresholdSeconds && finalStatus !== "WFH") {
+            finalStatus = "EARLY_CHECKOUT";
+          } else if (isLate && !approvedHalfDay && finalStatus !== "WFH") {
+            finalStatus = "LATE";
           }
+
+          let overtimeDecimal = (state.overtimeOffset || 0) / 3600;
+
+          let punchHistory = existingRecord?.punchHistory ? (existingRecord.punchHistory as any[]) : [];
+          punchHistory.push({ action: "OUT", time: new Date(now).toISOString() });
+
+          await tx.attendanceRecord.upsert({
+            where: { employeeId_date: { employeeId, date: shiftDate } },
+            update: {
+              checkOutTime: new Date(now),
+              workHours: workHoursDecimal,
+              status: finalStatus as any,
+              overtime: overtimeDecimal,
+              punchHistory: punchHistory as any,
+            } as any,
+            create: {
+              employeeId,
+              date: shiftDate,
+              checkInTime: new Date(state.startTime),
+              checkOutTime: new Date(now),
+              status: finalStatus as any,
+              isRegularized: false,
+              workHours: workHoursDecimal,
+              overtime: overtimeDecimal,
+              punchHistory: punchHistory as any,
+            } as any
+          }).catch(err => {
+            this.logger.error(`Check-out upsert failed for employee ${employeeId}:`, err.stack || err);
+          });
         });
 
-        const thresholdSeconds = approvedHalfDay ? 16200 : 32400; // 4.5 hours or 9 hours
+        return state;
+      }
 
-        let finalStatus = existingRecord?.status === "WFH" ? "WFH" : "PRESENT";
-        
-        if (state.offset < thresholdSeconds && finalStatus !== "WFH") {
-          finalStatus = "EARLY_CHECKOUT";
-        } else if (isLate && !approvedHalfDay && finalStatus !== "WFH") {
-          finalStatus = "LATE";
-        }
-
-        let overtimeDecimal = (state.overtimeOffset || 0) / 3600;
-
-        let punchHistory = existingRecord?.punchHistory ? (existingRecord.punchHistory as any[]) : [];
-        punchHistory.push({ action: "OUT", time: new Date(now).toISOString() });
-
-        await tx.attendanceRecord.upsert({
-          where: { employeeId_date: { employeeId, date: shiftDate } },
-          update: {
-            checkOutTime: new Date(now),
-            workHours: workHoursDecimal,
-            status: finalStatus as any,
-            overtime: overtimeDecimal,
-            punchHistory: punchHistory as any,
-          } as any,
-          create: {
-            employeeId,
-            date: shiftDate,
-            checkInTime: new Date(state.startTime),
-            checkOutTime: new Date(now),
-            status: finalStatus as any,
-            isRegularized: false,
-            workHours: workHoursDecimal,
-            overtime: overtimeDecimal,
-            punchHistory: punchHistory as any,
-          } as any
-        }).catch(err => {
-          this.logger.error(`Check-out upsert failed for employee ${employeeId}:`, err.stack || err);
-        });
-      });
-
-      return state;
-    }
-
-    throw new BadRequestException("Invalid action");
+      throw new BadRequestException("Invalid action");
     } catch (e) {
       if (dto.idempotencyKey) {
         await this.redis.del(`punch_lock:${employeeId}:${dto.idempotencyKey}`);
@@ -583,7 +583,7 @@ export class AttendanceService {
       if (record.workHours) {
         totalHours += Number(record.workHours);
         if (record.isOvertimeApproved && record.overtime) {
-           totalHours += Number(record.overtime);
+          totalHours += Number(record.overtime);
         }
       }
       const statusStr = record.status as string;
@@ -634,25 +634,25 @@ export class AttendanceService {
 
     for (const l of weeklyLeaves) {
       if (!l.leaveType.isPaidLeave) continue;
-      
+
       let remainingPaid = Number(l.paidDays || 0);
       if (remainingPaid <= 0) continue;
 
       const lStart = new Date(l.startDate);
       const lEnd = new Date(l.endDate);
-      
+
       for (let d = new Date(lStart); d <= lEnd; d.setUTCDate(d.getUTCDate() + 1)) {
         if (remainingPaid <= 0) break;
-        
+
         const dayOfWeek = d.getUTCDay();
         if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Mon-Fri
           const isoDate = d.toISOString().split("T")[0];
           if (l.isHalfDay) {
-             halfPaidLeaveDates.add(isoDate);
-             remainingPaid -= 0.5;
+            halfPaidLeaveDates.add(isoDate);
+            remainingPaid -= 0.5;
           } else {
-             paidLeaveDates.add(isoDate);
-             remainingPaid -= 1;
+            paidLeaveDates.add(isoDate);
+            remainingPaid -= 1;
           }
         }
       }
@@ -673,7 +673,7 @@ export class AttendanceService {
         weeklyTargetHours -= 4.5;
       }
     }
-    
+
     if (weeklyTargetHours < 0) weeklyTargetHours = 0;
 
     return {
@@ -700,7 +700,7 @@ export class AttendanceService {
     if (!approver || !approver.user) return [];
 
     const approverRole = approver.user.role;
-    
+
     // CEO and Super Admin can see all pending overtime across the company
     if (['SUPER_ADMIN', 'CEO'].includes(approverRole)) {
       return await this.prisma.attendanceRecord.findMany({
@@ -743,14 +743,14 @@ export class AttendanceService {
       where: { id: managerId },
       include: { user: true }
     });
-    
+
     if (!approver || !approver.user) {
       throw new ForbiddenException("Invalid approver");
     }
 
     const approverRole = approver.user.role;
     let isAuthorized = false;
-    
+
     // 1. Authorized if Super Admin or CEO
     if (['SUPER_ADMIN', 'CEO'].includes(approverRole)) {
       isAuthorized = true;
@@ -761,7 +761,7 @@ export class AttendanceService {
     }
 
     if (!isAuthorized) {
-       throw new ForbiddenException("You are not authorized to approve overtime for this employee based on role hierarchy.");
+      throw new ForbiddenException("You are not authorized to approve overtime for this employee based on role hierarchy.");
     }
 
     if (status === 'APPROVE') {
@@ -950,7 +950,7 @@ export class AttendanceService {
     }
 
     // Filter to only direct reports if the user is a Team Lead/Manager without global admin permissions
-    const isTeamLeadOnly = user && 
+    const isTeamLeadOnly = user &&
       !['SUPER_ADMIN', 'CTO', 'CEO', 'HR', 'CHRO'].includes(user.role) &&
       ['TEAM_LEAD', 'MANAGER'].includes(user.role);
 
@@ -966,7 +966,7 @@ export class AttendanceService {
     // If user is CTO, we allow them to see the full organization's attendance 
     // to match the CTO dashboard's global overview.
     // Filter was previously restricting them to direct reports only.
-    
+
     // Only count ACTIVE employees for daily attendance metrics
     const employees = allEmployees.filter(e => e.status === 'ACTIVE');
     const totalEmployees = employees.length;
@@ -1064,18 +1064,18 @@ export class AttendanceService {
           onLeave++;
         } else {
           const now = new Date();
-          const isToday = now.getUTCFullYear() === today.getUTCFullYear() && 
-                          now.getUTCMonth() === today.getUTCMonth() && 
-                          now.getUTCDate() === today.getUTCDate();
-          
+          const isToday = now.getUTCFullYear() === today.getUTCFullYear() &&
+            now.getUTCMonth() === today.getUTCMonth() &&
+            now.getUTCDate() === today.getUTCDate();
+
           let isAbsent = true;
           if (isToday) {
-             const zonedNow = toZonedTime(now, 'Asia/Kolkata');
-             const hours = zonedNow.getHours();
-             const minutes = zonedNow.getMinutes();
-             if (hours < 10 || (hours === 10 && minutes < 30)) {
-                isAbsent = false;
-             }
+            const zonedNow = toZonedTime(now, 'Asia/Kolkata');
+            const hours = zonedNow.getHours();
+            const minutes = zonedNow.getMinutes();
+            if (hours < 10 || (hours === 10 && minutes < 30)) {
+              isAbsent = false;
+            }
           }
           if (isAbsent) {
             exceptions.push({
@@ -1091,7 +1091,7 @@ export class AttendanceService {
     });
 
     const presentPercentage = totalEmployees > 0 ? Math.round((present / totalEmployees) * 100) : 0;
-    
+
     // Check if today is a weekend
     const dayOfWeek = today.getDay(); // 0 is Sunday, 6 is Saturday
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
@@ -1119,7 +1119,7 @@ export class AttendanceService {
       const m = r.date.getUTCMonth();
       const y = r.date.getUTCFullYear();
       const key = `${y}-${(m + 1).toString().padStart(2, '0')}`;
-      
+
       if (!monthStats.has(key)) {
         monthStats.set(key, { present: 0, activeDays: new Set(), uniqueEmployees: new Set(), label: monthNames[m] });
       }
@@ -1170,9 +1170,9 @@ export class AttendanceService {
     const skip = (page - 1) * limit;
 
     const where: any = {};
-    
+
     // Filter to only direct reports if the user is a Team Lead/Manager without global admin permissions
-    const isTeamLeadOnly = user && 
+    const isTeamLeadOnly = user &&
       !['SUPER_ADMIN', 'CTO', 'CEO', 'HR', 'CHRO'].includes(user.role) &&
       ['TEAM_LEAD', 'MANAGER'].includes(user.role);
 
@@ -1196,7 +1196,7 @@ export class AttendanceService {
         lte: new Date(year, month + 1, 0, 23, 59, 59)
       };
     }
-    
+
     if (query.status) {
       where.status = query.status;
     }
@@ -1246,7 +1246,7 @@ export class AttendanceService {
 
   async exportAllLogs(query: any, user?: any) {
     const where: any = {};
-    const isTeamLeadOnly = user && 
+    const isTeamLeadOnly = user &&
       !['SUPER_ADMIN', 'CTO', 'CEO', 'HR', 'CHRO'].includes(user.role) &&
       ['TEAM_LEAD', 'MANAGER'].includes(user.role);
 
@@ -1295,7 +1295,7 @@ export class AttendanceService {
       const hours = record.workHours ? Number(record.workHours).toFixed(2) : "0";
       csv += `"${name}","${dept}","${date}","${checkIn}","${checkOut}","${hours}","${record.status}","${record.notes || ''}"\n`;
     }
-    
+
     return csv;
   }
 
@@ -1372,7 +1372,7 @@ export class AttendanceService {
           where: { role: role as any, status: 'ACTIVE', employeeId: { not: null } },
           select: { employeeId: true }
         });
-        
+
         for (const user of users) {
           if (user.employeeId) {
             const notification = await this.prisma.notification.create({
@@ -1426,14 +1426,14 @@ export class AttendanceService {
         data: { managerStatus: statusVal, comments: `Actioned by Manager (${action})` },
         include: { employee: true }
       });
-      
+
       this.emailService.sendEmail(
         updatedReq.employee.officialEmail,
         `Regularization Request ${action === "APPROVE" ? "Approved" : "Rejected"}`,
         "regularization_status",
         { status: action, comments: `Actioned by Manager` }
       ).catch(e => this.logger.error("Failed to send regularization email", e));
-      
+
       // Notify employee
       const notification = await this.prisma.notification.create({
         data: {
@@ -1446,28 +1446,28 @@ export class AttendanceService {
         }
       });
       this.inApp.emitNotification(request.employeeId, notification);
-      
+
       this.inApp.broadcastEvent('attendance.regularization_updated', { employeeId: request.employeeId });
 
       return updatedReq;
     } else {
       const updatedReq = await this.prisma.regularizationRequest.update({
         where: { id },
-        data: { 
+        data: {
           managerStatus: statusVal, // CEO/HR override auto-actions manager step too
-          hrStatus: statusVal, 
-          comments: `Actioned by HR/Admin (${action})` 
+          hrStatus: statusVal,
+          comments: `Actioned by HR/Admin (${action})`
         },
         include: { employee: true }
       });
 
       if (action === "APPROVE") {
         const dateStr = new Date(updatedReq.attendanceDate);
-        
+
         // Setup 10:00 AM IST (04:30 AM UTC)
         const checkInTime = new Date(dateStr);
-        checkInTime.setUTCHours(4, 30, 0, 0); 
-        
+        checkInTime.setUTCHours(4, 30, 0, 0);
+
         // Setup 07:00 PM IST (13:30 PM UTC)
         const checkOutTime = new Date(dateStr);
         checkOutTime.setUTCHours(13, 30, 0, 0);
@@ -1619,7 +1619,7 @@ export class AttendanceService {
       const record = recordMap.get(emp.id);
       const leave = leaveMap.get(emp.id);
       let status = "Absent";
-      
+
       if (leave) {
         status = "On leave";
         leaveCount++;
