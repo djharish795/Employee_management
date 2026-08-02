@@ -1,32 +1,23 @@
-const { PrismaClient } = require('./packages/database/node_modules/@prisma/client');
+const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 async function main() {
-  const employeeId = 'cmr1mlmyj001p3y1w9ho73rt1';
-  const employee = await prisma.employee.findUnique({
-    where: { id: employeeId },
-    include: {
-      department: true,
-      designation: true,
-      reportingManager: true,
-      user: true,
-    },
+  const e = await prisma.employee.findFirst({
+    where: { firstName: "Imthiyaz" },
+    include: { user: true, attendanceRecords: true }
   });
-
-  if (!employee) throw new Error('Profile not found');
-
-  const decryptData = (data) => data; // Mock decrypt
-
-  const result = {
-    ...employee,
-    phone: employee.phone ? decryptData(employee.phone) : null,
-    alternatePhone: employee.alternatePhone ? decryptData(employee.alternatePhone) : null,
-    pan: employee.pan ? decryptData(employee.pan) : null,
-    aadhaar: employee.aadhaar ? decryptData(employee.aadhaar) : null,
-    bankAccountEnc: employee.bankAccountEnc ? decryptData(employee.bankAccountEnc) : null,
-  };
-
-  console.log(JSON.stringify(result, null, 2));
+  console.log("Imthiyaz Role:", e?.user?.role);
+  console.log("Overtime Records:", e?.attendanceRecords.filter(a => a.overtime > 0).map(a => ({
+    date: a.date,
+    overtime: a.overtime,
+    isApp: a.isOvertimeApproved
+  })));
+  
+  const swetha = await prisma.employee.findFirst({
+    where: { firstName: "Swetha" },
+    include: { user: true, projectAssignments: true }
+  });
+  console.log("Swetha Role:", swetha?.user?.role);
 }
 
 main().finally(() => prisma.$disconnect());

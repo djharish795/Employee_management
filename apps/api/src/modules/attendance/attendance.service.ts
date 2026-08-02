@@ -504,7 +504,8 @@ export class AttendanceService {
       breakHistory: parseBreakHistory((record as any).breakHistory),
       punchHistory: Array.isArray((record as any).punchHistory) ? (record as any).punchHistory : [],
       overtime: record.overtime ? Number(record.overtime) : 0,
-      isOvertimeApproved: (record as any).isOvertimeApproved || false
+      isOvertimeApproved: (record as any).isOvertimeApproved || false,
+      overtimeApprovedById: record.overtimeApprovedById || null
     }));
 
     return { data: mappedData, total, page, limit };
@@ -701,32 +702,79 @@ export class AttendanceService {
 
     const approverRole = approver.user.role;
 
+    const baseWhere = {
+      isOvertimeApproved: false,
+      overtimeApprovedById: null, // Ensure rejected records don't show up in pending!
+      overtime: { gt: 0 },
+      employeeId: { not: managerId }
+    };
+
     // CEO and Super Admin can see all pending overtime across the company
     if (['SUPER_ADMIN', 'CEO'].includes(approverRole)) {
-      return await this.prisma.attendanceRecord.findMany({
-        where: {
-          isOvertimeApproved: false,
-          overtime: { gt: 0 }
-        },
+      const records = await this.prisma.attendanceRecord.findMany({
+        where: baseWhere,
         include: {
-          employee: { select: { firstName: true, lastName: true, employeeId: true, photoUrl: true } }
+          employee: { select: { firstName: true, lastName: true, employeeId: true, photoUrl: true, reportingManagerId: true } }
         },
         orderBy: { date: 'desc' }
       });
+      // We return all, but they might not be able to approve all.
+      // We attach a canApprove flag and serialize Decimals.
+      return records.map(r => ({
+        ...r,
+        workHours: Number(r.workHours) || 0,
+        overtime: Number(r.overtime) || 0,
+        canApprove: approverRole === 'SUPER_ADMIN' || r.employee.reportingManagerId === managerId
+      }));
     }
 
-    // Other managers only see pending overtime for their direct reports
-    return await this.prisma.attendanceRecord.findMany({
+    // Find all projects where this user is a TL or higher (PM, DM, SPM)
+    const projectAssignments = await this.prisma.projectAssignment.findMany({
+      where: { 
+        employeeId: managerId, 
+        projectRole: { in: ['TL', 'PM', 'DM', 'SPM'] } 
+      }
+    });
+    
+    const ledProjectIds = projectAssignments.map(p => p.projectId);
+
+    // Other managers see pending overtime for:
+    // 1. Their direct reports
+    // 2. Or employees in projects they lead
+    // 3. Or if they are an OM, they might oversee TLs (we rely on reportingManagerId or project leadership)
+    
+    const isOM = ['OM', 'OPERATIONS_HEAD'].includes(approverRole);
+
+    const records = await this.prisma.attendanceRecord.findMany({
       where: {
-        isOvertimeApproved: false,
-        overtime: { gt: 0 },
-        employee: { reportingManagerId: managerId }
+        ...baseWhere,
+        OR: [
+          { employee: { reportingManagerId: managerId } },
+          ...(ledProjectIds.length > 0 ? [{
+            employee: {
+              projectAssignments: {
+                some: { projectId: { in: ledProjectIds } }
+              }
+            }
+          }] : []),
+          ...(isOM ? [
+            { employee: { user: { role: { in: ['TEAM_LEAD' as any, 'OE' as any, 'HR' as any, 'CRM' as any, 'CEM' as any] } } } },
+            { employee: { projectAssignments: { some: { projectRole: 'TL' as any } } } }
+          ] : [])
+        ]
       },
       include: {
-        employee: { select: { firstName: true, lastName: true, employeeId: true, photoUrl: true } }
+        employee: { select: { firstName: true, lastName: true, employeeId: true, photoUrl: true, reportingManagerId: true } }
       },
       orderBy: { date: 'desc' }
     });
+
+    return records.map(r => ({
+      ...r,
+      workHours: Number(r.workHours) || 0,
+      overtime: Number(r.overtime) || 0,
+      canApprove: true
+    }));
   }
 
   async approveOvertime(managerId: string, recordId: string, status: 'APPROVE' | 'REJECT') {
@@ -734,7 +782,11 @@ export class AttendanceService {
 
     const record = await this.prisma.attendanceRecord.findUnique({
       where: { id: recordId },
-      include: { employee: true }
+      include: { 
+        employee: {
+          include: { user: true }
+        }
+      }
     });
 
     if (!record) throw new NotFoundException("Record not found");
@@ -751,13 +803,43 @@ export class AttendanceService {
     const approverRole = approver.user.role;
     let isAuthorized = false;
 
-    // 1. Authorized if Super Admin or CEO
-    if (['SUPER_ADMIN', 'CEO'].includes(approverRole)) {
+    // 1. Authorized if Super Admin
+    if (approverRole === 'SUPER_ADMIN') {
       isAuthorized = true;
     }
-    // 2. Authorized if they are the direct reporting manager of the employee
+    // 2. Authorized if they are the direct reporting manager of the employee (Covers CEO direct reports)
     else if (record.employee.reportingManagerId === managerId) {
       isAuthorized = true;
+    }
+    // 3. Authorized if they are OM and the employee is a TEAM_LEAD, OE, or TL on a project
+    else if (['OM', 'OPERATIONS_HEAD'].includes(approverRole)) {
+      if (['TEAM_LEAD', 'OE', 'HR', 'CRM', 'CEM'].includes(record.employee.user?.role as any)) {
+        isAuthorized = true;
+      } else {
+        const isTL = await this.prisma.projectAssignment.findFirst({
+          where: { employeeId: record.employeeId, projectRole: 'TL' as any }
+        });
+        if (isTL) isAuthorized = true;
+      }
+    }
+    // 4. Authorized if they lead a project the employee is assigned to
+    else {
+      const projectAssignments = await this.prisma.projectAssignment.findMany({
+        where: { employeeId: managerId, projectRole: { in: ['TL', 'PM', 'DM', 'SPM'] } }
+      });
+      const ledProjectIds = projectAssignments.map(p => p.projectId);
+
+      if (ledProjectIds.length > 0) {
+        const employeeInProject = await this.prisma.projectAssignment.findFirst({
+          where: {
+            employeeId: record.employeeId,
+            projectId: { in: ledProjectIds }
+          }
+        });
+        if (employeeInProject) {
+          isAuthorized = true;
+        }
+      }
     }
 
     if (!isAuthorized) {
@@ -771,10 +853,10 @@ export class AttendanceService {
       });
       return { success: true, message: "Overtime approved successfully" };
     } else {
-      // Reject: Set overtime to 0
+      // Reject: keep overtime value, but set isOvertimeApproved=false and mark the approver ID
       await this.prisma.attendanceRecord.update({
         where: { id: recordId },
-        data: { overtime: 0, isOvertimeApproved: false, overtimeApprovedById: managerId } as any
+        data: { isOvertimeApproved: false, overtimeApprovedById: managerId } as any
       });
       return { success: true, message: "Overtime rejected" };
     }
@@ -1237,7 +1319,8 @@ export class AttendanceService {
         remarks: record.notes || "Standard Entry",
         punchHistory: Array.isArray((record as any).punchHistory) ? (record as any).punchHistory : [],
         overtime: record.overtime ? Number(record.overtime) : 0,
-        isOvertimeApproved: (record as any).isOvertimeApproved || false
+        isOvertimeApproved: (record as any).isOvertimeApproved || false,
+        overtimeApprovedById: (record as any).overtimeApprovedById || null
       };
     });
 

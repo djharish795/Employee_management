@@ -96,32 +96,38 @@ export function PendingOvertimeTable() {
                   {format(new Date(request.date), "dd MMM yyyy")}
                 </td>
                 <td className="px-6 py-4 font-semibold text-slate-600">
-                  {request.workHours}h
+                  {String(request.workHours)}h
                 </td>
                 <td className="px-6 py-4">
                   <span className="text-sm font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-100">
-                    +{request.overtime}h
+                    +{String(request.overtime)}h
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <button 
-                      onClick={() => mutation.mutate({ recordId: request.id, status: 'REJECT' })}
-                      disabled={mutation.isPending}
-                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors disabled:opacity-50"
-                      title="Reject"
-                    >
-                      <XCircle className="w-5 h-5" />
-                    </button>
-                    <button 
-                      onClick={() => mutation.mutate({ recordId: request.id, status: 'APPROVE' })}
-                      disabled={mutation.isPending}
-                      className="flex items-center gap-1 text-xs font-bold bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-3 py-1.5 rounded-md border border-emerald-200 transition-colors disabled:opacity-50"
-                    >
-                      <CheckCircle2 className="w-4 h-4" />
-                      Approve
-                    </button>
-                  </div>
+                  {request.canApprove ? (
+                    <div className="flex items-center justify-end gap-2">
+                      <button 
+                        onClick={() => mutation.mutate({ recordId: request.id, status: 'REJECT' })}
+                        disabled={mutation.isPending}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors disabled:opacity-50"
+                        title="Reject"
+                      >
+                        <XCircle className="w-5 h-5" />
+                      </button>
+                      <button 
+                        onClick={() => mutation.mutate({ recordId: request.id, status: 'APPROVE' })}
+                        disabled={mutation.isPending}
+                        className="flex items-center gap-1 text-xs font-bold bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-3 py-1.5 rounded-md border border-emerald-200 transition-colors disabled:opacity-50"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        Approve
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-xs font-medium text-slate-400 italic bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100">
+                      View Only
+                    </span>
+                  )}
                 </td>
               </tr>
             ))}

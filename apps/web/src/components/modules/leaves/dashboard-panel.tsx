@@ -254,11 +254,12 @@ export default function DashboardPanel() {
                   if (!kpiQuery.data) return "--";
                   const opt = kpiQuery.data.details.find((d: any) => d.leaveType.code === "OPTIONAL");
                   if (!opt) return "0 Days";
-                  const avail = Number(opt.allocated) + Number(opt.carriedOver) - Number(opt.used) - Number(opt.pending);
-                  return `${avail % 1 === 0 ? avail : avail.toFixed(1)} Days`;
+                  const allocated = Number(opt.allocated) + Number(opt.carriedOver);
+                  const avail = allocated - Number(opt.used) - Number(opt.pending);
+                  return `${avail % 1 === 0 ? avail : avail.toFixed(1)} / ${allocated} Days`;
                 })()}
               </p>
-              <p className="text-[10px] font-semibold text-slate-500 mt-1">Available holidays</p>
+              <p className="text-[10px] font-semibold text-slate-500 mt-1">Available / Total holidays</p>
             </div>
             <div className="w-8 h-8 flex-shrink-0 rounded-lg bg-purple-50 flex items-center justify-center">
               <BookOpen className="w-4 h-4 text-purple-500" />

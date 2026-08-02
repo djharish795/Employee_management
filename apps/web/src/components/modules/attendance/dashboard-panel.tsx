@@ -684,8 +684,8 @@ export default function DashboardPanel() {
                       <td className="px-5 py-3 font-bold">
                         {formattedHours}
                         {(log.overtime ?? 0) > 0 && (
-                          <span className={`ml-2 px-1.5 py-0.5 text-[9px] font-bold rounded uppercase ${log.isOvertimeApproved ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                            +{formatDecimalHoursToHMS(log.overtime ?? 0)} {log.isOvertimeApproved ? '' : '(Pending)'}
+                          <span className={`ml-2 px-1.5 py-0.5 text-[9px] font-bold rounded uppercase ${log.isOvertimeApproved ? 'bg-emerald-100 text-emerald-700' : (log as any).overtimeApprovedById ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>
+                            +{formatDecimalHoursToHMS(log.overtime ?? 0)} {log.isOvertimeApproved ? '' : (log as any).overtimeApprovedById ? '(Rejected)' : '(Pending)'}
                           </span>
                         )}
                       </td>

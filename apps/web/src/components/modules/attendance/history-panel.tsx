@@ -105,6 +105,10 @@ const MemoizedHistoryRow = memo(({ log, isOrgMode, onApprove, isApproving }: { l
               <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
                 +{formatDecimalHoursToHMS(log.overtime)}
               </span>
+            ) : log.overtimeApprovedById ? (
+              <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-100">
+                +{formatDecimalHoursToHMS(log.overtime)} Rejected
+              </span>
             ) : isOrgMode && onApprove ? (
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold text-amber-600">+{formatDecimalHoursToHMS(log.overtime)}</span>
