@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import * as nodemailer from "nodemailer";
 import { PrismaService } from "../../prisma/prisma.service";
 import * as Handlebars from "handlebars";
-import { SESClient } from "@aws-sdk/client-ses";
+import { SESv2Client } from "@aws-sdk/client-sesv2";
 
 import { renderEmailHtml } from "@naprocs/email-templates";
 
@@ -50,9 +50,9 @@ export class EmailService implements OnModuleInit {
           };
         }
 
-        const sesClient = new SESClient(sesConfig);
+        const sesClient = new SESv2Client(sesConfig);
         this.transporter = nodemailer.createTransport({
-          SES: { ses: sesClient, aws: require('@aws-sdk/client-ses') }
+          SES: { ses: sesClient, aws: require('@aws-sdk/client-sesv2') }
         } as any);
         this.logger.log(`AWS SES initialized successfully!`);
       } catch (err) {
