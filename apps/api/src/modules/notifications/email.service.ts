@@ -97,8 +97,26 @@ export class EmailService implements OnModuleInit {
           } else {
             this.logger.log(`[EMAIL SENT] To: ${to} | Subject: ${subject}`);
           }
-        } catch (err) {
+        } catch (err: any) {
           this.logger.error(`Failed to send email to ${to}`, err);
+          
+          if (process.env.NODE_ENV === "production") {
+            // Write a CRITICAL alert to the SecurityAlerts table
+            await this.prisma.securityAlert.create({
+              data: {
+                type: 'EMAIL_DELIVERY_FAILURE',
+                severity: 'CRITICAL',
+                details: {
+                  error: err.name,
+                  message: err.message,
+                  component: 'AWS_SES',
+                  to,
+                  subject,
+                  templateName
+                }
+              }
+            }).catch(e => this.logger.error("Failed to log SecurityAlert", e));
+          }
         }
       } else {
         this.logger.log(`[MOCK EMAIL] Sending to ${to} | Subject: ${subject} | Template: ${templateName}`);
