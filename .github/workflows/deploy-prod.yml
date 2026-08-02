@@ -71,11 +71,6 @@ jobs:
         run: |
           aws ecs describe-task-definition --task-definition ${{ env.WEB_TASK_FAMILY }} --query taskDefinition > web-task-def.json
 
-      - name: Update Secret ARN to point to crewbase-api-secret
-        run: |
-          sed -i 's|prod/naprocs-ems/api|crewbase-api-secret|g' api-task-def.json
-          sed -i 's|prod/naprocs-ems/api|crewbase-api-secret|g' web-task-def.json
-
       # ---------------------------------------------------------
       # Inject new Docker image tags into task definitions
       # ---------------------------------------------------------

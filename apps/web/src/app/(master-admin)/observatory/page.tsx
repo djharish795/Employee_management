@@ -20,6 +20,11 @@ function apiFetch(path: string, token: string, options?: RequestInit) {
     ...options,
     headers: { 'x-master-admin-token': token, 'Content-Type': 'application/json', ...(options?.headers || {}) },
   }).then(async (r) => {
+    if (r.status === 401) {
+      clearMasterAdminToken();
+      window.location.reload();
+      throw new Error('Session expired');
+    }
     const data = await r.json();
     if (!r.ok) throw new Error(data.message || 'API Error');
     return data;
@@ -303,7 +308,14 @@ function ObservatoryContent() {
       ) : (
         <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
           {/* SYSTEM HEALTH RADAR TAB */}
-          {activeTab === 'health' && systemHealth && (
+          {activeTab === 'health' && (
+            !systemHealth ? (
+              <div className="h-64 flex flex-col items-center justify-center text-slate-500">
+                <AlertTriangle className="w-8 h-8 text-amber-500 mb-2" />
+                <p>Failed to load System Health Radar or session expired.</p>
+                <button onClick={() => window.location.reload()} className="mt-4 text-indigo-500 hover:underline text-sm font-semibold">Reload Dashboard</button>
+              </div>
+            ) : (
             <div className="p-6 space-y-6">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-6">
                 <Activity className="w-6 h-6 text-emerald-500" />
@@ -431,6 +443,7 @@ function ObservatoryContent() {
                 </div>
               </div>
             </div>
+            )
           )}
 
           {/* LIVE NOW TAB */}
