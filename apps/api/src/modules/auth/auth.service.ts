@@ -66,7 +66,10 @@ export class AuthService {
     const policy = await this.prisma.orgPolicy.findFirst();
     const isMfaRequired = policy?.mfaRequired ?? false;
 
-    if (isMfaRequired) {
+    // Enforce MFA if org policy requires it, OR if this is the employee's first time logging in
+    const enforceMfa = isMfaRequired || isFirstLogin;
+
+    if (enforceMfa) {
       const challenge = await this.mfa.createEmailOtpChallenge(user.id, user.email);
       return {
         success: true,

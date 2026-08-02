@@ -6,9 +6,11 @@ import { AuthService } from "./auth.service";
 import { MfaService } from "./mfa.service";
 import { TokenService } from "./token.service";
 import { JwtStrategy } from "./strategies/jwt.strategy";
+import { NotificationsModule } from "../notifications/notifications.module";
 
 @Module({
   imports: [
+    NotificationsModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
