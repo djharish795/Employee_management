@@ -20,7 +20,9 @@ export const MfaOtpEmail = ({
       <Text style={heading}>Login Verification Code</Text>
       
       <Text style={paragraph}>
-        You recently attempted to sign in to the Naprocs EMS system. Please use the following One-Time Password (OTP) to complete your login.
+        Welcome back to Naprocs EMS! We are thrilled to see you.
+        <br /><br />
+        To ensure the highest level of security for your account, we require a quick verification step. Please use the One-Time Password (OTP) below to securely complete your login and access your dashboard.
       </Text>
 
       <Section style={credentialBox}>
