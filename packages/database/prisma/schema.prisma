@@ -646,22 +646,22 @@ model AuditLog {
 
 // Master Admin Observatory: tracks every single page visit, click, and action
 model ActivityLog {
-  id          String   @id @default(cuid())
-  employeeId  String?
-  userId      String?
-  page        String
-  action      String   // PAGE_VIEW, CLICK, FORM_SUBMIT, DOWNLOAD, LOGOUT
-  ipAddress   String?
-  userAgent   String?
-  deviceType  String?  // DESKTOP, MOBILE, TABLET
-  browser     String?
-  os          String?
-  isp         String?
-  city        String?
-  country     String?
-  durationMs  Int?     // Total dwell time on page in milliseconds (written on flush)
-  sessionId   String?
-  timestamp   DateTime @default(now())
+  id         String   @id @default(cuid())
+  employeeId String?
+  userId     String?
+  page       String
+  action     String // PAGE_VIEW, CLICK, FORM_SUBMIT, DOWNLOAD, LOGOUT
+  ipAddress  String?
+  userAgent  String?
+  deviceType String? // DESKTOP, MOBILE, TABLET
+  browser    String?
+  os         String?
+  isp        String?
+  city       String?
+  country    String?
+  durationMs Int? // Total dwell time on page in milliseconds (written on flush)
+  sessionId  String?
+  timestamp  DateTime @default(now())
 
   @@index([employeeId, timestamp])
   @@index([page, timestamp])
@@ -674,8 +674,8 @@ model SecurityAlert {
   id          String    @id @default(cuid())
   employeeId  String?
   userId      String?
-  type        String    // IP_MISMATCH, NEW_DEVICE, CONCURRENT_SESSION, RAPID_LOCATION_CHANGE
-  severity    String    // LOW, MEDIUM, HIGH, CRITICAL
+  type        String // IP_MISMATCH, NEW_DEVICE, CONCURRENT_SESSION, RAPID_LOCATION_CHANGE
+  severity    String // LOW, MEDIUM, HIGH, CRITICAL
   loginIp     String?
   checkinIp   String?
   loginCity   String?
@@ -2262,12 +2262,12 @@ model TelemetryLog {
 }
 
 model AnomalyEvent {
-  id          String   @id @default(cuid())
-  employeeId  String?
-  type        String
-  severity    String
-  details     Json
-  timestamp   DateTime @default(now())
+  id         String   @id @default(cuid())
+  employeeId String?
+  type       String
+  severity   String
+  details    Json
+  timestamp  DateTime @default(now())
 
   @@index([type])
   @@index([timestamp])

@@ -499,7 +499,7 @@ export default function EngineeringTeamPage() {
                         </button>
                         
                         {isProjectDropdownOpen && (
-                          <div className="absolute top-[calc(100%+8px)] left-0 min-w-[280px] bg-white rounded-xl shadow-[0_12px_40px_-12px_rgba(0,0,0,0.2)] border border-slate-200/60 py-1.5 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                          <div className="absolute top-[calc(100%+8px)] left-0 min-w-[280px] bg-white rounded-xl shadow-lg border-2 border-slate-200 py-1.5 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                             {projects.map(p => (
                               <button
                                 key={p.id}

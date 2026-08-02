@@ -536,43 +536,43 @@ export class AssetsRepository {
   }
 
   async getCtoAssets(): Promise<any> {
-    const assetAssignments = await this.prisma.assetAssignment.findMany({
-      where: { returnedAt: null },
-      include: { employee: true, asset: true },
-      orderBy: { assignedAt: "desc" },
+    const assignedAssets = await this.prisma.asset.findMany({
+      where: { status: "ASSIGNED", currentHolderId: { not: null } },
+      include: { currentHolder: true },
+      orderBy: { updatedAt: "desc" },
     });
 
     const threeYearsAgo = new Date();
     threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
 
     let dueForRefresh = 0;
-    const assets = assetAssignments.map((a) => {
+    const assets = assignedAssets.map((asset) => {
       const isRefreshDue =
-        a.asset.createdAt < threeYearsAgo &&
-        ["LAPTOP", "DESKTOP", "MONITOR", "MOBILE_DEVICE"].includes(a.asset.category);
+        asset.createdAt < threeYearsAgo &&
+        ["LAPTOP", "DESKTOP", "MONITOR", "MOBILE_DEVICE"].includes(asset.category);
       if (isRefreshDue) dueForRefresh++;
       return {
-        id: a.id,
-        assetName: a.asset.name || a.asset.brand || "Asset",
-        category: ["LAPTOP", "DESKTOP"].includes(a.asset.category)
+        id: asset.id,
+        assetName: asset.name || asset.brand || "Asset",
+        category: ["LAPTOP", "DESKTOP"].includes(asset.category)
           ? "Laptop"
-          : a.asset.category === "MONITOR"
+          : asset.category === "MONITOR"
           ? "Monitor"
-          : ["SOFTWARE_LICENCE", "CLOUD_ACCOUNT"].includes(a.asset.category)
+          : ["SOFTWARE_LICENCE", "CLOUD_ACCOUNT"].includes(asset.category)
           ? "Software"
           : "Accessory",
-        assignedToName: `${a.employee.firstName} ${a.employee.lastName}`,
-        assignedToInitials: `${a.employee.firstName.charAt(0)}${a.employee.lastName.charAt(0)}`,
-        assignedDate: a.assignedAt.toISOString().split("T")[0],
+        assignedToName: asset.currentHolder ? `${asset.currentHolder.firstName} ${asset.currentHolder.lastName}` : "Unknown",
+        assignedToInitials: asset.currentHolder ? `${asset.currentHolder.firstName.charAt(0)}${asset.currentHolder.lastName.charAt(0)}` : "?",
+        assignedDate: asset.updatedAt.toISOString().split("T")[0],
         status: isRefreshDue ? "Due for refresh" : "Active",
       };
     });
 
-    const totalDevices = assetAssignments.filter((a) =>
-      ["LAPTOP", "DESKTOP", "MONITOR", "MOBILE_DEVICE"].includes(a.asset.category)
+    const totalDevices = assignedAssets.filter((asset) =>
+      ["LAPTOP", "DESKTOP", "MONITOR", "MOBILE_DEVICE"].includes(asset.category)
     ).length;
-    const softwareLicenses = assetAssignments.filter((a) =>
-      ["SOFTWARE_LICENCE", "CLOUD_ACCOUNT"].includes(a.asset.category)
+    const softwareLicenses = assignedAssets.filter((asset) =>
+      ["SOFTWARE_LICENCE", "CLOUD_ACCOUNT"].includes(asset.category)
     ).length;
 
     return { metrics: { totalDevices, softwareLicenses, dueForRefresh }, assets, totalCount: assets.length };
