@@ -700,25 +700,27 @@ export class AttendanceService {
     if (!approver || !approver.user) return [];
 
     const approverRole = approver.user.role;
-    let allowedEmpRoles: any[] = [];
     
-    if (['CEO', 'SUPER_ADMIN'].includes(approverRole)) {
-      allowedEmpRoles = ['CEO', 'SUPER_ADMIN', 'OM', 'CTO', 'CHRO', 'COO', 'OPERATIONS_HEAD'];
-    } else if (approverRole === 'TEAM_LEAD' || (approverRole as any) === 'TL') {
-      allowedEmpRoles = ['TR', 'TS', 'EMPLOYEE'];
-    } else if (approverRole === 'OM') {
-      allowedEmpRoles = ['CRM', 'CEM', 'OE', 'HR', 'TEAM_LEAD', 'TL'];
-    } else if (approverRole === 'CTO') {
-      allowedEmpRoles = ['OM'];
+    // CEO and Super Admin can see all pending overtime across the company
+    if (['SUPER_ADMIN', 'CEO'].includes(approverRole)) {
+      return await this.prisma.attendanceRecord.findMany({
+        where: {
+          isOvertimeApproved: false,
+          overtime: { gt: 0 }
+        },
+        include: {
+          employee: { select: { firstName: true, lastName: true, employeeId: true, photoUrl: true } }
+        },
+        orderBy: { date: 'desc' }
+      });
     }
 
-    if (allowedEmpRoles.length === 0) return [];
-
+    // Other managers only see pending overtime for their direct reports
     return await this.prisma.attendanceRecord.findMany({
       where: {
         isOvertimeApproved: false,
         overtime: { gt: 0 },
-        employee: { user: { role: { in: allowedEmpRoles } } }
+        employee: { reportingManagerId: managerId }
       },
       include: {
         employee: { select: { firstName: true, lastName: true, employeeId: true, photoUrl: true } }
@@ -732,7 +734,7 @@ export class AttendanceService {
 
     const record = await this.prisma.attendanceRecord.findUnique({
       where: { id: recordId },
-      include: { employee: { include: { user: true } } }
+      include: { employee: true }
     });
 
     if (!record) throw new NotFoundException("Record not found");
@@ -747,19 +749,15 @@ export class AttendanceService {
     }
 
     const approverRole = approver.user.role;
-    const empRole = record.employee.user.role;
-    
     let isAuthorized = false;
-    if (['CEO', 'SUPER_ADMIN'].includes(approverRole)) {
-       if (['CEO', 'SUPER_ADMIN', 'OM', 'CTO', 'CHRO', 'COO', 'OPERATIONS_HEAD'].includes(empRole as any)) {
-         isAuthorized = true;
-       }
-    } else if (['TR', 'TS', 'EMPLOYEE'].includes(empRole as any) && (approverRole === 'TEAM_LEAD' || (approverRole as any) === 'TL')) {
-       isAuthorized = true;
-    } else if (['CRM', 'CEM', 'OE', 'HR', 'TEAM_LEAD', 'TL'].includes(empRole as any) && approverRole === 'OM') {
-       isAuthorized = true;
-    } else if (empRole === 'OM' && approverRole === 'CTO') {
-       isAuthorized = true;
+    
+    // 1. Authorized if Super Admin or CEO
+    if (['SUPER_ADMIN', 'CEO'].includes(approverRole)) {
+      isAuthorized = true;
+    }
+    // 2. Authorized if they are the direct reporting manager of the employee
+    else if (record.employee.reportingManagerId === managerId) {
+      isAuthorized = true;
     }
 
     if (!isAuthorized) {

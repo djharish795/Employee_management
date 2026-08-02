@@ -10,6 +10,7 @@ import {
   FileText, CheckCircle2, XCircle, Loader2, Download, AlertCircle
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { useAuthStore } from "@/store/auth";
 
 const fetcher = (url: string) => apiClient.get(url).then(res => res.data);
 
@@ -39,6 +40,7 @@ const Field = ({ label, value }: { label: string; value?: string | null }) => (
 export default function FieldReportDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { employeeId } = useAuthStore();
   const [actionPending, setActionPending] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -206,8 +208,8 @@ export default function FieldReportDetailPage() {
         </div>
       </PremiumCard>
 
-      {/* Action buttons — only show if PENDING */}
-      {isPending && (
+      {/* Action buttons — only show if PENDING and not the requester */}
+      {isPending && !report.isOwnRequest && (
         <PremiumCard className="p-5">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>

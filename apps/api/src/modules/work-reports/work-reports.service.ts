@@ -87,8 +87,7 @@ export class WorkReportsService {
   }
 
   async getTeamReports(reviewerId: string, role?: string) {
-    // Strictly scope to reviewerId so global admins only see reports assigned to them in their dashboard
-    const isGlobalAdmin = false;
+    const isGlobalAdmin = role === 'CEO' || role === 'SUPER_ADMIN' || role === 'OPERATIONS_HEAD' || role === 'CEM' || role === 'OM' || role === 'CHRO' || role === 'HR';
     const whereClause: any = isGlobalAdmin ? {} : { reviewerId };
     whereClause.employeeId = { not: reviewerId };
     

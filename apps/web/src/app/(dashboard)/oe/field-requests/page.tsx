@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { 
   Plus, Search, 
-  CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, Eye, Target
+  CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, Eye, Target, Edit
 } from "lucide-react";
 import { PremiumDashboardLayout, PremiumCard } from '@/components/shared/premium-dashboard';
 import useSWR from 'swr';
@@ -150,6 +150,7 @@ export default function OeFieldRequestsPage() {
                 <th className="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Client & Destination</th>
                 <th className="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Date</th>
                 <th className="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -169,6 +170,26 @@ export default function OeFieldRequestsPage() {
                     <div className="flex items-center gap-2">
                       <span className={`w-1.5 h-1.5 rounded-full ${getStatusDotColor(report.status)}`}></span>
                       <span className={`text-sm font-bold ${getStatusColor(report.status)}`}>{report.status}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button 
+                        onClick={() => router.push(`/oe/field-requests/${report.id}`)}
+                        className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                        title="View Details"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      {report.status === 'Pending' && (
+                        <button 
+                          onClick={() => router.push(`/oe/field-requests/${report.id}?edit=true`)}
+                          className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors"
+                          title="Edit Request"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

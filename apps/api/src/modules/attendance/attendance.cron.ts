@@ -142,8 +142,18 @@ export class AttendanceCronService {
       const isHoliday = await this.prisma.companyHoliday.findFirst({
         where: { date: today }
       });
-      const noShowStatus = isHoliday ? 'HOLIDAY' : 'ABSENT';
-      const noShowNotes = isHoliday ? 'System Auto-Mark: Company Holiday' : 'System Auto-Mark: No show';
+      const isWeekend = today.getDay() === 0 || today.getDay() === 6;
+
+      let noShowStatus = 'ABSENT';
+      let noShowNotes = 'System Auto-Mark: No show';
+
+      if (isHoliday) {
+        noShowStatus = 'HOLIDAY';
+        noShowNotes = 'System Auto-Mark: Company Holiday';
+      } else if (isWeekend) {
+        noShowStatus = 'HOLIDAY';
+        noShowNotes = 'System Auto-Mark: Weekend (Off)';
+      }
 
       let lastId: string | undefined = undefined;
       const CHUNK_SIZE = 500;

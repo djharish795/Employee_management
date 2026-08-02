@@ -527,10 +527,31 @@ export default function OmReportsView() {
                                   Delete
                                 </button>
                               </>
+                            ) : req.status === 'PENDING' || req.status === 'Pending' ? (
+                              <>
+                                <button 
+                                  onClick={() => router.push(`/om/field-reports/${req.id}`)}
+                                  className="text-sm font-bold text-slate-900 dark:text-white hover:underline"
+                                >
+                                  View
+                                </button>
+                                <button 
+                                  onClick={() => router.push(`/om/reports/field-request?id=${req.id}`)}
+                                  className="text-sm font-bold text-blue-600 hover:text-blue-700 hover:underline"
+                                >
+                                  Edit
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteRequest(req.id)}
+                                  className="text-sm font-bold text-rose-600 hover:text-rose-700 hover:underline"
+                                >
+                                  Delete
+                                </button>
+                              </>
                             ) : (
                               <>
                                 <button 
-                                  onClick={() => router.push(`/om/field-requests/${req.id}`)}
+                                  onClick={() => router.push(`/om/field-reports/${req.id}`)}
                                   className="text-sm font-bold text-slate-900 dark:text-white hover:underline"
                                 >
                                   View
