@@ -59,6 +59,7 @@ model Employee {
   paymentFrequency           String?
   paymentMode                String?
   aiChats                    AIChat[]
+  telemetryLogs              TelemetryLog[]
   appSettingsUpdated         AppSetting[]
   assetsAssignedByMe         AssetAssignment[]          @relation("AssetAssigner")
   assetAssignments           AssetAssignment[]          @relation("AssetAssignmentEmployee")
@@ -641,6 +642,52 @@ model AuditLog {
   @@index([actorId])
   @@index([performedAt])
   @@map("audit_logs")
+}
+
+// Master Admin Observatory: tracks every single page visit, click, and action
+model ActivityLog {
+  id          String   @id @default(cuid())
+  employeeId  String?
+  userId      String?
+  page        String
+  action      String   // PAGE_VIEW, CLICK, FORM_SUBMIT, DOWNLOAD, LOGOUT
+  ipAddress   String?
+  userAgent   String?
+  deviceType  String?  // DESKTOP, MOBILE, TABLET
+  browser     String?
+  os          String?
+  isp         String?
+  city        String?
+  country     String?
+  durationMs  Int?     // Total dwell time on page in milliseconds (written on flush)
+  sessionId   String?
+  timestamp   DateTime @default(now())
+
+  @@index([employeeId, timestamp])
+  @@index([page, timestamp])
+  @@index([timestamp])
+  @@map("activity_logs")
+}
+
+// Master Admin Observatory: automated security alerts
+model SecurityAlert {
+  id          String    @id @default(cuid())
+  employeeId  String?
+  userId      String?
+  type        String    // IP_MISMATCH, NEW_DEVICE, CONCURRENT_SESSION, RAPID_LOCATION_CHANGE
+  severity    String    // LOW, MEDIUM, HIGH, CRITICAL
+  loginIp     String?
+  checkinIp   String?
+  loginCity   String?
+  checkinCity String?
+  details     Json?
+  resolvedAt  DateTime?
+  resolvedBy  String?
+  createdAt   DateTime  @default(now())
+
+  @@index([employeeId, createdAt])
+  @@index([type, createdAt])
+  @@map("security_alerts")
 }
 
 model ConsentLog {
@@ -2194,4 +2241,34 @@ enum ReportStatus {
   APPROVED
   REJECTED
   NEEDS_REVISION
+}
+
+model TelemetryLog {
+  id          String   @id @default(cuid())
+  employeeId  String
+  userId      String
+  page        String
+  action      String   @default("VIEW")
+  ipAddress   String
+  internetIp  String
+  deviceData  Json?
+  timeSpentMs Int?
+  timestamp   DateTime @default(now())
+  employee    Employee @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId])
+  @@index([timestamp])
+  @@index([page])
+}
+
+model AnomalyEvent {
+  id          String   @id @default(cuid())
+  employeeId  String?
+  type        String
+  severity    String
+  details     Json
+  timestamp   DateTime @default(now())
+
+  @@index([type])
+  @@index([timestamp])
 }

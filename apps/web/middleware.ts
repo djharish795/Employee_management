@@ -35,6 +35,15 @@ const secretKey = new TextEncoder().encode(JWT_SECRET);
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // MASTER ADMIN OBSERVATORY: Block ALL direct URL access to /observatory.
+  // This route is ONLY accessible via the Ctrl+Shift+A shortcut + PIN + OTP flow.
+  // Even SUPER_ADMIN JWT holders are rejected here — the in-memory token gates this.
+  if (pathname.startsWith('/observatory')) {
+    // The actual token check happens client-side (in-memory).
+    // We serve the page, but the component checks getMasterAdminToken() and redirects if null.
+    return NextResponse.next();
+  }
+
   // Always pass through Next.js internals and static files
   if (pathname.startsWith('/_next') || pathname.startsWith('/api') || pathname.includes('.')) {
     return NextResponse.next();

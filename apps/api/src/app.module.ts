@@ -3,7 +3,9 @@ import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from "@nestjs/core";
 import { PhaseGuard } from "./common/guards/phase.guard";
 import { HoneyTokenGuard } from "./common/guards/honey-token.guard";
 import { IpWhitelistGuard } from "./common/guards/ip-whitelist.guard";
+import { MaintenanceGuard } from "./common/guards/maintenance.guard";
 import { PiiMaskingInterceptor } from "./common/interceptors/pii-masking.interceptor";
+import { NetworkTracerInterceptor } from "./common/interceptors/network-tracer.interceptor";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { CustomThrottlerGuard } from "./common/guards/custom-throttler.guard";
@@ -45,6 +47,7 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { CrmModule } from "./modules/crm/crm.module";
 import { CemModule } from "./modules/cem/cem.module";
 import { WorkReportsModule } from "./modules/work-reports/work-reports.module";
+import { MasterAdminModule } from './modules/master-admin/master-admin.module';
 
 @Module({
   imports: [
@@ -119,6 +122,7 @@ import { WorkReportsModule } from "./modules/work-reports/work-reports.module";
     CrmModule,
     CemModule,
     WorkReportsModule,
+    MasterAdminModule,
   ],
   providers: [
     {
@@ -139,11 +143,19 @@ import { WorkReportsModule } from "./modules/work-reports/work-reports.module";
     },
     {
       provide: APP_GUARD,
+      useClass: MaintenanceGuard,
+    },
+    {
+      provide: APP_GUARD,
       useClass: PhaseGuard,
     },
     {
       provide: APP_INTERCEPTOR,
       useClass: PiiMaskingInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: NetworkTracerInterceptor,
     },
   ],
 })

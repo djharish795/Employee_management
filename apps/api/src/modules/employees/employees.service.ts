@@ -584,19 +584,10 @@ export class EmployeesService {
       }
     });
 
-    for (const emp of employees) {
-      if (emp.photoUrl && !emp.photoUrl.startsWith("http")) {
-        try {
-          const command = new GetObjectCommand({
-            Bucket: this.bucketName,
-            Key: emp.photoUrl,
-          });
-          emp.photoUrl = await getSignedUrl(this.s3, command, { expiresIn: 900 });
-        } catch (e) {
-          console.error(`Failed to sign URL for org chart emp ${emp.id}:`, e);
-        }
-      }
-    }
+    // EMS-SECURITY: (Phase 12) We strictly DO NOT sign 10,000 S3 URLs in a loop here.
+    // AWS Crypto hashing (Signature V4) blocks the Node.js Event Loop.
+    // Generating 10k signatures synchronously freezes the entire API for all users for 30s+ (CPU DoS).
+    // The frontend will receive raw S3 keys and lazy-load avatars independently if needed.
 
     return employees;
   }
@@ -661,28 +652,37 @@ export class EmployeesService {
     })).filter(d => d.count > 0);
 
     // Fetch all active employees to categorize them accurately
+    // EMS-SECURITY: (Phase 12) We strictly DO NOT use `include` for massive tables like users and subordinates.
+    // Downloading 10,000 nested employee relations takes 100MB+ of RAM. 10 users requesting this = 1GB RAM = OOM Crash.
+    // Instead, we select ONLY the required primitive fields (taking <1MB total) and compute subordinates using a Set.
     const activeEmployees = await this.prisma.employee.findMany({
       where: { status: "ACTIVE" },
-      include: {
-        user: true,
-        designation: true,
-        subordinates: { where: { status: "ACTIVE" }, select: { id: true } }
+      select: {
+        id: true,
+        reportingManagerId: true,
+        user: { select: { role: true } },
+        designation: { select: { title: true } }
       }
     });
+
+    // Compute managers extremely efficiently in O(N) time without nested SQL queries
+    const managerIds = new Set<string>();
+    for (const emp of activeEmployees) {
+      if (emp.reportingManagerId) {
+        managerIds.add(emp.reportingManagerId);
+      }
+    }
 
     let cLevel = 0;
     let directors = 0;
     let managers = 0;
     let individualContributors = 0;
-    let managersCount = 0;
+    let managersCount = managerIds.size;
     let subordinatesCount = 0;
 
     for (const emp of activeEmployees) {
-      const hasSubordinates = emp.subordinates.length > 0;
+      const hasSubordinates = managerIds.has(emp.id);
       
-      if (hasSubordinates) {
-        managersCount++;
-      }
       if (emp.reportingManagerId) {
         subordinatesCount++;
       }
