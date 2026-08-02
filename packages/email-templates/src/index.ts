@@ -4,6 +4,9 @@ import { WelcomeEmail } from "./welcome-email";
 import { LeaveApprovedEmail } from "./leave-approved";
 import { ProjectAssignedEmail } from "./project-assigned";
 import { OffboardingEmail } from "./offboarding-email";
+import { MeetAcceptedEmail } from "./meet-accepted";
+import { MeetRequestEmail } from "./meet-request";
+import { MfaOtpEmail } from "./mfa-otp";
 
 // Helper function to render React Email components to HTML string
 export const renderEmailHtml = async (
@@ -25,6 +28,15 @@ export const renderEmailHtml = async (
       break;
     case "OFFBOARDING":
       element = React.createElement(OffboardingEmail, context);
+      break;
+    case "MEET-ACCEPTED":
+      element = React.createElement(MeetAcceptedEmail, context);
+      break;
+    case "MEET-REQUEST":
+      element = React.createElement(MeetRequestEmail, context);
+      break;
+    case "MFA_OTP":
+      element = React.createElement(MfaOtpEmail, context);
       break;
     default:
       // Fallback for unknown templates
