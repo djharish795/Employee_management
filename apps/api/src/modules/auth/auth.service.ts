@@ -49,11 +49,6 @@ export class AuthService {
 
     const isFirstLogin = !user.lastLoginAt;
 
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date() },
-    });
-
     let isTeamLead = false;
     if (user.employeeId) {
       const tlAssignment = await this.prisma.projectAssignment.findFirst({
@@ -78,6 +73,12 @@ export class AuthService {
         method: challenge.method,
       };
     }
+
+    // Update lastLoginAt ONLY after MFA passes (or if MFA is skipped)
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
 
     const issued = await this.tokens.issueTokens({
       userId: user.id,

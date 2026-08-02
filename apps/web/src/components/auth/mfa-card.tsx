@@ -97,9 +97,9 @@ export const MfaCard: React.FC = () => {
         });
         document.cookie = `token=${res.token}; path=/; max-age=86400; SameSite=Strict`;
         document.cookie = `role=${role}; path=/; max-age=86400; SameSite=Strict`;
-        router.push(res.redirectPath ?? "/employee/dashboard");
+        window.location.replace(res.redirectPath ?? "/employee/dashboard");
       } else {
-        router.push("/employee/dashboard");
+        window.location.replace("/employee/dashboard");
       }
     } catch (err: any) {
       setErrorMsg(err.message || "Invalid or expired verification code.");
