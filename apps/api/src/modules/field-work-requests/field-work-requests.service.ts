@@ -89,7 +89,12 @@ export class FieldWorkRequestsService {
     return requests.map(req => this.decryptRequest(req));
   }
 
-  async getTeamApprovals(approverId: string, role?: string): Promise<any[]> {
+  async getTeamApprovals(approverEmployeeIdStr: string, role?: string): Promise<any[]> {
+    const employee = await this.prisma.employee.findUnique({
+      where: { employeeId: approverEmployeeIdStr }
+    });
+    
+    const approverId = employee?.id || approverEmployeeIdStr;
     const isGlobalAdmin = role === 'CEO' || role === 'SUPER_ADMIN' || role === 'OPERATIONS_HEAD' || role === 'CEM' || role === 'OM' || role === 'CHRO' || role === 'HR';
     const whereClause: any = isGlobalAdmin ? {} : { approverId };
     whereClause.employeeId = { not: approverId };
@@ -181,6 +186,7 @@ export class FieldWorkRequestsService {
       employeeId: emp.employeeId,
       department: emp.department?.name || "Operations",
       reportingManager: mName,
+      isOwnRequest: isOwner,
     };
   }
 
@@ -205,8 +211,8 @@ export class FieldWorkRequestsService {
       }
       updateData.status = "CANCELLED";
     } else {
-      if (request.status !== "DRAFT") {
-        throw new BadRequestException("Only draft requests can be edited");
+      if (request.status !== "DRAFT" && request.status !== "PENDING") {
+        throw new BadRequestException("Only draft and pending requests can be edited");
       }
 
       if (dto.date) updateData.date = new Date(dto.date);
@@ -258,7 +264,12 @@ export class FieldWorkRequestsService {
     return this.decryptRequest(updated);
   }
 
-  async approve(id: string, approverId: string, role: string): Promise<any> {
+  async approve(id: string, approverEmployeeIdStr: string, role: string): Promise<any> {
+    const employee = await this.prisma.employee.findUnique({
+      where: { employeeId: approverEmployeeIdStr }
+    });
+    const approverId = employee?.id || approverEmployeeIdStr;
+
     const request = await this.prisma.fieldWorkRequest.findUnique({
       where: { id },
     });
@@ -329,7 +340,12 @@ export class FieldWorkRequestsService {
     return this.decryptRequest(updated);
   }
 
-  async reject(id: string, approverId: string, role: string, reason: string): Promise<any> {
+  async reject(id: string, approverEmployeeIdStr: string, role: string, reason: string): Promise<any> {
+    const employee = await this.prisma.employee.findUnique({
+      where: { employeeId: approverEmployeeIdStr }
+    });
+    const approverId = employee?.id || approverEmployeeIdStr;
+
     const request = await this.prisma.fieldWorkRequest.findUnique({
       where: { id },
     });
@@ -401,8 +417,8 @@ export class FieldWorkRequestsService {
       throw new ForbiddenException("You can only delete your own requests");
     }
 
-    if (request.status !== "DRAFT" && request.status !== "CANCELLED") {
-      throw new BadRequestException("Only draft and cancelled requests can be deleted. Approved, rejected, and pending requests must remain in audit history.");
+    if (request.status !== "DRAFT" && request.status !== "CANCELLED" && request.status !== "PENDING") {
+      throw new BadRequestException("Only draft, pending, and cancelled requests can be deleted. Approved and rejected requests must remain in audit history.");
     }
 
     await this.prisma.fieldWorkRequest.delete({

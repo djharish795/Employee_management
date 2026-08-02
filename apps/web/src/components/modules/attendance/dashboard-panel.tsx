@@ -492,6 +492,17 @@ export default function DashboardPanel() {
                   const positions = ["bottom-6", "top-6", "bottom-14", "top-14"];
                   const labelPosition = isBreak ? positions[breakIndex % 4] : "top-6";
 
+                  // Dynamic alignment to prevent edge overflows
+                  let alignClass = "items-center";
+                  let positionClass = ""; // defaults to static flex center
+                  if (ev.position <= 5) {
+                    alignClass = "items-start";
+                    positionClass = "left-1/2 -translate-x-[20%]";
+                  } else if (ev.position >= 95) {
+                    alignClass = "items-end";
+                    positionClass = "right-1/2 translate-x-[20%]";
+                  }
+
                   return (
                     <div
                       key={i}
@@ -501,13 +512,13 @@ export default function DashboardPanel() {
                       <div className={`w-4 h-4 rounded-full border-[3px] border-white shadow-sm z-10 transition-all ${bgColor} ring-4 ${ringColor}`} />
 
                       {/* Hover Tooltip */}
-                      <div className="absolute top-6 flex flex-col items-center opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 border border-slate-700 shadow-lg rounded p-2 z-20 w-max pointer-events-none">
+                      <div className={`absolute top-6 flex flex-col opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 border border-slate-700 shadow-lg rounded p-2 z-20 w-max pointer-events-none ${alignClass} ${positionClass}`}>
                         <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">{ev.label}</span>
                         <span className="text-[11px] font-bold text-white">{ev.displayTime}</span>
                       </div>
 
                       {/* Default visible label */}
-                      <div className={`absolute flex flex-col items-center ${labelPosition}`}>
+                      <div className={`absolute flex flex-col ${labelPosition} ${alignClass} ${positionClass}`}>
                         <span className="text-[11px] font-bold text-slate-900 whitespace-nowrap">{ev.displayTime}</span>
                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5 whitespace-nowrap">{ev.label}</span>
                       </div>
@@ -674,7 +685,7 @@ export default function DashboardPanel() {
                         {formattedHours}
                         {(log.overtime ?? 0) > 0 && (
                           <span className={`ml-2 px-1.5 py-0.5 text-[9px] font-bold rounded uppercase ${log.isOvertimeApproved ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                            +{formatDecimalHoursToHMS(log.overtime || 0)} {log.isOvertimeApproved ? '' : '(Pending)'}
+                            +{formatDecimalHoursToHMS(log.overtime ?? 0)} {log.isOvertimeApproved ? '' : '(Pending)'}
                           </span>
                         )}
                       </td>
