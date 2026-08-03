@@ -64,8 +64,8 @@ export function Topbar() {
   }, [userProfile]);
 
   let userName = "User";
-  if (userProfile?.firstName) {
-    userName = `${userProfile.firstName} ${userProfile.lastName || ""}`.trim();
+  if (userProfile?.preferredName || userProfile?.firstName) {
+    userName = userProfile.preferredName || `${userProfile.firstName} ${userProfile.lastName || ""}`.trim();
     lastKnownRef.current.name = userName;
   } else {
     userName = lastKnownRef.current.name;
@@ -77,7 +77,7 @@ export function Topbar() {
   else if (displayRole === 'OE') displayRole = 'Operations Executive';
   else if (displayRole === 'CRM') displayRole = 'CRM Executive';
   
-  const displayPhotoUrl = userProfile?.profilePicture || photoUrl || lastKnownRef.current.photoUrl;
+  const displayPhotoUrl = userProfile ? (userProfile.photoUrl ?? userProfile.profilePicture ?? null) : (photoUrl ?? lastKnownRef.current.photoUrl);
   lastKnownRef.current.photoUrl = displayPhotoUrl;
 
   const handleLogout = () => {

@@ -88,7 +88,17 @@ export class WorkReportsService {
 
   async getTeamReports(reviewerId: string, role?: string) {
     const isGlobalAdmin = role === 'CEO' || role === 'SUPER_ADMIN' || role === 'OPERATIONS_HEAD' || role === 'CEM' || role === 'OM' || role === 'CHRO' || role === 'HR';
-    const whereClause: any = isGlobalAdmin ? {} : { reviewerId };
+    let whereClause: any = {};
+    if (role === 'CTO') {
+      whereClause = {
+        OR: [
+          { reviewerId },
+          { department: 'Operations' }
+        ]
+      };
+    } else if (!isGlobalAdmin) {
+      whereClause = { reviewerId };
+    }
     whereClause.employeeId = { not: reviewerId };
     
     return this.prisma.workReport.findMany({
@@ -111,9 +121,10 @@ export class WorkReportsService {
     }
 
     const isGlobalAdmin = role === 'OM' || role === 'SUPER_ADMIN' || role === 'CEO' || role === 'OPERATIONS_HEAD';
+    const isCtoOpsView = role === 'CTO' && report.department === 'Operations';
 
-    // Ensure the requester is either the submitter, the reviewer, or a global admin
-    if (report.employeeId !== employeeId && report.reviewerId !== employeeId && !isGlobalAdmin) {
+    // Ensure the requester is either the submitter, the reviewer, a global admin, or CTO viewing Ops
+    if (report.employeeId !== employeeId && report.reviewerId !== employeeId && !isGlobalAdmin && !isCtoOpsView) {
       throw new ForbiddenException('Access denied to this report');
     }
 
@@ -169,7 +180,17 @@ export class WorkReportsService {
 
   async exportTeamCsv(reviewerId: string, role?: string): Promise<string> {
     const isGlobalAdmin = role === 'CEO' || role === 'SUPER_ADMIN' || role === 'OPERATIONS_HEAD' || role === 'CEM' || role === 'OM' || role === 'CHRO' || role === 'HR';
-    const whereClause: any = isGlobalAdmin ? {} : { reviewerId };
+    let whereClause: any = {};
+    if (role === 'CTO') {
+      whereClause = {
+        OR: [
+          { reviewerId },
+          { department: 'Operations' }
+        ]
+      };
+    } else if (!isGlobalAdmin) {
+      whereClause = { reviewerId };
+    }
     whereClause.employeeId = { not: reviewerId };
     
     const reports = await this.prisma.workReport.findMany({

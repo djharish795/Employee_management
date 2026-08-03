@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, CheckCircle, Save } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { Stepper } from '@/components/employees/stepper';
 import { PersonalInformationForm } from '@/components/employees/personal-information-form';
 import { EmploymentForm } from '@/components/employees/employment-form';
@@ -39,6 +40,7 @@ export default function EditEmployeePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [employeeData, setEmployeeData] = useState<any>(null);
   const accessToken = useAuthStore((state) => state.accessToken);
+  const queryClient = useQueryClient();
 
   const { canManageEmployees, role } = usePermissions();
 
@@ -98,12 +100,22 @@ export default function EditEmployeePage() {
   const handleStepSave = async (stepData: any) => {
     setIsSubmitting(true);
     try {
-      // Simulate API call to update employee section
-      await new Promise(resolve => setTimeout(resolve, 800));
+      const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+      const res = await fetch(`${url}/employees/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(stepData),
+        credentials: "include"
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to update profile");
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ["myProfile"] });
+      queryClient.invalidateQueries({ queryKey: ["employeeProfile", id] });
       
       toast.success('Changes saved successfully!');
-      // We don't advance the step automatically in edit mode. 
-      // They can navigate away or click another tab.
     } catch (error) {
       console.error(error);
       toast.error("Validation failed or server error.");
@@ -192,7 +204,7 @@ export default function EditEmployeePage() {
             type="submit"
             form="onboarding-form"
             disabled={isSubmitting || isLoading}
-            className="flex items-center gap-2 h-10 px-6 bg-slate-900 hover:bg-slate-800 text-white rounded-md text-sm font-bold shadow-sm transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 h-10 px-6 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-bold shadow-sm transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? 'Saving...' : (
               <>

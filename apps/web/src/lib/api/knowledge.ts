@@ -45,6 +45,7 @@ export const knowledgeApi = {
     title: string;
     content: string;
     category: string;
+    customCategory?: string;
     isPublished?: boolean;
     slug?: string;
     version?: string;
@@ -60,6 +61,7 @@ export const knowledgeApi = {
       title?: string;
       content?: string;
       category?: string;
+      customCategory?: string;
       isPublished?: boolean;
       slug?: string;
       version?: string;

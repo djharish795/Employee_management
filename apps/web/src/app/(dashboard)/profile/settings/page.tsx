@@ -8,9 +8,11 @@ import { Shield, User, Lock, Smartphone, Key, Settings as SettingsIcon, Loader2,
 import { fetchMyProfile, updateMyProfile, changePassword } from '@/lib/api/profile';
 import { useAuthStore } from '@/store/auth';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function ProfileSettingsPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { canManageEmployees, role } = usePermissions();
   const [activeTab, setActiveTab] = useState<'personal' | 'official' | 'contact' | 'security' | 'preferences'>('personal');
   const [profile, setProfile] = useState<any>(null);
@@ -87,6 +89,7 @@ export default function ProfileSettingsPage() {
         setPhotoUrl(profile?.photoUrl);
       }
       toast.success('Profile updated successfully!');
+      await queryClient.invalidateQueries({ queryKey: ["myProfile"] });
       await loadProfile();
     } catch (e) {
       console.error(e);
@@ -523,7 +526,7 @@ export default function ProfileSettingsPage() {
           {/* Action Footer for Editable Tabs */}
           {['personal', 'contact', 'preferences'].includes(activeTab) && (
             <div className="absolute bottom-8 right-8 animate-in fade-in">
-              <button onClick={handleUpdateProfile} disabled={saving} className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-semibold flex items-center gap-2 transition-colors shadow-sm disabled:opacity-50">
+              <button onClick={handleUpdateProfile} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-semibold flex items-center gap-2 transition-colors shadow-sm disabled:opacity-50">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save Changes
               </button>
             </div>

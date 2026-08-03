@@ -22,7 +22,7 @@ export default function RegularizationPanel({ mode = "personal" }: Regularizatio
   // Form Fields
   const [reqDate, setReqDate] = useState("");
   const [reqReason, setReqReason] = useState("");
-  const [reqType, setReqType] = useState<"MISSING_PUNCH" | "INCORRECT_TIME" | "WFH_MARKING">("MISSING_PUNCH");
+  const [reqType, setReqType] = useState<"MISSING_PUNCH" | "INCORRECT_TIME" | "WFH_MARKING" | "LATE_CHECKIN" | "EARLY_CHECKOUT">("MISSING_PUNCH");
   const [fileName, setFileName] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -293,6 +293,8 @@ export default function RegularizationPanel({ mode = "personal" }: Regularizatio
                   className="w-full h-10 px-3.5 border border-slate-200 rounded-lg bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-slate-900/20"
                 >
                   <option value="MISSING_PUNCH">Missing Punch</option>
+                  <option value="LATE_CHECKIN">Late Check-in</option>
+                  <option value="EARLY_CHECKOUT">Early Checkout</option>
                   <option value="INCORRECT_TIME">Incorrect Time Logged</option>
                   <option value="WFH_MARKING">Remote WFH Attendance</option>
                 </select>

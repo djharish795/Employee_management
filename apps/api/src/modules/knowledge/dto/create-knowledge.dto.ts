@@ -13,6 +13,10 @@ export class CreateKnowledgeDocDto {
   @IsEnum(KnowledgeCategory)
   category!: KnowledgeCategory;
 
+  @IsString()
+  @IsOptional()
+  customCategory?: string;
+
   @IsBoolean()
   @IsOptional()
   isPublished?: boolean;

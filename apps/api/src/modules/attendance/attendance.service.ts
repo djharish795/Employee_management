@@ -1547,15 +1547,51 @@ export class AttendanceService {
       if (action === "APPROVE") {
         const dateStr = new Date(updatedReq.attendanceDate);
 
-        // Setup 10:00 AM IST (04:30 AM UTC)
-        const checkInTime = new Date(dateStr);
-        checkInTime.setUTCHours(4, 30, 0, 0);
+        // Fetch existing record to get actual punch times
+        const existingRecord = await this.prisma.attendanceRecord.findUnique({
+          where: {
+            employeeId_date: {
+              employeeId: updatedReq.employeeId,
+              date: dateStr,
+            }
+          }
+        });
 
-        // Setup 07:00 PM IST (13:30 PM UTC)
-        const checkOutTime = new Date(dateStr);
-        checkOutTime.setUTCHours(13, 30, 0, 0);
+        let checkInTime: Date | null = existingRecord?.checkInTime ? new Date(existingRecord.checkInTime) : null;
+        let checkOutTime: Date | null = existingRecord?.checkOutTime ? new Date(existingRecord.checkOutTime) : null;
 
-        const status = updatedReq.correctionType === "WFH_MARKING" ? "WFH" : "PRESENT";
+        if (updatedReq.correctionType === "LATE_CHECKIN") {
+          // Standard checkIn is 10:00 AM IST (04:30 AM UTC)
+          checkInTime = new Date(dateStr);
+          checkInTime.setUTCHours(4, 30, 0, 0);
+        } else if (updatedReq.correctionType === "EARLY_CHECKOUT") {
+          // Standard checkOut is 07:00 PM IST (13:30 PM UTC)
+          checkOutTime = new Date(dateStr);
+          checkOutTime.setUTCHours(13, 30, 0, 0);
+          if (!checkInTime) {
+            checkInTime = new Date(dateStr);
+            checkInTime.setUTCHours(4, 30, 0, 0);
+          }
+        } else {
+          // Normal Regularization (MISSING_PUNCH, etc)
+          checkInTime = new Date(dateStr);
+          checkInTime.setUTCHours(4, 30, 0, 0);
+          checkOutTime = new Date(dateStr);
+          checkOutTime.setUTCHours(13, 30, 0, 0);
+        }
+
+        let workHours: number | null = null;
+        let status = existingRecord?.status || "PRESENT";
+
+        if (checkInTime && checkOutTime) {
+          const diffMs = checkOutTime.getTime() - checkInTime.getTime();
+          workHours = Math.max(0, Number((diffMs / 3600000).toFixed(2)));
+          status = updatedReq.correctionType === "WFH_MARKING" ? "WFH" : (workHours >= 4.5 ? "PRESENT" : "HALF_DAY");
+        } else if (updatedReq.correctionType === "WFH_MARKING") {
+          status = "WFH";
+        } else if (checkInTime && !checkOutTime) {
+          status = "PRESENT";
+        }
 
         await this.prisma.attendanceRecord.upsert({
           where: {
@@ -1566,7 +1602,7 @@ export class AttendanceService {
           },
           update: {
             status,
-            workHours: 9.0,
+            workHours,
             checkInTime,
             checkOutTime,
             isRegularized: true,
@@ -1577,7 +1613,7 @@ export class AttendanceService {
             employeeId: updatedReq.employeeId,
             date: dateStr,
             status,
-            workHours: 9.0,
+            workHours,
             checkInTime,
             checkOutTime,
             isRegularized: true,

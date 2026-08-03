@@ -39,7 +39,16 @@ export class DocumentsService {
     contentType: string,
     user?: any
   ): Promise<{ uploadUrl: string; objectKey: string }> {
-    const ALLOWED_CONTENT_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+    const ALLOWED_CONTENT_TYPES = [
+      'application/pdf', 
+      'image/jpeg', 
+      'image/png', 
+      'image/webp',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ];
     if (!ALLOWED_CONTENT_TYPES.includes(contentType)) {
       throw new BadRequestException(`Invalid file type. Allowed types: ${ALLOWED_CONTENT_TYPES.join(', ')}`);
     }
@@ -49,24 +58,21 @@ export class DocumentsService {
         'application/pdf': 'pdf',
         'image/jpeg': 'jpg',
         'image/png': 'png',
-        'image/webp': 'webp'
+        'image/webp': 'webp',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+        'application/msword': 'doc',
+        'application/vnd.ms-excel': 'xls',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx'
       };
       const fileExtension = extensionMap[contentType];
       const objectKey = `onboarding/${uuidv4()}.${fileExtension}`;
 
-      // Enforce file size (0 to 5MB) and exact content type
-      const { url, fields } = await createPresignedPost(this.s3 as any, {
+      const command = new PutObjectCommand({
         Bucket: this.bucketName,
         Key: objectKey,
-        Conditions: [
-          ["content-length-range", 0, 5242880], // 5MB limit
-          ["eq", "$Content-Type", contentType]
-        ],
-        Fields: {
-          "Content-Type": contentType
-        },
-        Expires: 900 // 15 minutes
+        ContentType: contentType
       });
+      const url = await getSignedUrl(this.s3, command, { expiresIn: 900 });
 
       this.auditService.logCreate({
         moduleName: 'Documents',
@@ -75,8 +81,8 @@ export class DocumentsService {
         metadata: { action: 'GENERATE_UPLOAD_URL', fileName, contentType }
       });
 
-      // Return both url and fields so the frontend can build the FormData POST request
-      return { uploadUrl: url, fields, objectKey } as any;
+      // Return url and objectKey so the frontend can execute a PUT request
+      return { uploadUrl: url, objectKey } as any;
     } catch (error: any) {
       this.logger.error("[DocumentsService] Error generating S3 upload URL:", {
         message: error?.message,
@@ -200,7 +206,16 @@ export class DocumentsService {
    * Uploads a file directly to S3 after stripping EXIF data if it is an image.
    */
   async uploadAndStripExif(file: Express.Multer.File, user?: any): Promise<{ objectKey: string }> {
-    const ALLOWED_CONTENT_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+    const ALLOWED_CONTENT_TYPES = [
+      'application/pdf', 
+      'image/jpeg', 
+      'image/png', 
+      'image/webp',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ];
     if (!ALLOWED_CONTENT_TYPES.includes(file.mimetype)) {
       throw new BadRequestException(`Invalid file type. Allowed types: ${ALLOWED_CONTENT_TYPES.join(', ')}`);
     }
@@ -213,7 +228,11 @@ export class DocumentsService {
         'application/pdf': 'pdf',
         'image/jpeg': 'jpg',
         'image/png': 'png',
-        'image/webp': 'webp'
+        'image/webp': 'webp',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+        'application/msword': 'doc',
+        'application/vnd.ms-excel': 'xls',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx'
       };
       const fileExtension = extensionMap[file.mimetype];
       const objectKey = `onboarding/${uuidv4()}.${fileExtension}`;

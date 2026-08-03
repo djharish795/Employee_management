@@ -577,6 +577,7 @@ model KnowledgeDoc {
   id                String                     @id @default(cuid())
   authorId          String
   category          KnowledgeCategory
+  customCategory    String?
   content           String
   createdAt         DateTime                   @default(now())
   isPublished       Boolean                    @default(false)
@@ -1942,6 +1943,7 @@ enum KnowledgeCategory {
   HR_GUIDELINES
   TRAINING_MATERIAL
   COMPLIANCE
+  OTHER
 }
 
 enum ErasureRequestStatus {
@@ -2199,6 +2201,8 @@ enum RegularizationCorrectionType {
   MISSING_PUNCH
   INCORRECT_TIME
   WFH_MARKING
+  LATE_CHECKIN
+  EARLY_CHECKOUT
 }
 
 enum RegularizationStatus {

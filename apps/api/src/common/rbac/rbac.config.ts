@@ -215,6 +215,10 @@ export const RbacRolePermissionsMapping: Record<RbacRoleType, RbacPermissionType
     RbacPermissions.TASKS_CREATE,
     RbacPermissions.TASKS_ASSIGN,
     RbacPermissions.TASKS_UPDATE,
+    RbacPermissions.PROJECTS_READ,
+    RbacPermissions.PROJECTS_CREATE,
+    RbacPermissions.PROJECTS_ASSIGN,
+    RbacPermissions.PROJECTS_MANAGE,
     RbacPermissions.DOCUMENTS_READ,
     RbacPermissions.DOCUMENTS_UPLOAD,
     RbacPermissions.COMPLIANCE_READ,
@@ -324,7 +328,7 @@ export const RbacRolePermissionsMapping: Record<RbacRoleType, RbacPermissionType
     RbacPermissions.PROJECTS_READ,
   ],
   // Fallback for new roles (to be filled in later phases)
-  [RbacRoles.SUPER_ADMIN]: [RbacPermissions.AUDIT_READ, RbacPermissions.SETTINGS_VIEW, RbacPermissions.SETTINGS_MANAGE, RbacPermissions.DASHBOARD_VIEW, RbacPermissions.EMPLOYEES_READ, RbacPermissions.DEPARTMENTS_READ, RbacPermissions.REPORTS_READ, RbacPermissions.REPORTS_GENERATE],
+  [RbacRoles.SUPER_ADMIN]: [RbacPermissions.AUDIT_READ, RbacPermissions.SETTINGS_VIEW, RbacPermissions.SETTINGS_MANAGE, RbacPermissions.DASHBOARD_VIEW, RbacPermissions.EMPLOYEES_READ, RbacPermissions.DEPARTMENTS_READ, RbacPermissions.REPORTS_READ, RbacPermissions.REPORTS_GENERATE, RbacPermissions.PROJECTS_READ, RbacPermissions.PROJECTS_CREATE, RbacPermissions.PROJECTS_ASSIGN, RbacPermissions.PROJECTS_MANAGE],
   [RbacRoles.CTO]: [
     RbacPermissions.DASHBOARD_VIEW,
     RbacPermissions.EMPLOYEES_READ,
@@ -338,7 +342,11 @@ export const RbacRolePermissionsMapping: Record<RbacRoleType, RbacPermissionType
     RbacPermissions.LEAVE_READ,
     RbacPermissions.LEAVE_APPROVE,
     RbacPermissions.REPORTS_READ,
-    RbacPermissions.REPORTS_GENERATE
+    RbacPermissions.REPORTS_GENERATE,
+    RbacPermissions.PROJECTS_READ,
+    RbacPermissions.PROJECTS_CREATE,
+    RbacPermissions.PROJECTS_ASSIGN,
+    RbacPermissions.PROJECTS_MANAGE
   ],
   [RbacRoles.COO]: [],
   [RbacRoles.OPERATIONS_HEAD]: [],

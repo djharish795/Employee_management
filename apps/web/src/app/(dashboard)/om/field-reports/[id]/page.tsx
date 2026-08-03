@@ -117,7 +117,7 @@ export default function FieldReportDetailPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => router.push("/om/field-reports")}
+            onClick={() => router.back()}
             className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
