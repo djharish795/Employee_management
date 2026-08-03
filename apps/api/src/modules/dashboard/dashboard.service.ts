@@ -624,7 +624,7 @@ export class DashboardService {
           presentTodayCount++;
         }
         if (record.checkInTime) {
-          time = record.checkInTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+          time = record.checkInTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" });
         }
       } else if (leave) {
         status = "On leave";

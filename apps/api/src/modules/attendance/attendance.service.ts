@@ -411,8 +411,6 @@ export class AttendanceService {
           const checkInTime = existingRecord?.checkInTime || new Date(state.startTime);
           const isLate = isLateArrival(checkInTime);
 
-          let workHoursDecimal = (state.offset || 0) / 3600;
-
           const approvedHalfDay = await tx.leaveRequest.findFirst({
             where: {
               employeeId,
@@ -423,7 +421,13 @@ export class AttendanceService {
             }
           });
 
-          const thresholdSeconds = approvedHalfDay ? 16200 : 32400; // 4.5 hours or 9 hours
+          const thresholdSeconds = (approvedHalfDay ? 16200 : 32400) - 59; // Ignore up to 59 seconds of delay
+
+          let effectiveSeconds = state.offset || 0;
+          if (effectiveSeconds >= thresholdSeconds && effectiveSeconds < (approvedHalfDay ? 16200 : 32400)) {
+            effectiveSeconds = approvedHalfDay ? 16200 : 32400;
+          }
+          let workHoursDecimal = effectiveSeconds / 3600;
 
           let finalStatus = existingRecord?.status === "WFH" ? "WFH" : "PRESENT";
 
@@ -493,11 +497,18 @@ export class AttendanceService {
     ]);
 
     // Map to dashboard-panel.tsx expected DTO shape
-    const mappedData = data.map(record => ({
+    const mappedData = data.map(record => {
+      let hw = record.workHours ? Number(record.workHours) : 0;
+      // Retroactive snapping for history display
+      if (record.status === 'PRESENT' || record.status === 'WFH') {
+         if (hw >= 8.9836 && hw < 9) hw = 9;
+         if (hw >= 4.4836 && hw < 4.5) hw = 4.5;
+      }
+      return {
       date: record.date.toISOString(),
       checkIn: record.checkInTime ? record.checkInTime.toISOString() : null,
       checkOut: record.checkOutTime ? record.checkOutTime.toISOString() : null,
-      hoursWorked: record.workHours ? Number(record.workHours) : 0,
+      hoursWorked: hw,
       status: record.status,
       remarks: record.notes || "",
       totalBreakSeconds: record.totalBreakSeconds || 0,
@@ -506,7 +517,8 @@ export class AttendanceService {
       overtime: record.overtime ? Number(record.overtime) : 0,
       isOvertimeApproved: (record as any).isOvertimeApproved || false,
       overtimeApprovedById: record.overtimeApprovedById || null
-    }));
+    };
+    });
 
     return { data: mappedData, total, page, limit };
   }
@@ -1318,6 +1330,7 @@ export class AttendanceService {
         status: statusStr,
         remarks: record.notes || "Standard Entry",
         punchHistory: Array.isArray((record as any).punchHistory) ? (record as any).punchHistory : [],
+        totalBreakSeconds: (record as any).totalBreakSeconds || 0,
         overtime: record.overtime ? Number(record.overtime) : 0,
         isOvertimeApproved: (record as any).isOvertimeApproved || false,
         overtimeApprovedById: (record as any).overtimeApprovedById || null
@@ -1372,9 +1385,9 @@ export class AttendanceService {
     for (const record of records) {
       const name = `${record.employee.firstName} ${record.employee.lastName}`;
       const dept = record.employee.department?.name || "Unassigned";
-      const date = record.date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-      const checkIn = record.checkInTime ? record.checkInTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : "--";
-      const checkOut = record.checkOutTime ? record.checkOutTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : "--";
+      const date = record.date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
+      const checkIn = record.checkInTime ? record.checkInTime.toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: "Asia/Kolkata" }) : "--";
+      const checkOut = record.checkOutTime ? record.checkOutTime.toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: "Asia/Kolkata" }) : "--";
       const hours = record.workHours ? Number(record.workHours).toFixed(2) : "0";
       csv += `"${name}","${dept}","${date}","${checkIn}","${checkOut}","${hours}","${record.status}","${record.notes || ''}"\n`;
     }
@@ -1547,15 +1560,51 @@ export class AttendanceService {
       if (action === "APPROVE") {
         const dateStr = new Date(updatedReq.attendanceDate);
 
-        // Setup 10:00 AM IST (04:30 AM UTC)
-        const checkInTime = new Date(dateStr);
-        checkInTime.setUTCHours(4, 30, 0, 0);
+        // Fetch existing record to get actual punch times
+        const existingRecord = await this.prisma.attendanceRecord.findUnique({
+          where: {
+            employeeId_date: {
+              employeeId: updatedReq.employeeId,
+              date: dateStr,
+            }
+          }
+        });
 
-        // Setup 07:00 PM IST (13:30 PM UTC)
-        const checkOutTime = new Date(dateStr);
-        checkOutTime.setUTCHours(13, 30, 0, 0);
+        let checkInTime: Date | null = existingRecord?.checkInTime ? new Date(existingRecord.checkInTime) : null;
+        let checkOutTime: Date | null = existingRecord?.checkOutTime ? new Date(existingRecord.checkOutTime) : null;
 
-        const status = updatedReq.correctionType === "WFH_MARKING" ? "WFH" : "PRESENT";
+        if (updatedReq.correctionType === "LATE_CHECKIN") {
+          // Standard checkIn is 10:00 AM IST (04:30 AM UTC)
+          checkInTime = new Date(dateStr);
+          checkInTime.setUTCHours(4, 30, 0, 0);
+        } else if (updatedReq.correctionType === "EARLY_CHECKOUT") {
+          // Standard checkOut is 07:00 PM IST (13:30 PM UTC)
+          checkOutTime = new Date(dateStr);
+          checkOutTime.setUTCHours(13, 30, 0, 0);
+          if (!checkInTime) {
+            checkInTime = new Date(dateStr);
+            checkInTime.setUTCHours(4, 30, 0, 0);
+          }
+        } else {
+          // Normal Regularization (MISSING_PUNCH, etc)
+          checkInTime = new Date(dateStr);
+          checkInTime.setUTCHours(4, 30, 0, 0);
+          checkOutTime = new Date(dateStr);
+          checkOutTime.setUTCHours(13, 30, 0, 0);
+        }
+
+        let workHours: number | null = null;
+        let status = existingRecord?.status || "PRESENT";
+
+        if (checkInTime && checkOutTime) {
+          const diffMs = checkOutTime.getTime() - checkInTime.getTime();
+          workHours = Math.max(0, Number((diffMs / 3600000).toFixed(2)));
+          status = updatedReq.correctionType === "WFH_MARKING" ? "WFH" : (workHours >= 4.5 ? "PRESENT" : "HALF_DAY");
+        } else if (updatedReq.correctionType === "WFH_MARKING") {
+          status = "WFH";
+        } else if (checkInTime && !checkOutTime) {
+          status = "PRESENT";
+        }
 
         await this.prisma.attendanceRecord.upsert({
           where: {
@@ -1566,7 +1615,7 @@ export class AttendanceService {
           },
           update: {
             status,
-            workHours: 9.0,
+            workHours,
             checkInTime,
             checkOutTime,
             isRegularized: true,
@@ -1577,7 +1626,7 @@ export class AttendanceService {
             employeeId: updatedReq.employeeId,
             date: dateStr,
             status,
-            workHours: 9.0,
+            workHours,
             checkInTime,
             checkOutTime,
             isRegularized: true,
@@ -1585,6 +1634,9 @@ export class AttendanceService {
             notes: `Approved Correction: ${updatedReq.correctionType}`
           }
         });
+
+        // Clear Redis state so it perfectly reconstructs from the newly updated DB record
+        await this.redis.getClient().del(`attendance_state:${updatedReq.employeeId}`);
       }
 
       this.emailService.sendEmail(
@@ -1722,8 +1774,8 @@ export class AttendanceService {
         hoursStr = `${record.workHours}h (checked out)`;
       }
 
-      const checkInFormat = record?.checkInTime ? new Date(record.checkInTime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }) : "-";
-      const checkOutFormat = record?.checkOutTime ? new Date(record.checkOutTime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }) : "-";
+      const checkInFormat = record?.checkInTime ? new Date(record.checkInTime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" }) : "-";
+      const checkOutFormat = record?.checkOutTime ? new Date(record.checkOutTime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" }) : "-";
 
       return {
         id: emp.id,

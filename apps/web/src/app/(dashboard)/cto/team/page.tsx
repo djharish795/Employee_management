@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/auth';
 import { fetchCtoTeam } from '@/lib/api/cto';
 import { apiClient } from '@/lib/api/client';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { toast } from 'react-hot-toast';
 
@@ -43,6 +44,7 @@ interface ProjectMember {
 }
 
 export default function EngineeringTeamPage() {
+  const router = useRouter();
   const role = useAuthStore((state) => state.role);
   
   // Tabs State
@@ -426,9 +428,12 @@ export default function EngineeringTeamPage() {
                             </span>
                           </td>
                           <td className="px-6 py-4 text-right">
-                            <Link href={`/employees/${engineer.id}`} className="text-slate-400 hover:text-slate-600 font-medium text-sm">
+                            <button 
+                              onClick={() => router.push(`/employees/${engineer.id}`)} 
+                              className="text-blue-600 hover:text-blue-700 hover:underline font-bold text-sm"
+                            >
                               View Profile
-                            </Link>
+                            </button>
                           </td>
                         </tr>
                       ))

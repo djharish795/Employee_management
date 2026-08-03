@@ -2,7 +2,8 @@
 
 import React from "react";
 import { PremiumDashboardLayout, PremiumCard } from '@/components/shared/premium-dashboard';
-import { FileText, ArrowLeft, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { FileText, ArrowLeft, Clock, CheckCircle2, XCircle, Paperclip, Download } from "lucide-react";
+import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import useSWR from 'swr';
 import { apiClient } from '@/lib/api/client';
@@ -57,6 +58,20 @@ export default function WorkReportViewPage({ params }: { params: { id: string } 
     }
   };
 
+  const handleDownloadAttachment = async (objectKey: string) => {
+    try {
+      const { data } = await apiClient.get(`/documents/view-url?objectKey=${encodeURIComponent(objectKey)}`);
+      if (data?.data?.url) {
+        window.open(data.data.url, '_blank');
+      } else {
+        toast.error('Failed to generate secure URL');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to download attachment');
+    }
+  };
+
   return (
     <PremiumDashboardLayout className="space-y-6 max-w-4xl mx-auto w-full">
       <button 
@@ -106,6 +121,36 @@ export default function WorkReportViewPage({ params }: { params: { id: string } 
               {report.content?.details || "No content provided."}
             </div>
           </div>
+
+          {report.content?.attachments && report.content.attachments.length > 0 && (
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-3 flex items-center gap-2">
+                <Paperclip className="w-4 h-4 text-slate-400" />
+                Attachments
+              </h3>
+              <div className="flex flex-col gap-3">
+                {report.content.attachments.map((att: any, idx: number) => (
+                  <div key={idx} className="flex items-center justify-between p-4 border border-slate-200 bg-white rounded-lg shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded flex items-center justify-center">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-800">{att.fileName}</p>
+                        <p className="text-xs text-slate-500 font-medium">Uploaded via S3</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleDownloadAttachment(att.objectKey)}
+                      className="flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-blue-50 text-blue-600 border border-slate-200 hover:border-blue-200 rounded-lg text-sm font-bold transition-colors"
+                    >
+                      <Download className="w-4 h-4" /> Download
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {report.rejectionReason && (
             <div>

@@ -57,8 +57,10 @@ export default function TeamDashboardPage() {
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">My team</h1>
           <p className="text-sm font-semibold text-slate-500 mt-1">{currentDate}</p>
         </div>
-        <Button variant="outline" className="bg-white text-slate-700 font-bold border-slate-200 hover:bg-slate-50 shadow-sm rounded-xl">
-          View team profile
+        <Button variant="outline" asChild className="bg-white text-slate-700 font-bold border-slate-200 hover:bg-slate-50 shadow-sm rounded-xl">
+          <Link href="/team-lead/team">
+            View team profile
+          </Link>
         </Button>
       </div>
 

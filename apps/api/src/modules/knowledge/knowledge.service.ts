@@ -35,7 +35,7 @@ export class KnowledgeService {
     });
   }
 
-  async list(role: UserRole, searchDto: SearchKnowledgeDocDto) {
+  async list(role: UserRole, searchDto: SearchKnowledgeDocDto, employeeId?: string) {
     const hasWrite = this.hasWriteAccess(role);
     
     // Non-authorized roles can ONLY view published articles
@@ -48,7 +48,7 @@ export class KnowledgeService {
     const limit = Math.min(searchDto.limit || 50, 100);
     const skip = (page - 1) * limit;
 
-    const results = await this.searchService.search(searchDto.q, searchDto.category, isPublished, skip, limit);
+    const results = await this.searchService.search(searchDto.q, searchDto.category, isPublished, skip, limit, employeeId);
     return { data: results, page, limit };
   }
 

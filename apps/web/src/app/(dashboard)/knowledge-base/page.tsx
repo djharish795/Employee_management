@@ -48,7 +48,8 @@ export default function KnowledgeBasePage() {
   const [isOpen, setIsOpen] = useState(false);
   const [editingDocId, setEditingDocId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState<"POLICY" | "SOP" | "COMPLIANCE" | "TRAINING_MATERIAL" | "HR_GUIDELINES" | "ARCHITECTURE" | "TECHNICAL_DOC">("POLICY");
+  const [category, setCategory] = useState<"POLICY" | "SOP" | "COMPLIANCE" | "TRAINING_MATERIAL" | "HR_GUIDELINES" | "ARCHITECTURE" | "TECHNICAL_DOC" | "OTHER">("POLICY");
+  const [customCategory, setCustomCategory] = useState("");
   const [content, setContent] = useState("");
   const [isPublished, setIsPublished] = useState(false);
   const [requiresSignature, setRequiresSignature] = useState(false);
@@ -66,6 +67,7 @@ export default function KnowledgeBasePage() {
     setEditingDocId(null);
     setTitle("");
     setCategory("POLICY");
+    setCustomCategory("");
     setContent("");
     setIsPublished(false);
     setRequiresSignature(false);
@@ -79,15 +81,16 @@ export default function KnowledgeBasePage() {
       const docs = await knowledgeApi.list();
       setRawDocs(docs);
       const mapped = docs.map(doc => {
-        let displayCategory: 'HR Policy' | 'SOP' | 'Compliance' | 'Training' = 'HR Policy';
+        let displayCategory: 'HR Policy' | 'SOP' | 'Compliance' | 'Training' | 'Other' = 'HR Policy';
         if (doc.category === 'SOP') displayCategory = 'SOP';
         else if (doc.category === 'COMPLIANCE') displayCategory = 'Compliance';
         else if (doc.category === 'TRAINING_MATERIAL' || doc.category === 'HR_GUIDELINES') displayCategory = 'Training';
+        else if (doc.category === 'OTHER') displayCategory = 'Other';
 
         return {
           id: doc.id,
           title: doc.title,
-          category: displayCategory,
+          category: doc.category === 'OTHER' && (doc as any).customCategory ? (doc as any).customCategory : displayCategory,
           status: (doc.isPublished ? 'Published' : 'Draft') as 'Published' | 'Draft',
           author: doc.author ? `${doc.author.firstName} ${doc.author.lastName}` : 'System',
           lastUpdated: doc.publishedAt ? format(new Date(doc.publishedAt), 'MMM d, yyyy') : 'Draft'
@@ -138,6 +141,7 @@ export default function KnowledgeBasePage() {
           title,
           content,
           category,
+          customCategory: category === 'OTHER' ? customCategory : undefined,
           isPublished,
           requiresSignature
         });
@@ -146,6 +150,7 @@ export default function KnowledgeBasePage() {
           title,
           content,
           category,
+          customCategory: category === 'OTHER' ? customCategory : undefined,
           isPublished,
           requiresSignature
         });
@@ -326,6 +331,7 @@ export default function KnowledgeBasePage() {
                                   setEditingDocId(rawDoc.id);
                                   setTitle(rawDoc.title);
                                   setCategory(rawDoc.category as any);
+                                  setCustomCategory((rawDoc as any).customCategory || "");
                                   setContent(rawDoc.content);
                                   setRequiresSignature(rawDoc.requiresSignature ?? false);
                                   setIsPublished(rawDoc.isPublished);
@@ -465,16 +471,31 @@ export default function KnowledgeBasePage() {
                 <option value="HR_GUIDELINES">HR Guidelines</option>
                 <option value="ARCHITECTURE">Architecture</option>
                 <option value="TECHNICAL_DOC">Technical Doc</option>
+                <option value="OTHER">Other</option>
               </select>
             </div>
+
+            {category === 'OTHER' && (
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Custom Category Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Safety Guidelines"
+                  value={customCategory}
+                  onChange={e => setCustomCategory(e.target.value)}
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-colors h-9"
+                />
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Document File (PDF/DOCX)</label>
               {content ? (
-                <div className="text-xs text-slate-500 mb-2 p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                <div className="w-full max-w-full overflow-hidden text-xs text-slate-500 mb-2 p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
                     <FileText className="w-4 h-4 text-slate-400 shrink-0" />
-                    <span className="truncate font-medium">{fileName || content}</span>
+                    <span className="truncate block font-medium w-full">{fileName || content}</span>
                   </div>
                   <button
                     type="button"
@@ -499,19 +520,34 @@ export default function KnowledgeBasePage() {
                       setIsUploading(true);
                       setErrorMsg("");
                       try {
+                        let contentType = file.type;
+                        if (!contentType) {
+                          if (file.name.toLowerCase().endsWith(".docx")) contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+                          else if (file.name.toLowerCase().endsWith(".doc")) contentType = "application/msword";
+                          else contentType = "application/octet-stream";
+                        }
+                        
                         const res = await apiClient.post("/documents/upload-url", {
                           fileName: file.name,
-                          contentType: file.type || "application/octet-stream"
+                          contentType
                         });
-                        const { uploadUrl, objectKey } = res.data.data;
                         
-                        await fetch(uploadUrl, {
-                          method: "PUT",
-                          headers: {
-                            "Content-Type": file.type || "application/octet-stream"
-                          },
-                          body: file
+                        const { uploadUrl, fields, objectKey } = res.data.data;
+                        
+                        const formData = new FormData();
+                        Object.entries(fields).forEach(([key, value]) => {
+                          formData.append(key, value as string);
                         });
+                        formData.append("file", file);
+                        
+                        const uploadRes = await fetch(uploadUrl, {
+                          method: "POST",
+                          body: formData
+                        });
+                        
+                        if (!uploadRes.ok) {
+                          throw new Error(`Upload failed: ${uploadRes.statusText || 'Unknown error'}`);
+                        }
                         
                         setContent(objectKey);
                         setFileName(file.name);
@@ -522,7 +558,7 @@ export default function KnowledgeBasePage() {
                         setIsUploading(false);
                       }
                     }}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-colors file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
+                    className="w-full truncate px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-colors file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
                   />
                   {isUploading && (
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 flex items-center gap-1">

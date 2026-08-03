@@ -195,8 +195,8 @@ export class TasksService {
     const isSuperAdminOrIT = ['SUPER_ADMIN', 'IT', 'CEO', 'CTO'].includes(user.role);
     if (isSuperAdminOrIT) return true;
 
-    const isManagerOrHigher = RbacGroups.MANAGER_OR_HIGHER.includes(user.role as any);
-    if (isManagerOrHigher && task.projectId) {
+    const isLeadOrHigher = RbacGroups.LEAD_OR_MANAGER.includes(user.role as any);
+    if (isLeadOrHigher && task.projectId) {
       const assignment = await this.prisma.projectAssignment.findFirst({
         where: { 
           projectId: task.projectId, 

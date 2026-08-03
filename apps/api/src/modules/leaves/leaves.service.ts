@@ -213,7 +213,7 @@ async getApprovals(approverId: string): Promise<unknown> {
     // FIX: Prisma's array_contains requires exact match, so [{"role": "OM"}] doesn't match [{"role": "OM", "status": "PENDING"}]
     // Using raw SQL jsonb containment operator `@>` to correctly match partial objects inside the array.
     const rawResult = await this.prisma.$queryRaw<{id: string}[]>`
-      SELECT id FROM "LeaveRequest"
+      SELECT id FROM "leave_requests"
       WHERE status IN ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED')
         AND (
           "approvalQueue" @> ${`[{"approverId": "${approverId}"}]`}::jsonb

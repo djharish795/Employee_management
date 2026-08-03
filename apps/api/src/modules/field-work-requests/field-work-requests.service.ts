@@ -96,7 +96,17 @@ export class FieldWorkRequestsService {
     
     const approverId = employee?.id || approverEmployeeIdStr;
     const isGlobalAdmin = role === 'CEO' || role === 'SUPER_ADMIN' || role === 'OPERATIONS_HEAD' || role === 'CEM' || role === 'OM' || role === 'CHRO' || role === 'HR';
-    const whereClause: any = isGlobalAdmin ? {} : { approverId };
+    let whereClause: any = {};
+    if (role === 'CTO') {
+      whereClause = {
+        OR: [
+          { approverId },
+          { employee: { department: { name: 'Operations' } } }
+        ]
+      };
+    } else if (!isGlobalAdmin) {
+      whereClause = { approverId };
+    }
     whereClause.employeeId = { not: approverId };
     
     const requests = await this.prisma.fieldWorkRequest.findMany({
@@ -168,8 +178,9 @@ export class FieldWorkRequestsService {
     const isOwner = request.employeeId === loggedInEmployeeId;
     const isApprover = request.approverId === loggedInEmployeeId;
     const isOpsAdmin = role === UserRole.OPERATIONS_HEAD || role === UserRole.OM || role === UserRole.CEM;
+    const isCtoOpsView = role === UserRole.CTO && request.employee?.department?.name === 'Operations';
 
-    if (!isOwner && !isApprover && !isOpsAdmin) {
+    if (!isOwner && !isApprover && !isOpsAdmin && !isCtoOpsView) {
       throw new ForbiddenException("You are not authorized to view this request");
     }
 
@@ -636,6 +647,12 @@ export class FieldWorkRequestsService {
     
     if (isGlobalAdmin) {
       // Do not restrict employeeId or approverId for global admins
+    } else if (role === UserRole.CTO) {
+      whereClause.OR = [
+        { employeeId },
+        { approverId: employeeId },
+        { employee: { department: { name: 'Operations' } } }
+      ];
     } else if (isApprover) {
       whereClause.OR = [{ employeeId }, { approverId: employeeId }];
     } else {

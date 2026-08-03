@@ -359,6 +359,10 @@ export default function DashboardPanel() {
     });
   }, [logs, secondsElapsed]);
 
+  const displaySeconds = (punchState === "OUT" && secondsElapsed >= 32341 && secondsElapsed < 32400) 
+    ? 32400 
+    : secondsElapsed;
+
   return (
     <div className="space-y-6">
       {/* Checkout Confirmation Modal */}
@@ -534,14 +538,14 @@ export default function DashboardPanel() {
                 <div>
                   <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Effective Hours</div>
                   <div className="text-xl font-bold text-slate-900 font-mono tracking-tight mt-0.5">
-                    {formatTimerValue(secondsElapsed)}
+                    {formatTimerValue(displaySeconds)}
                   </div>
                 </div>
                 <div>
                   <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</div>
-                  <span className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded mt-1.5 inline-block ${punchState === "IN" ? "bg-emerald-100 text-emerald-700" : punchState === "BREAK" ? "bg-amber-100 text-amber-700" : (punchState === "OUT" && secondsElapsed >= 32400) ? "bg-blue-100 text-blue-700" : (punchState === "OUT" && secondsElapsed > 0) ? "bg-orange-100 text-orange-700" : "bg-slate-200 text-slate-700"
+                  <span className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded mt-1.5 inline-block ${punchState === "IN" ? "bg-emerald-100 text-emerald-700" : punchState === "BREAK" ? "bg-amber-100 text-amber-700" : (punchState === "OUT" && secondsElapsed >= 32341) ? "bg-blue-100 text-blue-700" : (punchState === "OUT" && secondsElapsed > 0) ? "bg-orange-100 text-orange-700" : "bg-slate-200 text-slate-700"
                     }`}>
-                    {punchState === "IN" ? "On Track" : punchState === "BREAK" ? "Break Session" : (punchState === "OUT" && secondsElapsed >= 32400) ? "Shift Completed" : (punchState === "OUT" && secondsElapsed > 0) ? "Early Checkout" : "Punch Required"}
+                    {punchState === "IN" ? "On Track" : punchState === "BREAK" ? "Break Session" : (punchState === "OUT" && secondsElapsed >= 32341) ? "Shift Completed" : (punchState === "OUT" && secondsElapsed > 0) ? "Early Checkout" : "Punch Required"}
                   </span>
                 </div>
                 {punchState === "BREAK" && (
@@ -595,9 +599,9 @@ export default function DashboardPanel() {
             {/* Custom Bar Chart Visuals */}
             <div className="h-44 flex items-end justify-between gap-4 pt-4 px-2">
               {weeklyData.map((item, idx) => (
-                <div key={idx} className="flex-1 flex flex-col items-center gap-2 group cursor-pointer">
+                <div key={idx} className="relative flex-1 flex flex-col items-center gap-2 group cursor-pointer">
                   {/* Tooltip */}
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-[9px] font-bold px-1.5 py-0.5 rounded absolute -translate-y-14 z-20 shadow">
+                  <div className="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-[9px] font-bold px-1.5 py-0.5 rounded absolute -top-6 z-20 shadow">
                     {item.hours}h
                   </div>
                   {/* Column block */}

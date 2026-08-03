@@ -6,7 +6,14 @@ import { KnowledgeCategory, Prisma } from "@naprocs/database";
 export class SearchService {
   constructor(private readonly prisma: PrismaService) { }
 
-  async search(q?: string, category?: KnowledgeCategory, isPublished?: boolean, skip: number = 0, take: number = 50) {
+  async search(
+    q?: string,
+    category?: KnowledgeCategory,
+    isPublished?: boolean,
+    skip: number = 0,
+    take: number = 50,
+    employeeId?: string,
+  ) {
     if (!q) {
       const where: Prisma.KnowledgeDocWhereInput = {};
       if (category) {
@@ -29,6 +36,11 @@ export class SearchService {
               officialEmail: true,
             },
           },
+          ...(employeeId ? {
+            acknowledgements: {
+              where: { employeeId }
+            }
+          } : {})
         },
         orderBy: {
           updatedAt: "desc",
@@ -59,6 +71,18 @@ export class SearchService {
       LIMIT ${take} OFFSET ${skip}
     `;
 
+    const docIds = results.map(r => r.id);
+    const acks = employeeId && docIds.length > 0
+      ? await this.prisma.knowledgeAcknowledgement.findMany({
+          where: {
+            employeeId,
+            documentId: { in: docIds }
+          }
+        })
+      : [];
+    
+    const ackMap = new Map(acks.map(a => [a.documentId, a]));
+
     return results.map((row) => ({
       id: row.id,
       title: row.title,
@@ -75,6 +99,7 @@ export class SearchService {
         lastName: row.authorLastName,
         officialEmail: row.authorEmail,
       },
+      acknowledgements: ackMap.has(row.id) ? [ackMap.get(row.id)] : [],
     }));
   }
 }

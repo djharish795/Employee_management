@@ -85,6 +85,7 @@ const getNavGroups = (role: string, unreadCount: number, hasSettingsAccess: bool
           { title: 'Connect', icon: MessageSquare, href: '/connect' },
           { title: 'Engineering Team', icon: Users, href: '/cto/team' },
           { title: 'Project History', icon: FileArchive, href: '/cto/history' },
+          { title: 'Reports', icon: BarChart3, href: '/cto/reports' },
           { title: 'Assets', icon: Monitor, href: '/cto/assets' },
           { title: 'Team Leave', icon: Calendar, href: '/cto/leaves' },
           { title: 'Org Chart', icon: Network, href: '/org-chart' },

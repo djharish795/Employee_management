@@ -177,9 +177,18 @@ export class KnowledgeRepository {
     if (!existing) {
       throw new NotFoundException("Knowledge document not found");
     }
-    await this.prisma.knowledgeDoc.delete({
-      where: { id },
-    });
+    await this.prisma.$transaction([
+      // @ts-ignore
+      this.prisma.knowledgeDocVersion.deleteMany({
+        where: { documentId: id }
+      }),
+      this.prisma.knowledgeAcknowledgement.deleteMany({
+        where: { documentId: id }
+      }),
+      this.prisma.knowledgeDoc.delete({
+        where: { id },
+      })
+    ]);
     return { success: true, message: "Document deleted successfully" };
   }
 

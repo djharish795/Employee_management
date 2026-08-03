@@ -1,16 +1,19 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Send, FileText, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { Send, FileText, AlertCircle, CheckCircle2, ArrowLeft, Paperclip, X } from 'lucide-react';
 import { PremiumDashboardLayout, PremiumCard } from '@/components/shared/premium-dashboard';
 import { apiClient } from '@/lib/api/client';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import { getS3UploadUrl, uploadFileToS3 } from '@/lib/api/field-work';
 
 export function SubmitWorkReportForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<string>('');
 
   const [formData, setFormData] = useState({
     reportType: 'Daily Standup',
@@ -24,9 +27,21 @@ export function SubmitWorkReportForm() {
     setIsSubmitting(true);
     
     try {
+      let attachments: any[] = [];
+      if (selectedFile) {
+        setUploadProgress('Uploading attachment...');
+        const { uploadUrl, objectKey } = await getS3UploadUrl(selectedFile.name, selectedFile.type);
+        await uploadFileToS3(uploadUrl, selectedFile);
+        attachments = [{ fileName: selectedFile.name, objectKey }];
+      }
+
+      setUploadProgress('Submitting report...');
       await apiClient.post('/work-reports', {
         ...formData,
-        content: { details: formData.content }
+        content: { 
+          details: formData.content,
+          ...(attachments.length > 0 && { attachments })
+        }
       });
       setSubmitted(true);
       toast.success("Report submitted successfully");
@@ -35,6 +50,7 @@ export function SubmitWorkReportForm() {
       toast.error(error?.response?.data?.message || "Failed to submit report");
     } finally {
       setIsSubmitting(false);
+      setUploadProgress('');
     }
   };
 
@@ -52,6 +68,7 @@ export function SubmitWorkReportForm() {
               onClick={() => {
                 setSubmitted(false);
                 setFormData({ ...formData, title: '', content: '' });
+                setSelectedFile(null);
               }}
               className="px-6 py-2.5 bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:bg-slate-800 dark:hover:bg-slate-100 font-bold rounded-lg transition-colors text-sm shadow-sm"
             >
@@ -143,6 +160,50 @@ export function SubmitWorkReportForm() {
             />
           </div>
 
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-slate-700 uppercase tracking-wide">Attachment (Optional)</label>
+            {!selectedFile ? (
+              <div className="flex items-center justify-center w-full">
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-200 border-dashed rounded-lg cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <Paperclip className="w-6 h-6 mb-2 text-slate-400" />
+                    <p className="mb-1 text-sm text-slate-500 font-bold">Click to upload a file</p>
+                    <p className="text-xs text-slate-400">PDF, Excel, Word, Images (Max: 5MB)</p>
+                  </div>
+                  <input 
+                    type="file" 
+                    className="hidden" 
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,image/*"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setSelectedFile(e.target.files[0]);
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between p-4 border border-slate-200 bg-slate-50 rounded-lg">
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div className="overflow-hidden">
+                    <p className="text-sm font-bold text-slate-800 truncate">{selectedFile.name}</p>
+                    <p className="text-xs text-slate-500 font-medium">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedFile(null)}
+                  className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
             <div className="flex items-center gap-2 text-slate-500 text-sm font-medium">
               <AlertCircle className="w-4 h-4" />
@@ -158,7 +219,7 @@ export function SubmitWorkReportForm() {
               ) : (
                 <Send className="w-4 h-4" />
               )}
-              {isSubmitting ? 'Submitting...' : 'Submit Report'}
+              {isSubmitting ? uploadProgress || 'Submitting...' : 'Submit Report'}
             </button>
           </div>
         </form>

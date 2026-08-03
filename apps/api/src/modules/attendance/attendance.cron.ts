@@ -44,8 +44,12 @@ export class AttendanceCronService {
         if (!stateStr) continue;
         const state = JSON.parse(stateStr);
 
-        // If they are IN or BREAK and the shift date matches today's date prefix
-        if ((state.state === "IN" || state.state === "BREAK") && state.shiftDate && state.shiftDate.startsWith(isoDateStr)) {
+        const shiftDateObj = new Date(state.shiftDate);
+        const shiftDateLocal = state.shiftDate ? shiftDateObj.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }) : null;
+        const todayLocal = today.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+
+        // If they are IN or BREAK and the shift date matches today's date in IST
+        if ((state.state === "IN" || state.state === "BREAK") && state.shiftDate && shiftDateLocal === todayLocal) {
           const employeeId = key.split(":")[1];
           const shiftDate = new Date(state.shiftDate);
           
@@ -66,8 +70,6 @@ export class AttendanceCronService {
               offset += elapsed; // Both IN and BREAK count towards work hours
             }
 
-            let workHoursDecimal = offset / 3600;
-
             const approvedHalfDay = await this.prisma.leaveRequest.findFirst({
               where: {
                 employeeId,
@@ -77,7 +79,13 @@ export class AttendanceCronService {
                 isHalfDay: true
               }
             });
-            const thresholdSeconds = approvedHalfDay ? 16200 : 32400;
+            const thresholdSeconds = (approvedHalfDay ? 16200 : 32400) - 59; // Ignore up to 59 seconds of delay
+            
+            let effectiveSeconds = offset;
+            if (effectiveSeconds >= thresholdSeconds && effectiveSeconds < (approvedHalfDay ? 16200 : 32400)) {
+              effectiveSeconds = approvedHalfDay ? 16200 : 32400;
+            }
+            let workHoursDecimal = effectiveSeconds / 3600;
 
             let finalStatus = record.status === "WFH" ? "WFH" : "PRESENT";
             // Note: 19:00 is standard checkout, so it shouldn't be EARLY_CHECKOUT unless threshold missed.

@@ -294,16 +294,16 @@ export default function EmployeeDashboardV2() {
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Today's Status</p>
           <div>
             <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${isPunchedIn ? 'bg-emerald-500' : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32400 ? 'bg-orange-500' : 'bg-emerald-500') : 'bg-slate-300')}`}></span>
-              <span className={`text-base font-bold ${isPunchedIn ? 'text-emerald-600' : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32400 ? 'text-orange-600' : 'text-emerald-600') : 'text-slate-600')}`}>
-                {isPunchedIn ? 'Present' : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32400 ? 'Early Checkout' : 'Checked Out') : 'Not checked in')}
+              <span className={`w-2 h-2 rounded-full ${isPunchedIn ? 'bg-emerald-500' : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32341 ? 'bg-orange-500' : 'bg-emerald-500') : 'bg-slate-300')}`}></span>
+              <span className={`text-base font-bold ${isPunchedIn ? 'text-emerald-600' : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32341 ? 'text-orange-600' : 'text-emerald-600') : 'text-slate-600')}`}>
+                {isPunchedIn ? 'Present' : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32341 ? 'Early Checkout' : 'Checked Out') : 'Not checked in')}
               </span>
             </div>
             <p className="text-xs font-medium text-slate-500 mt-1.5">
               {isPunchedIn && checkInTimeDisplay
                 ? `Checked in ${checkInTimeDisplay}`
                 : (todayQuery.data?.offset && todayQuery.data.offset > 0
-                  ? (todayQuery.data.offset < 32400 ? 'Shift ended early today' : 'Shift completed today')
+                  ? (todayQuery.data.offset < 32341 ? 'Shift ended early today' : 'Shift completed today')
                   : 'No punch recorded today')}
             </p>
           </div>
