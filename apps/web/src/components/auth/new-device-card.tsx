@@ -21,13 +21,14 @@ export const NewDeviceCard: React.FC = () => {
   }, [deviceDetails, router]);
 
   const handleTrustDevice = async () => {
-    if (!tempSession) return;
+    if (!deviceDetails?.challengeId) return;
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      await AuthService.trustDevice(tempSession.challengeId);
-      clearSession();
-      router.push("/employee");
+      await AuthService.trustDevice(deviceDetails.challengeId);
+      // DO NOT call clearSession()! They are successfully logged in.
+      // Redirect to the dashboard path stored in deviceDetails.
+      window.location.replace(deviceDetails.redirectPath ?? "/employee/dashboard");
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to authorize device.");
     } finally {
