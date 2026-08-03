@@ -18,7 +18,7 @@ export interface RegularizationRequest {
   employeeName?: string;
   attendanceDate: string;
   reason: string;
-  correctionType: "MISSING_PUNCH" | "INCORRECT_TIME" | "WFH_MARKING";
+  correctionType: "MISSING_PUNCH" | "INCORRECT_TIME" | "WFH_MARKING" | "LATE_CHECKIN" | "EARLY_CHECKOUT";
   attachmentName?: string;
   managerStatus: "APPROVED" | "PENDING" | "REJECTED";
   hrStatus: "APPROVED" | "PENDING" | "REJECTED";
