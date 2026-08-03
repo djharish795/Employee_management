@@ -45,7 +45,7 @@ export class KnowledgeController {
     @CurrentUser() user: any,
     @Query() query: SearchKnowledgeDocDto,
   ) {
-    return this.knowledgeService.list(user.role as UserRole, query);
+    return this.knowledgeService.list(user.role as UserRole, query, user.employeeId);
   }
 
   @Get("id/:id")
