@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Calendar as CalendarIcon, CheckCircle2, Clock, CalendarX, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTeamAttendanceView } from "@/lib/api/attendance";
@@ -10,6 +10,7 @@ import { PendingOvertimeTable } from "@/components/modules/team-lead/pending-ove
 
 export default function TeamAttendancePage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['teamAttendanceView', format(selectedDate, "yyyy-MM-dd")],
@@ -67,11 +68,36 @@ export default function TeamAttendancePage() {
             <button onClick={handlePrevDay} className="p-2 hover:bg-slate-200 rounded-lg transition-colors text-slate-500">
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <button className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-lg shadow-sm text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors">
-              <CalendarIcon className="w-4 h-4 text-slate-500" />
-              {format(selectedDate, "dd MMMM yyyy")}
-              <ChevronDown className="w-4 h-4 text-slate-400 ml-1" />
-            </button>
+            <div className="relative">
+              <button 
+                onClick={() => {
+                  if (dateInputRef.current) {
+                    if (typeof dateInputRef.current.showPicker === 'function') {
+                      dateInputRef.current.showPicker();
+                    } else {
+                      dateInputRef.current.click();
+                    }
+                  }
+                }}
+                className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-lg shadow-sm text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                <CalendarIcon className="w-4 h-4 text-slate-500" />
+                {format(selectedDate, "dd MMMM yyyy")}
+                <ChevronDown className="w-4 h-4 text-slate-400 ml-1" />
+              </button>
+              <input
+                ref={dateInputRef}
+                type="date"
+                value={format(selectedDate, "yyyy-MM-dd")}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    const [y, m, d] = e.target.value.split('-').map(Number);
+                    setSelectedDate(new Date(y, m - 1, d));
+                  }
+                }}
+                className="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
+              />
+            </div>
             <button onClick={handleNextDay} className="p-2 hover:bg-slate-200 rounded-lg transition-colors text-slate-500">
               <ChevronRight className="w-5 h-5" />
             </button>

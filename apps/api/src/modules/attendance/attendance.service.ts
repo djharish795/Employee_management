@@ -1372,9 +1372,9 @@ export class AttendanceService {
     for (const record of records) {
       const name = `${record.employee.firstName} ${record.employee.lastName}`;
       const dept = record.employee.department?.name || "Unassigned";
-      const date = record.date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-      const checkIn = record.checkInTime ? record.checkInTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : "--";
-      const checkOut = record.checkOutTime ? record.checkOutTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : "--";
+      const date = record.date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
+      const checkIn = record.checkInTime ? record.checkInTime.toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: "Asia/Kolkata" }) : "--";
+      const checkOut = record.checkOutTime ? record.checkOutTime.toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: "Asia/Kolkata" }) : "--";
       const hours = record.workHours ? Number(record.workHours).toFixed(2) : "0";
       csv += `"${name}","${dept}","${date}","${checkIn}","${checkOut}","${hours}","${record.status}","${record.notes || ''}"\n`;
     }
@@ -1722,8 +1722,8 @@ export class AttendanceService {
         hoursStr = `${record.workHours}h (checked out)`;
       }
 
-      const checkInFormat = record?.checkInTime ? new Date(record.checkInTime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }) : "-";
-      const checkOutFormat = record?.checkOutTime ? new Date(record.checkOutTime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }) : "-";
+      const checkInFormat = record?.checkInTime ? new Date(record.checkInTime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" }) : "-";
+      const checkOutFormat = record?.checkOutTime ? new Date(record.checkOutTime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" }) : "-";
 
       return {
         id: emp.id,

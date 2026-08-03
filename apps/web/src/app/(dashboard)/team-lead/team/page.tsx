@@ -38,6 +38,11 @@ interface BenchEmployee {
   subTeam: string;
   designation: string;
   initials: string;
+  projects?: {
+    id: string;
+    name: string;
+    role: string;
+  }[];
 }
 
 export default function MyTeamPage() {
@@ -520,8 +525,13 @@ export default function MyTeamPage() {
                       <div className="min-w-0 pr-6">
                         <h4 className="font-bold text-slate-900 text-sm truncate">{emp.name}</h4>
                         <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wide truncate mt-0.5">{emp.designation}</p>
-                        <div className="flex gap-1.5 mt-2 flex-wrap">
-                            <span className="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-bold border border-slate-200 shadow-sm">{emp.subTeam}</span>
+                        <div className="flex gap-1.5 mt-2 flex-wrap items-center">
+                            <span className="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-bold border border-slate-200 shadow-sm shrink-0">{emp.subTeam}</span>
+                            {emp.projects && emp.projects.map(proj => (
+                              <span key={proj.id} className="px-1.5 py-0.5 bg-indigo-50 text-indigo-700 rounded text-[10px] font-bold border border-indigo-200 shadow-sm truncate max-w-[120px]" title={proj.name}>
+                                {proj.name}
+                              </span>
+                            ))}
                         </div>
                       </div>
                     </div>
