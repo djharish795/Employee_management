@@ -139,6 +139,8 @@ export class AuthService {
 
     const isUnknownDevice = !device;
 
+    let deviceDetails = undefined;
+
     if (isUnknownDevice) {
       // Store pending device trust request in Redis for the frontend UI
       await this.redis.setJson(`auth:trust_pending:${dto.challengeId}`, {
@@ -146,6 +148,12 @@ export class AuthService {
         fingerprint,
         name: userAgent ? userAgent.substring(0, 255) : 'Unknown Device',
       }, 3600); // 1 hour TTL
+      
+      deviceDetails = {
+        location: ipAddress || 'Unknown Location',
+        device: userAgent || 'Unknown Device',
+        time: new Date().toLocaleString(),
+      };
     }
 
     const issued = await this.tokens.issueTokens({
@@ -165,6 +173,7 @@ export class AuthService {
       redirectPath: issued.redirectPath,
       employeeId: user.employeeId ?? null,
       unknownDevice: isUnknownDevice,
+      deviceDetails,
       isFirstLogin,
     };
   }

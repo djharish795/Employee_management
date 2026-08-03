@@ -11,6 +11,8 @@ export interface DeviceDetails {
   location: string;
   device: string;
   time: string;
+  challengeId?: string;
+  redirectPath?: string;
 }
 
 interface AuthState {
