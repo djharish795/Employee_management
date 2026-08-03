@@ -231,7 +231,7 @@ export default function EmployeeDashboardPanel() {
                       : todayState === "BREAK"
                         ? "On a break"
                         : (todayQuery.data?.offset && todayQuery.data.offset > 0 
-                            ? (todayQuery.data.offset < 32400 ? "Early Checkout" : "Checked Out") 
+                            ? (todayQuery.data.offset < 32341 ? "Early Checkout" : "Checked Out") 
                             : `${greeting}!`)}
                   </h3>
                   <p className="text-sm font-medium text-slate-500 mt-0.5">
@@ -240,7 +240,7 @@ export default function EmployeeDashboardPanel() {
                       : todayState === "BREAK"
                         ? "Break in progress..."
                         : (todayQuery.data?.offset && todayQuery.data.offset > 0 
-                            ? (todayQuery.data.offset < 32400 ? "Shift ended early today" : "Shift completed today") 
+                            ? (todayQuery.data.offset < 32341 ? "Shift ended early today" : "Shift completed today") 
                             : "Ready to start your day?")}
                   </p>
                 </div>

@@ -411,8 +411,6 @@ export class AttendanceService {
           const checkInTime = existingRecord?.checkInTime || new Date(state.startTime);
           const isLate = isLateArrival(checkInTime);
 
-          let workHoursDecimal = (state.offset || 0) / 3600;
-
           const approvedHalfDay = await tx.leaveRequest.findFirst({
             where: {
               employeeId,
@@ -424,6 +422,12 @@ export class AttendanceService {
           });
 
           const thresholdSeconds = (approvedHalfDay ? 16200 : 32400) - 59; // Ignore up to 59 seconds of delay
+
+          let effectiveSeconds = state.offset || 0;
+          if (effectiveSeconds >= thresholdSeconds && effectiveSeconds < (approvedHalfDay ? 16200 : 32400)) {
+            effectiveSeconds = approvedHalfDay ? 16200 : 32400;
+          }
+          let workHoursDecimal = effectiveSeconds / 3600;
 
           let finalStatus = existingRecord?.status === "WFH" ? "WFH" : "PRESENT";
 
@@ -493,11 +497,18 @@ export class AttendanceService {
     ]);
 
     // Map to dashboard-panel.tsx expected DTO shape
-    const mappedData = data.map(record => ({
+    const mappedData = data.map(record => {
+      let hw = record.workHours ? Number(record.workHours) : 0;
+      // Retroactive snapping for history display
+      if (record.status === 'PRESENT' || record.status === 'WFH') {
+         if (hw >= 8.9836 && hw < 9) hw = 9;
+         if (hw >= 4.4836 && hw < 4.5) hw = 4.5;
+      }
+      return {
       date: record.date.toISOString(),
       checkIn: record.checkInTime ? record.checkInTime.toISOString() : null,
       checkOut: record.checkOutTime ? record.checkOutTime.toISOString() : null,
-      hoursWorked: record.workHours ? Number(record.workHours) : 0,
+      hoursWorked: hw,
       status: record.status,
       remarks: record.notes || "",
       totalBreakSeconds: record.totalBreakSeconds || 0,
@@ -506,7 +517,8 @@ export class AttendanceService {
       overtime: record.overtime ? Number(record.overtime) : 0,
       isOvertimeApproved: (record as any).isOvertimeApproved || false,
       overtimeApprovedById: record.overtimeApprovedById || null
-    }));
+    };
+    });
 
     return { data: mappedData, total, page, limit };
   }
@@ -1318,6 +1330,7 @@ export class AttendanceService {
         status: statusStr,
         remarks: record.notes || "Standard Entry",
         punchHistory: Array.isArray((record as any).punchHistory) ? (record as any).punchHistory : [],
+        totalBreakSeconds: (record as any).totalBreakSeconds || 0,
         overtime: record.overtime ? Number(record.overtime) : 0,
         isOvertimeApproved: (record as any).isOvertimeApproved || false,
         overtimeApprovedById: (record as any).overtimeApprovedById || null
@@ -1621,6 +1634,9 @@ export class AttendanceService {
             notes: `Approved Correction: ${updatedReq.correctionType}`
           }
         });
+
+        // Clear Redis state so it perfectly reconstructs from the newly updated DB record
+        await this.redis.getClient().del(`attendance_state:${updatedReq.employeeId}`);
       }
 
       this.emailService.sendEmail(

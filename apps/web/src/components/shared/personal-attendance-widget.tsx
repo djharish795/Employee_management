@@ -103,16 +103,16 @@ export function PersonalAttendanceWidget({ hideCheckIn = false }: { hideCheckIn?
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${isPunchedIn ? 'bg-emerald-500' : (todayState === 'HOLIDAY' ? 'bg-purple-500' : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32400 ? 'bg-orange-500' : 'bg-emerald-500') : 'bg-slate-300 dark:bg-slate-600'))}`}></span>
-                <span className={`text-base font-bold ${isPunchedIn ? 'text-emerald-600 dark:text-emerald-400' : (todayState === 'HOLIDAY' ? 'text-purple-600 dark:text-purple-400' : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32400 ? 'text-orange-600 dark:text-orange-400' : 'text-emerald-600 dark:text-emerald-400') : 'text-slate-600 dark:text-slate-400'))}`}>
-                  {isPunchedIn ? (todayState === "BREAK" ? "On Break" : "Present") : (todayState === 'HOLIDAY' ? "Company Holiday" : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32400 ? 'Early Checkout' : 'Checked Out') : 'Not checked in'))}
+                <span className={`w-2 h-2 rounded-full ${isPunchedIn ? 'bg-emerald-500' : (todayState === 'HOLIDAY' ? 'bg-purple-500' : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32341 ? 'bg-orange-500' : 'bg-emerald-500') : 'bg-slate-300 dark:bg-slate-600'))}`}></span>
+                <span className={`text-base font-bold ${isPunchedIn ? 'text-emerald-600 dark:text-emerald-400' : (todayState === 'HOLIDAY' ? 'text-purple-600 dark:text-purple-400' : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32341 ? 'text-orange-600 dark:text-orange-400' : 'text-emerald-600 dark:text-emerald-400') : 'text-slate-600 dark:text-slate-400'))}`}>
+                  {isPunchedIn ? (todayState === "BREAK" ? "On Break" : "Present") : (todayState === 'HOLIDAY' ? "Company Holiday" : (todayQuery.data?.offset && todayQuery.data.offset > 0 ? (todayQuery.data.offset < 32341 ? 'Early Checkout' : 'Checked Out') : 'Not checked in'))}
                 </span>
               </div>
               <p className="text-xs font-medium text-slate-500 dark:text-slate-500 mt-1">
                 {isPunchedIn && checkInTimeDisplay
                   ? `Checked in ${checkInTimeDisplay}`
                   : (todayState === 'HOLIDAY' ? 'Enjoy your holiday! (Punch in optional)' : (todayQuery.data?.offset && todayQuery.data.offset > 0
-                    ? (todayQuery.data.offset < 32400 ? 'Shift ended early today' : 'Shift completed today')
+                    ? (todayQuery.data.offset < 32341 ? 'Shift ended early today' : 'Shift completed today')
                     : 'No punch recorded today'))}
               </p>
             </div>
