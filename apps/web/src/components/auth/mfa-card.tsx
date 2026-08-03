@@ -23,7 +23,8 @@ export const MfaCard: React.FC = () => {
 
   // Redirect back to login if no temp session details are stored
   React.useEffect(() => {
-    if (!tempSession) {
+    const hasToken = useAuthStore.getState().accessToken;
+    if (!tempSession && !hasToken) {
       router.push("/login");
     }
   }, [tempSession, router]);
@@ -83,7 +84,22 @@ export const MfaCard: React.FC = () => {
       const res = await AuthService.verifyMFA(mfaCode, tempSession.challengeId);
       
       if (res.unknownDevice && res.deviceDetails) {
-        setDeviceDetails(res.deviceDetails);
+        setDeviceDetails({
+          ...res.deviceDetails,
+          challengeId: tempSession.challengeId,
+          redirectPath: res.redirectPath
+        });
+        const role = res.role ?? "EMPLOYEE";
+        setAuthSession({
+          accessToken: res.token,
+          refreshToken: res.refreshToken,
+          role: role,
+          employeeId: res.employeeId ?? null,
+          isTeamLead: res.isTeamLead ?? false,
+          isFirstLogin: res.isFirstLogin ?? false,
+        });
+        document.cookie = `token=${res.token}; path=/; max-age=86400; SameSite=Strict`;
+        document.cookie = `role=${role}; path=/; max-age=86400; SameSite=Strict`;
         router.push("/new-device");
       } else if (res.success && res.token && res.refreshToken) {
         const role = res.role ?? "EMPLOYEE";
