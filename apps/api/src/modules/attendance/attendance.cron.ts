@@ -77,7 +77,7 @@ export class AttendanceCronService {
                 isHalfDay: true
               }
             });
-            const thresholdSeconds = approvedHalfDay ? 16200 : 32400;
+            const thresholdSeconds = (approvedHalfDay ? 16200 : 32400) - 59; // Ignore up to 59 seconds of delay
 
             let finalStatus = record.status === "WFH" ? "WFH" : "PRESENT";
             // Note: 19:00 is standard checkout, so it shouldn't be EARLY_CHECKOUT unless threshold missed.

@@ -423,7 +423,7 @@ export class AttendanceService {
             }
           });
 
-          const thresholdSeconds = approvedHalfDay ? 16200 : 32400; // 4.5 hours or 9 hours
+          const thresholdSeconds = (approvedHalfDay ? 16200 : 32400) - 59; // Ignore up to 59 seconds of delay
 
           let finalStatus = existingRecord?.status === "WFH" ? "WFH" : "PRESENT";
 
