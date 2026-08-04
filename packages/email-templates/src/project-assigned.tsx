@@ -8,6 +8,7 @@ interface ProjectAssignedEmailProps {
   role: string;
   assignedBy: string;
   projectUrl: string;
+  teamLeadName?: string;
 }
 
 const BRAND_COLOR = "#003366";
@@ -18,6 +19,7 @@ export const ProjectAssignedEmail = ({
   role = "Team Member",
   assignedBy = "Manager",
   projectUrl = "https://crewbase.naprocs.in/projects",
+  teamLeadName,
 }: ProjectAssignedEmailProps) => {
   return (
     <MainLayout previewText={`Welcome to the ${projectName} team!`}>
@@ -44,6 +46,11 @@ export const ProjectAssignedEmail = ({
         <Text style={detailRow}>
           <strong>Your Role:</strong> {role}
         </Text>
+        {teamLeadName && (
+          <Text style={detailRow}>
+            <strong>Team Lead:</strong> {teamLeadName}
+          </Text>
+        )}
       </Section>
       
       <Section style={buttonContainer}>

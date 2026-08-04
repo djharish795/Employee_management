@@ -162,7 +162,15 @@ export class ProjectsService {
       if (!assignment) throw new ForbiddenException("You must be a Team Lead or Manager of this project to assign members.");
     }
 
-    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
+    const project = await this.prisma.project.findUnique({ 
+      where: { id: projectId },
+      include: {
+        assignments: {
+          where: { projectRole: 'TL', releasedAt: null },
+          include: { employee: true }
+        }
+      }
+    });
     if (!project) throw new NotFoundException('Project not found');
 
     const employee = await this.prisma.employee.findUnique({ where: { id: employeeId } });
@@ -196,6 +204,8 @@ export class ProjectsService {
 
     try {
       const actorName = requestingUser?.firstName ? `${requestingUser.firstName} ${requestingUser.lastName}`.trim() : 'a manager';
+      const tlAssignment = project.assignments?.[0];
+      const teamLeadName = tlAssignment ? `${tlAssignment.employee.firstName} ${tlAssignment.employee.lastName}`.trim() : 'Not Assigned';
       
       await this.notificationsService.createNotification(
         employeeId,
@@ -216,7 +226,8 @@ export class ProjectsService {
             projectName: project.name, 
             role: projectRole, 
             assignedBy: actorName,
-            projectUrl 
+            projectUrl,
+            teamLeadName
           }
         );
       }
