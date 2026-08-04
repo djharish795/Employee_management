@@ -18,6 +18,8 @@ import { useAuthStore } from '@/store/auth';
 import { usePermissions } from '@/hooks/use-permissions';
 import { AlertCircle } from 'lucide-react';
 
+import { apiClient } from '@/lib/api/client';
+
 const STEPS: WizardStep[] = [
   { num: 1, title: 'Personal Info', active: false, completed: false },
   { num: 2, title: 'Employment', active: false, completed: false },
@@ -63,24 +65,9 @@ export default function AddEmployeePage() {
         payload: stepData
       };
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
-      const res = await fetch(`${apiUrl}/employees/onboarding/draft/step`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
-        },
-        credentials: "include",
-        body: JSON.stringify(payload)
-      });
+      const res = await apiClient.post("/employees/onboarding/draft/step", payload);
+      const data = res.data;
 
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({ message: 'Unknown error' }));
-        const msg = errBody?.message || `Server error ${res.status}`;
-        throw new Error(msg);
-      }
-
-      const data = await res.json();
       if (data.draftId && !draftId) {
         setDraftId(data.draftId);
       }
@@ -92,7 +79,8 @@ export default function AddEmployeePage() {
       }
     } catch (error: any) {
       console.error(error);
-      toast.error(`Error: ${error?.message || 'Validation failed or server error.'}`);
+      const msg = error.response?.data?.message || error?.message || 'Validation failed or server error.';
+      toast.error(`Error: ${msg}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -100,22 +88,10 @@ export default function AddEmployeePage() {
 
   const completeOnboarding = async (id: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
-      const res = await fetch(`${apiUrl}/employees/onboarding/draft/complete`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
-        },
-        credentials: "include",
-        body: JSON.stringify({ draftId: id })
-      });
-
-      if (!res.ok) throw new Error("Failed to finalize employee");
-      
+      await apiClient.post("/employees/onboarding/draft/complete", { draftId: id });
       toast.success('Employee Created Successfully!');
       window.location.href = "/employees";
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       toast.error("Failed to complete onboarding.");
     }
@@ -161,9 +137,6 @@ export default function AddEmployeePage() {
     const formData = new FormData(formElement);
     const stepData: any = Object.fromEntries(formData.entries());
     
-    // Convert special fields to match onSave logic if needed, but since it's a generic draft save, we just pass the object
-    // To match the exact mapping inside the components, we can trigger the form submission but prevent default navigation.
-    // However, the cleanest way is to just dispatch a custom event or reuse the API logic.
     setIsSubmitting(true);
     try {
       const payload = {
@@ -172,20 +145,9 @@ export default function AddEmployeePage() {
         payload: stepData
       };
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
-      const res = await fetch(`${apiUrl}/employees/onboarding/draft/step`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
-        },
-        credentials: "include",
-        body: JSON.stringify(payload)
-      });
+      const res = await apiClient.post("/employees/onboarding/draft/step", payload);
+      const data = res.data;
 
-      if (!res.ok) throw new Error("Failed to save draft");
-      
-      const data = await res.json();
       if (data.draftId && !draftId) setDraftId(data.draftId);
       
       toast.success("Draft saved successfully!");
