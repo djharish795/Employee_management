@@ -51,20 +51,22 @@ export default function DashboardPanel() {
   });
 
   // Fetch Regularization Requests for Team Approvals
-  const { data: regularizations = [], refetch: refetchRegs } = useQuery({
+  const { data: regularizationsData, refetch: refetchRegs } = useQuery({
     queryKey: ["attendanceRegularizations"],
     queryFn: () => fetchRegularizations("personal"),
   });
+  const regularizations: RegularizationRequest[] = regularizationsData || [];
 
   const isManagerRole = ["MANAGER", "CTO", "CEO", "CHRO", "SUPER_ADMIN", "ADMIN"].includes(activeRole);
   const isHrRole = ["HR", "CHRO", "ADMIN", "SUPER_ADMIN"].includes(activeRole);
 
-  const pendingRequests = regularizations.filter(req =>
-    req.employeeId !== employeeId && (
+  const pendingRequests = regularizations.filter((request) => {
+    const req = request as any;
+    return req.employeeId !== employeeId && (
       (isManagerRole && req.step1Status === "PENDING") ||
       (isHrRole && req.step2Status === "PENDING" && req.step1Status === "APPROVED")
-    )
-  );
+    );
+  });
 
   const actionMutation = useMutation({
     mutationFn: (args: { id: string, action: "APPROVE" | "REJECT", approver: "MANAGER" | "HR" }) =>
