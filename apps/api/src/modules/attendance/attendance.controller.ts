@@ -112,8 +112,8 @@ export class AttendanceController {
 
   @Get("regularizations")
   @Permissions(Permission.READ_OWN_PROFILE)
-  async getRegularizations(@CurrentUser() user: any) {
-    return this.attendanceService.getRegularizations(user);
+  async getRegularizations(@CurrentUser() user: any, @Query('mode') mode?: 'personal' | 'org') {
+    return this.attendanceService.getRegularizations(user, mode);
   }
 
   @Post("regularize")

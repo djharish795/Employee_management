@@ -664,8 +664,20 @@ export default function DashboardPanel() {
                     }
                   }
 
-                  const formattedCheckIn = checkIns.length > 0 ? checkIns[0].toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (log.checkIn ? new Date(log.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—");
-                  const formattedCheckOut = validCheckOut ? validCheckOut.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
+                  let formattedCheckIn = "—";
+                  if (log.isRegularized && log.checkIn) {
+                    formattedCheckIn = new Date(log.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  } else {
+                    formattedCheckIn = checkIns.length > 0 ? checkIns[0].toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (log.checkIn ? new Date(log.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—");
+                  }
+                  
+                  let formattedCheckOut = "—";
+                  if (log.isRegularized && log.checkOut) {
+                    formattedCheckOut = new Date(log.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  } else {
+                    formattedCheckOut = validCheckOut ? validCheckOut.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
+                  }
+                  
                   const formattedHours = typeof log.hoursWorked === 'number' ? formatDecimalHoursToHMS(log.hoursWorked) : log.hoursWorked;
 
                   let formattedBreak = "—";

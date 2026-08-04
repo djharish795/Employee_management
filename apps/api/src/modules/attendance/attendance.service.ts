@@ -516,7 +516,8 @@ export class AttendanceService {
       punchHistory: Array.isArray((record as any).punchHistory) ? (record as any).punchHistory : [],
       overtime: record.overtime ? Number(record.overtime) : 0,
       isOvertimeApproved: (record as any).isOvertimeApproved || false,
-      overtimeApprovedById: record.overtimeApprovedById || null
+      overtimeApprovedById: record.overtimeApprovedById || null,
+      isRegularized: (record as any).isRegularized || false
     };
     });
 
@@ -736,7 +737,7 @@ export class AttendanceService {
         ...r,
         workHours: Number(r.workHours) || 0,
         overtime: Number(r.overtime) || 0,
-        canApprove: approverRole === 'SUPER_ADMIN' || r.employee.reportingManagerId === managerId
+        canApprove: ['SUPER_ADMIN', 'CEO'].includes(approverRole) || r.employee.reportingManagerId === managerId
       }));
     }
 
@@ -815,8 +816,8 @@ export class AttendanceService {
     const approverRole = approver.user.role;
     let isAuthorized = false;
 
-    // 1. Authorized if Super Admin
-    if (approverRole === 'SUPER_ADMIN') {
+    // 1. Authorized if Super Admin or CEO
+    if (approverRole === 'SUPER_ADMIN' || approverRole === 'CEO') {
       isAuthorized = true;
     }
     // 2. Authorized if they are the direct reporting manager of the employee (Covers CEO direct reports)
@@ -1333,7 +1334,8 @@ export class AttendanceService {
         totalBreakSeconds: (record as any).totalBreakSeconds || 0,
         overtime: record.overtime ? Number(record.overtime) : 0,
         isOvertimeApproved: (record as any).isOvertimeApproved || false,
-        overtimeApprovedById: (record as any).overtimeApprovedById || null
+        overtimeApprovedById: (record as any).overtimeApprovedById || null,
+        isRegularized: (record as any).isRegularized || false
       };
     });
 
@@ -1395,17 +1397,33 @@ export class AttendanceService {
     return csv;
   }
 
-  async getRegularizations(user?: any) {
+  async getRegularizations(user?: any, mode?: 'personal' | 'org') {
     const where: any = {};
-    if (user && !RbacGroups.ATTENDANCE_ADMINS.includes(user.role)) {
-      if (['MANAGER', 'TEAM_LEAD', 'OM', 'CTO', 'CEO'].includes(user.role)) {
-        where.OR = [
-          { employeeId: user.employeeId }, // own requests
-          { step1ApproverId: user.employeeId }, // requests where user is step 1
-          { step2ApproverId: user.employeeId } // requests where user is step 2
-        ];
-      } else {
+    
+    if (user) {
+      if (mode === 'personal') {
         where.employeeId = user.employeeId;
+      } else if (mode === 'org') {
+        if (!RbacGroups.ATTENDANCE_ADMINS.includes(user.role)) {
+          where.OR = [
+            { step1ApproverId: user.employeeId },
+            { step2ApproverId: user.employeeId, step1Status: 'APPROVED' }
+          ];
+        }
+        // If they are admin, they see all org requests, so where is empty
+      } else {
+        // Fallback for no mode provided
+        if (!RbacGroups.ATTENDANCE_ADMINS.includes(user.role)) {
+          if (['MANAGER', 'TEAM_LEAD', 'OM', 'CTO', 'CEO'].includes(user.role)) {
+            where.OR = [
+              { employeeId: user.employeeId },
+              { step1ApproverId: user.employeeId },
+              { step2ApproverId: user.employeeId, step1Status: 'APPROVED' }
+            ];
+          } else {
+            where.employeeId = user.employeeId;
+          }
+        }
       }
     }
 
@@ -1448,10 +1466,12 @@ export class AttendanceService {
     if (!employee) throw new BadRequestException("Employee not found");
 
     const ceos = await this.prisma.user.findMany({ where: { role: 'CEO', status: 'ACTIVE', employeeId: { not: null } } });
-    const ceoId = ceos[0]?.employeeId || null;
+    const realCeo = ceos.find(c => !c.email.startsWith('vacant')) || ceos[0];
+    const ceoId = realCeo?.employeeId || null;
 
     const oms = await this.prisma.user.findMany({ where: { role: 'OM', status: 'ACTIVE', employeeId: { not: null } } });
-    const omId = oms[0]?.employeeId || ceoId; // Fallback to CEO if OM not found
+    const realOm = oms.find(o => !o.email.startsWith('vacant')) || oms[0];
+    const omId = realOm?.employeeId || ceoId; // Fallback to CEO if OM not found
 
     let step1ApproverId: string | null = null;
     let step2ApproverId: string | null = null;
@@ -1471,18 +1491,25 @@ export class AttendanceService {
     } else {
       // Normal employee, check project assignments
       if (employee.projectAssignments.length > 0) {
-        const projectId = employee.projectAssignments[0].projectId;
-        const projectTLs = await this.prisma.projectAssignment.findMany({
-          where: { projectId, projectRole: 'TL', releasedAt: null },
-          include: { employee: true }
-        });
-        if (projectTLs.length > 0) {
-          step1ApproverId = projectTLs[0].employeeId;
-          step2ApproverId = omId; // Second step is OM
-        } else {
-          // In a project but no TL, falls back to OM only
+        const isUserTheTL = employee.projectAssignments.some(p => p.projectRole === 'TL');
+        
+        if (isUserTheTL) {
           step1ApproverId = omId;
           step2ApproverId = null;
+        } else {
+          const projectId = employee.projectAssignments[0].projectId;
+          const projectTLs = await this.prisma.projectAssignment.findMany({
+            where: { projectId, projectRole: 'TL', releasedAt: null },
+            include: { employee: true }
+          });
+          if (projectTLs.length > 0) {
+            step1ApproverId = projectTLs[0].employeeId;
+            step2ApproverId = omId; // Second step is OM
+          } else {
+            // In a project but no TL, falls back to OM only
+            step1ApproverId = omId;
+            step2ApproverId = null;
+          }
         }
       } else {
         // Not assigned to any project

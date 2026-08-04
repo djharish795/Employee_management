@@ -1,5 +1,6 @@
 "use client";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useAuthStore } from "@/store/auth";
 
 import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -15,6 +16,7 @@ import { fetchRegularizations, submitRegularization, actionRegularization } from
 
 export default function RegularizationPanel({ mode = "personal" }: RegularizationPanelProps) {
   const { role } = usePermissions();
+  const employeeId = useAuthStore((state) => state.employeeId);
   const activeRole = role as any;
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
@@ -29,8 +31,8 @@ export default function RegularizationPanel({ mode = "personal" }: Regularizatio
   const itemsPerPage = 10;
 
   const { data: requests = [], refetch } = useQuery<RegularizationRequest[]>({
-    queryKey: ["attendanceRegularizations"],
-    queryFn: fetchRegularizations,
+    queryKey: ["attendanceRegularizations", mode],
+    queryFn: () => fetchRegularizations(mode),
   });
 
   // Calculate requests based on role scope
@@ -111,11 +113,14 @@ export default function RegularizationPanel({ mode = "personal" }: Regularizatio
             <>
               <div className="divide-y divide-slate-100">
                 {filteredRequests.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((req) => {
-                  const showReviewActions =
-                    (["MANAGER", "TEAM_LEAD", "OM", "CEO", "CTO"].includes(activeRole) && req.step1Status === "PENDING" && req.step1ApproverId === 'currentUser.employeeId_mock_check') || // Note: Frontend doesn't have current user ID directly here unless fetched, but the backend filters it so we only see ones we can approve anyway if we are step1. Wait, backend filters list, so if we see it and step1Status is PENDING, we probably need to action it.
-                    // A better way is:
-                    (req.step1Status === "PENDING" && !["EMPLOYEE"].includes(activeRole)) ||
-                    (req.step2Status === "PENDING" && req.step1Status === "APPROVED" && !["EMPLOYEE"].includes(activeRole));
+                  const isStep1Approver = req.step1ApproverId === employeeId;
+                  const isStep2Approver = req.step2ApproverId === employeeId;
+                  const isAttendanceAdmin = ["HR", "ADMIN", "SUPER_ADMIN", "CHRO"].includes(activeRole);
+                  
+                  const canApproveStep1 = req.step1Status === "PENDING" && (isStep1Approver || isAttendanceAdmin);
+                  const canApproveStep2 = req.step2Status === "PENDING" && req.step1Status === "APPROVED" && (isStep2Approver || isAttendanceAdmin);
+
+                  const showReviewActions = mode === "org" && (canApproveStep1 || canApproveStep2);
 
                   return (
                     <div key={req.id} className="p-5 flex flex-col sm:flex-row justify-between items-start gap-4 hover:bg-slate-50/20 transition-colors">

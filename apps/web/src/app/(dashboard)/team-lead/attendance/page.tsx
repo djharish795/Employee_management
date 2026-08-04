@@ -11,6 +11,7 @@ import RegularizationPanel from "@/components/modules/attendance/regularization-
 
 export default function TeamAttendancePage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [activeTab, setActiveTab] = useState<"overtime" | "regularization">("overtime");
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading, error } = useQuery({
@@ -153,11 +154,32 @@ export default function TeamAttendancePage() {
           </div>
         ) : (
           <>
-            <PendingOvertimeTable />
+            {/* Approvals Toggle */}
+            <div className="bg-white border border-slate-200 rounded-xl p-1.5 shadow-sm mb-6 inline-flex w-full sm:w-auto">
+              <button
+                onClick={() => setActiveTab("overtime")}
+                className={`flex-1 sm:w-48 py-2 px-4 rounded-lg text-sm font-bold transition-all ${activeTab === 'overtime' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+              >
+                Overtime Approvals
+              </button>
+              <button
+                onClick={() => setActiveTab("regularization")}
+                className={`flex-1 sm:w-48 py-2 px-4 rounded-lg text-sm font-bold transition-all ${activeTab === 'regularization' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+              >
+                Regularizations
+              </button>
+            </div>
 
-            <div className="mt-6 mb-6">
-              <h2 className="text-base font-extrabold text-slate-900 mb-4">Team Regularizations</h2>
-              <RegularizationPanel mode="org" />
+            <div className="mb-8 min-h-[300px]">
+              {activeTab === "overtime" ? (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <PendingOvertimeTable />
+                </div>
+              ) : (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <RegularizationPanel mode="org" />
+                </div>
+              )}
             </div>
 
             {/* Real-time Status Table */}

@@ -226,7 +226,13 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
       const checkIns = log.punchHistory?.filter((p: any) => p.action === 'IN') || [];
       const checkOuts = log.punchHistory?.filter((p: any) => p.action === 'OUT') || [];
 
-      let formattedCheckIn = checkIns.length > 0 ? formatTimeValue(checkIns[0].time) : formatTimeValue(log.checkIn);
+      let formattedCheckIn = "—";
+      if (log.isRegularized && log.checkIn) {
+        formattedCheckIn = formatTimeValue(log.checkIn);
+      } else {
+        formattedCheckIn = checkIns.length > 0 ? formatTimeValue(checkIns[0].time) : formatTimeValue(log.checkIn);
+      }
+      
       let validCheckOut = checkOuts.length > 0 ? checkOuts[checkOuts.length - 1].time : log.checkOut;
       
       if (checkIns.length > 0 && checkOuts.length > 0) {
@@ -239,12 +245,17 @@ export default function HistoryPanel({ mode = "personal" }: HistoryPanelProps) {
           }
         }
       }
-      let formattedCheckOut = formatTimeValue(validCheckOut);
-      
-      if (log.punchHistory && log.punchHistory.length > 0) {
-        const lastPunch = log.punchHistory[log.punchHistory.length - 1];
-        if (lastPunch.action === 'IN') {
-           formattedCheckOut = "—";
+      let formattedCheckOut = "—";
+      if (log.isRegularized && log.checkOut) {
+        formattedCheckOut = formatTimeValue(log.checkOut);
+      } else {
+        formattedCheckOut = formatTimeValue(validCheckOut);
+        
+        if (log.punchHistory && log.punchHistory.length > 0) {
+          const lastPunch = log.punchHistory[log.punchHistory.length - 1];
+          if (lastPunch.action === 'IN') {
+             formattedCheckOut = "—";
+          }
         }
       }
 

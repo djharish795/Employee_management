@@ -18,13 +18,6 @@ export default function AttendanceRegularizationPage() {
           <h2 className="text-xl font-bold text-slate-900 mb-4">My Regularization Requests</h2>
           <RegularizationPanel />
         </div>
-        
-        {isManagerOrAbove && (
-          <div>
-            <h2 className="text-xl font-bold text-slate-900 mb-4">Team Regularization Requests</h2>
-            <RegularizationPanel mode="org" />
-          </div>
-        )}
       </div>
     </AttendanceLayout>
   );
