@@ -24,21 +24,21 @@ export default function RegularizationPanel({ mode = "personal" }: Regularizatio
   // Form Fields
   const [reqDate, setReqDate] = useState("");
   const [reqReason, setReqReason] = useState("");
-  const [reqType, setReqType] = useState<"MISSING_PUNCH" | "OTHER" | "WFH_MARKING" | "LATE_CHECKIN" | "EARLY_CHECKOUT">("MISSING_PUNCH");
+  const [reqType, setReqType] = useState<"MISSING_PUNCH" | "INCORRECT_TIME" | "WFH_MARKING" | "LATE_CHECKIN" | "EARLY_CHECKOUT">("MISSING_PUNCH");
   const [fileName, setFileName] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const { data: requests = [], refetch } = useQuery<RegularizationRequest[]>({
+  const { data: requests = [], refetch } = useQuery({
     queryKey: ["attendanceRegularizations", mode],
     queryFn: () => fetchRegularizations(mode),
   });
 
   // Calculate requests based on role scope
-  const filteredRequests = useMemo(() => {
+  const filteredRequests: RegularizationRequest[] = useMemo(() => {
     // Managers and HR review all pending team actions, regular employees see their own list
-    return requests;
+    return requests as RegularizationRequest[];
   }, [requests]);
 
   // Mutations
@@ -308,7 +308,7 @@ export default function RegularizationPanel({ mode = "personal" }: Regularizatio
                   <option value="LATE_CHECKIN">Late Check-in</option>
                   <option value="EARLY_CHECKOUT">Early Check-out</option>
                   <option value="WFH_MARKING">WFH Marking</option>
-                  <option value="OTHER">Other / Incorrect Time</option>
+                  <option value="INCORRECT_TIME">Other / Incorrect Time</option>
                 </select>
               </div>
 

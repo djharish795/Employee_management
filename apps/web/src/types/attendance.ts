@@ -10,6 +10,7 @@ export interface AttendanceLog {
   punchHistory?: Array<{ action: "IN" | "OUT" | "BREAK"; time: string }>;
   overtime?: number;
   isOvertimeApproved?: boolean;
+  isRegularized?: boolean;
 }
 
 export interface RegularizationRequest {
@@ -18,7 +19,7 @@ export interface RegularizationRequest {
   employeeName: string;
   attendanceDate: string;
   reason: string;
-  correctionType: "MISSING_PUNCH" | "INCORRECT_TIME" | "LATE_CHECKIN" | "EARLY_CHECKOUT" | "WFH_MARKING" | "OTHER";
+  correctionType: "MISSING_PUNCH" | "INCORRECT_TIME" | "LATE_CHECKIN" | "EARLY_CHECKOUT" | "WFH_MARKING";
   attachmentName?: string;
   step1Status: 'PENDING' | 'APPROVED' | 'REJECTED';
   step2Status: 'PENDING' | 'APPROVED' | 'REJECTED';

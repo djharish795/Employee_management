@@ -206,11 +206,18 @@ export class ProjectsService {
       );
 
       if (employee.officialEmail) {
+        const projectUrl = `${process.env.FRONTEND_URL || 'https://crewbase.naprocs.in'}/projects/${projectId}`;
         await this.emailService.sendEmail(
           employee.officialEmail,
-          'New Project Assignment',
-          'GENERAL',
-          { message: `Hello ${employee.firstName}, you have been assigned to project ${project.name} as ${projectRole} by ${actorName}. Please log in to your dashboard to view the project details.` }
+          `New Project Assignment: ${project.name}`,
+          'PROJECT_ASSIGNED',
+          { 
+            name: employee.firstName || employee.employeeId, 
+            projectName: project.name, 
+            role: projectRole, 
+            assignedBy: actorName,
+            projectUrl 
+          }
         );
       }
     } catch (error) {

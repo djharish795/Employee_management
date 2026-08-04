@@ -53,7 +53,7 @@ export default function DashboardPanel() {
   // Fetch Regularization Requests for Team Approvals
   const { data: regularizations = [], refetch: refetchRegs } = useQuery({
     queryKey: ["attendanceRegularizations"],
-    queryFn: fetchRegularizations,
+    queryFn: () => fetchRegularizations("personal"),
   });
 
   const isManagerRole = ["MANAGER", "CTO", "CEO", "CHRO", "SUPER_ADMIN", "ADMIN"].includes(activeRole);
