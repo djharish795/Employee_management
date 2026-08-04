@@ -27,13 +27,10 @@ export class WorkReportsService {
 
     let reviewerId = employee.reportingManagerId;
     
-    if (role === 'OM' || role === 'CEM' || role === 'OPERATIONS_HEAD') {
-      const ceoUser = await this.prisma.user.findFirst({
-        where: { role: 'CEO', employeeId: { not: null } }
-      });
-      if (ceoUser && ceoUser.employeeId) {
-        reviewerId = ceoUser.employeeId;
-      }
+    // Default assignments for specific roles
+    if (role === 'OM' || role === 'CEM' || role === 'OPERATIONS_HEAD' || role === 'TEAM_LEAD' || role === 'TL') {
+      const ctoUser = await this.prisma.user.findFirst({ where: { role: 'CTO' } });
+      if (ctoUser && ctoUser.employeeId) reviewerId = ctoUser.employeeId;
     } else if (role === 'CRM' || role === 'OE') {
       let manager = await this.prisma.employee.findUnique({
         where: { id: reviewerId || '' },
@@ -42,14 +39,22 @@ export class WorkReportsService {
       if (manager && manager.user?.role === 'OM') {
         reviewerId = manager.id;
       } else {
-        const omUser = await this.prisma.user.findFirst({
-          where: { role: 'OM', employeeId: { not: null } }
-        });
+        const omUser = await this.prisma.user.findFirst({ where: { role: 'OM' } });
         if (omUser && omUser.employeeId) {
           reviewerId = omUser.employeeId;
         } else {
           throw new BadRequestException('No Operations Manager (OM) found to review this report.');
         }
+      }
+    }
+
+    // INTERCEPTOR: If for ANY reason the reviewer is Pradeep (CEO) or is NULL, force route to Lokesh (CTO).
+    // The user explicitly stated: "ignore for ceo we will just go with cto".
+    const ceoUser = await this.prisma.user.findFirst({ where: { role: 'CEO' } });
+    if (!reviewerId || (ceoUser && reviewerId === ceoUser.employeeId)) {
+      const ctoUser = await this.prisma.user.findFirst({ where: { role: 'CTO' } });
+      if (ctoUser && ctoUser.employeeId) {
+        reviewerId = ctoUser.employeeId;
       }
     }
     
@@ -61,6 +66,7 @@ export class WorkReportsService {
         reportType: dto.reportType,
         title: dto.title,
         content: dto.content || {},
+        attachments: (dto as any).attachments || [],
         priority: dto.priority || ReportPriority.MEDIUM,
       }
     });
@@ -97,7 +103,12 @@ export class WorkReportsService {
         ]
       };
     } else if (!isGlobalAdmin) {
-      whereClause = { reviewerId };
+      whereClause = { 
+        OR: [
+          { reviewerId },
+          { employee: { reportingManagerId: reviewerId } }
+        ]
+      };
     }
     whereClause.employeeId = { not: reviewerId };
     
@@ -106,6 +117,27 @@ export class WorkReportsService {
       orderBy: { submittedAt: 'desc' },
       include: { 
         employee: { select: { firstName: true, lastName: true, photoUrl: true, employeeId: true } } 
+      }
+    });
+  }
+
+  async getCtoReports(reviewerId: string, role: string, team: string) {
+    if (role !== 'CTO') {
+      throw new ForbiddenException('Only CTO can access this endpoint');
+    }
+
+    let whereClause: any = {};
+    if (team === 'operations') {
+      whereClause.department = 'Operations'; 
+    } else if (team === 'tech') {
+      whereClause.department = { not: 'Operations' };
+    }
+
+    return this.prisma.workReport.findMany({
+      where: whereClause,
+      orderBy: { submittedAt: 'desc' },
+      include: { 
+        employee: { select: { firstName: true, lastName: true, photoUrl: true, employeeId: true, department: true } } 
       }
     });
   }
@@ -122,9 +154,10 @@ export class WorkReportsService {
 
     const isGlobalAdmin = role === 'OM' || role === 'SUPER_ADMIN' || role === 'CEO' || role === 'OPERATIONS_HEAD';
     const isCtoOpsView = role === 'CTO' && report.department === 'Operations';
+    const isDirectManager = report.employee.reportingManagerId === employeeId;
 
-    // Ensure the requester is either the submitter, the reviewer, a global admin, or CTO viewing Ops
-    if (report.employeeId !== employeeId && report.reviewerId !== employeeId && !isGlobalAdmin && !isCtoOpsView) {
+    // Ensure the requester is either the submitter, the reviewer, direct manager, a global admin, or CTO viewing Ops
+    if (report.employeeId !== employeeId && report.reviewerId !== employeeId && !isGlobalAdmin && !isCtoOpsView && !isDirectManager) {
       throw new ForbiddenException('Access denied to this report');
     }
 
@@ -217,19 +250,29 @@ export class WorkReportsService {
     return [headers.join(','), ...rows.map((r: any[]) => r.join(','))].join('\n');
   }
 
-  async resubmitReport(employeeId: string, reportId: string, updateDto: any) {
+  async updateReport(employeeId: string, reportId: string, updateDto: any) {
     const report = await this.prisma.workReport.findUnique({ where: { id: reportId } });
     if (!report) throw new NotFoundException('Report not found');
     if (report.employeeId !== employeeId) throw new ForbiddenException('You can only update your own reports');
-    if (report.status !== ReportStatus.NEEDS_REVISION) throw new BadRequestException('Only reports needing revision can be updated');
 
     return this.prisma.workReport.update({
       where: { id: reportId },
       data: {
-        title: updateDto.title || report.title,
-        content: updateDto.content || report.content,
-        status: ReportStatus.PENDING,
+        title: updateDto.title !== undefined ? updateDto.title : report.title,
+        content: updateDto.content !== undefined ? updateDto.content : report.content,
+        attachments: updateDto.attachments !== undefined ? updateDto.attachments : (report as any).attachments,
+        reportType: updateDto.reportType !== undefined ? updateDto.reportType : report.reportType,
       }
+    });
+  }
+
+  async deleteReport(employeeId: string, reportId: string) {
+    const report = await this.prisma.workReport.findUnique({ where: { id: reportId } });
+    if (!report) throw new NotFoundException('Report not found');
+    if (report.employeeId !== employeeId) throw new ForbiddenException('You can only delete your own reports');
+    
+    return this.prisma.workReport.delete({
+      where: { id: reportId }
     });
   }
 }

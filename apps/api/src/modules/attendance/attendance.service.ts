@@ -1564,7 +1564,8 @@ export class AttendanceService {
 
     const isStep1 = request.step1ApproverId === currentUser.employeeId;
     const isStep2 = request.step2ApproverId === currentUser.employeeId;
-    const isAdminOverride = RbacGroups.ATTENDANCE_ADMINS.includes(currentUser.role as any);
+    // HR can view but cannot approve/override regularizations
+    const isAdminOverride = RbacGroups.ATTENDANCE_ADMINS.includes(currentUser.role as any) && currentUser.role !== 'HR';
 
     if (!isStep1 && !isStep2 && !isAdminOverride) {
       throw new ForbiddenException("You do not have permission to action this request.");

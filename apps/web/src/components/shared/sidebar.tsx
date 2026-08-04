@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, CalendarCheck, Calendar, 
   MonitorSmartphone, ShieldCheck, History, UserPlus, 
   UserMinus, BookOpen, GitBranch, UserSearch, 
-  Banknote, TrendingUp, Network, Settings, LogOut, Plus
+  Banknote, TrendingUp, Network, Settings, LogOut, Plus, FileText
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 
@@ -68,11 +68,12 @@ export function Sidebar() {
     { title: 'Payroll', icon: Banknote, href: '/payroll' },
     { title: 'Performance', icon: TrendingUp, href: '/performance' },
     { title: 'Org Chart', icon: Network, href: '/org-chart' },
+    { title: 'Work Reports', icon: FileText, href: '/employee/work-reports' },
     { title: 'Settings', icon: Settings, href: '/settings' },
   ];
 
   const employeeAllowedModules = [
-    'Dashboard', 'Attendance', 'Leaves', 'Assets', 'Knowledge Base', 'Org Chart', 'Settings'
+    'Dashboard', 'Attendance', 'Leaves', 'Work Reports', 'Assets', 'Knowledge Base', 'Org Chart', 'Settings'
   ];
 
   const isEmployee = !role || role.toUpperCase() === 'EMPLOYEE';

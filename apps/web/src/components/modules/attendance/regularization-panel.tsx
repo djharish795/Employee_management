@@ -115,7 +115,7 @@ export default function RegularizationPanel({ mode = "personal" }: Regularizatio
                 {filteredRequests.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((req) => {
                   const isStep1Approver = req.step1ApproverId === employeeId;
                   const isStep2Approver = req.step2ApproverId === employeeId;
-                  const isAttendanceAdmin = ["HR", "ADMIN", "SUPER_ADMIN", "CHRO"].includes(activeRole);
+                  const isAttendanceAdmin = ["ADMIN", "SUPER_ADMIN", "CHRO"].includes(activeRole);
                   
                   const canApproveStep1 = req.step1Status === "PENDING" && (isStep1Approver || isAttendanceAdmin);
                   const canApproveStep2 = req.step2Status === "PENDING" && req.step1Status === "APPROVED" && (isStep2Approver || isAttendanceAdmin);

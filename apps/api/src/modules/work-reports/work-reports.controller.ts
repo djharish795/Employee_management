@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Patch, UseGuards, Req, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete, UseGuards, Req, Res, Query } from '@nestjs/common';
 import { WorkReportsService, ReportStatus } from './work-reports.service';
 import { CreateWorkReportDto } from './dto/create-work-report.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -34,6 +34,14 @@ export class WorkReportsController {
     console.log("Fetching team reports for reviewerId:", reviewerId, "role:", role);
     const reports = await this.workReportsService.getTeamReports(reviewerId, role);
     return reports;
+  }
+
+  @Get('cto')
+  @Permissions(Permission.READ_EMPLOYEES)
+  async getCtoReports(@Req() req: any, @Query('team') team: string) {
+    const reviewerId = req.user?.employeeId;
+    const role = req.user?.role;
+    return this.workReportsService.getCtoReports(reviewerId, role, team);
   }
 
   @Get('export')
@@ -78,6 +86,16 @@ export class WorkReportsController {
     @Req() req: any
   ) {
     const employeeId = req.user?.employeeId;
-    return this.workReportsService.resubmitReport(employeeId, id, updateDto);
+    return this.workReportsService.updateReport(employeeId, id, updateDto);
+  }
+
+  @Delete(':id')
+  @Permissions(Permission.READ_OWN_PROFILE)
+  async deleteReport(
+    @Param('id') id: string,
+    @Req() req: any
+  ) {
+    const employeeId = req.user?.employeeId;
+    return this.workReportsService.deleteReport(employeeId, id);
   }
 }
