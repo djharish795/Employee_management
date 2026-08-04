@@ -4,6 +4,7 @@ import { Briefcase, Network, Building2, Calendar, Banknote } from 'lucide-react'
 import { useAuthStore } from '@/store/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
+import { apiClient } from '@/lib/api/client';
 
 interface EmploymentProps {
   onSave: (data: any) => void;
@@ -22,50 +23,40 @@ export function EmploymentForm({ onSave, initialData = {}, formId }: EmploymentP
 
   // Debounced manager search
   useEffect(() => {
-    if (!accessToken) return;
     const delayDebounceFn = setTimeout(async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
         const query = managerSearch ? `&search=${encodeURIComponent(managerSearch)}` : '';
-        const empRes = await fetch(`${apiUrl}/employees?page=1&limit=20&status=ACTIVE${query}`, { credentials: 'include' });
-        if (empRes.ok) {
-          const empJson = await empRes.json();
-          setManagers(empJson.data || []);
-        }
+        const res = await apiClient.get(`/employees?page=1&limit=20&status=ACTIVE${query}`);
+        const json = res.data;
+        setManagers(Array.isArray(json) ? json : (json.data || []));
       } catch (e) {
         console.error("Failed to load managers", e);
       }
     }, 300);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [managerSearch, accessToken]);
+  }, [managerSearch]);
 
+  // Load departments & designations on mount — uses apiClient (cookie-auth, no token guard needed)
   useEffect(() => {
     const fetchMasterData = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
-        
-        // Fetch departments
-        const deptRes = await fetch(`${apiUrl}/departments?page=1&limit=100`, { credentials: 'include' });
-        if (deptRes.ok) {
-          const json = await deptRes.json();
-          setDepartments(json.data || []);
-        }
+        const [deptRes, desigRes] = await Promise.all([
+          apiClient.get('/departments?page=1&limit=100'),
+          apiClient.get('/departments/all-designations'),
+        ]);
 
-        // Fetch designations
-        const desigRes = await fetch(`${apiUrl}/departments/all-designations`, { credentials: 'include' });
-        if (desigRes.ok) {
-          const desigJson = await desigRes.json();
-          setDesignations(desigJson.data || []);
-        }
+        const deptJson = deptRes.data;
+        setDepartments(Array.isArray(deptJson) ? deptJson : (deptJson.data || []));
+
+        const desigJson = desigRes.data;
+        setDesignations(Array.isArray(desigJson) ? desigJson : (desigJson.data || []));
       } catch (e) {
         console.error("Failed to load master data", e);
       }
     };
-    if (accessToken) {
-      fetchMasterData();
-    }
-  }, [accessToken]);
+    fetchMasterData();
+  }, []);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -108,6 +99,7 @@ export function EmploymentForm({ onSave, initialData = {}, formId }: EmploymentP
                   <option value="FULL_TIME">Full-Time</option>
                   <option value="PART_TIME">Part-Time</option>
                   <option value="CONTRACT">Contractor</option>
+                  <option value="INTERN">Internship</option>
                 </select>
               </div>
               <div className="space-y-1.5">

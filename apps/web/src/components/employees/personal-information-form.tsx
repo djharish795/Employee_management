@@ -1,7 +1,7 @@
 import toast from "react-hot-toast";
 import Image from "next/image";
-import React, { useState } from 'react';
-import { Camera, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Camera, Loader2, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 import { useAuthStore } from '@/store/auth';
@@ -18,9 +18,36 @@ export function PersonalInformationForm({ onSave, initialData: incomingData, for
   const initialData = incomingData || {};
   const [isUploading, setIsUploading] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  // Restore photoKey from initialData (which comes from localStorage-backed draftData)
   const [photoKey, setPhotoKey] = useState<string>(initialData?.photoUrl || '');
-  const [previewUrl, setPreviewUrl] = useState<string>(initialData?.photoUrl || '');
+  const [previewUrl, setPreviewUrl] = useState<string>('');
   const accessToken = useAuthStore((state) => state.accessToken);
+  const currentAddressRef = React.useRef<HTMLTextAreaElement>(null);
+  const permanentAddressRef = React.useRef<HTMLTextAreaElement>(null);
+
+  // On mount (or when initialData.photoUrl changes from localStorage restore),
+  // fetch a fresh presigned view URL so the preview survives page refresh.
+  useEffect(() => {
+    const key = initialData?.photoUrl;
+    if (!key || key === previewUrl) return;
+    setPhotoKey(key);
+    apiClient.get(`/documents/view-url?objectKey=${encodeURIComponent(key)}`)
+      .then(res => {
+        const url = res.data?.data?.url;
+        if (url) setPreviewUrl(url);
+      })
+      .catch(() => {
+        // view URL failed - show nothing, user can re-upload
+        setPreviewUrl('');
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialData?.photoUrl]);
+
+  const handleSameAsCurrent = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked && currentAddressRef.current && permanentAddressRef.current) {
+      permanentAddressRef.current.value = currentAddressRef.current.value;
+    }
+  };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -71,6 +98,7 @@ export function PersonalInformationForm({ onSave, initialData: incomingData, for
       }
 
       setPhotoKey(objectKey);
+      // Use a blob URL for immediate preview; on refresh, the useEffect above re-fetches a presigned URL
       setPreviewUrl(URL.createObjectURL(file));
       
       // Simulate virus scan polling
@@ -86,6 +114,11 @@ export function PersonalInformationForm({ onSave, initialData: incomingData, for
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleRemovePhoto = () => {
+    setPhotoKey('');
+    setPreviewUrl('');
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -190,26 +223,41 @@ export function PersonalInformationForm({ onSave, initialData: incomingData, for
             {/* Profile Photo Uploader */}
             <div className="pt-4">
               <label className="text-sm font-semibold text-slate-700 block mb-3">Profile Photo</label>
+              {/* Hidden input so photoKey is always captured by getStepData() FormData and flows into draftData/localStorage */}
+              <input type="hidden" name="photoUrl" value={photoKey} />
               <div className="flex items-center gap-6">
-                <label className="w-24 h-24 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:bg-slate-100 hover:border-slate-400 transition-colors overflow-hidden relative">
-                  <input type="file" accept="image/jpeg,image/png" className="hidden" onChange={handlePhotoUpload} disabled={isUploading || isScanning} />
-                  {previewUrl && !isUploading && !isScanning ? (
-                    <Image src={previewUrl} alt="Preview" className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
-                  ) : (
-                    <>
-                      {isUploading ? (
-                        <Loader2 className="w-6 h-6 mb-1 animate-spin text-slate-500" />
-                      ) : isScanning ? (
-                        <Loader2 className="w-6 h-6 mb-1 animate-spin text-blue-500" />
-                      ) : (
-                        <Camera className="w-6 h-6 mb-1" />
-                      )}
-                      <span className="text-[10px] font-bold text-center leading-tight">
-                        {isUploading ? "Uploading..." : isScanning ? "Scanning..." : "Upload profile\nphoto"}
-                      </span>
-                    </>
+                <div className="relative">
+                  <label className="w-24 h-24 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:bg-slate-100 hover:border-slate-400 transition-colors overflow-hidden relative">
+                    <input type="file" accept="image/jpeg,image/png" className="hidden" onChange={handlePhotoUpload} disabled={isUploading || isScanning} />
+                    {previewUrl && !isUploading && !isScanning ? (
+                      <Image src={previewUrl} alt="Preview" className="w-full h-full object-cover" fill style={{ objectFit: "cover" }} />
+                    ) : (
+                      <>
+                        {isUploading ? (
+                          <Loader2 className="w-6 h-6 mb-1 animate-spin text-slate-500" />
+                        ) : isScanning ? (
+                          <Loader2 className="w-6 h-6 mb-1 animate-spin text-blue-500" />
+                        ) : (
+                          <Camera className="w-6 h-6 mb-1" />
+                        )}
+                        <span className="text-[10px] font-bold text-center leading-tight">
+                          {isUploading ? "Uploading..." : isScanning ? "Scanning..." : "Upload profile\nphoto"}
+                        </span>
+                      </>
+                    )}
+                  </label>
+                  {/* Remove button — only visible when a photo is set */}
+                  {photoKey && !isUploading && !isScanning && (
+                    <button
+                      type="button"
+                      onClick={handleRemovePhoto}
+                      title="Remove photo"
+                      className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow transition-colors z-10"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
                   )}
-                </label>
+                </div>
                 <div className="text-xs font-medium text-slate-500 leading-relaxed">
                   Max size 2MB. Format: JPG, PNG.<br />
                   Recommended size: 400x400px
@@ -239,18 +287,18 @@ export function PersonalInformationForm({ onSave, initialData: incomingData, for
 
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-slate-700">Current address</label>
-              <textarea name="currentAddress" defaultValue={initialData.currentAddress} placeholder="Enter current residence address" className="w-full h-[90px] p-3 rounded-md border border-slate-200 text-sm resize-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all" maxLength={250} />
+              <textarea ref={currentAddressRef} name="currentAddress" defaultValue={initialData.currentAddress} placeholder="Enter current residence address" className="w-full h-[90px] p-3 rounded-md border border-slate-200 text-sm resize-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all" maxLength={250} />
             </div>
 
             <div className="space-y-1.5 relative">
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-sm font-semibold text-slate-700">Permanent address</label>
                 <label className="flex items-center gap-2 cursor-pointer group">
-                  <input type="checkbox" className="w-3.5 h-3.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900" />
+                  <input type="checkbox" onChange={handleSameAsCurrent} className="w-3.5 h-3.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900" />
                   <span className="text-xs font-semibold text-slate-500 group-hover:text-slate-700 transition-colors">Same as current address</span>
                 </label>
               </div>
-              <textarea name="permanentAddress" defaultValue={initialData.permanentAddress} placeholder="Enter permanent address" className="w-full h-[90px] p-3 rounded-md border border-slate-200 text-sm resize-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all" maxLength={250} />
+              <textarea ref={permanentAddressRef} name="permanentAddress" defaultValue={initialData.permanentAddress} placeholder="Enter permanent address" className="w-full h-[90px] p-3 rounded-md border border-slate-200 text-sm resize-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-700 outline-none transition-all" maxLength={250} />
             </div>
 
             <div className="space-y-1.5">

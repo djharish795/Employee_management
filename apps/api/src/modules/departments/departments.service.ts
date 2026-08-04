@@ -5,6 +5,26 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class DepartmentsService {
   constructor(private prisma: PrismaService) {}
 
+  async getDepartments(page: number = 1, limit: number = 100) {
+    const skip = (page - 1) * limit;
+    const [data, total] = await Promise.all([
+      this.prisma.department.findMany({
+        skip,
+        take: limit,
+        orderBy: { name: 'asc' },
+      }),
+      this.prisma.department.count(),
+    ]);
+    return { data, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } };
+  }
+
+  async getAllDesignations() {
+    const data = await this.prisma.designation.findMany({
+      orderBy: { title: 'asc' },
+    });
+    return data;
+  }
+
   async getDashboardStats() {
     const departments = await this.prisma.department.findMany({
       include: {
