@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 import { useAuthStore } from '@/store/auth';
 
+import { apiClient } from '@/lib/api/client';
+
 interface PersonalInfoProps {
   onSave: (data: any) => void;
   initialData?: any;
@@ -27,12 +29,17 @@ export function PersonalInformationForm({ onSave, initialData: incomingData, for
     setIsUploading(true);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (accessToken) {
+        headers["Authorization"] = `Bearer ${accessToken}`;
+      }
+
       const res = await fetch(`${apiUrl}/documents/upload-url`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          /* credentials: 'include' handled */
-        },
+        headers,
+        credentials: "include",
         body: JSON.stringify({ fileName: file.name, contentType: file.type })
       });
 
@@ -43,26 +50,23 @@ export function PersonalInformationForm({ onSave, initialData: incomingData, for
       }
 
       const json = await res.json();
-      const { uploadUrl, fields, objectKey } = json.data;
+      const { uploadUrl, objectKey } = json.data || {};
 
-      if (!uploadUrl || !objectKey || !fields) {
+      if (!uploadUrl || !objectKey) {
         throw new Error("Server returned an invalid upload configuration");
       }
 
-      const formData = new FormData();
-      Object.entries(fields).forEach(([key, value]) => {
-        formData.append(key, value as string);
-      });
-      formData.append("file", file);
-
       const s3Res = await fetch(uploadUrl, {
-        method: "POST",
-        body: formData
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type,
+        },
+        body: file,
       });
 
       if (!s3Res.ok) {
         const s3Err = await s3Res.text();
-        console.error("[PhotoUpload] S3 POST failed:", s3Res.status, s3Err);
+        console.error("[PhotoUpload] S3 upload failed:", s3Res.status, s3Err);
         throw new Error(`S3 upload failed (${s3Res.status}): ${s3Err}`);
       }
 

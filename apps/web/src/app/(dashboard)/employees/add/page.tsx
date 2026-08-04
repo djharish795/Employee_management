@@ -68,8 +68,9 @@ export default function AddEmployeePage() {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          /* credentials: 'include' handled */
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
         },
+        credentials: "include",
         body: JSON.stringify(payload)
       });
 
@@ -104,8 +105,9 @@ export default function AddEmployeePage() {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          /* credentials: 'include' handled */
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
         },
+        credentials: "include",
         body: JSON.stringify({ draftId: id })
       });
 
@@ -175,8 +177,9 @@ export default function AddEmployeePage() {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          /* credentials: 'include' handled */
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
         },
+        credentials: "include",
         body: JSON.stringify(payload)
       });
 
