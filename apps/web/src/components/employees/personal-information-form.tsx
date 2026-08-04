@@ -28,46 +28,17 @@ export function PersonalInformationForm({ onSave, initialData: incomingData, for
 
     setIsUploading(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      if (accessToken) {
-        headers["Authorization"] = `Bearer ${accessToken}`;
-      }
+      const formData = new FormData();
+      formData.append("file", file);
 
-      const res = await fetch(`${apiUrl}/documents/upload-url`, {
-        method: "POST",
-        headers,
-        credentials: "include",
-        body: JSON.stringify({ fileName: file.name, contentType: file.type })
+      const res = await apiClient.post("/documents/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
       });
 
-      if (!res.ok) {
-        const errBody = await res.text();
-        console.error("[PhotoUpload] Failed to get presigned URL:", res.status, errBody);
-        throw new Error(`Server error ${res.status}: ${errBody}`);
-      }
+      const { objectKey } = res.data.data;
 
-      const json = await res.json();
-      const { uploadUrl, objectKey } = json.data || {};
-
-      if (!uploadUrl || !objectKey) {
-        throw new Error("Server returned an invalid upload configuration");
-      }
-
-      const s3Res = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": file.type,
-        },
-        body: file,
-      });
-
-      if (!s3Res.ok) {
-        const s3Err = await s3Res.text();
-        console.error("[PhotoUpload] S3 upload failed:", s3Res.status, s3Err);
-        throw new Error(`S3 upload failed (${s3Res.status}): ${s3Err}`);
+      if (!objectKey) {
+        throw new Error("Server returned invalid response");
       }
 
       setPhotoKey(objectKey);
@@ -81,10 +52,12 @@ export function PersonalInformationForm({ onSave, initialData: incomingData, for
       
       toast.success("Photo scanned and uploaded successfully!");
     } catch (error: any) {
-      console.error("[PhotoUpload] Error:", error?.message || error);
-      toast.error(`Photo upload failed: ${error?.message || "Unknown error"}`);
+      console.error("[PhotoUpload] Error:", error);
+      const msg = error.response?.data?.message || error.message || 'Upload failed';
+      toast.error(`Photo upload failed: ${msg}`);
     } finally {
       setIsUploading(false);
+      setIsScanning(false);
     }
   };
 
