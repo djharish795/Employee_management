@@ -162,7 +162,15 @@ export class ProjectsService {
       if (!assignment) throw new ForbiddenException("You must be a Team Lead or Manager of this project to assign members.");
     }
 
-    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
+    const project = await this.prisma.project.findUnique({ 
+      where: { id: projectId },
+      include: {
+        assignments: {
+          where: { projectRole: 'TL', releasedAt: null },
+          include: { employee: true }
+        }
+      }
+    });
     if (!project) throw new NotFoundException('Project not found');
 
     const employee = await this.prisma.employee.findUnique({ where: { id: employeeId } });
@@ -196,6 +204,8 @@ export class ProjectsService {
 
     try {
       const actorName = requestingUser?.firstName ? `${requestingUser.firstName} ${requestingUser.lastName}`.trim() : 'a manager';
+      const tlAssignment = project.assignments?.[0];
+      const teamLeadName = tlAssignment ? `${tlAssignment.employee.firstName} ${tlAssignment.employee.lastName}`.trim() : 'Not Assigned';
       
       await this.notificationsService.createNotification(
         employeeId,
@@ -206,11 +216,19 @@ export class ProjectsService {
       );
 
       if (employee.officialEmail) {
+        const projectUrl = `${process.env.FRONTEND_URL || 'https://crewbase.naprocs.in'}/tasks?project=${projectId}`;
         await this.emailService.sendEmail(
           employee.officialEmail,
-          'New Project Assignment',
-          'GENERAL',
-          { message: `Hello ${employee.firstName}, you have been assigned to project ${project.name} as ${projectRole} by ${actorName}. Please log in to your dashboard to view the project details.` }
+          `New Project Assignment: ${project.name}`,
+          'PROJECT_ASSIGNED',
+          { 
+            name: employee.firstName || employee.employeeId, 
+            projectName: project.name, 
+            role: projectRole, 
+            assignedBy: actorName,
+            projectUrl,
+            teamLeadName
+          }
         );
       }
     } catch (error) {

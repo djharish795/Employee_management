@@ -62,15 +62,15 @@ export default function ReportsPanel() {
     try {
       const requests = await fetchRegularizations();
       const rows = [
-        ["Request ID", "Employee Name", "Date", "Correction Type", "Reason", "Manager Status", "HR Status", "Submitted Date"],
+        ["Request ID", "Employee Name", "Date", "Correction Type", "Reason", "Step 1 Status", "Step 2 Status", "Submitted Date"],
         ...requests.map(req => [
           req.id,
           req.employeeName || "Unknown",
           req.attendanceDate,
           req.correctionType,
           `"${(req.reason || "").replace(/"/g, '""')}"`,
-          req.managerStatus,
-          req.hrStatus,
+          req.step1Status,
+          req.step2Status,
           req.submittedDate
         ])
       ];

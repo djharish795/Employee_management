@@ -516,7 +516,8 @@ export class AttendanceService {
       punchHistory: Array.isArray((record as any).punchHistory) ? (record as any).punchHistory : [],
       overtime: record.overtime ? Number(record.overtime) : 0,
       isOvertimeApproved: (record as any).isOvertimeApproved || false,
-      overtimeApprovedById: record.overtimeApprovedById || null
+      overtimeApprovedById: record.overtimeApprovedById || null,
+      isRegularized: (record as any).isRegularized || false
     };
     });
 
@@ -736,7 +737,7 @@ export class AttendanceService {
         ...r,
         workHours: Number(r.workHours) || 0,
         overtime: Number(r.overtime) || 0,
-        canApprove: approverRole === 'SUPER_ADMIN' || r.employee.reportingManagerId === managerId
+        canApprove: ['SUPER_ADMIN', 'CEO'].includes(approverRole) || r.employee.reportingManagerId === managerId
       }));
     }
 
@@ -815,8 +816,8 @@ export class AttendanceService {
     const approverRole = approver.user.role;
     let isAuthorized = false;
 
-    // 1. Authorized if Super Admin
-    if (approverRole === 'SUPER_ADMIN') {
+    // 1. Authorized if Super Admin or CEO
+    if (approverRole === 'SUPER_ADMIN' || approverRole === 'CEO') {
       isAuthorized = true;
     }
     // 2. Authorized if they are the direct reporting manager of the employee (Covers CEO direct reports)
@@ -1333,7 +1334,8 @@ export class AttendanceService {
         totalBreakSeconds: (record as any).totalBreakSeconds || 0,
         overtime: record.overtime ? Number(record.overtime) : 0,
         isOvertimeApproved: (record as any).isOvertimeApproved || false,
-        overtimeApprovedById: (record as any).overtimeApprovedById || null
+        overtimeApprovedById: (record as any).overtimeApprovedById || null,
+        isRegularized: (record as any).isRegularized || false
       };
     });
 
@@ -1395,16 +1397,33 @@ export class AttendanceService {
     return csv;
   }
 
-  async getRegularizations(user?: any) {
+  async getRegularizations(user?: any, mode?: 'personal' | 'org') {
     const where: any = {};
-    if (user && !RbacGroups.ATTENDANCE_ADMINS.includes(user.role)) {
-      if (['MANAGER', 'TEAM_LEAD', 'CTO', 'CEO'].includes(user.role)) {
-        where.OR = [
-          { employeeId: user.employeeId },
-          { employee: { reportingManagerId: user.employeeId } }
-        ];
-      } else {
+    
+    if (user) {
+      if (mode === 'personal') {
         where.employeeId = user.employeeId;
+      } else if (mode === 'org') {
+        if (!RbacGroups.ATTENDANCE_ADMINS.includes(user.role)) {
+          where.OR = [
+            { step1ApproverId: user.employeeId },
+            { step2ApproverId: user.employeeId, step1Status: 'APPROVED' }
+          ];
+        }
+        // If they are admin, they see all org requests, so where is empty
+      } else {
+        // Fallback for no mode provided
+        if (!RbacGroups.ATTENDANCE_ADMINS.includes(user.role)) {
+          if (['MANAGER', 'TEAM_LEAD', 'OM', 'CTO', 'CEO'].includes(user.role)) {
+            where.OR = [
+              { employeeId: user.employeeId },
+              { step1ApproverId: user.employeeId },
+              { step2ApproverId: user.employeeId, step1Status: 'APPROVED' }
+            ];
+          } else {
+            where.employeeId = user.employeeId;
+          }
+        }
       }
     }
 
@@ -1422,14 +1441,83 @@ export class AttendanceService {
       reason: req.reason,
       correctionType: req.correctionType,
       attachmentName: req.attachmentName,
-      managerStatus: req.managerStatus,
-      hrStatus: req.hrStatus,
+      step1Status: req.step1Status,
+      step2Status: req.step2Status,
+      step1ApproverId: req.step1ApproverId,
+      step2ApproverId: req.step2ApproverId,
       submittedDate: req.submittedDate.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
       comments: req.comments,
     }));
   }
 
   async createRegularization(employeeId: string, dto: any) {
+    // Determine the user's role and assignments
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      include: { 
+        user: true,
+        department: true,
+        projectAssignments: {
+          where: { releasedAt: null }
+        }
+      }
+    });
+
+    if (!employee) throw new BadRequestException("Employee not found");
+
+    const ceos = await this.prisma.user.findMany({ where: { role: 'CEO', status: 'ACTIVE', employeeId: { not: null } } });
+    const realCeo = ceos.find(c => !c.email.startsWith('vacant')) || ceos[0];
+    const ceoId = realCeo?.employeeId || null;
+
+    const oms = await this.prisma.user.findMany({ where: { role: 'OM', status: 'ACTIVE', employeeId: { not: null } } });
+    const realOm = oms.find(o => !o.email.startsWith('vacant')) || oms[0];
+    const omId = realOm?.employeeId || ceoId; // Fallback to CEO if OM not found
+
+    let step1ApproverId: string | null = null;
+    let step2ApproverId: string | null = null;
+    
+    const role = employee.user?.role;
+    const isOperations = role === 'OE' || role === 'OM' || employee.department?.name?.toLowerCase().includes('operation');
+
+    if (role === 'OM' || role === 'HR' || role === 'CHRO' || role === 'CEO' || role === 'CTO' || role === 'COO') {
+      step1ApproverId = ceoId;
+      step2ApproverId = null;
+    } else if (role === 'TEAM_LEAD') {
+      step1ApproverId = omId;
+      step2ApproverId = null;
+    } else if (isOperations) {
+      step1ApproverId = omId;
+      step2ApproverId = null;
+    } else {
+      // Normal employee, check project assignments
+      if (employee.projectAssignments.length > 0) {
+        const isUserTheTL = employee.projectAssignments.some(p => p.projectRole === 'TL');
+        
+        if (isUserTheTL) {
+          step1ApproverId = omId;
+          step2ApproverId = null;
+        } else {
+          const projectId = employee.projectAssignments[0].projectId;
+          const projectTLs = await this.prisma.projectAssignment.findMany({
+            where: { projectId, projectRole: 'TL', releasedAt: null },
+            include: { employee: true }
+          });
+          if (projectTLs.length > 0) {
+            step1ApproverId = projectTLs[0].employeeId;
+            step2ApproverId = omId; // Second step is OM
+          } else {
+            // In a project but no TL, falls back to OM only
+            step1ApproverId = omId;
+            step2ApproverId = null;
+          }
+        }
+      } else {
+        // Not assigned to any project
+        step1ApproverId = omId;
+        step2ApproverId = null;
+      }
+    }
+
     const request = await this.prisma.regularizationRequest.create({
       data: {
         employeeId,
@@ -1437,54 +1525,24 @@ export class AttendanceService {
         reason: dto.reason,
         correctionType: dto.correctionType,
         attachmentName: dto.attachmentName,
+        step1ApproverId,
+        step2ApproverId,
       }
     });
 
-    // Notify Manager or HR/CEO
-    const employee = await this.prisma.employee.findUnique({
-      where: { id: employeeId },
-      select: { reportingManagerId: true, firstName: true, lastName: true }
-    });
-
-    const targetManagerId = employee?.reportingManagerId;
-
-    if (targetManagerId) {
+    // Notify Step 1 Approver
+    if (step1ApproverId) {
       const notification = await this.prisma.notification.create({
         data: {
-          recipientId: targetManagerId,
+          recipientId: step1ApproverId,
           title: "New Regularization Request",
-          body: `${employee?.firstName} ${employee?.lastName} has requested regularization for ${new Date(dto.attendanceDate).toLocaleDateString()}.`,
+          body: `${employee.firstName} ${employee.lastName} has requested regularization for ${new Date(dto.attendanceDate).toLocaleDateString()}.`,
           type: "APPROVAL_ALERT",
           isRead: false,
           data: { referenceId: request.id }
         }
       });
-      this.inApp.emitNotification(targetManagerId, notification);
-    } else {
-      // If no manager, we should notify HR or CEO (or roles defined)
-      const notifyRoles = ['HR', 'CEO'];
-      for (const role of notifyRoles) {
-        const users = await this.prisma.user.findMany({
-          where: { role: role as any, status: 'ACTIVE', employeeId: { not: null } },
-          select: { employeeId: true }
-        });
-
-        for (const user of users) {
-          if (user.employeeId) {
-            const notification = await this.prisma.notification.create({
-              data: {
-                recipientId: user.employeeId,
-                title: "New Regularization Request",
-                body: `${employee?.firstName} ${employee?.lastName} has requested regularization for ${new Date(dto.attendanceDate).toLocaleDateString()}.`,
-                type: "APPROVAL_ALERT",
-                isRead: false,
-                data: { referenceId: request.id }
-              }
-            });
-            this.inApp.emitNotification(user.employeeId, notification);
-          }
-        }
-      }
+      this.inApp.emitNotification(step1ApproverId, notification);
     }
 
     this.inApp.broadcastEvent('attendance.regularization_updated', { employeeId });
@@ -1504,165 +1562,187 @@ export class AttendanceService {
       throw new BadRequestException("Regularization request not found");
     }
 
-    let approverRole: "MANAGER" | "HR" | null = null;
+    const isStep1 = request.step1ApproverId === currentUser.employeeId;
+    const isStep2 = request.step2ApproverId === currentUser.employeeId;
+    const isAdminOverride = RbacGroups.ATTENDANCE_ADMINS.includes(currentUser.role as any);
 
-    if (RbacGroups.ATTENDANCE_ADMINS.includes(currentUser.role as any)) {
-      approverRole = "HR";
-    } else if (request.employee.reportingManagerId === currentUser.employeeId) {
-      approverRole = "MANAGER";
-    }
-
-    if (!approverRole) {
+    if (!isStep1 && !isStep2 && !isAdminOverride) {
       throw new ForbiddenException("You do not have permission to action this request.");
     }
 
-    if (approverRole === "MANAGER") {
-      const updatedReq = await this.prisma.regularizationRequest.update({
+    let finalApproval = false;
+    let updatedReq;
+
+    if (action === "REJECT") {
+      // Any rejection immediately closes the request
+      updatedReq = await this.prisma.regularizationRequest.update({
         where: { id },
-        data: { managerStatus: statusVal, comments: `Actioned by Manager (${action})` },
-        include: { employee: true }
-      });
-
-      this.emailService.sendEmail(
-        updatedReq.employee.officialEmail,
-        `Regularization Request ${action === "APPROVE" ? "Approved" : "Rejected"}`,
-        "regularization_status",
-        { status: action, comments: `Actioned by Manager` }
-      ).catch(e => this.logger.error("Failed to send regularization email", e));
-
-      // Notify employee
-      const notification = await this.prisma.notification.create({
-        data: {
-          recipientId: request.employeeId,
-          title: `Regularization ${action === "APPROVE" ? "Approved" : "Rejected"}`,
-          body: `Your regularization request for ${request.attendanceDate.toLocaleDateString()} has been ${action === "APPROVE" ? "approved" : "rejected"} by your manager.`,
-          type: "APPROVAL_ALERT",
-          isRead: false,
-          data: { referenceId: id }
-        }
-      });
-      this.inApp.emitNotification(request.employeeId, notification);
-
-      this.inApp.broadcastEvent('attendance.regularization_updated', { employeeId: request.employeeId });
-
-      return updatedReq;
-    } else {
-      const updatedReq = await this.prisma.regularizationRequest.update({
-        where: { id },
-        data: {
-          managerStatus: statusVal, // CEO/HR override auto-actions manager step too
-          hrStatus: statusVal,
-          comments: `Actioned by HR/Admin (${action})`
+        data: { 
+          step1Status: isStep1 ? "REJECTED" : request.step1Status,
+          step2Status: isStep2 ? "REJECTED" : (isAdminOverride ? "REJECTED" : request.step2Status),
+          comments: `Actioned by ${currentUser.role} (${action})` 
         },
         include: { employee: true }
       });
-
-      if (action === "APPROVE") {
-        const dateStr = new Date(updatedReq.attendanceDate);
-
-        // Fetch existing record to get actual punch times
-        const existingRecord = await this.prisma.attendanceRecord.findUnique({
-          where: {
-            employeeId_date: {
-              employeeId: updatedReq.employeeId,
-              date: dateStr,
-            }
-          }
+      finalApproval = false; // It's rejected, don't update attendance record
+    } else {
+      // APPROVE
+      if (isAdminOverride) {
+        // Admin force approval
+        updatedReq = await this.prisma.regularizationRequest.update({
+          where: { id },
+          data: { 
+            step1Status: "APPROVED",
+            step2Status: request.step2ApproverId ? "APPROVED" : "PENDING", // bypass
+            comments: `Force approved by Admin`
+          },
+          include: { employee: true }
         });
-
-        let checkInTime: Date | null = existingRecord?.checkInTime ? new Date(existingRecord.checkInTime) : null;
-        let checkOutTime: Date | null = existingRecord?.checkOutTime ? new Date(existingRecord.checkOutTime) : null;
-
-        if (updatedReq.correctionType === "LATE_CHECKIN") {
-          // Standard checkIn is 10:00 AM IST (04:30 AM UTC)
-          checkInTime = new Date(dateStr);
-          checkInTime.setUTCHours(4, 30, 0, 0);
-        } else if (updatedReq.correctionType === "EARLY_CHECKOUT") {
-          // Standard checkOut is 07:00 PM IST (13:30 PM UTC)
-          checkOutTime = new Date(dateStr);
-          checkOutTime.setUTCHours(13, 30, 0, 0);
-          if (!checkInTime) {
-            checkInTime = new Date(dateStr);
-            checkInTime.setUTCHours(4, 30, 0, 0);
-          }
-        } else {
-          // Normal Regularization (MISSING_PUNCH, etc)
-          checkInTime = new Date(dateStr);
-          checkInTime.setUTCHours(4, 30, 0, 0);
-          checkOutTime = new Date(dateStr);
-          checkOutTime.setUTCHours(13, 30, 0, 0);
-        }
-
-        let workHours: number | null = null;
-        let status = existingRecord?.status || "PRESENT";
-
-        if (checkInTime && checkOutTime) {
-          const diffMs = checkOutTime.getTime() - checkInTime.getTime();
-          workHours = Math.max(0, Number((diffMs / 3600000).toFixed(2)));
-          status = updatedReq.correctionType === "WFH_MARKING" ? "WFH" : (workHours >= 4.5 ? "PRESENT" : "HALF_DAY");
-        } else if (updatedReq.correctionType === "WFH_MARKING") {
-          status = "WFH";
-        } else if (checkInTime && !checkOutTime) {
-          status = "PRESENT";
-        }
-
-        await this.prisma.attendanceRecord.upsert({
-          where: {
-            employeeId_date: {
-              employeeId: updatedReq.employeeId,
-              date: dateStr,
+        finalApproval = true;
+      } else if (isStep1) {
+        updatedReq = await this.prisma.regularizationRequest.update({
+          where: { id },
+          data: { 
+            step1Status: "APPROVED",
+            comments: `Actioned by Step 1 Approver`
+          },
+          include: { employee: true }
+        });
+        // If there's a step 2, we must notify them and wait. Otherwise, final.
+        if (request.step2ApproverId) {
+          const notification = await this.prisma.notification.create({
+            data: {
+              recipientId: request.step2ApproverId,
+              title: "Regularization Request Escalated",
+              body: `${request.employee.firstName} ${request.employee.lastName}'s regularization has been approved by Step 1. Awaiting your final approval.`,
+              type: "APPROVAL_ALERT",
+              isRead: false,
+              data: { referenceId: id }
             }
+          });
+          this.inApp.emitNotification(request.step2ApproverId, notification);
+          finalApproval = false;
+        } else {
+          finalApproval = true;
+        }
+      } else if (isStep2) {
+        if (request.step1Status !== "APPROVED") {
+          throw new BadRequestException("Step 1 must be approved before Step 2.");
+        }
+        updatedReq = await this.prisma.regularizationRequest.update({
+          where: { id },
+          data: { 
+            step2Status: "APPROVED",
+            comments: `Actioned by Step 2 Approver`
           },
-          update: {
-            status,
-            workHours,
-            checkInTime,
-            checkOutTime,
-            isRegularized: true,
-            regularizedById: currentUser.employeeId,
-            notes: `Approved Correction: ${updatedReq.correctionType}`
-          },
-          create: {
+          include: { employee: true }
+        });
+        finalApproval = true;
+      }
+    }
+
+    if (finalApproval) {
+      const dateStr = new Date(updatedReq.attendanceDate);
+
+      // Fetch existing record to get actual punch times
+      const existingRecord = await this.prisma.attendanceRecord.findUnique({
+        where: {
+          employeeId_date: {
             employeeId: updatedReq.employeeId,
             date: dateStr,
-            status,
-            workHours,
-            checkInTime,
-            checkOutTime,
-            isRegularized: true,
-            regularizedById: currentUser.employeeId,
-            notes: `Approved Correction: ${updatedReq.correctionType}`
           }
-        });
+        }
+      });
 
-        // Clear Redis state so it perfectly reconstructs from the newly updated DB record
-        await this.redis.getClient().del(`attendance_state:${updatedReq.employeeId}`);
+      let checkInTime: Date | null = existingRecord?.checkInTime ? new Date(existingRecord.checkInTime) : null;
+      let checkOutTime: Date | null = existingRecord?.checkOutTime ? new Date(existingRecord.checkOutTime) : null;
+
+      if (updatedReq.correctionType === "LATE_CHECKIN") {
+        checkInTime = new Date(dateStr);
+        checkInTime.setUTCHours(4, 30, 0, 0);
+      } else if (updatedReq.correctionType === "EARLY_CHECKOUT") {
+        checkOutTime = new Date(dateStr);
+        checkOutTime.setUTCHours(13, 30, 0, 0);
+        if (!checkInTime) {
+          checkInTime = new Date(dateStr);
+          checkInTime.setUTCHours(4, 30, 0, 0);
+        }
+      } else {
+        checkInTime = new Date(dateStr);
+        checkInTime.setUTCHours(4, 30, 0, 0);
+        checkOutTime = new Date(dateStr);
+        checkOutTime.setUTCHours(13, 30, 0, 0);
       }
 
+      let workHours: number | null = null;
+      let status = existingRecord?.status || "PRESENT";
+
+      if (checkInTime && checkOutTime) {
+        const diffMs = checkOutTime.getTime() - checkInTime.getTime();
+        workHours = Math.max(0, Number((diffMs / 3600000).toFixed(2)));
+        status = updatedReq.correctionType === "WFH_MARKING" ? "WFH" : (workHours >= 4.5 ? "PRESENT" : "HALF_DAY");
+      } else if (updatedReq.correctionType === "WFH_MARKING") {
+        status = "WFH";
+      } else if (checkInTime && !checkOutTime) {
+        status = "PRESENT";
+      }
+
+      await this.prisma.attendanceRecord.upsert({
+        where: {
+          employeeId_date: {
+            employeeId: updatedReq.employeeId,
+            date: dateStr,
+          }
+        },
+        update: {
+          status,
+          workHours,
+          checkInTime,
+          checkOutTime,
+          isRegularized: true,
+          regularizedById: currentUser.employeeId,
+          notes: `Approved Correction: ${updatedReq.correctionType}`
+        },
+        create: {
+          employeeId: updatedReq.employeeId,
+          date: dateStr,
+          status,
+          workHours,
+          checkInTime,
+          checkOutTime,
+          isRegularized: true,
+          regularizedById: currentUser.employeeId,
+          notes: `Approved Correction: ${updatedReq.correctionType}`
+        }
+      });
+
+      await this.redis.getClient().del(`attendance_state:${updatedReq.employeeId}`);
+    }
+
+    if (action === "REJECT" || finalApproval) {
       this.emailService.sendEmail(
         updatedReq.employee.officialEmail,
         `Regularization Request ${action === "APPROVE" ? "Approved" : "Rejected"}`,
         "regularization_status",
-        { status: action, comments: `Actioned by Admin` }
+        { status: action, comments: `Actioned by ${currentUser.role}` }
       ).catch(e => this.logger.error("Failed to send regularization email", e));
 
-      // Notify employee
       const notification = await this.prisma.notification.create({
         data: {
           recipientId: request.employeeId,
           title: `Regularization ${action === "APPROVE" ? "Approved" : "Rejected"}`,
-          body: `Your regularization request for ${request.attendanceDate.toLocaleDateString()} has been ${action === "APPROVE" ? "approved" : "rejected"} by HR/Admin.`,
+          body: `Your regularization request for ${request.attendanceDate.toLocaleDateString()} has been ${action === "APPROVE" ? "approved" : "rejected"}.`,
           type: "APPROVAL_ALERT",
           isRead: false,
           data: { referenceId: id }
         }
       });
       this.inApp.emitNotification(request.employeeId, notification);
-
-      this.inApp.broadcastEvent('attendance.regularization_updated', { employeeId: request.employeeId });
-
-      return updatedReq;
     }
+
+    this.inApp.broadcastEvent('attendance.regularization_updated', { employeeId: request.employeeId });
+
+    return updatedReq;
   }
 
   async getTeamAttendanceView(employeeId: string, dateStr: string) {

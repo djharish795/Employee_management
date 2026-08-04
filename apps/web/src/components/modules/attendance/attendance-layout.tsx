@@ -27,8 +27,8 @@ export default function AttendanceLayout({ children }: AttendanceLayoutProps) {
     ];
 
     // Team Leads have this in Team Workspace. CEO/CTO/HR will have this in Attendance Summary.
-    if (["OM", "SUPER_ADMIN", "ADMIN", "IT"].includes(activeRole)) {
-      items.push({ title: "Overtime Approvals", href: "/attendance/overtime", icon: Clock });
+    if (["OM", "SUPER_ADMIN", "ADMIN", "IT", "CEO", "CTO", "HR"].includes(activeRole)) {
+      items.push({ title: "Team Approvals", href: "/attendance/overtime", icon: Clock });
     }
 
     return items;

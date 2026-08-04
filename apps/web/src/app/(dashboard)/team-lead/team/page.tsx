@@ -81,9 +81,8 @@ export default function MyTeamPage() {
         // Fetch bench
         const bRes = await apiClient.get('/employees/cto-team');
         if (bRes.data && bRes.data.engineers) {
-          // Filter out QA as per requirements, and don't allow Team Leads to assign other Team Leads
+          // Allow QA, but don't allow Team Leads to assign other Team Leads
           const techBench = bRes.data.engineers.filter((e: any) => 
-            e.subTeam !== 'QA' && 
             !e.designation.toLowerCase().includes('lead')
           );
           setBench(techBench);

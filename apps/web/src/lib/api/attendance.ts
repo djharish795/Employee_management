@@ -67,8 +67,9 @@ export const exportAllLogsCsv = () => {
   window.open(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/attendance/export-all`, '_blank');
 };
 
-export const fetchRegularizations = async (): Promise<RegularizationRequest[]> => {
-  const { data } = await apiClient.get("/attendance/regularizations");
+export const fetchRegularizations = async (mode?: any): Promise<RegularizationRequest[]> => {
+  const url = mode && typeof mode === 'string' ? `/attendance/regularizations?mode=${mode}` : "/attendance/regularizations";
+  const { data } = await apiClient.get(url);
   return data;
 };
 

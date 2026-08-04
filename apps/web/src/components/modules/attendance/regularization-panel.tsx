@@ -1,5 +1,6 @@
 "use client";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useAuthStore } from "@/store/auth";
 
 import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -15,6 +16,7 @@ import { fetchRegularizations, submitRegularization, actionRegularization } from
 
 export default function RegularizationPanel({ mode = "personal" }: RegularizationPanelProps) {
   const { role } = usePermissions();
+  const employeeId = useAuthStore((state) => state.employeeId);
   const activeRole = role as any;
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
@@ -28,15 +30,15 @@ export default function RegularizationPanel({ mode = "personal" }: Regularizatio
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const { data: requests = [], refetch } = useQuery<RegularizationRequest[]>({
-    queryKey: ["attendanceRegularizations"],
-    queryFn: fetchRegularizations,
+  const { data: requests = [], refetch } = useQuery({
+    queryKey: ["attendanceRegularizations", mode],
+    queryFn: () => fetchRegularizations(mode),
   });
 
   // Calculate requests based on role scope
-  const filteredRequests = useMemo(() => {
+  const filteredRequests: RegularizationRequest[] = useMemo(() => {
     // Managers and HR review all pending team actions, regular employees see their own list
-    return requests;
+    return requests as RegularizationRequest[];
   }, [requests]);
 
   // Mutations
@@ -111,9 +113,14 @@ export default function RegularizationPanel({ mode = "personal" }: Regularizatio
             <>
               <div className="divide-y divide-slate-100">
                 {filteredRequests.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((req) => {
-                  const showReviewActions =
-                    (activeRole === "MANAGER" && req.managerStatus === "PENDING") ||
-                    (["HR", "ADMIN", "SUPER_ADMIN", "CEO"].includes(activeRole) && req.hrStatus === "PENDING");
+                  const isStep1Approver = req.step1ApproverId === employeeId;
+                  const isStep2Approver = req.step2ApproverId === employeeId;
+                  const isAttendanceAdmin = ["HR", "ADMIN", "SUPER_ADMIN", "CHRO"].includes(activeRole);
+                  
+                  const canApproveStep1 = req.step1Status === "PENDING" && (isStep1Approver || isAttendanceAdmin);
+                  const canApproveStep2 = req.step2Status === "PENDING" && req.step1Status === "APPROVED" && (isStep2Approver || isAttendanceAdmin);
+
+                  const showReviewActions = mode === "org" && (canApproveStep1 || canApproveStep2);
 
                   return (
                     <div key={req.id} className="p-5 flex flex-col sm:flex-row justify-between items-start gap-4 hover:bg-slate-50/20 transition-colors">
@@ -152,40 +159,45 @@ export default function RegularizationPanel({ mode = "personal" }: Regularizatio
                           </div>
                           <ArrowRight className="w-3 h-3 text-slate-300" />
                           <div
-                            className={`flex items-center gap-1 font-bold ${req.managerStatus === "APPROVED"
+                            className={`flex items-center gap-1 font-bold ${req.step1Status === "APPROVED"
                                 ? "text-emerald-600"
-                                : req.managerStatus === "REJECTED"
+                                : req.step1Status === "REJECTED"
                                   ? "text-rose-600"
                                   : "text-amber-500"
                               }`}
                           >
-                            {req.managerStatus === "APPROVED" ? (
+                            {req.step1Status === "APPROVED" ? (
                               <CheckCircle2 className="w-3.5 h-3.5" />
-                            ) : req.managerStatus === "REJECTED" ? (
+                            ) : req.step1Status === "REJECTED" ? (
                               <XCircle className="w-3.5 h-3.5" />
                             ) : (
                               <Clock className="w-3.5 h-3.5" />
                             )}{" "}
-                            Manager
+                            L1 Approval
                           </div>
-                          <ArrowRight className="w-3 h-3 text-slate-300" />
-                          <div
-                            className={`flex items-center gap-1 font-bold ${req.hrStatus === "APPROVED"
-                                ? "text-emerald-600"
-                                : req.hrStatus === "REJECTED"
-                                  ? "text-rose-600"
-                                  : "text-amber-500"
-                              }`}
-                          >
-                            {req.hrStatus === "APPROVED" ? (
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                            ) : req.hrStatus === "REJECTED" ? (
-                              <XCircle className="w-3.5 h-3.5" />
-                            ) : (
-                              <Clock className="w-3.5 h-3.5" />
-                            )}{" "}
-                            HR Manager
-                          </div>
+                          
+                          {req.step2ApproverId && (
+                            <>
+                              <ArrowRight className="w-3 h-3 text-slate-300" />
+                              <div
+                                className={`flex items-center gap-1 font-bold ${req.step2Status === "APPROVED"
+                                    ? "text-emerald-600"
+                                    : req.step2Status === "REJECTED"
+                                      ? "text-rose-600"
+                                      : "text-amber-500"
+                                  }`}
+                              >
+                                {req.step2Status === "APPROVED" ? (
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                ) : req.step2Status === "REJECTED" ? (
+                                  <XCircle className="w-3.5 h-3.5" />
+                                ) : (
+                                  <Clock className="w-3.5 h-3.5" />
+                                )}{" "}
+                                L2 Approval
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
 
@@ -198,7 +210,7 @@ export default function RegularizationPanel({ mode = "personal" }: Regularizatio
                                 handleActionRequest(
                                   req.id,
                                   "REJECT",
-                                  activeRole === "MANAGER" ? "MANAGER" : "HR"
+                                  req.step1Status === "PENDING" ? "MANAGER" : "HR" // Using MANAGER/HR as placeholder for API
                                 )
                               }
                               className="h-8 px-3 rounded-lg border border-rose-200 bg-white hover:bg-rose-50 text-rose-600 text-xs font-bold shadow-sm transition-all"
@@ -210,7 +222,7 @@ export default function RegularizationPanel({ mode = "personal" }: Regularizatio
                                 handleActionRequest(
                                   req.id,
                                   "APPROVE",
-                                  activeRole === "MANAGER" ? "MANAGER" : "HR"
+                                  req.step1Status === "PENDING" ? "MANAGER" : "HR"
                                 )
                               }
                               className="h-8 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all"
@@ -219,7 +231,7 @@ export default function RegularizationPanel({ mode = "personal" }: Regularizatio
                             </button>
                           </div>
                         ) : (
-                          activeRole === "EMPLOYEE" && req.managerStatus === "PENDING" && (
+                          activeRole === "EMPLOYEE" && req.step1Status === "PENDING" && (
                             <button
                               onClick={() => handleDeleteRequest(req.id)}
                               className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded transition-colors"
@@ -294,9 +306,9 @@ export default function RegularizationPanel({ mode = "personal" }: Regularizatio
                 >
                   <option value="MISSING_PUNCH">Missing Punch</option>
                   <option value="LATE_CHECKIN">Late Check-in</option>
-                  <option value="EARLY_CHECKOUT">Early Checkout</option>
-                  <option value="INCORRECT_TIME">Incorrect Time Logged</option>
-                  <option value="WFH_MARKING">Remote WFH Attendance</option>
+                  <option value="EARLY_CHECKOUT">Early Check-out</option>
+                  <option value="WFH_MARKING">WFH Marking</option>
+                  <option value="INCORRECT_TIME">Other / Incorrect Time</option>
                 </select>
               </div>
 

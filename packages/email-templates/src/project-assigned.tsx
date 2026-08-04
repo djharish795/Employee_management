@@ -6,29 +6,35 @@ interface ProjectAssignedEmailProps {
   name: string;
   projectName: string;
   role: string;
-  deadline: string;
   assignedBy: string;
+  projectUrl: string;
+  teamLeadName?: string;
 }
 
 const BRAND_COLOR = "#003366";
 
 export const ProjectAssignedEmail = ({
   name = "Employee",
-  projectName = "Apollo Migration",
-  role = "Frontend Lead",
-  deadline = "Dec 31, 2024",
+  projectName = "New Project",
+  role = "Team Member",
   assignedBy = "Manager",
+  projectUrl = "https://crewbase.naprocs.in/projects",
+  teamLeadName,
 }: ProjectAssignedEmailProps) => {
   return (
-    <MainLayout previewText={`You have been assigned to ${projectName}`}>
-      <Text style={heading}>New Project Assignment</Text>
+    <MainLayout previewText={`Welcome to the ${projectName} team!`}>
+      <Text style={heading}>Welcome Aboard</Text>
       
       <Text style={paragraph}>
-        Hi {name},
+        Dear {name},
       </Text>
       
       <Text style={paragraph}>
-        You have just been assigned to a new project team by <strong>{assignedBy}</strong>!
+        We are thrilled to welcome you to the <strong>{projectName}</strong> team! You have been officially assigned to this project in the capacity of <strong>{role}</strong> by <strong>{assignedBy}</strong>.
+      </Text>
+
+      <Text style={paragraph}>
+        Your skills and expertise are highly valued, and we are confident that you will make a significant contribution to the success of this initiative. We look forward to seeing the great work we will achieve together.
       </Text>
 
       <Hr style={hr} />
@@ -40,19 +46,26 @@ export const ProjectAssignedEmail = ({
         <Text style={detailRow}>
           <strong>Your Role:</strong> {role}
         </Text>
-        <Text style={detailRow}>
-          <strong>Target Deadline:</strong> {deadline}
-        </Text>
+        {teamLeadName && (
+          <Text style={detailRow}>
+            <strong>Team Lead:</strong> {teamLeadName}
+          </Text>
+        )}
       </Section>
       
       <Section style={buttonContainer}>
-        <Button style={button} href="https://crewbase.naprocs.in/projects">
-          View Project Details
+        <Button style={button} href={projectUrl}>
+          Access Project Dashboard
         </Button>
       </Section>
 
       <Text style={paragraph}>
-        Please review the project briefs in the EMS portal and reach out to your team lead if you have any questions.
+        Please review the project briefs in the EMS portal. If you have any questions or need immediate assistance, please reach out to your reporting manager.
+      </Text>
+
+      <Text style={paragraph}>
+        Best regards,<br/>
+        Naprocs Management
       </Text>
     </MainLayout>
   );

@@ -51,20 +51,22 @@ export default function DashboardPanel() {
   });
 
   // Fetch Regularization Requests for Team Approvals
-  const { data: regularizations = [], refetch: refetchRegs } = useQuery({
+  const { data: regularizationsData, refetch: refetchRegs } = useQuery({
     queryKey: ["attendanceRegularizations"],
-    queryFn: fetchRegularizations,
+    queryFn: () => fetchRegularizations("personal"),
   });
+  const regularizations: RegularizationRequest[] = regularizationsData || [];
 
   const isManagerRole = ["MANAGER", "CTO", "CEO", "CHRO", "SUPER_ADMIN", "ADMIN"].includes(activeRole);
   const isHrRole = ["HR", "CHRO", "ADMIN", "SUPER_ADMIN"].includes(activeRole);
 
-  const pendingRequests = regularizations.filter(req =>
-    req.employeeId !== employeeId && (
-      (isManagerRole && req.managerStatus === "PENDING") ||
-      (isHrRole && req.hrStatus === "PENDING")
-    )
-  );
+  const pendingRequests = regularizations.filter((request) => {
+    const req = request as any;
+    return req.employeeId !== employeeId && (
+      (isManagerRole && req.step1Status === "PENDING") ||
+      (isHrRole && req.step2Status === "PENDING" && req.step1Status === "APPROVED")
+    );
+  });
 
   const actionMutation = useMutation({
     mutationFn: (args: { id: string, action: "APPROVE" | "REJECT", approver: "MANAGER" | "HR" }) =>
@@ -664,8 +666,20 @@ export default function DashboardPanel() {
                     }
                   }
 
-                  const formattedCheckIn = checkIns.length > 0 ? checkIns[0].toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (log.checkIn ? new Date(log.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—");
-                  const formattedCheckOut = validCheckOut ? validCheckOut.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
+                  let formattedCheckIn = "—";
+                  if (log.isRegularized && log.checkIn) {
+                    formattedCheckIn = new Date(log.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  } else {
+                    formattedCheckIn = checkIns.length > 0 ? checkIns[0].toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (log.checkIn ? new Date(log.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—");
+                  }
+                  
+                  let formattedCheckOut = "—";
+                  if (log.isRegularized && log.checkOut) {
+                    formattedCheckOut = new Date(log.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  } else {
+                    formattedCheckOut = validCheckOut ? validCheckOut.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
+                  }
+                  
                   const formattedHours = typeof log.hoursWorked === 'number' ? formatDecimalHoursToHMS(log.hoursWorked) : log.hoursWorked;
 
                   let formattedBreak = "—";
