@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { TasksClient } from "@/app/(dashboard)/tasks/TasksClient";
 
 export const metadata = {
@@ -7,7 +8,9 @@ export const metadata = {
 export default function ProjectsWorkspacePage() {
   return (
     <div className="h-full bg-white">
-      <TasksClient mode="TEAM" />
+      <Suspense fallback={<div className="flex items-center justify-center h-full">Loading tasks...</div>}>
+        <TasksClient mode="TEAM" />
+      </Suspense>
     </div>
   );
 }

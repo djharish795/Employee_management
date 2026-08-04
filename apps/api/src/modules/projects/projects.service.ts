@@ -206,7 +206,7 @@ export class ProjectsService {
       );
 
       if (employee.officialEmail) {
-        const projectUrl = `${process.env.FRONTEND_URL || 'https://crewbase.naprocs.in'}/projects/${projectId}`;
+        const projectUrl = `${process.env.FRONTEND_URL || 'https://crewbase.naprocs.in'}/tasks?project=${projectId}`;
         await this.emailService.sendEmail(
           employee.officialEmail,
           `New Project Assignment: ${project.name}`,

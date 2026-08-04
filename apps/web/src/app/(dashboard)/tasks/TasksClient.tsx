@@ -12,15 +12,19 @@ import { TaskDetailsModal } from "@/components/modules/tasks/TaskDetailsModal";
 import { NewTaskModal } from "@/components/modules/tasks/NewTaskModal";
 import { useAuthStore } from "@/store/auth";
 import { useSearchStore } from "@/store/search";
+import { useSearchParams } from "next/navigation";
 
 interface TasksClientProps {
   mode?: "INDIVIDUAL" | "TEAM";
 }
 
 export function TasksClient({ mode = "INDIVIDUAL" }: TasksClientProps) {
+  const searchParams = useSearchParams();
+  const initialProject = searchParams.get("project") || "MY_TASKS";
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
-  const [selectedProject, setSelectedProject] = useState<string>("MY_TASKS");
+  const [selectedProject, setSelectedProject] = useState<string>(initialProject);
   const [activeTab, setActiveTab] = useState<"SUMMARY" | "LIST" | "BOARD" | "TEAM">("BOARD");
   const [loading, setLoading] = useState(true);
   const [accessDeniedError, setAccessDeniedError] = useState<string | null>(null);
