@@ -15,13 +15,15 @@ export interface AttendanceLog {
 export interface RegularizationRequest {
   id: string;
   employeeId: string;
-  employeeName?: string;
+  employeeName: string;
   attendanceDate: string;
   reason: string;
-  correctionType: "MISSING_PUNCH" | "INCORRECT_TIME" | "WFH_MARKING" | "LATE_CHECKIN" | "EARLY_CHECKOUT";
+  correctionType: "MISSING_PUNCH" | "INCORRECT_TIME" | "LATE_CHECKIN" | "EARLY_CHECKOUT" | "WFH_MARKING" | "OTHER";
   attachmentName?: string;
-  managerStatus: "APPROVED" | "PENDING" | "REJECTED";
-  hrStatus: "APPROVED" | "PENDING" | "REJECTED";
+  step1Status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  step2Status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  step1ApproverId?: string | null;
+  step2ApproverId?: string | null;
   submittedDate: string;
   comments?: string;
 }

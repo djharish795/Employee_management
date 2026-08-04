@@ -61,8 +61,8 @@ export default function DashboardPanel() {
 
   const pendingRequests = regularizations.filter(req =>
     req.employeeId !== employeeId && (
-      (isManagerRole && req.managerStatus === "PENDING") ||
-      (isHrRole && req.hrStatus === "PENDING")
+      (isManagerRole && req.step1Status === "PENDING") ||
+      (isHrRole && req.step2Status === "PENDING" && req.step1Status === "APPROVED")
     )
   );
 

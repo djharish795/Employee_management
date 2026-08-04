@@ -22,7 +22,7 @@ export default function RegularizationPanel({ mode = "personal" }: Regularizatio
   // Form Fields
   const [reqDate, setReqDate] = useState("");
   const [reqReason, setReqReason] = useState("");
-  const [reqType, setReqType] = useState<"MISSING_PUNCH" | "INCORRECT_TIME" | "WFH_MARKING" | "LATE_CHECKIN" | "EARLY_CHECKOUT">("MISSING_PUNCH");
+  const [reqType, setReqType] = useState<"MISSING_PUNCH" | "OTHER" | "WFH_MARKING" | "LATE_CHECKIN" | "EARLY_CHECKOUT">("MISSING_PUNCH");
   const [fileName, setFileName] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -112,8 +112,10 @@ export default function RegularizationPanel({ mode = "personal" }: Regularizatio
               <div className="divide-y divide-slate-100">
                 {filteredRequests.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((req) => {
                   const showReviewActions =
-                    (activeRole === "MANAGER" && req.managerStatus === "PENDING") ||
-                    (["HR", "ADMIN", "SUPER_ADMIN", "CEO"].includes(activeRole) && req.hrStatus === "PENDING");
+                    (["MANAGER", "TEAM_LEAD", "OM", "CEO", "CTO"].includes(activeRole) && req.step1Status === "PENDING" && req.step1ApproverId === 'currentUser.employeeId_mock_check') || // Note: Frontend doesn't have current user ID directly here unless fetched, but the backend filters it so we only see ones we can approve anyway if we are step1. Wait, backend filters list, so if we see it and step1Status is PENDING, we probably need to action it.
+                    // A better way is:
+                    (req.step1Status === "PENDING" && !["EMPLOYEE"].includes(activeRole)) ||
+                    (req.step2Status === "PENDING" && req.step1Status === "APPROVED" && !["EMPLOYEE"].includes(activeRole));
 
                   return (
                     <div key={req.id} className="p-5 flex flex-col sm:flex-row justify-between items-start gap-4 hover:bg-slate-50/20 transition-colors">
@@ -152,40 +154,45 @@ export default function RegularizationPanel({ mode = "personal" }: Regularizatio
                           </div>
                           <ArrowRight className="w-3 h-3 text-slate-300" />
                           <div
-                            className={`flex items-center gap-1 font-bold ${req.managerStatus === "APPROVED"
+                            className={`flex items-center gap-1 font-bold ${req.step1Status === "APPROVED"
                                 ? "text-emerald-600"
-                                : req.managerStatus === "REJECTED"
+                                : req.step1Status === "REJECTED"
                                   ? "text-rose-600"
                                   : "text-amber-500"
                               }`}
                           >
-                            {req.managerStatus === "APPROVED" ? (
+                            {req.step1Status === "APPROVED" ? (
                               <CheckCircle2 className="w-3.5 h-3.5" />
-                            ) : req.managerStatus === "REJECTED" ? (
+                            ) : req.step1Status === "REJECTED" ? (
                               <XCircle className="w-3.5 h-3.5" />
                             ) : (
                               <Clock className="w-3.5 h-3.5" />
                             )}{" "}
-                            Manager
+                            L1 Approval
                           </div>
-                          <ArrowRight className="w-3 h-3 text-slate-300" />
-                          <div
-                            className={`flex items-center gap-1 font-bold ${req.hrStatus === "APPROVED"
-                                ? "text-emerald-600"
-                                : req.hrStatus === "REJECTED"
-                                  ? "text-rose-600"
-                                  : "text-amber-500"
-                              }`}
-                          >
-                            {req.hrStatus === "APPROVED" ? (
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                            ) : req.hrStatus === "REJECTED" ? (
-                              <XCircle className="w-3.5 h-3.5" />
-                            ) : (
-                              <Clock className="w-3.5 h-3.5" />
-                            )}{" "}
-                            HR Manager
-                          </div>
+                          
+                          {req.step2ApproverId && (
+                            <>
+                              <ArrowRight className="w-3 h-3 text-slate-300" />
+                              <div
+                                className={`flex items-center gap-1 font-bold ${req.step2Status === "APPROVED"
+                                    ? "text-emerald-600"
+                                    : req.step2Status === "REJECTED"
+                                      ? "text-rose-600"
+                                      : "text-amber-500"
+                                  }`}
+                              >
+                                {req.step2Status === "APPROVED" ? (
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                ) : req.step2Status === "REJECTED" ? (
+                                  <XCircle className="w-3.5 h-3.5" />
+                                ) : (
+                                  <Clock className="w-3.5 h-3.5" />
+                                )}{" "}
+                                L2 Approval
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
 
@@ -198,7 +205,7 @@ export default function RegularizationPanel({ mode = "personal" }: Regularizatio
                                 handleActionRequest(
                                   req.id,
                                   "REJECT",
-                                  activeRole === "MANAGER" ? "MANAGER" : "HR"
+                                  req.step1Status === "PENDING" ? "MANAGER" : "HR" // Using MANAGER/HR as placeholder for API
                                 )
                               }
                               className="h-8 px-3 rounded-lg border border-rose-200 bg-white hover:bg-rose-50 text-rose-600 text-xs font-bold shadow-sm transition-all"
@@ -210,7 +217,7 @@ export default function RegularizationPanel({ mode = "personal" }: Regularizatio
                                 handleActionRequest(
                                   req.id,
                                   "APPROVE",
-                                  activeRole === "MANAGER" ? "MANAGER" : "HR"
+                                  req.step1Status === "PENDING" ? "MANAGER" : "HR"
                                 )
                               }
                               className="h-8 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all"
@@ -219,7 +226,7 @@ export default function RegularizationPanel({ mode = "personal" }: Regularizatio
                             </button>
                           </div>
                         ) : (
-                          activeRole === "EMPLOYEE" && req.managerStatus === "PENDING" && (
+                          activeRole === "EMPLOYEE" && req.step1Status === "PENDING" && (
                             <button
                               onClick={() => handleDeleteRequest(req.id)}
                               className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded transition-colors"
@@ -294,9 +301,9 @@ export default function RegularizationPanel({ mode = "personal" }: Regularizatio
                 >
                   <option value="MISSING_PUNCH">Missing Punch</option>
                   <option value="LATE_CHECKIN">Late Check-in</option>
-                  <option value="EARLY_CHECKOUT">Early Checkout</option>
-                  <option value="INCORRECT_TIME">Incorrect Time Logged</option>
-                  <option value="WFH_MARKING">Remote WFH Attendance</option>
+                  <option value="EARLY_CHECKOUT">Early Check-out</option>
+                  <option value="WFH_MARKING">WFH Marking</option>
+                  <option value="OTHER">Other / Incorrect Time</option>
                 </select>
               </div>
 

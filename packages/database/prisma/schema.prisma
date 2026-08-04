@@ -1351,11 +1351,13 @@ model RegularizationRequest {
   reason         String
   correctionType RegularizationCorrectionType
   attachmentName String?
-  managerStatus  RegularizationStatus         @default(PENDING)
-  hrStatus       RegularizationStatus         @default(PENDING)
-  submittedDate  DateTime                     @default(now())
-  comments       String?
-  employee       Employee                     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  step1Status     RegularizationStatus         @default(PENDING) @map("managerStatus")
+  step2Status     RegularizationStatus         @default(PENDING) @map("hrStatus")
+  step1ApproverId String?
+  step2ApproverId String?
+  submittedDate   DateTime                     @default(now())
+  comments        String?
+  employee        Employee                     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@index([employeeId])
   @@map("regularization_requests")

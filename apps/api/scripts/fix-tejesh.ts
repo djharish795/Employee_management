@@ -15,7 +15,7 @@ async function fixTejesh() {
       console.log('Tejesh not found');
       return;
     }
-    
+
     console.log(`Found Tejesh: ${tejesh.id}`);
 
     // Today's date in UTC that corresponds to the shift date
@@ -74,7 +74,7 @@ async function fixTejesh() {
         title: { contains: 'Overtime', mode: 'insensitive' },
       }
     });
-    
+
     console.log(`Deleted ${deletedNotes.count} overtime notifications`);
 
     // 4. Try to delete Redis state
@@ -94,7 +94,7 @@ async function fixTejesh() {
     } catch (e: any) {
       console.log('Could not clear redis state automatically. Please wait or it will resolve on next punch.', e.message);
     }
-    
+
   } catch (err) {
     console.error(err);
   } finally {

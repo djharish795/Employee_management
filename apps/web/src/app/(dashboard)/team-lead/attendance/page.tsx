@@ -7,6 +7,7 @@ import { fetchTeamAttendanceView } from "@/lib/api/attendance";
 import { toast } from "react-hot-toast";
 import { format, subDays, addDays } from "date-fns";
 import { PendingOvertimeTable } from "@/components/modules/team-lead/pending-overtime-table";
+import RegularizationPanel from "@/components/modules/attendance/regularization-panel";
 
 export default function TeamAttendancePage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -153,6 +154,11 @@ export default function TeamAttendancePage() {
         ) : (
           <>
             <PendingOvertimeTable />
+
+            <div className="mt-6 mb-6">
+              <h2 className="text-base font-extrabold text-slate-900 mb-4">Team Regularizations</h2>
+              <RegularizationPanel mode="org" />
+            </div>
 
             {/* Real-time Status Table */}
             <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
