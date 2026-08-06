@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, CalendarCheck, Calendar,
   MonitorSmartphone, BookOpen, Network, Settings, LogOut, Menu, X, ChevronLeft, Plus,
-  MessageSquare, CheckSquare
+  MessageSquare, CheckSquare, FileText
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { useRbac } from '@/hooks/use-rbac';
@@ -16,6 +16,7 @@ import { apiClient } from '@/lib/api/client';
 const NAV_ITEMS = [
   { title: 'Dashboard',     icon: LayoutDashboard, href: '/employee/dashboard' },
   { title: 'Tasks',         icon: CheckSquare,     href: '/tasks' },
+  { title: 'Work Reports',  icon: FileText,        href: '/employee/work-reports' },
   { title: 'Connect',       icon: MessageSquare,   href: '/connect' },
   { title: 'Attendance',    icon: CalendarCheck,   href: '/attendance' },
   { title: 'Leaves',        icon: Calendar,        href: '/leaves' },

@@ -18,7 +18,13 @@ export const renderEmailHtml = async (
   switch (templateName.toUpperCase()) {
     case "WELCOME":
     case "ONBOARDING":
-      element = React.createElement(WelcomeEmail, context);
+    case "WELCOME_CREDENTIALS":
+      element = React.createElement(WelcomeEmail, {
+        name: context.firstName || context.name || 'Employee',
+        email: context.email,
+        temporaryPassword: context.password || context.temporaryPassword,
+        loginUrl: context.loginUrl,
+      });
       break;
     case "LEAVE_APPROVED":
       element = React.createElement(LeaveApprovedEmail, context);

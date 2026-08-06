@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, CalendarCheck, Calendar,
   MonitorSmartphone, BookOpen, Network, Settings, LogOut, Menu, X, ChevronLeft,
-  MessageSquare, CheckSquare, Users, Star, Lock
+  MessageSquare, CheckSquare, Users, Star, Lock, FileText
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { useRbac } from '@/hooks/use-rbac';
@@ -16,6 +16,7 @@ import { apiClient } from '@/lib/api/client';
 const INDIVIDUAL_NAV_ITEMS = [
   { title: 'Dashboard',     icon: LayoutDashboard, href: '/employee/dashboard' },
   { title: 'Tasks',         icon: CheckSquare,     href: '/tasks' },
+  { title: 'Work Reports',  icon: FileText,        href: '/employee/work-reports' },
   { title: 'Connect',       icon: MessageSquare,   href: '/connect' },
   { title: 'Attendance',    icon: CalendarCheck,   href: '/attendance' },
   { title: 'Leaves',        icon: Calendar,        href: '/leaves' },
@@ -27,6 +28,7 @@ const INDIVIDUAL_NAV_ITEMS = [
 const TEAM_NAV_ITEMS = [
   { title: 'Dashboard',         icon: LayoutDashboard, href: '/team-lead/dashboard' },
   { title: 'My Team',           icon: Users,           href: '/team-lead/team' },
+  { title: 'Team Reports',      icon: FileText,        href: '/team-lead/work-reports' },
   { title: 'Team Attendance',   icon: CalendarCheck,   href: '/team-lead/attendance' },
   { title: 'Team Leave',        icon: Calendar,        href: '/team-lead/leaves' },
   { title: 'Task Board',        icon: CheckSquare,     href: '/team-lead/task-board' },

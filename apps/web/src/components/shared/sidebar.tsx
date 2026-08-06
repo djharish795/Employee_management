@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, CalendarCheck, Calendar, 
   MonitorSmartphone, ShieldCheck, History, UserPlus, 
   UserMinus, BookOpen, GitBranch, UserSearch, 
-  Banknote, TrendingUp, Network, Settings, LogOut, Plus
+  Banknote, TrendingUp, Network, Settings, LogOut, Plus, FileText, CheckSquare
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 
@@ -20,6 +20,18 @@ const getDashboardPath = (role: string | null) => {
   if (['CFO', 'FINANCE'].includes(r)) return '/finance/dashboard';
   if (['CHRO', 'HR'].includes(r)) return '/hr/dashboard';
   return '/employee/dashboard';
+};
+
+const getWorkReportsPath = (role: string | null) => {
+  if (!role) return '/employee/work-reports';
+  const r = role.toUpperCase();
+  if (['TEAM_LEAD', 'MANAGER'].includes(r)) return '/team-lead/work-reports';
+  if (['CEO', 'COO'].includes(r)) return '/ceo/work-reports';
+  if (['CTO'].includes(r)) return '/ceo/work-reports'; // fallback to ceo view or specific cto view
+  if (['CFO', 'FINANCE'].includes(r)) return '/ceo/work-reports';
+  if (['CHRO', 'HR'].includes(r)) return '/ceo/work-reports';
+  if (['OM', 'CRM', 'CEM', 'OE'].includes(r)) return `/${r.toLowerCase()}/work-reports`;
+  return '/employee/work-reports';
 };
 
 const getRoleTitle = (role: string | null) => {
@@ -50,10 +62,12 @@ export function Sidebar() {
     router.push('/login');
   };
   const dashboardPath = getDashboardPath(role);
+  const workReportsPath = getWorkReportsPath(role);
   const roleTitle = getRoleTitle(role);
 
   const allNavItems = [
     { title: 'Dashboard', icon: LayoutDashboard, href: dashboardPath },
+    { title: 'Tasks', icon: CheckSquare, href: '/tasks' },
     { title: 'Employees', icon: Users, href: '/employees' },
     { title: 'Attendance', icon: CalendarCheck, href: '/attendance' },
     { title: 'Leaves', icon: Calendar, href: '/leaves' },
@@ -68,11 +82,12 @@ export function Sidebar() {
     { title: 'Payroll', icon: Banknote, href: '/payroll' },
     { title: 'Performance', icon: TrendingUp, href: '/performance' },
     { title: 'Org Chart', icon: Network, href: '/org-chart' },
+    { title: 'Work Reports', icon: FileText, href: workReportsPath },
     { title: 'Settings', icon: Settings, href: '/settings' },
   ];
 
   const employeeAllowedModules = [
-    'Dashboard', 'Attendance', 'Leaves', 'Assets', 'Knowledge Base', 'Org Chart', 'Settings'
+    'Dashboard', 'Tasks', 'Attendance', 'Leaves', 'Work Reports', 'Assets', 'Knowledge Base', 'Org Chart', 'Settings'
   ];
 
   const isEmployee = !role || role.toUpperCase() === 'EMPLOYEE';

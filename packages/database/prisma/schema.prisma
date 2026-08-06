@@ -1707,6 +1707,7 @@ model WorkReport {
   reportType      String
   title           String
   content         Json?
+  attachments     Json?          @default("[]")
   priority        ReportPriority @default(MEDIUM)
   status          ReportStatus   @default(PENDING)
   submittedAt     DateTime       @default(now())

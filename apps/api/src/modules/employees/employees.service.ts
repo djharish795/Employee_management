@@ -200,12 +200,15 @@ export class EmployeesService {
       throw new NotFoundException("Draft not found or expired");
     }
 
-    // Force the status to ONBOARDING so they don't appear in the main directory yet
-    draftData.status = "ONBOARDING";
+    // Set the status to ACTIVE so they appear in the main directory immediately
+    draftData.status = "ACTIVE";
 
-    // Generate User credentials
-    const tempPassword = crypto.randomBytes(6).toString('hex');
+    // Generate User credentials (hardcoded for easy local testing)
+    const tempPassword = "ChangeMe123!";
     const passwordHash = await bcrypt.hash(tempPassword, 10);
+    
+    // Log credentials to terminal for local development/testing visibility
+    this.logger.log(`\n==============================================\n🎉 NEW ACCOUNT GENERATED\nEmail: ${draftData.officialEmail}\nPassword: ${tempPassword}\n==============================================\n`);
 
     const employee = await this.createEmployee(draftData as CreateEmployeeDto);
 
